@@ -7,7 +7,11 @@ dependencies = [
     "torch",
     "numpy",
     "wandb",
-    "tqdm"
+    "tqdm",
+    "matplotlib",
+    "ipykernel",
+    "jupyter",
+    "scikit-learn"
 ]
 
 [build-system]

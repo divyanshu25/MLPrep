@@ -21,10 +21,15 @@ class Model(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.fc1 = torch.nn.Linear(1, 10)
+        # self.batch_norm1 = torch.nn.BatchNorm1d(10)
+        self.relu = torch.nn.ReLU()
         self.fc2 = torch.nn.Linear(10, 1)
 
     def forward(self, x):
-        return self.fc2(self.fc1(x))
+        x = self.fc1(x)
+        # x = self.batch_norm1(x)
+        x = self.relu(x)
+        return self.fc2(x)
 
 class Trainer:
     def __init__(self):
@@ -78,19 +83,26 @@ class Trainer:
         self.model.load_state_dict(torch.load(model_path))
         self.model.eval()
         total_loss = 0
-        for x, y in tqdm(self.test_loader, desc="Testing"):
-            with torch.no_grad(): # Do this to avoid computing the gradients
-                y_pred = self.model(x) # this will give the prdicted value for the given x
-                loss = self.loss_function(y_pred, y) # compute the loss between the predicted and the actual value
-                total_loss += loss.item()
-                for y, y_pred, x in zip(y, y_pred, x):
-                    print(f"Actual: {y.item()}, Predicted: {y_pred.item()}, Input: {x.item()}\n")
+        for runs in range(5):
+            for x, y in tqdm(self.test_loader, desc="Testing"):
+                with torch.no_grad(): # Do this to avoid computing the gradients
+                    y_pred = self.model(x) # this will give the prdicted value for the given x
+                    loss = self.loss_function(y_pred, y) # compute the loss between the predicted and the actual value
+                    total_loss += loss.item()
+                    for y, y_pred, x in zip(y, y_pred, x):
+                        print(f"Actual: {y.item()}, Predicted: {y_pred.item()}, Input: {x.item()}\n")
+        total_loss /= 5
         self.model.train()
         print(f"Total loss: {total_loss}")
+        self.wandb.log({"total_loss": total_loss})
 
 if __name__ == "__main__":
     # trainer = Trainer()
     # trainer.train(epochs=10)
-    # wandb.finish()
     trainer = Trainer()
     trainer.run_model_inference(model_path="models/multiply2_model_version_a5cd7338-edf9-4003-bc90-59e448667799.pth")
+    wandb.finish()
+    trainer = Trainer()
+    trainer.run_model_inference(model_path="models/multiply2_model_version_a0505c3c-7081-4829-b201-32bfa7a28d15.pth")
+    wandb.finish()
+
