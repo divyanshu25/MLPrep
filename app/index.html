@@ -158,7 +158,7 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .md hr { border-color:var(--line); margin:1.4rem 0; }
   .md input[type=checkbox] { accent-color:#ffa116; width:.95rem; height:.95rem; margin-right:.35rem; }
   .md img { max-width:100%; }
-  /* reading view: centered ~72ch column; on wide viewports an "On this page"
+  /* reading view: centered ~90ch column; on wide viewports an "On this page"
      rail sits fixed on the right and the column re-centers in the remaining
      space (padding-right on the wrap). Below 1280px the rail collapses into
      a "Contents" details block at the top of the document instead. */
@@ -1080,7 +1080,7 @@ async function viewNotes(app, encodedPath) {
                anchor: n === 'notes.md' || n === 'readme.md' };
     };
     app.innerHTML = `
-    <div class="max-w-3xl mx-auto p-8">
+    <div class="max-w-4xl mx-auto p-8">
       <h1 class="page-title mb-1">Notes</h1>
       <div class="text-[13px] text-mut mb-1">Each module in reading order: read the notes, run the notebooks, then practice the exercises.</div>
       <div class="microlabel text-mut mb-6">checklist ticks in notes save locally in this browser, never to the repo</div>
@@ -1134,7 +1134,7 @@ async function viewNotes(app, encodedPath) {
        <a href="#/lab/${encodeURIComponent(current)}" class="btn btn-text text-mut">Playground</a>` : '';
   app.innerHTML = `
   <div id="doc-wrap" class="doc-wrap">
-    <div class="max-w-[72ch] mx-auto px-6 py-8">
+    <div class="max-w-[90ch] mx-auto px-6 py-8">
       ${crumbRow(nav, current, title, extras)}
       <div class="md" id="md-root">${md(doc.content)}</div>
       ${docFooter(nav)}
