@@ -1,4 +1,4 @@
-# ML System Design — Compact Reference
+# ML System Design - Compact Reference
 
 ## The 10-step framework (one page)
 
@@ -51,24 +51,24 @@ data/features, 10 model/training, 10 serving/scale math, 5 monitoring/iteration.
 
 ## Red flags interviewers listen for
 
-1. **Designing before asking** — no product goal, no scale numbers.
-2. **Jumping to the fanciest model** — no baseline, no justification ladder.
+1. **Designing before asking** - no product goal, no scale numbers.
+2. **Jumping to the fanciest model** - no baseline, no justification ladder.
 3. **"Optimize accuracy"** on an imbalanced problem, or any single unguarded
    metric.
 4. **No answer for where labels come from**, or labels that contain the future.
 5. **Random train/test split** on temporal data.
-6. **Ignoring the offline/online gap** — treating offline AUC as the launch
+6. **Ignoring the offline/online gap** - treating offline AUC as the launch
    criterion.
-7. **Unserveable designs** — big model over the whole corpus per request; never
+7. **Unserveable designs** - big model over the whole corpus per request; never
    mentions latency.
-8. **No monitoring story** — ships the model and walks away; can't say what
+8. **No monitoring story** - ships the model and walks away; can't say what
    pages them when an upstream field goes null.
-9. **Name-dropping without mechanism** — "use a feature store / two-tower /
+9. **Name-dropping without mechanism** - "use a feature store / two-tower /
    vector DB" but can't derive the problem it solves.
-10. **No feedback-loop awareness** — trains on logs the old model produced,
+10. **No feedback-loop awareness** - trains on logs the old model produced,
     never mentions position/selection bias or exploration.
-11. **Big-bang launch** — 0% → 100% with no shadow/canary/rollback.
-12. **Can't do arithmetic** — refuses or fumbles back-of-envelope QPS/memory
+11. **Big-bang launch** - 0% → 100% with no shadow/canary/rollback.
+12. **Can't do arithmetic** - refuses or fumbles back-of-envelope QPS/memory
     estimates.
 
 ---
@@ -80,7 +80,7 @@ data/features, 10 model/training, 10 serving/scale math, 5 monitoring/iteration.
 | **Training/serving skew** | Any systematic difference between features/preprocessing at training vs serving time; classic cause of "great offline, flat online." |
 | **Point-in-time correctness** | Training features computed only from data timestamped strictly before the example's prediction moment. |
 | **As-of join** | Join that picks each feature's latest value *before* the label event's timestamp; requires feature history. |
-| **Feature store** | Single feature definition materialized twice — offline (point-in-time training sets) and online (low-latency serving) — to guarantee consistency. |
+| **Feature store** | Single feature definition materialized twice - offline (point-in-time training sets) and online (low-latency serving) - to guarantee consistency. |
 | **Data drift (covariate shift)** | $P(x)$ changes while $P(y\|x)$ holds; inputs move to thin-data regions. |
 | **Concept drift** | $P(y\|x)$ changes; the same input now means something else (fraud tactics, pandemic behavior). |
 | **Label leakage** | A feature that (partly) encodes the label, usually via future information; inflates offline metrics. |
@@ -92,7 +92,7 @@ data/features, 10 model/training, 10 serving/scale math, 5 monitoring/iteration.
 | **Candidate generation / retrieval** | Cheap first funnel stage cutting $10^9$ items to $10^3$ using precomputable scores. |
 | **Two-tower (bi-encoder)** | Score constrained to $f(u)\cdot g(i)$ so item vectors precompute and ANN handles retrieval; no cross features. |
 | **ANN index** | Approximate nearest-neighbor structure answering top-k by similarity over $10^9$ vectors in ~ms. |
-| **Cross-encoder** | Model that reads query/user and item together (full interaction); accurate but must run per pair — final-stage only. |
+| **Cross-encoder** | Model that reads query/user and item together (full interaction); accurate but must run per pair - final-stage only. |
 | **Re-ranking** | Slate-level pass after pointwise ranking: diversity, dedupe, freshness, business rules. |
 | **In-batch negatives** | Contrastive training trick: other positives in the batch serve as free negatives (needs popularity correction). |
 | **Negative downsampling recalibration** | After downsampling negatives by $w$, map scores back: $p = p'/(p'+(1-p')/w)$. |
@@ -108,7 +108,7 @@ data/features, 10 model/training, 10 serving/scale math, 5 monitoring/iteration.
 | **PSI** | Population stability index; per-feature train-vs-live distribution distance, conventional alert ~0.2. |
 | **Label horizon / delay** | Time until ground truth exists (7-day conversion, 60-day chargeback); bounds training freshness and forces proxy labels. |
 | **Data parallelism** | Replicate model, shard the batch, all-reduce (average) gradients; mathematically = large-batch SGD. |
-| **Model parallelism (pipeline/tensor)** | Split the model itself across devices — by layers (pipeline, micro-batched) or within layers (tensor). |
+| **Model parallelism (pipeline/tensor)** | Split the model itself across devices - by layers (pipeline, micro-batched) or within layers (tensor). |
 | **Linear scaling rule** | Batch $\times k$ ⇒ LR $\times k$ (gradient variance drops by $k$); needs warmup, breaks at very large $k$. |
 | **KV cache** | Stored attention keys/values for generated tokens so each new token avoids recomputing the past; makes LLM serving memory-bound. |
 | **RAG** | Retrieve relevant chunks, paste into the prompt, generate a grounded answer; knowledge updates become index updates. |

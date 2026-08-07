@@ -1,4 +1,4 @@
-"""mlp_numpy.py — a vectorized 2-layer MLP in pure numpy, everything by hand.
+"""mlp_numpy.py - a vectorized 2-layer MLP in pure numpy, everything by hand.
 
 Architecture (classic 2-layer / 1-hidden-layer MLP):
 
@@ -43,7 +43,7 @@ def stable_logsumexp(Z):
     """log(sum_j exp(z_j)) computed without overflow.
 
     exp(z) overflows float64 at z ~ 709 (and float32 at ~88); logits get there
-    easily mid-training. Softmax is shift-invariant — subtracting any constant
+    easily mid-training. Softmax is shift-invariant - subtracting any constant
     m from all logits leaves p unchanged:
         exp(z_i - m) / sum_j exp(z_j - m) = p_i        (e^{-m} cancels)
     Choosing m = max(z) makes every exponent <= 0 (no overflow) and at least
@@ -92,7 +92,7 @@ def init_params(D, H, C):
 def forward(params, X):
     """Forward pass; returns logits and a cache of intermediates.
 
-    The cache is not an optimization detail — backward's local gradients are
+    The cache is not an optimization detail - backward's local gradients are
     functions of forward values (dZ1 needs the ReLU mask, dW2 needs A1, dW1
     needs X), so they must be kept alive. This is why training memory scales
     with activations."""
@@ -124,7 +124,7 @@ def backward(params, cache, dZ2):
         gradient is the column sum of G.
 
       Sanity check that generalizes: the shapes only fit one way
-        (D,H) = (D,N)@(N,H), (N,H) = (N,C)@(C,H) — memorize the rule, recover
+        (D,H) = (D,N)@(N,H), (N,H) = (N,C)@(C,H) - memorize the rule, recover
         the transposes from shapes under pressure.
     """
     X, Z1, A1 = cache
@@ -190,7 +190,7 @@ def gradient_check():
 
 
 # ----------------------------------------------------------------------------
-# Optimizers — same update interface so the comparison is apples-to-apples
+# Optimizers - same update interface so the comparison is apples-to-apples
 # ----------------------------------------------------------------------------
 def make_sgd(lr):
     def update(params, grads, t):
@@ -204,7 +204,7 @@ def make_momentum(lr, beta=0.9):
     def update(params, grads, t):
         for k in params:
             # v accumulates an exponentially-decayed sum of past gradients;
-            # for a persistent gradient g it converges to g/(1-beta) — up to
+            # for a persistent gradient g it converges to g/(1-beta) - up to
             # 10x SGD's step along consistent directions, while oscillating
             # components cancel. (Derivation in notes.md section f.)
             v[k] = beta * v.get(k, 0.0) + grads[k]
@@ -219,7 +219,7 @@ def make_adam(lr, beta1=0.9, beta2=0.999, eps=1e-8):
             m[k] = beta1 * m.get(k, 0.0) + (1 - beta1) * grads[k]
             v[k] = beta2 * v.get(k, 0.0) + (1 - beta2) * grads[k] ** 2
             # Bias correction: EMAs start at 0, so E[m_t] = g * (1 - beta1^t)
-            # (geometric series — derived in notes.md). Dividing by 1-beta^t
+            # (geometric series - derived in notes.md). Dividing by 1-beta^t
             # unbiases them; without it, step 1's update is ~sqrt(1/(1-beta2))
             # ≈ 30x too large. The correction fades as t grows.
             mhat = m[k] / (1 - beta1 ** t)
@@ -248,11 +248,11 @@ def train(X, y, optimizer_factory, n_steps=300, H=64, log_every=30):
 
 def compare_optimizers():
     print("=" * 72)
-    print("PART 2: train on 3-class spiral — SGD vs momentum vs Adam")
+    print("PART 2: train on 3-class spiral - SGD vs momentum vs Adam")
     print("=" * 72)
     X, y = make_spiral(points_per_class=100, n_classes=3)
     print(f"dataset: {X.shape[0]} points, 2 features, 3 classes (spiral)")
-    print("(a linear model tops out near ~50% here — the hidden layer does the work)\n")
+    print("(a linear model tops out near ~50% here - the hidden layer does the work)\n")
 
     runs = {
         "SGD(lr=1.0)":            lambda: make_sgd(lr=1.0),

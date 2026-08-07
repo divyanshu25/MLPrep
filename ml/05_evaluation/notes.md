@@ -1,16 +1,16 @@
 # Evaluation: how to know if your model is any good
 
 The theme of this note: **every metric is an answer to a specific question.** If you
-don't know what question a metric answers, you don't understand the metric — you're
+don't know what question a metric answers, you don't understand the metric - you're
 just pattern-matching to "bigger number good." We'll build every metric from scratch,
 with tiny numeric examples first, formulas second, and derivations in full.
 
 Companion code in this directory:
 
-- `metrics_scratch.py` — confusion matrix, precision/recall/F1, ROC/AUC (two ways), PR/AP, imbalance demo
-- `bias_variance_experiment.py` — empirical bias²/variance decomposition + k-fold CV
-- `calibration_scratch.py` — reliability tables, ECE, temperature scaling
-- `../../src/roc_curve.ipynb` — companion notebook with a plotted ROC curve (this note builds the same curve by hand, in words)
+- `metrics_scratch.py` - confusion matrix, precision/recall/F1, ROC/AUC (two ways), PR/AP, imbalance demo
+- `bias_variance_experiment.py` - empirical bias²/variance decomposition + k-fold CV
+- `calibration_scratch.py` - reliability tables, ECE, temperature scaling
+- `../../src/roc_curve.ipynb` - companion notebook with a plotted ROC curve (this note builds the same curve by hand, in words)
 
 ---
 
@@ -27,7 +27,7 @@ you've ever heard of is some ratio of these four numbers.
 
 Mnemonic: the second letter is what the model *said* (P/N), the first letter is
 whether it was *right* (T/F). A **false negative** is a positive example the model
-called negative — the model said N, and that was False.
+called negative - the model said N, and that was False.
 
 Concrete running example. A cancer screening test on 1000 people, 10 of whom actually
 have cancer:
@@ -39,7 +39,7 @@ have cancer:
 
 Now the metrics, each answering a distinct question:
 
-**Accuracy** — "what fraction of predictions were right?"
+**Accuracy** - "what fraction of predictions were right?"
 
 $$\text{Acc} = \frac{TP + TN}{TP + TN + FP + FN} = \frac{8 + 900}{1000} = 0.908$$
 
@@ -47,15 +47,15 @@ Looks decent. But note: a model that predicts "no cancer" for *everyone* gets
 $990/1000 = 0.99$. Higher accuracy, completely useless. First interview trap:
 **accuracy is dominated by the majority class**. More in §7.
 
-**Precision** — "when the model says positive, how often is it right?" Reads down the
+**Precision** - "when the model says positive, how often is it right?" Reads down the
 Predicted-+ column.
 
 $$\text{Precision} = \frac{TP}{TP + FP} = \frac{8}{8 + 90} = 0.082$$
 
 Only 8.2% of people flagged actually have cancer. This is the number a *user of the
-prediction* cares about: "the test came back positive — should I panic?"
+prediction* cares about: "the test came back positive - should I panic?"
 
-**Recall (sensitivity, true positive rate)** — "of the actual positives, what fraction
+**Recall (sensitivity, true positive rate)** - "of the actual positives, what fraction
 did we catch?" Reads across the Actually-+ row.
 
 $$\text{Recall} = \frac{TP}{TP + FN} = \frac{8}{8 + 2} = 0.8$$
@@ -63,7 +63,7 @@ $$\text{Recall} = \frac{TP}{TP + FN} = \frac{8}{8 + 2} = 0.8$$
 We caught 8 of 10 cancers, missed 2. This is the number the *world* cares about:
 what slipped through.
 
-**Specificity (true negative rate)** — recall for the negative class: "of the actual
+**Specificity (true negative rate)** - recall for the negative class: "of the actual
 negatives, what fraction did we correctly clear?"
 
 $$\text{Specificity} = \frac{TN}{TN + FP} = \frac{900}{990} = 0.909$$
@@ -75,7 +75,7 @@ ROC curve (§2).
 
 - **Cancer screening**: a FN is a missed cancer (someone dies); a FP is an unnecessary
   follow-up biopsy (unpleasant, costly, survivable). You want **high recall** and will
-  tolerate mediocre precision — that's what screening *is*: a cheap high-recall filter
+  tolerate mediocre precision - that's what screening *is*: a cheap high-recall filter
   before an expensive high-precision test.
 - **Spam filter**: a FP is a real email (your job offer) buried in spam; a FN is one
   spam message in your inbox (annoying). You want **high precision** on the spam class.
@@ -161,14 +161,14 @@ positives); if it's a false positive, FPR steps right by $1/3$ (one of 3 negativ
 So the curve is a staircase from $(0,0)$: up, up, right, up, right, right, ending at
 $(1,1)$. Reading the labels in score order (1,1,0,1,0,0), **each positive is a step up,
 each negative is a step right**. A perfect ranker (all 1s before all 0s) goes straight
-up then straight right — the curve hugs the top-left corner. A random scorer
+up then straight right - the curve hugs the top-left corner. A random scorer
 interleaves 1s and 0s → the diagonal. The `src/roc_curve.ipynb` notebook plots exactly
 this kind of staircase; here we did it in words.
 
 **AUC** = area under this staircase. The grid is $3 \times 3 = 9$ cells of area
 $1/9$; count the cells under the curve column by column: during C's right-step the
 curve height is $2/3$ (2 cells), during E's it's $1$ (3 cells), during F's it's $1$
-(3 cells) → $8/9 \approx 0.889$. That per-column count is not an accident — it's the
+(3 cells) → $8/9 \approx 0.889$. That per-column count is not an accident - it's the
 key to the most important fact about AUC:
 
 ### AUC = P(random positive scores above random negative)
@@ -196,10 +196,10 @@ Consequences of the ranking view:
 
 - AUC is **threshold-free**: it evaluates the *ranking*, not any particular decision.
 - AUC is invariant under any **strictly monotone transform** of the scores (sigmoid,
-  scaling, adding a constant) — it only sees the order. So AUC tells you *nothing about
+  scaling, adding a constant) - it only sees the order. So AUC tells you *nothing about
   calibration* (§3).
 - AUC 0.5 = random ranking; AUC < 0.5 means your model is anti-correlated (flip it).
-- This quantity is the normalized Mann–Whitney U statistic — AUC is a rank test in disguise.
+- This quantity is the normalized Mann–Whitney U statistic - AUC is a rank test in disguise.
 
 ### Why ROC lies on imbalanced data
 
@@ -208,7 +208,7 @@ $FPR = FP/(FP+TN)$ *within the negatives*. Neither axis involves the class ratio
 Change the prevalence from 1:1 to 1:1000 and the ROC curve **does not move**.
 
 That sounds like a feature until you ask the question a user actually asks:
-*"the model flagged this — is it really positive?"* That's precision, and precision
+*"the model flagged this - is it really positive?"* That's precision, and precision
 depends hard on the base rate. Derive it. Let $\pi$ = prevalence $= \Pr(y=1)$. Among
 $N$ examples, expected counts: $TP = N\pi \cdot TPR$, $FP = N(1-\pi) \cdot FPR$. So
 
@@ -220,13 +220,13 @@ Plug in a genuinely good-looking operating point, $TPR = 0.9$, $FPR = 0.01$
 - Balanced, $\pi = 0.5$: precision $= \frac{0.45}{0.45 + 0.005} = 0.989$. 
 - Rare, $\pi = 0.001$: precision $= \frac{0.0009}{0.0009 + 0.00999} \approx 0.083$.
 
-Same classifier, same ROC point, same AUC — but at a 1:1000 base rate, 92% of alarms
+Same classifier, same ROC point, same AUC - but at a 1:1000 base rate, 92% of alarms
 are false. The $(1-\pi)FPR$ term swamps the $\pi \cdot TPR$ term because there are just
 so many negatives available to generate false positives. (This is exactly the
-base-rate fallacy from Bayes' rule — precision *is* the posterior $\Pr(y=1 \mid \hat{y}=1)$.)
+base-rate fallacy from Bayes' rule - precision *is* the posterior $\Pr(y=1 \mid \hat{y}=1)$.)
 
 **PR curves** plot (recall, precision) over the threshold sweep. Precision has $\pi$
-baked in, so the PR curve *does* collapse when the data gets imbalanced — which is the
+baked in, so the PR curve *does* collapse when the data gets imbalanced - which is the
 honest behavior. Rules of thumb:
 
 - Rare positive class, and you care about the quality of the flagged set (fraud,
@@ -279,22 +279,22 @@ Intuition: you're penalized for miscalibration (reliability term, want 0), rewar
 for making confident bins that genuinely differ from the base rate (resolution, want
 large), and pay an irreducible floor $\pi(1-\pi)$ set by the label noise itself. Brier
 is a *proper scoring rule*: it's minimized in expectation by reporting the true
-probability — you can't game it by hedging.
+probability - you can't game it by hedging.
 
 **Fixing calibration** (all post-hoc, fit on a held-out validation set, never train):
 
 - **Platt scaling**: fit a logistic regression on the model's score,
-  $\hat{p} = \sigma(a s + b)$ — two parameters, learned by minimizing NLL on
+  $\hat{p} = \sigma(a s + b)$ - two parameters, learned by minimizing NLL on
   validation data. Parametric, works when the miscalibration is a smooth
   sigmoid-shaped distortion.
 - **Isotonic regression**: fit the best *monotone non-decreasing* step function
   mapping score → probability (via pool-adjacent-violators). Nonparametric, more
   flexible, needs more data, can overfit small validation sets.
-- **Temperature scaling**: Platt with the intercept dropped and one shared scalar —
+- **Temperature scaling**: Platt with the intercept dropped and one shared scalar  - 
   divide the logits by $T$ before softmax: $\hat{p} = \text{softmax}(z/T)$. $T > 1$
   softens (fixes overconfidence), $T < 1$ sharpens. One parameter, fit by minimizing
   validation NLL. Crucially, $z/T$ is a monotone transform, so **argmax and AUC are
-  unchanged** — you fix the probabilities without touching accuracy. The standard fix
+  unchanged** - you fix the probabilities without touching accuracy. The standard fix
   for neural nets. `calibration_scratch.py` implements it with golden-section search.
 
 ---
@@ -311,7 +311,7 @@ $$\text{Err}(x) = \mathbb{E}_{D, \varepsilon}\left[(y - \hat{f}_D(x))^2\right]$$
 
 Define the average prediction over training sets: $\bar{f}(x) = \mathbb{E}_D[\hat{f}_D(x)]$.
 
-Step 1 — peel off the noise. Write $y - \hat{f}_D = \varepsilon + (f - \hat{f}_D)$:
+Step 1 - peel off the noise. Write $y - \hat{f}_D = \varepsilon + (f - \hat{f}_D)$:
 
 $$\mathbb{E}\left[(y - \hat{f}_D)^2\right]
 = \mathbb{E}[\varepsilon^2] + 2\,\mathbb{E}[\varepsilon]\,\mathbb{E}[f - \hat{f}_D] + \mathbb{E}\left[(f - \hat{f}_D)^2\right]
@@ -319,7 +319,7 @@ $$\mathbb{E}\left[(y - \hat{f}_D)^2\right]
 
 The cross term dies because $\varepsilon$ is independent of $D$ and has mean zero.
 
-Step 2 — peel apart the model error. Insert and subtract $\bar{f}$:
+Step 2 - peel apart the model error. Insert and subtract $\bar{f}$:
 $f - \hat{f}_D = (f - \bar{f}) + (\bar{f} - \hat{f}_D)$:
 
 $$\mathbb{E}_D\left[(f - \hat{f}_D)^2\right]
@@ -332,16 +332,16 @@ $$\boxed{\;\text{Err}(x) = \underbrace{(f(x) - \bar{f}(x))^2}_{\text{bias}^2}
 \;+\; \underbrace{\mathbb{E}_D\left[(\hat{f}_D(x) - \bar{f}(x))^2\right]}_{\text{variance}}
 \;+\; \underbrace{\sigma^2}_{\text{irreducible noise}}\;}$$
 
-No "it can be shown" — that's the whole proof: two completions of the square, two
+No "it can be shown" - that's the whole proof: two completions of the square, two
 cross terms killed by independence and by the definition of the mean.
 
 Read it out loud:
 
-- **Bias²**: how wrong is the *average* model — the error you'd make even with
+- **Bias²**: how wrong is the *average* model - the error you'd make even with
   infinitely many training sets to average over. Systematic error from the model
   family being too rigid. A degree-1 polynomial fit to a sine wave has high bias no
   matter how much data you give it.
-- **Variance**: how much does the fit *wiggle* across training sets — sensitivity to
+- **Variance**: how much does the fit *wiggle* across training sets - sensitivity to
   which particular sample you got. A degree-15 polynomial through 20 noisy points
   changes wildly with each resample.
 - **$\sigma^2$**: label noise. No model beats this; test MSE below $\sigma^2$ means
@@ -354,17 +354,17 @@ underfitting = left of the minimum (bias-dominated), overfitting = right
 empirically for polynomial degrees 1–15 and prints the U.
 
 Two classic knobs restated in this language: **more data** reduces variance (bias
-unchanged — same family, better averaged); **regularization** trades variance down for
+unchanged - same family, better averaged); **regularization** trades variance down for
 a little bias up.
 
 **Double descent, honestly.** The U-shape is real but not the whole story. If you keep
 increasing capacity past the *interpolation threshold* (the model exactly fits the
-training data), test error often falls *again* — worst error near the threshold, then a
+training data), test error often falls *again* - worst error near the threshold, then a
 second descent in the overparameterized regime. The mechanism, as best understood: at
 the threshold there is essentially one interpolating solution and it's forced to be
 wild; with far more parameters than data there are many interpolating solutions, and
 the training procedure (SGD, minimum-norm least squares) implicitly picks a *smooth*,
-low-norm one — variance comes back down. This is an empirical regularity with solid
+low-norm one - variance comes back down. This is an empirical regularity with solid
 theory in linear/random-feature models and consistent observations in deep nets, not a
 repeal of bias–variance: the decomposition identity still holds; what changes is that
 "more parameters ⇒ more variance" fails when the fitting procedure is implicitly
@@ -384,7 +384,7 @@ models on noise.
 
 **k-fold CV**: split the data into $k$ folds; for each fold, train on the other
 $k-1$ and evaluate on it; average the $k$ scores. Every example gets used for
-validation exactly once, and you get a mean *and a spread* across folds — report both.
+validation exactly once, and you get a mean *and a spread* across folds - report both.
 Trade-offs in $k$: small $k$ (=2,3) → each model trains on much less data (pessimistic
 bias); $k = n$ (leave-one-out) → nearly unbiased but expensive and the $n$ trained
 models are highly correlated (they share almost all data), so the variance of the
@@ -392,7 +392,7 @@ estimate isn't as low as $n$ folds suggests. $k = 5$ or $10$ is the standard
 compromise.
 
 **Stratification**: sample folds so each preserves the class ratio. Essential when a
-class is rare — with 3% positives and 5 random folds, some fold may get almost none,
+class is rare - with 3% positives and 5 random folds, some fold may get almost none,
 making its score garbage. For regression, you can stratify on binned $y$.
 
 ### Leakage: the classic sins
@@ -412,7 +412,7 @@ deflates in production. The three classics, each with a concrete failure:
    features that correlate with the whole label vector, then "validate" them on data
    they were chosen on).
 2. **Target leakage**: a feature that is a downstream consequence of the label.
-   Canonical example: predicting pneumonia with a feature `took_antibiotics` — patients
+   Canonical example: predicting pneumonia with a feature `took_antibiotics` - patients
    took antibiotics *because* they were diagnosed. AUC 0.99 offline; at prediction
    time the feature doesn't exist yet. Detection heuristics: a feature that is
    suspiciously predictive alone; ask for each feature "is this value known *at the
@@ -424,14 +424,14 @@ deflates in production. The three classics, each with a concrete failure:
    rolling-origin / expanding-window CV, and compute every aggregate feature *as of*
    the prediction timestamp.
 
-Related sin worth naming: **grouped leakage** — the same patient/user has rows in both
+Related sin worth naming: **grouped leakage** - the same patient/user has rows in both
 train and test. The model memorizes the patient, you think it learned medicine. Fix:
 group-aware splits (all of a patient's rows in one fold).
 
 ### Nested CV: hyperparameter honesty
 
 If you tune hyperparameters by picking whatever maximizes k-fold CV score, that
-maximum is an **optimistically biased** estimate of generalization — you selected it
+maximum is an **optimistically biased** estimate of generalization - you selected it
 *because* it was the highest of many noisy numbers (winner's curse). The CV score has
 become part of training. Honest protocol: an **outer loop** of CV for estimation; within
 each outer training fold, an **inner loop** of CV for hyperparameter selection; the
@@ -447,13 +447,13 @@ Your new model scores 0.847, the old one 0.842. Ship it? The difference may be n
 from (a) the finite test set and (b) training randomness (init, data order, dropout).
 
 **Paired tests intuition.** Both models are evaluated on the *same* test examples, so
-don't compare two independent means — compare *per-example (or per-fold) differences*
+don't compare two independent means - compare *per-example (or per-fold) differences*
 $d_i = \text{err}_A(x_i) - \text{err}_B(x_i)$. Pairing subtracts out the shared
 example-difficulty variance ("this test point is hard for everyone"), leaving a much
 lower-variance estimate of the gap; then a paired t-test (or the nonparametric
 Wilcoxon signed-rank) asks whether $\bar{d}$ is distinguishable from 0 given its
 spread. For a single test set of binary decisions, **McNemar's test** does the paired
-logic on the 2×2 table of (A right/wrong × B right/wrong) — only the discordant cells
+logic on the 2×2 table of (A right/wrong × B right/wrong) - only the discordant cells
 matter. Caveat for CV: the k fold scores are *not* independent (overlapping training
 sets), so the naive paired t-test over folds is anti-conservative; corrections exist
 (Nadeau–Bengio), but at minimum know *why* it's a problem.
@@ -462,8 +462,7 @@ sets), so the naive paired t-test over folds is anti-conservative; corrections e
 scores by amounts that rival claimed SOTA improvements. One run of A vs one run of B
 compares two lottery tickets. Minimum honest practice: 3–5 seeds each, report
 mean ± std, check the intervals aren't overlapping-by-a-mile. And if you compared 20
-model variants, remember the winner is inflated by selection (same winner's curse as §5)
-— a Bonferroni-flavored humility applies.
+model variants, remember the winner is inflated by selection (same winner's curse as §5) - a Bonferroni-flavored humility applies.
 
 ---
 
@@ -472,9 +471,9 @@ model variants, remember the winner is inflated by selection (same winner's curs
 At 99:1, "predict majority always" gets 99% accuracy. So accuracy is off the table; use
 PR-based metrics (§2) or per-class recalls. What to do about the *model*:
 
-**Resampling.** Oversample the minority (duplicate, or synthesize à la SMOTE —
+**Resampling.** Oversample the minority (duplicate, or synthesize à la SMOTE  - 
 interpolate between minority neighbors) or undersample the majority. Oversampling
-risks overfitting the duplicated points (do it *inside* CV folds only — resampling
+risks overfitting the duplicated points (do it *inside* CV folds only - resampling
 before splitting is leakage sin #1: identical copies of one example land in both train
 and validation); undersampling throws away data.
 
@@ -488,11 +487,11 @@ $$\frac{\partial L_i}{\partial z_i} = w_{y_i} (\hat{p}_i - y_i)$$
 So every gradient step from a positive example is scaled by $w_1$. Two consequences,
 both worth saying in an interview: (1) it's equivalent *in expectation* to oversampling
 the positives by $w_1$ (same expected gradient, less variance, no duplicated data);
-(2) at the optimum the balance point shifts — with weights $w_1, w_0$ the loss is
+(2) at the optimum the balance point shifts - with weights $w_1, w_0$ the loss is
 stationary where $w_1 \pi_{\text{local}} (1-\hat{p}) = w_0 (1-\pi_{\text{local}})\hat{p}$,
 i.e. the model outputs *inflated* probabilities:
 $\hat{p} = \frac{w_1 \pi}{w_1 \pi + w_0 (1-\pi)}$ instead of $\pi$. Class weights
-buy recall by *destroying calibration* — recalibrate after (§3).
+buy recall by *destroying calibration* - recalibrate after (§3).
 
 **Threshold moving.** Often the cleanest fix: train normally on the imbalanced data
 (the probabilities stay calibrated), then choose the decision threshold from the
@@ -521,20 +520,20 @@ MSE-optimal prediction = mean = 20.8; MAE-optimal = median = 1. This is the whol
 story of "MAE is robust to outliers": MSE's quadratic penalty makes one 100-sized
 error cost as much as ~10,000 unit errors, so the fit gets dragged toward the outlier.
 Choose by asking *which summary of the conditional distribution you want to predict*
-(and whether big errors are disproportionately bad — for house prices maybe yes, for
+(and whether big errors are disproportionately bad - for house prices maybe yes, for
 delivery-time ETAs maybe you want the median). Huber loss interpolates (quadratic
 near 0, linear in the tails). Generalization: pinball/quantile loss with asymmetric
 slopes $\tau, 1-\tau$ recovers any quantile.
 
-**R²** — MSE normalized by the dumbest baseline (predict $\bar{y}$):
+**R²** - MSE normalized by the dumbest baseline (predict $\bar{y}$):
 
 $$R^2 = 1 - \frac{\sum_i (y_i - \hat{y}_i)^2}{\sum_i (y_i - \bar{y})^2}.$$
 
 $R^2 = 1$: perfect. $R^2 = 0$: no better than predicting the mean. **Negative $R^2$ is
 possible** (and common on real test sets): it just means you did worse than the
-constant baseline — a favorite interview gotcha ("what's the range of R²?" It's
+constant baseline - a favorite interview gotcha ("what's the range of R²?" It's
 $(-\infty, 1]$ on held-out data). Also: RMSE for interpretability in $y$'s units;
-MAPE if relative error matters (undefined at $y=0$, asymmetric — penalizes
+MAPE if relative error matters (undefined at $y=0$, asymmetric - penalizes
 over-prediction more).
 
 ---
@@ -543,23 +542,23 @@ over-prediction more).
 
 Everything above is **offline**: computed on logged, held-out data. Production cares
 about **online** metrics: click-through rate, conversion, revenue, retention, latency,
-user-reported outcomes. The mapping is loose — offline AUC up 2% can be online-neutral
+user-reported outcomes. The mapping is loose - offline AUC up 2% can be online-neutral
 (the ranking improved on pairs users never see) or even negative (the model got better
 at predicting clicks on clickbait). Offline metrics are cheap *proxies*; validate the
 proxy periodically.
 
-**A/B testing in one paragraph.** Randomly assign units (users, not requests — a user
+**A/B testing in one paragraph.** Randomly assign units (users, not requests - a user
 must have one consistent experience, and randomizing requests leaks one arm's effect
 into the other via the shared user) to control (old model) and treatment (new model).
 Randomization makes the groups exchangeable, so the difference in the metric estimates
 the *causal* effect. Before launching: choose the primary metric and the minimal
-effect worth detecting, compute the required sample size (power analysis — small
+effect worth detecting, compute the required sample size (power analysis - small
 effects on noisy metrics need surprisingly long runs), and fix the duration; run at
 least full weeks to average out day-of-week cycles. Sins to name-check: **peeking**
 (testing daily and stopping at the first $p < 0.05$ massively inflates false
-positives — use sequential tests if you must peek), underpowered tests read as "no
+positives - use sequential tests if you must peek), underpowered tests read as "no
 effect," novelty effects (users click the new thing because it's new), and
-interference between arms (marketplaces, social feeds — two-sided effects violate the
+interference between arms (marketplaces, social feeds - two-sided effects violate the
 independence assumption). Guardrail metrics (latency, crash rate, unsubscribes) run
 alongside the primary metric so you don't win the battle and lose the war.
 
@@ -573,19 +572,19 @@ Everything before this section evaluated models with a **single ground truth per
 example**: the label is 1, you said 0.83, we can score that. Generation breaks the
 premise. "Summarize this article" has an astronomically large set of *equally correct*
 outputs, and any two good summaries may share almost no words. There is no ground
-truth — at best there is *a* reference, one sample from the set of acceptable answers.
+truth - at best there is *a* reference, one sample from the set of acceptable answers.
 Every generative metric is therefore one of three compromises: **proximity to a
-reference** (BLEU/ROUGE — punishes valid answers for being different), **the model's
-own probability** (perplexity — measures fit, not output quality), or **judgment**
-(human or LLM — expensive, biased, but the only thing aimed at the actual question).
+reference** (BLEU/ROUGE - punishes valid answers for being different), **the model's
+own probability** (perplexity - measures fit, not output quality), or **judgment**
+(human or LLM - expensive, biased, but the only thing aimed at the actual question).
 Know which compromise you're making; each fails differently.
 
 ### N-gram overlap: BLEU and ROUGE, and how they fail
 
 **BLEU** (machine translation, precision-flavored): the geometric mean of modified
-n-gram precisions for $n = 1..4$ — what fraction of the candidate's n-grams appear in
-the reference — times a brevity penalty so you can't win by emitting three safe words.
-**ROUGE** (summarization, recall-flavored): ROUGE-N is n-gram *recall* — what fraction
+n-gram precisions for $n = 1..4$ - what fraction of the candidate's n-grams appear in
+the reference - times a brevity penalty so you can't win by emitting three safe words.
+**ROUGE** (summarization, recall-flavored): ROUGE-N is n-gram *recall* - what fraction
 of the reference's n-grams the candidate covered; ROUGE-L uses longest common
 subsequence. Same idea, opposite direction: BLEU asks "is what you said in the
 reference?", ROUGE asks "did you say what's in the reference?".
@@ -597,7 +596,7 @@ Failure modes, with tiny examples:
   The metric measures *surface* overlap, and the reference problem guarantees good
   outputs with low overlap.
 - **Overlap without correctness.** "Profits fell sharply" vs reference "profits rose
-  sharply": 2/3 unigrams and 1/2 bigrams match — a respectable score for the *exact
+  sharply": 2/3 unigrams and 1/2 bigrams match - a respectable score for the *exact
   opposite claim*. N-grams have no notion of negation, factuality, or salience.
 - **Gaming.** Extractive copying inflates ROUGE (the reference's words are literally
   in the source); short hedged outputs inflate precision-style scores until the
@@ -606,18 +605,18 @@ Failure modes, with tiny examples:
 Verdict: usable as a cheap regression alarm on reference-heavy tasks (MT-style, where
 system-level correlation with humans is fair), close to useless per-example and for
 open-ended generation. Interview trap: "ROUGE went up" is not evidence the summaries
-got better — say what it actually measures.
+got better - say what it actually measures.
 
 ### Perplexity is not a quality metric
 
 Module 4 §5.3 derived $\operatorname{PPL} = e^{H}$: the model's effective branching
 factor *on a fixed corpus*. It measures how well the model's distribution fits that
-text — a modeling metric, ideal for tracking pretraining. Its limits as a *quality*
+text - a modeling metric, ideal for tracking pretraining. Its limits as a *quality*
 metric: (1) only comparable under the same tokenizer (per-token PPL changes when the
 tokens change); (2) it scores probability mass on the reference continuation, not the
-quality of what the model *samples* — decoding settings (§ module 4, temperature/top-p)
+quality of what the model *samples* - decoding settings (§ module 4, temperature/top-p)
 never enter it; (3) instruction-tuned models routinely have *worse* web-text PPL than
-their base models while being far more useful — fitting raw internet text is simply not
+their base models while being far more useful - fitting raw internet text is simply not
 the goal anymore; (4) it needs logprobs (unavailable for many closed models) and says
 nothing about a single output. Use it for training progress and sanity checks; never
 answer "is the chatbot good?" with perplexity.
@@ -626,7 +625,7 @@ answer "is the chatbot good?" with perplexity.
 
 Absolute human scores ("rate this 1–10") are noisy, rater-dependent, and drift over a
 session. The reliable primitive is the **pairwise comparison**: show two outputs for
-the same prompt, ask which is better — the same reason RLHF trains reward models on
+the same prompt, ask which is better - the same reason RLHF trains reward models on
 comparisons, not scores (module 4 §6.3). To turn many pairwise outcomes into a
 ranking, fit **Bradley–Terry**: give each model a strength $\beta_i$ and model
 
@@ -637,37 +636,37 @@ win/loss with model-indicator features). **Elo** is the online, incremental
 approximation of the same idea. This is exactly the machinery behind arena-style
 leaderboards (Chatbot Arena): crowdsourced blind battles → Bradley–Terry fit →
 ratings with confidence intervals. Protocol hygiene: hide model identities, randomize
-which side each model appears on, allow ties, and report CIs — a 5-point Elo gap on
+which side each model appears on, allow ties, and report CIs - a 5-point Elo gap on
 overlapping intervals is noise, not a ranking.
 
 ### LLM-as-judge: the three biases and their mitigations
 
-Human eval doesn't scale to every experiment, so use a strong LLM as the grader —
+Human eval doesn't scale to every experiment, so use a strong LLM as the grader  - 
 pairwise verdicts or rubric scores. It works well enough to be everywhere, and it is
 a *proxy metric*, so audit it like one (§9). The three biases to name in an interview:
 
-1. **Position bias** — judges favor the first (sometimes last) answer shown.
+1. **Position bias** - judges favor the first (sometimes last) answer shown.
    Mitigation: judge every pair in both orders; keep only consistent verdicts (or
    average), and report the swap-agreement rate.
-2. **Verbosity bias** — longer answers win regardless of content. Mitigation: control
+2. **Verbosity bias** - longer answers win regardless of content. Mitigation: control
    or penalize length (compare length-matched pairs; put "do not reward padding" with
    explicit criteria in the rubric).
-3. **Self-preference** — a judge rates its own family's outputs higher. Mitigation:
+3. **Self-preference** - a judge rates its own family's outputs higher. Mitigation:
    judge from a different model family, or a panel of judges.
 
 General mitigations: make the judge state rubric-based reasons before its verdict,
-anchor with few-shot examples of good/bad, and — non-negotiable — **validate the judge
+anchor with few-shot examples of good/bad, and - non-negotiable - **validate the judge
 against a small human-labeled set** (agreement rate) before trusting its deltas.
 
 ### Benchmarks and contamination, at overview level
 
 Static benchmarks (MMLU, GSM8K, HumanEval, …) are fixed test sets, and the training
-corpus is the internet — so test items leak into pretraining data. **Contamination**
+corpus is the internet - so test items leak into pretraining data. **Contamination**
 inflates scores via memorization masquerading as capability; a model can ace a
 benchmark it has effectively seen. Detection heuristics: n-gram overlap search against
 training data, and performance cliffs on freshly written variants of the same tasks.
 Practical stance: treat headline benchmark numbers as upper bounds, prefer private,
-fresh, or continuously refreshed evals, and remember Goodhart (§9's proxy lesson —
+fresh, or continuously refreshed evals, and remember Goodhart (§9's proxy lesson  - 
 optimized-for benchmarks stop measuring). Benchmark design, hallucination measurement,
 and LLM eval in depth: module 7.
 
@@ -675,14 +674,14 @@ and LLM eval in depth: module 7.
 
 The interview wants decomposition, not a metric name. Split "good summary" into named
 axes, because they trade off and fail independently: **faithfulness** (every claim in
-the summary is supported by the source — the failure that kills the product is
+the summary is supported by the source - the failure that kills the product is
 hallucination), **coverage** (the important points made it in), **fluency/concision**
-(nearly free with modern LLMs — don't overweight it). Then a protocol:
+(nearly free with modern LLMs - don't overweight it). Then a protocol:
 
 1. **Offline set:** 200–500 real documents, stratified by what you actually serve
    (length, structure, domain). Not synthetic, not cherry-picked.
 2. **Faithfulness:** decompose each summary into atomic claims, verify each claim
-   against the source (LLM-judge per claim — per-claim verification beats one holistic
+   against the source (LLM-judge per claim - per-claim verification beats one holistic
    "is this faithful?" judgment, which misses single fabricated details). Metric:
    % summaries with zero unsupported claims.
 3. **Coverage:** a once-per-document human-written key-point list; score % of key
@@ -694,14 +693,14 @@ hallucination), **coverage** (the important points made it in), **fluency/concis
    review; if human–judge agreement drops below ~85%, fix the judge before believing
    any model delta. The judge is a proxy; this is its calibration check.
 6. **Online:** thumbs up/down, edit rate (did the user rewrite the summary?), and
-   downstream task completion — with §9's A/B discipline. ROUGE, if at all, as a
-   cheap regression alarm — never as the target.
+   downstream task completion - with §9's A/B discipline. ROUGE, if at all, as a
+   cheap regression alarm - never as the target.
 
 ---
 
 ## Common interview questions
 
-**Q1. Precision vs recall — define both and give a case where each is the priority.**
+**Q1. Precision vs recall - define both and give a case where each is the priority.**
 Precision $= TP/(TP+FP)$: of the flagged, how many are real. Recall $= TP/(TP+FN)$:
 of the real, how many were flagged. Spam filtering prioritizes precision (a lost real
 email is expensive); cancer screening prioritizes recall (a missed cancer is
@@ -720,18 +719,18 @@ and calibration.
 **Q4. Your fraud dataset is 1:1000 and your AUC is 0.98. Are you done?**
 No. ROC axes (TPR, FPR) are prevalence-free, so AUC hides the base rate. Derive
 precision $= \pi TPR / (\pi TPR + (1-\pi)FPR)$: with TPR=0.9, FPR=0.01, $\pi=0.001$,
-precision ≈ 8% — most alerts are false. Report the PR curve / precision at the
+precision ≈ 8% - most alerts are false. Report the PR curve / precision at the
 required recall.
 
 **Q5. Can a model have AUC 1.0 and be badly calibrated?**
-Yes — output 0.51 for every positive, 0.49 for every negative: perfect ranking,
+Yes - output 0.51 for every positive, 0.49 for every negative: perfect ranking,
 meaningless probabilities. AUC only sees order; calibration is about the values.
 Conversely, always predicting the base rate is perfectly calibrated with AUC 0.5.
 
 **Q6. What is temperature scaling and why doesn't it change accuracy?**
 Post-hoc calibration: divide logits by scalar $T$ (fit on validation NLL) before
 softmax. $T>1$ softens overconfident outputs. Division by a positive constant is
-monotone, so the argmax (and the entire ranking, hence AUC) is unchanged — only the
+monotone, so the argmax (and the entire ranking, hence AUC) is unchanged - only the
 probability values move.
 
 **Q7. State and sketch the bias–variance decomposition.**
@@ -753,39 +752,37 @@ the label).
 Past the interpolation threshold (model exactly fits training data), test error can
 *decrease* again with more capacity: peak at the threshold (a single, wild
 interpolant), then a second descent because among many interpolating solutions,
-SGD / min-norm fitting implicitly selects smooth ones — variance falls again. The
+SGD / min-norm fitting implicitly selects smooth ones - variance falls again. The
 decomposition still holds; the "capacity ⇒ variance" intuition is what breaks.
 
 **Q11. Name three forms of data leakage with examples.**
-(1) Preprocessing before splitting — scaling/feature-selection/PCA fit on the full
-data, so training folds see test statistics. (2) Target leakage — a feature caused by
-the label, e.g. `took_antibiotics` when predicting pneumonia. (3) Temporal leakage —
+(1) Preprocessing before splitting - scaling/feature-selection/PCA fit on the full
+data, so training folds see test statistics. (2) Target leakage - a feature caused by
+the label, e.g. `took_antibiotics` when predicting pneumonia. (3) Temporal leakage  - 
 random splits on time series let the model train on the future; also features
-aggregated over post-prediction data. (Bonus: grouped leakage — same user in train
+aggregated over post-prediction data. (Bonus: grouped leakage - same user in train
 and test.)
 
 **Q12. Why nested CV? What goes wrong with plain CV for hyperparameter tuning?**
 If you report the CV score of the best hyperparameter, you've selected the maximum of
-noisy estimates — optimistic bias (winner's curse). Nested CV: inner loop selects
+noisy estimates - optimistic bias (winner's curse). Nested CV: inner loop selects
 hyperparameters, outer loop scores models on folds never used for any selection.
 
 **Q13. Model A: 84.7%, model B: 84.2% on the same test set. Ship A?**
 Not on this evidence. Use a *paired* comparison (same examples): McNemar's test or
-paired differences — pairing removes shared example-difficulty variance. For neural
+paired differences - pairing removes shared example-difficulty variance. For neural
 nets, also rerun with several seeds; seed variance alone often exceeds 0.5%.
 
 **Q14. Derive what a class weight does to the gradient.**
-Weighted CE: $L_i = w_{y_i}\ell_i$, so $\partial L_i/\partial z_i = w_{y_i}(\hat p_i - y_i)$
-— each minority example pushes $w_1\times$ harder, equivalent in expectation to
+Weighted CE: $L_i = w_{y_i}\ell_i$, so $\partial L_i/\partial z_i = w_{y_i}(\hat p_i - y_i)$ - each minority example pushes $w_1\times$ harder, equivalent in expectation to
 oversampling by $w_1$. Side effect: predicted probabilities inflate to
-$\frac{w_1\pi}{w_1\pi + w_0(1-\pi)}$ — calibration is destroyed; recalibrate or move
+$\frac{w_1\pi}{w_1\pi + w_0(1-\pi)}$ - calibration is destroyed; recalibrate or move
 the threshold instead.
 
 **Q15. When is threshold moving better than resampling?**
 When the base model's probabilities are fine and only the *decision* is miscosted.
 Train on natural data (keeps calibration), set $t^* = c_{FP}/(c_{FP}+c_{FN})$ from
-the cost matrix. Resampling/reweighting changes the learned probabilities themselves
-— useful when the minority class is so rare the model barely learns its features, but
+the cost matrix. Resampling/reweighting changes the learned probabilities themselves - useful when the minority class is so rare the model barely learns its features, but
 it needs recalibration afterwards.
 
 **Q16. Prove the constant minimizing MAE is the median.**
@@ -802,12 +799,12 @@ $(-\infty, 1]$, not $[0, 1]$.
 **Q18. Your offline AUC improved 2% but the A/B test is flat. Explain.**
 Offline metrics are proxies. Possible causes: the ranking improved on pairs users
 never encounter; distribution shift between logged data and live traffic; the offline
-label (click) diverges from the online goal (conversion/retention); feedback loops —
+label (click) diverges from the online goal (conversion/retention); feedback loops  - 
 logged data was collected under the old model's policy. Trust the experiment; audit
 the proxy.
 
 **Q19. Why do you randomize by user rather than by request in an A/B test, and what is peeking?**
-Per-request randomization gives one user a mixture of both experiences — carryover
+Per-request randomization gives one user a mixture of both experiences - carryover
 contaminates both arms and violates unit independence. Peeking = repeatedly testing
 significance as data accrues and stopping at the first $p<0.05$; under repeated looks
 the false-positive rate far exceeds 5%. Fix: fixed-horizon analysis or sequential
@@ -818,7 +815,7 @@ The derivation relies on the algebra of squared error (cross terms vanishing und
 expectation). 0–1 loss isn't a squared distance; there's no exact additive split, and
 "variance" can even *help*: if the average model is wrong at a point (biased), a
 high-variance model sometimes lands on the correct label. Decompositions exist
-(e.g. Domingos 2000) but with interaction terms and sign flips — say that, don't
+(e.g. Domingos 2000) but with interaction terms and sign flips - say that, don't
 pretend the clean identity holds.
 
 **Q21. Why is evaluating a text generator fundamentally harder than evaluating a classifier?**
@@ -834,33 +831,33 @@ Entirely. ROUGE is n-gram recall against a reference: it rises for extractive co
 of reference wording and cannot see factuality ("profits fell" vs "profits rose"
 shares most n-grams while inverting the claim), salience, or paraphrase (a better
 summary in different words scores *lower*). It's a surface-overlap regression alarm,
-weakly correlated at system level, bad per-example — check faithfulness and
+weakly correlated at system level, bad per-example - check faithfulness and
 preference directly.
 
 **Q23. Why is perplexity a poor headline metric for chatbot quality?**
 PPL is $e^{\text{mean NLL}}$ on a fixed corpus: how well the distribution fits that
 text. It's tokenizer-dependent (only comparable with the same tokenizer), ignores
 decoding (it scores probability on references, not what you actually sample), and is
-misaligned with usefulness — instruction-tuned models often have *worse* web-text PPL
+misaligned with usefulness - instruction-tuned models often have *worse* web-text PPL
 than their base models while being clearly better assistants. Use it for pretraining
 progress; use preference/task evals for quality.
 
 **Q24. You're using GPT-x to judge two models' outputs. What biases and mitigations?**
-Position bias (first answer favored — judge both orders, keep consistent verdicts),
-verbosity bias (longer wins — length-control the comparison, rubric that penalizes
-padding), self-preference (judges favor their own family — use a judge from another
+Position bias (first answer favored - judge both orders, keep consistent verdicts),
+verbosity bias (longer wins - length-control the comparison, rubric that penalizes
+padding), self-preference (judges favor their own family - use a judge from another
 family or a panel). Plus the meta-mitigation: the judge is a proxy metric, so validate
-it against a human-labeled sample (agreement rate) before trusting its deltas — same
+it against a human-labeled sample (agreement rate) before trusting its deltas - same
 discipline as any offline proxy (§9, §10).
 
 ## Exit checklist
 
-- [ ] Cold, on paper: fill a confusion matrix, compute precision/recall/F1, and say who pays for each error type — 4 min
-- [ ] Build an ROC curve by hand from 6 scored examples and state AUC's probabilistic meaning — 5 min
-- [ ] Explain why ROC flatters on imbalanced data and when precision-recall curves are the right view — 3 min
-- [ ] Derive the full bias-variance decomposition of expected squared error — 5 min
-- [ ] Name the classic leakage sins (fit-before-split, temporal, group, target) and what nested CV fixes — 3 min
-- [ ] Decide via standard error whether model A at 90.5% beats model B at 90% on n=1000 — 3 min
-- [ ] LLM-as-judge: name the three biases with mitigations, then walk the summarization-eval answer end to end — 5 min
+- [ ] Cold, on paper: fill a confusion matrix, compute precision/recall/F1, and say who pays for each error type - 4 min
+- [ ] Build an ROC curve by hand from 6 scored examples and state AUC's probabilistic meaning - 5 min
+- [ ] Explain why ROC flatters on imbalanced data and when precision-recall curves are the right view - 3 min
+- [ ] Derive the full bias-variance decomposition of expected squared error - 5 min
+- [ ] Name the classic leakage sins (fit-before-split, temporal, group, target) and what nested CV fixes - 3 min
+- [ ] Decide via standard error whether model A at 90.5% beats model B at 90% on n=1000 - 3 min
+- [ ] LLM-as-judge: name the three biases with mitigations, then walk the summarization-eval answer end to end - 5 min
 
-All boxes cold before moving on — a miss goes into practice/queue.tsv.
+All boxes cold before moving on - a miss goes into practice/queue.tsv.

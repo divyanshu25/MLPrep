@@ -1,5 +1,5 @@
 """
-speculative_decoding_demo.py — the speculative sampling algorithm, verified.
+speculative_decoding_demo.py - the speculative sampling algorithm, verified.
 
 Run:  uv run python ml/07_llm_stack/speculative_decoding_demo.py
 
@@ -9,7 +9,7 @@ distributions over a tiny vocabulary, because the POINT is the algorithm:
   A small draft model q proposes k tokens; the big target model p verifies
   them all in ONE forward pass; an accept/reject rule keeps or fixes each
   proposal. Claim (Leviathan et al. 2023 / Chen et al. 2023): the emitted
-  tokens are distributed EXACTLY according to p — not approximately.
+  tokens are distributed EXACTLY according to p - not approximately.
 
 The rule, for one position with target p(.) and draft q(.):
 
@@ -32,9 +32,9 @@ Also verified below:
   - expected emitted tokens per target pass = (1 - a^{k+1}) / (1 - a)
 
 This file:
-  Part 1: single-position accept/reject — empirical distribution vs p
+  Part 1: single-position accept/reject - empirical distribution vs p
   Part 2: a tiny Markov-chain "LM" (context-dependent p and q), the full
-          k-token draft-verify loop — distribution over whole SEQUENCES
+          k-token draft-verify loop - distribution over whole SEQUENCES
           vs ancestral sampling from p
   Part 3: acceptance rate & speedup vs draft-target agreement
 """
@@ -61,11 +61,11 @@ def spec_step(p, q, rng):
 
 
 # ===========================================================================
-# Part 1 — single position: emitted distribution must equal p exactly
+# Part 1 - single position: emitted distribution must equal p exactly
 # ===========================================================================
 def part1(n=100_000):
     print("=" * 66)
-    print("PART 1 — single-position accept/reject, %d samples" % n)
+    print("PART 1 - single-position accept/reject, %d samples" % n)
     print("=" * 66)
     # arbitrary target and a deliberately different draft
     p = rng.dirichlet(np.ones(V) * 2)
@@ -93,7 +93,7 @@ def part1(n=100_000):
 
 
 # ===========================================================================
-# Part 2 — a context-dependent LM: full k-token draft-verify loop
+# Part 2 - a context-dependent LM: full k-token draft-verify loop
 # ===========================================================================
 # The "LM" is a first-order Markov chain: P(next | prev) is a row of a
 # transition matrix. Target and draft are two different matrices. This gives
@@ -107,7 +107,7 @@ def make_lm(concentration, rng):
 def spec_generate(P, Q, length, k, rng):
     """Generate `length` tokens with speculative decoding.
 
-    Returns (tokens, n_target_passes, n_emitted) — one 'target pass' scores
+    Returns (tokens, n_target_passes, n_emitted) - one 'target pass' scores
     up to k drafted positions at once (the whole point of the algorithm).
     """
     out = [0]  # fixed start token (dropped from the returned sequence)
@@ -138,7 +138,7 @@ def spec_generate(P, Q, length, k, rng):
             if len(out) - 1 == length:
                 break
         # bonus token: if every draft accepted, the target's (k+1)-th
-        # distribution is already computed — sample from it for free
+        # distribution is already computed - sample from it for free
         if all_accepted and len(out) - 1 < length:
             out.append(int(rng.choice(V, p=P[out[-1]])))
     return out[1:length + 1], passes
@@ -153,7 +153,7 @@ def ancestral_generate(P, length, rng):
 
 def part2(n=100_000, length=3, k=3):
     print("\n" + "=" * 66)
-    print(f"PART 2 — Markov 'LM', sequences of length {length}, draft k={k}, "
+    print(f"PART 2 - Markov 'LM', sequences of length {length}, draft k={k}, "
           f"{n} samples")
     print("=" * 66)
     P = make_lm(2.0, rng)                      # target LM
@@ -193,18 +193,18 @@ def part2(n=100_000, length=3, k=3):
 
     print(f"  TV(speculative, exact target) = {tv(spec_emp, exact):.4f}")
     print(f"  TV(ancestral,   exact target) = {tv(anc_emp, exact):.4f}   "
-          "(same noise floor — speculative is exact)")
+          "(same noise floor - speculative is exact)")
     print(f"  tokens per target pass: {total_tokens / total_passes:.2f}  "
           f"(vs 1.0 for plain autoregressive decoding)")
     assert tv(spec_emp, exact) < 2 * tv(anc_emp, exact) + 0.01
 
 
 # ===========================================================================
-# Part 3 — acceptance rate and speedup vs draft quality
+# Part 3 - acceptance rate and speedup vs draft quality
 # ===========================================================================
 def part3(k=4):
     print("\n" + "=" * 66)
-    print(f"PART 3 — acceptance & expected speedup vs draft agreement (k={k})")
+    print(f"PART 3 - acceptance & expected speedup vs draft agreement (k={k})")
     print("=" * 66)
     p = rng.dirichlet(np.ones(V) * 2)
     noise = rng.dirichlet(np.ones(V) * 2)
@@ -216,7 +216,7 @@ def part3(k=4):
         exp_tokens = (1 - a ** (k + 1)) / (1 - a) if a < 1 else k + 1
         print(f"{w:>6.1f} {tv(p, q):>9.4f} {a:>9.4f} {exp_tokens:>36.2f}")
     print("\n  Reading: a perfect draft (w=1) emits k+1 tokens per big-model")
-    print("  pass; a useless draft still emits 1 (the residual sample) — you")
+    print("  pass; a useless draft still emits 1 (the residual sample) - you")
     print("  never do worse than plain decoding in tokens/pass, only in the")
     print("  wasted draft compute.")
 

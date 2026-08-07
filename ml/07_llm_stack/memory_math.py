@@ -1,5 +1,5 @@
 """
-memory_math.py — every memory number in an LLM interview, derived and computed.
+memory_math.py - every memory number in an LLM interview, derived and computed.
 
 Run:  uv run python ml/07_llm_stack/memory_math.py
 
@@ -45,7 +45,7 @@ sequence parallelism, per layer:
 where s=seq len, b=microbatch, h=hidden dim, a=heads. The 34 counts the
 h-sized tensors (LN inputs, QKV, MLP intermediates at 4h, etc.); the
 5*a*s/h term is the s x s attention matrices (softmax input/output +
-dropout mask) — the part FlashAttention deletes.
+dropout mask) - the part FlashAttention deletes.
 
 With full gradient checkpointing we store only each layer's input
 (2*s*b*h bytes, fp16) and recompute the rest during backward (+~33% FLOPs).
@@ -171,12 +171,12 @@ def case_1():
     m = LLAMA_7B
     seq, batch = 4096, 1
     print("=" * 70)
-    print("CASE 1 — train a 7B model, mixed precision + Adam, seq 4096, "
+    print("CASE 1 - train a 7B model, mixed precision + Adam, seq 4096, "
           "microbatch 1")
     print("=" * 70)
     state = training_state_bytes(m["params"])
     # 16 bytes/param: 2 (fp16 w) + 2 (fp16 g) + 12 (fp32 master + m + v)
-    table("Training state (unsharded) — 16 bytes/param", state)
+    table("Training state (unsharded) - 16 bytes/param", state)
     act = activation_bytes(seq, batch, m["d_model"], m["n_heads"],
                            m["n_layers"], checkpointing=False)
     act_ckpt = activation_bytes(seq, batch, m["d_model"], m["n_heads"],
@@ -202,10 +202,10 @@ def case_2():
     G = 64
     seq, batch = 4096, 1
     print("\n" + "=" * 70)
-    print(f"CASE 2 — train a 70B model, ZeRO stages across {G} GPUs")
+    print(f"CASE 2 - train a 70B model, ZeRO stages across {G} GPUs")
     print("=" * 70)
     state = training_state_bytes(m["params"])
-    table("Training state (unsharded) — 16 bytes/param", state)
+    table("Training state (unsharded) - 16 bytes/param", state)
 
     print(f"\nPer-GPU state under ZeRO (G = {G}):")
     print("-" * 70)
@@ -238,7 +238,7 @@ def case_3():
     m = LLAMA_7B
     seq, batch = 4096, 32
     print("\n" + "=" * 70)
-    print("CASE 3 — 7B inference, batch 32, context 4096 (KV-cache math)")
+    print("CASE 3 - 7B inference, batch 32, context 4096 (KV-cache math)")
     print("=" * 70)
     d_head = m["d_model"] // m["n_heads"]
     per_tok_layer = 2 * m["n_kv_heads"] * d_head * 2
@@ -283,5 +283,5 @@ if __name__ == "__main__":
     case_1()
     case_2()
     case_3()
-    print("\nDone. Every number above is <5 multiplications — do them on a "
+    print("\nDone. Every number above is <5 multiplications - do them on a "
           "whiteboard.")

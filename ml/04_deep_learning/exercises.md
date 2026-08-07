@@ -5,7 +5,7 @@ numpy checks in the solutions. Notation follows `notes.md`.
 
 ---
 
-## Exercise 1 (easy) — Shapes and parameters of a conv stack
+## Exercise 1 (easy) - Shapes and parameters of a conv stack
 
 Input: $32 \times 32 \times 3$ image. Network:
 
@@ -31,7 +31,7 @@ Using $H_{out} = \lfloor (H + 2p - k)/s \rfloor + 1$:
 | FC ($2048 \to 10$) | $10$ | $2048\cdot10 + 10 = 20{,}490$ |
 
 Total: $25{,}578$. Note the FC layer holds ~80% of the parameters despite
-doing the least interesting work — the classic CNN pattern.
+doing the least interesting work - the classic CNN pattern.
 
 FLOPs of conv1: each output element is a dot product of length
 $C_{in}k^2 = 27$, so
@@ -40,7 +40,7 @@ $2 \cdot 27 \cdot 16 \cdot 32 \cdot 32 = 884{,}736 \approx 0.9$ MFLOPs.
 
 ---
 
-## Exercise 2 (easy) — Convolution by hand
+## Exercise 2 (easy) - Convolution by hand
 
 Compute the full valid (no padding, stride 1) cross-correlation of
 
@@ -73,7 +73,7 @@ intensity changes along the ↘ diagonal, zero on diagonally-constant patches.
 
 ---
 
-## Exercise 3 (easy) — Receptive field
+## Exercise 3 (easy) - Receptive field
 
 (a) What is the receptive field of a stack of $L$ conv layers, each
 $3\times3$ stride 1? Give the general formula and evaluate at $L = 1, 2, 3$.
@@ -88,7 +88,7 @@ reasons.
 
 General recurrence: $r_l = r_{l-1} + (k_l - 1)\prod_{i<l} s_i$, with $r_0=1$.
 
-(a) All strides 1: $r_L = 1 + 2L$. So $L=1: 3$, $L=2: 5$, $L=3: 7$ — each
+(a) All strides 1: $r_L = 1 + 2L$. So $L=1: 3$, $L=2: 5$, $L=3: 7$ - each
 $3\times3$ layer adds 2.
 
 (b) Step by step (track the running stride product $J$):
@@ -96,7 +96,7 @@ $3\times3$ layer adds 2.
 - pool ($k=2$, $s=2$): $r = 3 + (2-1)\cdot 1 = 4$; now $J = 2$
 - conv2 ($k=3$): $r = 4 + (3-1)\cdot 2 = \boxed{8}$
 
-Downsampling makes later layers grow the receptive field faster — that's
+Downsampling makes later layers grow the receptive field faster - that's
 its main computational purpose.
 
 (c) (1) Fewer parameters: $3 \cdot 9C^2 = 27C^2 < 49C^2$; (2) two extra
@@ -106,7 +106,7 @@ the same view. (Bonus: less compute per output for the same receptive field.)
 
 ---
 
-## Exercise 4 (easy-medium) — Attention on 2 tokens, by hand
+## Exercise 4 (easy-medium) - Attention on 2 tokens, by hand
 
 Two tokens with $d = 2$; use identity projections ($Q = K = V = X$):
 
@@ -146,7 +146,7 @@ $o_2 = (1,\ 0.670)$.
 
 ---
 
-## Exercise 5 (medium) — Masking and softmax invariances
+## Exercise 5 (medium) - Masking and softmax invariances
 
 (a) Prove that softmax is invariant to adding a constant $c$ to all logits:
 $\operatorname{softmax}(z + c\mathbf{1}) = \operatorname{softmax}(z)$. Why do
@@ -163,7 +163,7 @@ largest exponent becomes $e^0 = 1$, so $\exp$ never overflows (and the
 denominator is $\ge 1$, so no division blow-up).
 
 (b) Two failures if you zero after softmax: (1) the surviving weights no
-longer sum to 1 — the output is no longer a convex combination and its scale
+longer sum to 1 - the output is no longer a convex combination and its scale
 depends on how much mass the mask deleted; (2) worse, the *allowed*
 positions' weights were computed while competing against forbidden
 positions, so the forbidden scores still influenced the result (information
@@ -175,7 +175,7 @@ exactness; in fp16 code you'll see $-10^4$-ish for overflow safety.)
 
 ---
 
-## Exercise 6 (medium) — The $\sqrt{d_k}$ derivation
+## Exercise 6 (medium) - The $\sqrt{d_k}$ derivation
 
 Let $q, k \in \mathbb{R}^{d}$ have i.i.d. entries, mean 0, variance 1,
 independent of each other.
@@ -205,7 +205,7 @@ $1/\sqrt{d_k}$, independent of width.
 
 ---
 
-## Exercise 7 (medium) — Parameter count of a transformer block
+## Exercise 7 (medium) - Parameter count of a transformer block
 
 For model width $d$ (ignore all biases and LayerNorm):
 
@@ -216,19 +216,19 @@ For model width $d$ (ignore all biases and LayerNorm):
 
 <details><summary>Solution</summary>
 
-(a) Four $d\times d$ matrices: $4d^2$. (Multi-head doesn't change this —
+(a) Four $d\times d$ matrices: $4d^2$. (Multi-head doesn't change this  - 
 heads split the same matrices.)
 (b) $W_1: d\times 4d$ and $W_2: 4d\times d$: $8d^2$.
 (c) MLP fraction $= 8d^2 / 12d^2 = 2/3$. At $d = 768$:
 $12 \cdot 768^2 = 12 \cdot 589{,}824 = 7{,}077{,}888 \approx 7.1$M. ✓
 GPT-2 small = 12 such blocks ≈ 85M, plus embeddings
 ($50257 \times 768 \approx 38.6$M, weight-tied with the output head) ≈ 124M
-total — matches the advertised size.
+total - matches the advertised size.
 </details>
 
 ---
 
-## Exercise 8 (medium-hard) — Gradient of attention w.r.t. $V$
+## Exercise 8 (medium-hard) - Gradient of attention w.r.t. $V$
 
 Let $A = \operatorname{softmax}(QK^\top/\sqrt{d_k}) \in \mathbb{R}^{T\times T}$
 (treat it as a constant here) and $O = AV$ with $V \in \mathbb{R}^{T\times d_v}$.
@@ -253,7 +253,7 @@ $$
 Interpretation: value $j$'s gradient is a weighted sum of the output
 gradients of **all queries that attended to it**, each weighted by exactly
 the attention weight $A_{ij}$ it received. A value nobody attends to
-(column $j$ of $A$ near 0) gets almost no gradient — attention gates
+(column $j$ of $A$ near 0) gets almost no gradient - attention gates
 learning signal in the backward pass exactly as it gates information in the
 forward pass. Quick numeric check with Exercise 4's numbers:
 $A = \binom{0.5\ \ 0.5}{0.33\ 0.67}$, $G = \binom{1\ \ 0}{0\ \ 1}$ gives
@@ -262,7 +262,7 @@ $\partial L/\partial V = A^\top G = \binom{0.5\ \ 0.33}{0.5\ \ 0.67}$.
 
 ---
 
-## Exercise 9 (medium-hard) — KV-cache
+## Exercise 9 (medium-hard) - KV-cache
 
 (a) Explain precisely why the KV-cache is valid during autoregressive
 generation (what property of the model guarantees cached $K, V$ never go
@@ -277,27 +277,27 @@ $T = 1024$, fp16, batch size 8.
 
 (a) Causal masking ⇒ position $j$'s representation at every layer depends
 only on tokens $\le j$. Appending token $t{+}1$ therefore changes *nothing*
-about positions $1..t$ — their $K, V$ at every layer are bit-identical to the
+about positions $1..t$ - their $K, V$ at every layer are bit-identical to the
 previous step, so caching is exact, not an approximation. (Also required:
 the weights aren't changing between steps.)
 
 (b) Training computes all $T$ positions **in one parallel forward pass**
-under the mask — each $K, V$ is produced and consumed once within the pass,
+under the mask - each $K, V$ is produced and consumed once within the pass,
 so there is nothing to reuse within a step. Across steps, the weights just
 changed (that's the point of training), so any cached $K, V$ would be stale.
 The cache exploits *repeated forward passes with frozen weights and a
-growing prefix* — a situation that only exists at inference.
+growing prefix* - a situation that only exists at inference.
 
 (c) Elements $= 2\,(\text{K and V}) \times 12 \times 1024 \times 768
 = 18{,}874{,}368$ per sequence; at 2 bytes: $\approx 37.7$ MB per sequence;
 $\times 8 = \boxed{\approx 302\text{ MB}}$. Note it scales linearly in every
-factor — batch, context, depth, width — which is why serving long contexts
+factor - batch, context, depth, width - which is why serving long contexts
 is memory-bound.
 </details>
 
 ---
 
-## Exercise 10 (hard) — Vanishing gradients, exactly
+## Exercise 10 (hard) - Vanishing gradients, exactly
 
 Consider a *linear* RNN $h_t = W h_{t-1}$ with symmetric
 $W = U \Lambda U^\top$ (eigenvalues $\lambda_1, \dots, \lambda_d$).
@@ -316,32 +316,32 @@ fundamentally different from *any* choice of $W$?
 matrix, since each step's Jacobian is exactly $W$).
 
 (b) Write $g = \sum_i c_i u_i$ in the eigenbasis. Backpropagated:
-$W^{T\top} g = \sum_i c_i \lambda_i^T u_i$ — each component scales by
+$W^{T\top} g = \sum_i c_i \lambda_i^T u_i$ - each component scales by
 $\lambda_i^T$. Components with $|\lambda_i| < 1$ decay geometrically
 (vanish), $|\lambda_i| > 1$ grow geometrically (explode), $|\lambda_i| = 1$
 are preserved. E.g. $\lambda = 0.9$, $T = 60$: $0.9^{60} \approx 0.0018$;
 $\lambda = 1.1$: $1.1^{60} \approx 304$. The gradient is a *sum* over gaps,
-so distant-dependency terms are drowned out by recent ones — the model can't
+so distant-dependency terms are drowned out by recent ones - the model can't
 learn long-range structure even though the gradient isn't literally zero.
 
 (c) Since $\|D_t\| \le 1$, we get only
-$\|\prod D_t W\| \le \sigma_{\max}(W)^{T}$ — an upper bound. So you can
+$\|\prod D_t W\| \le \sigma_{\max}(W)^{T}$ - an upper bound. So you can
 *guarantee* vanishing (if $\sigma_{\max} < 1$) but never guarantee
 preservation: keeping gradients alive requires the product to sit near norm
 1 along the needed directions for the whole trajectory, which nothing
 enforces, and saturation ($D_t \to 0$) actively fights it. The LSTM's
 $\operatorname{diag}(f_t)$ path differs in kind, not degree: it is (i)
-element-wise, not a rotating matrix product, (ii) *data-dependent* — the
+element-wise, not a rotating matrix product, (ii) *data-dependent* - the
 network chooses $f_t \approx 1$ per dimension per step, rather than relying
 on a fixed spectrum, and (iii) additive in the forward pass, so no repeated
 squashing nonlinearity sits on the highway. A fixed $W$ with unit
 eigenvalues (e.g. identity/orthogonal RNNs) preserves *everything*
-indiscriminately — it can't forget; gates give selective, learned retention.
+indiscriminately - it can't forget; gates give selective, learned retention.
 </details>
 
 ---
 
-## Exercise 11 (hard, code) — Implement relative position bias
+## Exercise 11 (hard, code) - Implement relative position bias
 
 Content-only attention can't prefer "the token 1 step back." T5-style fix:
 add a learned scalar bias $b_{i-j}$ to each score before softmax:
@@ -398,11 +398,11 @@ assert all(A[i, i - 1] > 0.98 for i in range(1, T))
 
 The bias enters the *logits*, so a large $b_{+1}$ dominates the
 content scores $QK^\top/\sqrt{d_k}$ (which are $O(1)$ after scaling) and
-softmax concentrates on offset 1 for every row — a purely positional head.
+softmax concentrates on offset 1 for every row - a purely positional head.
 
 Why absolute embeddings can't do it as directly: with absolute positions,
 "attend to the previous token" must be expressed as a *content* match
-between the encodings of position $i$ and position $i{-}1$ — the model has
+between the encodings of position $i$ and position $i{-}1$ - the model has
 to learn a $W_Q, W_K$ pair such that $\langle W_Q p_i, W_K p_j\rangle$ is
 large iff $j = i - 1$ for **every** $i$ simultaneously (and it won't
 generalize past trained positions). Relative bias parameterizes the offset
@@ -412,10 +412,10 @@ construction. This is the conceptual core of T5 bias, ALiBi, and RoPE.
 
 ---
 
-## Exercise 12 (hard) — Generation FLOPs, with and without the cache
+## Exercise 12 (hard) - Generation FLOPs, with and without the cache
 
 For one transformer layer with width $d$ and current context length $t$,
-take attention compute as $\approx 2\cdot(4td^2)$-free — i.e. count
+take attention compute as $\approx 2\cdot(4td^2)$-free - i.e. count
 separately: (i) projections $q,k,v,o$, (ii) scores + weighted sum. Per
 token generated:
 
@@ -435,20 +435,20 @@ $\approx 16td^2$. Call it $O(td^2 + t^2 d)$.
 
 (a) No cache: step $t$ re-processes all $t$ tokens:
 $O(t d^2 + t^2 d)$ per step. Summing $t = 1..n$:
-$O(n^2 d^2 + n^3 d)$ — **cubic** in sequence length.
+$O(n^2 d^2 + n^3 d)$ - **cubic** in sequence length.
 
-(b) With cache: step $t$ processes one token — projections/MLP $O(d^2)$,
+(b) With cache: step $t$ processes one token - projections/MLP $O(d^2)$,
 plus one query against $t$ cached keys: $O(t d)$. Total over $n$ tokens:
 $O(n d^2 + n^2 d)$.
 
 (c) The cache removed a factor of $n$: total generation cost dropped from
-$O(n^3 d + n^2d^2)$ to $O(n^2 d + nd^2)$ — the same order as a *single*
+$O(n^3 d + n^2d^2)$ to $O(n^2 d + nd^2)$ - the same order as a *single*
 training forward pass over $n$ tokens, which is the information-theoretic
 floor (you must at least "look at" each pair once under causal attention).
 The residual $n^2$ is the price of exact attention itself, not of
 generation. Bandwidth: each cached-generation step does only $O(d^2)$ work
 per layer but must *stream the entire layer's weights* (and the growing KV
-cache) from memory to compute one token's activations — arithmetic
+cache) from memory to compute one token's activations - arithmetic
 intensity (FLOPs per byte moved) is tiny at batch 1, so the GPU idles on
 memory. Hence batching many sequences (reuse each streamed weight tile
 across the batch) and speculative decoding (amortize a big model's memory
@@ -458,7 +458,7 @@ FLOPs.
 
 ---
 
-## Exercise 13 (easy-medium) — RoPE by hand in $d = 2$
+## Exercise 13 (easy-medium) - RoPE by hand in $d = 2$
 
 Let $\theta = 30°$ and take raw (pre-rotation) vectors $q = k = (1, 0)$.
 RoPE places a vector at position $m$ by rotating it by $m\theta$:
@@ -504,12 +504,12 @@ $\sin a\cos b - \cos a\sin b = \sin(a - b)$. So
 $q_m^\top k_n = q^\top R((n-m)\theta)k$: the **positional** dependence is
 only through the gap $n - m$; the score still depends fully on the
 *content* $q$ and $k$. (With our $q = k = (1,0)$ the score is exactly
-$\cos((n-m)\theta)$ — content chosen to make the position part visible.)
+$\cos((n-m)\theta)$ - content chosen to make the position part visible.)
 </details>
 
 ---
 
-## Exercise 14 (easy-medium) — KV-cache: MHA vs GQA
+## Exercise 14 (easy-medium) - KV-cache: MHA vs GQA
 
 A decoder has $n_{\text{layers}} = 32$, $h = 32$ query heads of
 $d_{\text{head}} = 128$ (so $d = 4096$), context $T = 8192$, cache in fp16
@@ -536,18 +536,18 @@ $h / g$. GQA $g = 8$: $4 \cdot \frac{8}{32} = 1$ GiB per sequence.
 MQA ($g = 1$): $4/32 = 128$ MiB per sequence.
 
 (c) Budget for cache $\approx 80 - 14 \approx 66$ GB. MHA: $\lfloor 66/4
-\rfloor \approx 16$ sequences. GQA: $\approx 66$ sequences — ~4× the
+\rfloor \approx 16$ sequences. GQA: $\approx 66$ sequences - ~4× the
 serving throughput from the same hardware. Speed: decoding is
 memory-bandwidth-bound (Exercise 12c); every generated token must stream
 the cache through the GPU, and GQA streams $4\times$ fewer cache bytes per
-step — so per-token latency drops too. Quality is roughly preserved
+step - so per-token latency drops too. Quality is roughly preserved
 because all $h$ query heads (hence $h$ attention distributions per token)
 remain; only the K/V subspace diversity shrinks (notes §7.2).
 </details>
 
 ---
 
-## Exercise 15 (medium-hard) — The ELBO from the KL-gap identity
+## Exercise 15 (medium-hard) - The ELBO from the KL-gap identity
 
 Let $p_\theta(x, z) = p(z)\,p_\theta(x\mid z)$ be a latent-variable model
 and $q_\phi(z \mid x)$ any distribution with the right support.
@@ -582,7 +582,7 @@ $$
 + \operatorname{KL}(q_\phi \,\|\, p_\theta(z\mid x)) \ \ge\ \operatorname{ELBO},
 $$
 
-since KL $\ge 0$. This is an identity — no approximation was made.
+since KL $\ge 0$. This is an identity - no approximation was made.
 
 (b) Split $\log p(x,z) = \log p(x\mid z) + \log p(z)$:
 
@@ -598,7 +598,7 @@ $z \sim q_\phi$).
 (c) With $\theta$ fixed, $\log p_\theta(x)$ is a constant in $\phi$, so by
 the identity, raising the ELBO in $\phi$ can only *lower* the other term:
 the gap between $\log p(x)$ and the ELBO is exactly
-$\operatorname{KL}(q_\phi(z\mid x)\,\|\,p_\theta(z\mid x))$ — the
+$\operatorname{KL}(q_\phi(z\mid x)\,\|\,p_\theta(z\mid x))$ - the
 approximate posterior's error. ELBO maximization in $\phi$ *is* posterior
 approximation.
 
@@ -609,7 +609,7 @@ differentiable function of $\phi$. Reparameterize:
 $z = \mu_\phi(x) + \sigma_\phi(x)\odot\varepsilon$ with
 $\varepsilon \sim \mathcal{N}(0,I)$ makes the expectation over a *fixed*
 distribution, $\mathbb{E}_{\varepsilon}[f(\mu_\phi + \sigma_\phi \odot \varepsilon)]$,
-and $z$ a deterministic differentiable map — ordinary backprop through
+and $z$ a deterministic differentiable map - ordinary backprop through
 $\mu, \sigma$ gives a low-variance gradient (unlike the
 score-function/REINFORCE alternative, which needs no reparameterization
 but is high-variance).

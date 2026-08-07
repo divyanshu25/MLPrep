@@ -1,30 +1,30 @@
 # Production Debugging Scenarios
 
 12 cards in the format interviewers actually use: you get a symptom and an
-open prompt — "how do you debug this?" What's being graded is not the final
+open prompt - "how do you debug this?" What's being graded is not the final
 answer but the *order* of your checks: cheap and discriminating first, and a
 mechanism attached to every hypothesis (a cause you can't explain is a guess,
 not a diagnosis).
 
 Protocol: read the symptom, talk through your diagnosis tree out loud for
 ~5 minutes, then unfold. Score yourself on whether your first three checks
-match — the long tail matters less than the triage order.
+match - the long tail matters less than the triage order.
 
 ---
 
-## Card 1 — "Loss is NaN at step 400."
+## Card 1 - "Loss is NaN at step 400."
 
 <details><summary>Diagnosis tree</summary>
 
-It ran fine for 399 steps, so shapes and wiring are right — something
+It ran fine for 399 steps, so shapes and wiring are right - something
 *numerical* crossed a threshold. Check in order:
 
 1. **Was there a spike first?** Plot loss/grad-norm just before death. A
    growing grad norm → exploding gradients: lr too high or no clipping.
    Mechanism: per-layer Jacobian scales > 1 compound; one large step enters a
-   steep region, the next is larger — geometric blow-up, then inf, then
+   steep region, the next is larger - geometric blow-up, then inf, then
    inf − inf = NaN. Fix: clip global norm, lower lr, warmup.
-2. **Mixed precision?** fp16 overflows at 65504 — one large activation or
+2. **Mixed precision?** fp16 overflows at 65504 - one large activation or
    logit saturates, and NaN propagates through everything it touches. Check
    the loss-scaler stats / try bf16 or fp32 to confirm. Mechanism: 5-bit
    exponent range, not precision.
@@ -33,7 +33,7 @@ It ran fine for 399 steps, so shapes and wiring are right — something
    `torch.isfinite` on activations (forward hooks) to find the first layer
    producing inf/NaN.
 4. **A poisoned batch.** NaN in the *data* (corrupt row, divide-by-zero
-   feature) surfaces exactly when that shard is reached — deterministic step
+   feature) surfaces exactly when that shard is reached - deterministic step
    number across reruns is the tell. `assert torch.isfinite(x).all()` in the
    loader.
 5. Rarer: lr schedule bug at a boundary (e.g. warmup ends, lr jumps), Adam
@@ -45,11 +45,11 @@ different step every run → numerics riding random batches.
 
 ---
 
-## Card 2 — "Train loss falls nicely; eval loss is flat from step 0."
+## Card 2 - "Train loss falls nicely; eval loss is flat from step 0."
 
 <details><summary>Diagnosis tree</summary>
 
-Flat-from-the-start is the key clue: this is almost never overfitting —
+Flat-from-the-start is the key clue: this is almost never overfitting  - 
 overfitting shows eval *improving first, then* diverging. Something is broken
 in the eval path itself.
 
@@ -57,18 +57,18 @@ in the eval path itself.
    that never updates, or a checkpoint loaded once. Print a weight hash at
    each eval.
 2. **Eval data pipeline broken:** labels misaligned (shuffled features vs
-   unshuffled labels — the classic), wrong preprocessing/normalization, wrong
+   unshuffled labels - the classic), wrong preprocessing/normalization, wrong
    tokenizer. A model can't score aligned-random labels, so loss pins at
    chance. Check: eval loss ≈ ln V / chance level exactly? Then eval targets
    carry no signal.
-3. **`model.eval()`/mode bugs** — usually degrades rather than flattens, but
+3. **`model.eval()`/mode bugs** - usually degrades rather than flattens, but
    dropout at eval on a small head can pin metrics. Cheap to check.
 4. **Train/eval distribution mismatch:** eval set from a different domain than
-   train — loss won't be at exact chance but stuck high. Compare a training
+   train - loss won't be at exact chance but stuck high. Compare a training
    batch evaluated in eval mode: if *that* loss is low while the eval set's
    isn't, it's the data, not the plumbing.
 5. Only after all that: genuine zero generalization (memorizing a tiny train
-   set) — confirmable because train-in-eval-mode loss is low AND eval is at
+   set) - confirmable because train-in-eval-mode loss is low AND eval is at
    chance AND the train set is small.
 
 The single most diagnostic number: eval loss vs exact chance level. Exactly
@@ -78,16 +78,16 @@ capacity.
 
 ---
 
-## Card 3 — "Loss plateaus at exactly ln(vocab_size)."
+## Card 3 - "Loss plateaus at exactly ln(vocab_size)."
 
 <details><summary>Diagnosis tree</summary>
 
-ln V is the uniform-prediction loss — the model has learned *nothing*, and
+ln V is the uniform-prediction loss - the model has learned *nothing*, and
 "exactly" means the output is genuinely uniform, not merely bad. Signal is
 severed somewhere between input and logits.
 
 1. **Targets decorrelated from inputs:** shuffled labels, off-by-one that
-   pairs x with a random y, or targets overwritten. Check one batch by hand —
+   pairs x with a random y, or targets overwritten. Check one batch by hand  - 
    literally print x and y and verify y is x shifted by one.
 2. **Input path dead:** all-zero/constant inputs (preprocessing bug), or an
    embedding whose output is detached/overwritten. Print input stats and
@@ -97,33 +97,33 @@ severed somewhere between input and logits.
    built before moving/replacing modules). Check `p.grad` is non-None and
    nonzero for the *first* layer after backward.
 4. **Attention fully masked:** a causal mask with the wrong comparison can
-   mask everything except self, or everything, making context useless — for
+   mask everything except self, or everything, making context useless - for
    an LM that caps learning near unigram entropy (close to, though not
    exactly, ln V; "exactly" points harder at 1–3).
-5. **lr pathologically small / optimizer never stepping** — verify a weight
+5. **lr pathologically small / optimizer never stepping** - verify a weight
    actually changes between step 0 and step 100 (`(w0 - w100).abs().max()`).
 
 Fastest single experiment: overfit one batch. If loss won't go below ln V on
-32 memorizable examples, it's model/optimizer/targets — data volume and
+32 memorizable examples, it's model/optimizer/targets - data volume and
 architecture size are exonerated.
 </details>
 
 ---
 
-## Card 4 — "Offline AUC improved; online CTR dropped."
+## Card 4 - "Offline AUC improved; online CTR dropped."
 
 <details><summary>Diagnosis tree</summary>
 
-The offline metric and the online objective disagree — the question is which
+The offline metric and the online objective disagree - the question is which
 link in the chain broke. Most likely first:
 
 1. **Training/serving skew:** the feature values at serving differ from
    training (missing features silently defaulting, staler aggregates,
    different preprocessing code path). Log serving-time features and diff
    distributions against training data. Mechanism: model applies learned
-   weights to inputs from a different distribution — offline eval never sees
+   weights to inputs from a different distribution - offline eval never sees
    this because it uses training-pipeline features.
-2. **Offline eval leakage:** the AUC gain is fake — a feature that
+2. **Offline eval leakage:** the AUC gain is fake - a feature that
    post-dates the label (e.g. built from data after the click), or eval rows
    overlapping training. New feature + big offline jump = treat as guilty
    until proven innocent. Check per-feature: does removing it collapse the
@@ -137,7 +137,7 @@ link in the chain broke. Most likely first:
    shown; the new model's "better" scores redistribute impressions into
    regions where its training data is thin. Also: calibration shift breaking
    a downstream bidder/threshold even with better ranking.
-5. **Boring but real:** experiment plumbing — wrong model actually deployed,
+5. **Boring but real:** experiment plumbing - wrong model actually deployed,
    A/B assignment bias, insufficient power. Verify the served model's hash
    and the experiment's sample-ratio first if the drop is small.
 
@@ -147,7 +147,7 @@ Module 5 (leakage, AUC semantics, calibration) and module 6
 
 ---
 
-## Card 5 — "Model quality collapsed after int8 quantization."
+## Card 5 - "Model quality collapsed after int8 quantization."
 
 <details><summary>Diagnosis tree</summary>
 
@@ -168,19 +168,19 @@ collapse means some tensor's range made that mapping destructive.
    precision; check what the toolchain actually converted.
 4. **Localize it:** binary-search by dequantizing half the layers at a time,
    or compare per-layer output MSE (float vs int8) to find the first layer
-   whose error explodes. Error compounds through depth — earliest bad layer
+   whose error explodes. Error compounds through depth - earliest bad layer
    is the target.
 5. **Accumulator/zero-point bugs** in custom kernels: int8×int8 must
    accumulate in int32; symmetric-vs-asymmetric mismatches shift everything.
    Test one layer against the float reference on random inputs.
 
-Key mental model: quantization error is uniform noise of size range/256 —
+Key mental model: quantization error is uniform noise of size range/256  - 
 harmless at activations' typical scale, fatal when outliers inflate "range".
 </details>
 
 ---
 
-## Card 6 — "Distributed training diverges at 64 GPUs but is stable at 8."
+## Card 6 - "Distributed training diverges at 64 GPUs but is stable at 8."
 
 <details><summary>Diagnosis tree</summary>
 
@@ -198,32 +198,32 @@ or is it worse from step 1 (plumbing)?
    garbage early; big lr + big batch + short warmup diverges exactly like
    this. Check the schedule actually in effect on the 64-GPU run.
 3. **Gradient all-reduce wrong:** summing instead of averaging (gradients
-   8× too large — equivalently lr silently 8×), or a framework flag
+   8× too large - equivalently lr silently 8×), or a framework flag
    (`gradient_as_bucket_view`, custom hooks) behaving differently at the new
    world size. Verify: one step on identical data at world size 8 vs 64,
-   compare gradient norms — they should match, not scale.
+   compare gradient norms - they should match, not scale.
 4. **Data sharding bug:** duplicate shards (each of 64 workers seeing the
    same data = correlated gradients), or a shard-boundary bug producing
    corrupt batches only when sharded 64 ways. Check per-worker data
    fingerprints.
 5. **Numerics at scale:** ring all-reduce over more ranks changes summation
-   order — noticeable in fp16 with loss scaling near the edge; also one bad
-   node (faulty GPU producing inf) — check per-rank grad norms for an
+   order - noticeable in fp16 with loss scaling near the edge; also one bad
+   node (faulty GPU producing inf) - check per-rank grad norms for an
    outlier machine.
 
-Golden debugging tool: fixed batch, fixed seed, one optimizer step —
+Golden debugging tool: fixed batch, fixed seed, one optimizer step  - 
 bitwise/tolerance-compare gradients and updates across world sizes before
 staring at loss curves.
 </details>
 
 ---
 
-## Card 7 — "Generation repeats the same phrase forever."
+## Card 7 - "Generation repeats the same phrase forever."
 
 <details><summary>Diagnosis tree</summary>
 
 1. **Decoding strategy, not the model:** greedy/low-temperature decoding on
-   LMs has a known self-reinforcement failure — once a phrase appears, its
+   LMs has a known self-reinforcement failure - once a phrase appears, its
    continuation becomes even more probable (the context now contains it), and
    argmax loops. Check the sampling config first: temperature 0? beam search
    without length/ngram penalties? Fix: temperature ~0.7–1.0, top-p/top-k,
@@ -234,7 +234,7 @@ staring at loss curves.
    it genuinely peaked, or is the code ignoring its spread?
 3. **KV-cache/position bug:** if positions aren't offset (`pos_emb[0]` fed
    for every new token) or the cache is corrupted, the model sees the same
-   effective state each step and emits the same token — a loop of period 1–2
+   effective state each step and emits the same token - a loop of period 1–2
    right from the start is the signature. Test: cached vs uncached generation
    must match token-for-token under greedy decoding.
 4. **Model degeneracy:** heavily overfit small-data models or
@@ -249,7 +249,7 @@ is broken" fail this card.
 
 ---
 
-## Card 8 — "Train loss dropped to near zero in 50 steps. Eval is garbage."
+## Card 8 - "Train loss dropped to near zero in 50 steps. Eval is garbage."
 
 <details><summary>Diagnosis tree</summary>
 
@@ -259,22 +259,22 @@ forward pass have that the eval pass doesn't?
 
 1. **Target leaked into the input:** the label is (a function of) an input
    feature; for LMs, inputs and targets aligned without the one-position
-   shift — the model learns the identity map. Inspect one (x, y) pair by
+   shift - the model learns the identity map. Inspect one (x, y) pair by
    hand.
 2. **Causal mask missing or wrong direction:** each position can attend to
    its own target one step ahead (a `triu`/`tril` swap, or no mask). Training
-   loss collapses; generation — where the future genuinely doesn't exist —
+   loss collapses; generation - where the future genuinely doesn't exist  - 
    is garbage. The flagship drill's bug 2. Check: perturb a future token,
    assert past outputs unchanged.
 3. **Eval/train split contamination inverted:** train loss is real but the
    task is trivially memorizable (duplicated rows, tiny dataset, model far
-   too large) — legitimate memorization, and eval reveals it. Distinguish
+   too large) - legitimate memorization, and eval reveals it. Distinguish
    from 1–2 by data-size arithmetic: can this model plausibly memorize this
    set? 50 steps says shortcut, not memorization.
 4. **Loss mis-wired:** loss computed on inputs instead of targets, or
-   on a constant slice — near-zero loss that means nothing. Verify the loss
+   on a constant slice - near-zero loss that means nothing. Verify the loss
    of an untrained model is ln V, and that shuffling *labels only* sends
-   training loss back up (it must — if not, targets aren't driving the loss).
+   training loss back up (it must - if not, targets aren't driving the loss).
 
 Rule of thumb: legitimate learning curves bend; cliffs mean leakage.
 Module 5 (leakage) and module 4 (masking).
@@ -282,11 +282,11 @@ Module 5 (leakage) and module 4 (masking).
 
 ---
 
-## Card 9 — "Loss spikes sharply at regular intervals, then recovers."
+## Card 9 - "Loss spikes sharply at regular intervals, then recovers."
 
 <details><summary>Diagnosis tree</summary>
 
-Periodicity is the clue — find what shares the period.
+Periodicity is the clue - find what shares the period.
 
 1. **Epoch boundary:** period = steps-per-epoch. Causes: dataloader
    re-shuffle changing sample correlation, a last partial batch with
@@ -294,47 +294,47 @@ Periodicity is the clue — find what shares the period.
    iterators resetting, or curriculum/sorted data restarting from "easy".
    Check `drop_last`, and whether the spike step × batch size ≈ dataset size.
 2. **lr schedule events:** warm restarts, decay milestones, cycle
-   boundaries. Overlay lr on the loss plot — takes one minute, catches this
+   boundaries. Overlay lr on the loss plot - takes one minute, catches this
    class entirely.
 3. **Data ordering within the epoch:** unshuffled data with a hard/different
-   segment at a fixed offset (e.g. sorted by length or source — the spike is
+   segment at a fixed offset (e.g. sorted by length or source - the spike is
    "the hard shard"). Compare per-batch loss against a data fingerprint.
 4. **Checkpoint/eval interference:** eval or checkpointing every N steps
-   that mutates state — most infamously, forgetting `model.train()` after
+   that mutates state - most infamously, forgetting `model.train()` after
    eval, so dropout/BN stay in eval mode for some steps; or an EMA swap
    that isn't swapped back.
 5. **Infra with a period:** shard rotation in streaming loaders,
-   prefetch-buffer exhaustion — check whether the period matches a data
+   prefetch-buffer exhaustion - check whether the period matches a data
    service's rotation rather than the math.
 
 Mechanism note for the recovery shape: Adam absorbs a transient gradient
-scale change within ~1/(1−β₂) steps, which is why spikes self-heal — the
+scale change within ~1/(1−β₂) steps, which is why spikes self-heal - the
 spike is information about *inputs*, the recovery about the optimizer.
 </details>
 
 ---
 
-## Card 10 — "Memory usage grows every step until OOM at step ~3000."
+## Card 10 - "Memory usage grows every step until OOM at step ~3000."
 
 <details><summary>Diagnosis tree</summary>
 
 Slow growth = something accumulates per step. In order of frequency:
 
 1. **Keeping the graph alive:** appending `loss` (the tensor, not
-   `loss.item()`) to a list, or summing `total_loss += loss` — every stored
+   `loss.item()`) to a list, or summing `total_loss += loss` - every stored
    loss retains its entire computation graph. The classic. Grep every place
    a loss/output leaves the step function.
 2. **`retain_graph=True`** left in from a debugging session, or a hidden
    second backward path keeping buffers.
 3. **Hidden state carried across steps without detach** (RNNs/TBPTT,
-   caches): the graph grows one step longer every iteration — memory *and*
+   caches): the graph grows one step longer every iteration - memory *and*
    step time grow together. Growing step time is the fingerprint that
    separates this from fragmentation. Fix: `h = h.detach()`.
 4. **Hooks/metrics accumulating tensors:** logging frameworks storing GPU
    tensors, activation hooks appending, custom metrics lists. Move to
    `.item()`/`.cpu()` at the boundary.
 5. **Fragmentation, not a leak:** allocator can't reuse blocks under
-   variable sequence lengths — memory sawtooths upward without a true leak.
+   variable sequence lengths - memory sawtooths upward without a true leak.
    Diagnose with `torch.cuda.memory_summary()`: reserved grows while
    allocated cycles. Fix: bucketed/padded batching, expandable segments.
 
@@ -344,25 +344,25 @@ then diff `Tensor` counts via `gc` between steps to find who's accumulating.
 
 ---
 
-## Card 11 — "Eval loss is consistently *lower* than train loss."
+## Card 11 - "Eval loss is consistently *lower* than train loss."
 
 <details><summary>Diagnosis tree</summary>
 
-Not always a bug — but verify the boring causes before accepting the benign
+Not always a bug - but verify the boring causes before accepting the benign
 ones.
 
 1. **Regularization accounting (benign, most common):** train loss is
    computed *with* dropout/augmentation active and includes the penalty term;
    eval runs the clean model on clean data. Check: recompute train loss in
-   eval mode — if the gap closes, case closed.
+   eval mode - if the gap closes, case closed.
 2. **Timing artifact (benign):** "train loss" is averaged over the epoch
    while eval happens at the epoch's *end*, so eval sees a better model than
    the epoch-average. Compare against end-of-epoch train batches only.
-3. **Eval set is easier (bug-adjacent):** non-i.i.d. split — eval drawn from
+3. **Eval set is easier (bug-adjacent):** non-i.i.d. split - eval drawn from
    a cleaner source, shorter sequences, or duplicated "easy" content. Check
    difficulty stats (length, class mix, source) across the split.
 4. **Leakage into eval (bug):** eval examples (near-)duplicated in training
-   — the model has memorized them. Deduplicate across the split; the LLM-era
+   - the model has memorized them. Deduplicate across the split; the LLM-era
    version is n-gram/fuzzy overlap, not exact match.
 5. **Different computation (bug):** eval uses teacher forcing / different
    loss reduction / different sequence packing than training. Verify both
@@ -374,7 +374,7 @@ persists, it's the *data split*; if it vanishes, it was the *mode*.
 
 ---
 
-## Card 12 — "Offline metrics are great; the deployed model's predictions are visibly wrong. Same model file."
+## Card 12 - "Offline metrics are great; the deployed model's predictions are visibly wrong. Same model file."
 
 <details><summary>Diagnosis tree</summary>
 
@@ -384,7 +384,7 @@ differ. This is training/serving skew, module 6's core pathology.
 1. **Feature skew:** serving computes features with different code than
    training (reimplemented in another language, different defaults for
    missing values, staler feature-store snapshots). Log raw serving features
-   for N requests, replay them through the offline pipeline, and diff — this
+   for N requests, replay them through the offline pipeline, and diff - this
    single check settles most cases.
 2. **Preprocessing mismatch:** normalization stats (mean/std) not shipped
    with the model, different tokenizer version/vocab, different image
@@ -396,7 +396,7 @@ differ. This is training/serving skew, module 6's core pathology.
 4. **Serialization/runtime drift:** export to ONNX/TensorRT changed op
    semantics, fp16 serving vs fp32 eval, wrong output head selected,
    label-index mapping shuffled between training and serving. Golden-input
-   test: fixed input, assert serving output == offline output to tolerance —
+   test: fixed input, assert serving output == offline output to tolerance  - 
    this belongs in CI, and interviewers love hearing that.
 5. **Population shift:** the served traffic differs from the offline
    distribution (new market, bot traffic, feedback loops). Monitor input
@@ -404,5 +404,5 @@ differ. This is training/serving skew, module 6's core pathology.
 
 Answer shape that scores well: "replay logged serving inputs offline; if
 outputs match, it's the data distribution; if they don't, binary-search the
-pipeline stages" — a bisection framing, stated upfront.
+pipeline stages" - a bisection framing, stated upfront.
 </details>

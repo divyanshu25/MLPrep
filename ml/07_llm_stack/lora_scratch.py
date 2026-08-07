@@ -1,11 +1,11 @@
 """
-lora_scratch.py — LoRA implemented by hand (no PEFT), verified against full
+lora_scratch.py - LoRA implemented by hand (no PEFT), verified against full
 fine-tuning.
 
 Run:  uv run python ml/07_llm_stack/lora_scratch.py     (CPU, < 1 min)
 
 The claim to verify (notes.md §4.1): fine-tuning updates are effectively
-LOW-RANK — you can adapt a frozen network to a shifted task by learning only
+LOW-RANK - you can adapt a frozen network to a shifted task by learning only
 a rank-r correction
 
     W' = W + (alpha / r) * B @ A,   B: (d_out, r) zero-init, A: (r, d_in)
@@ -15,15 +15,15 @@ with a tiny fraction of the trainable parameters, and match full fine-tuning.
 Setup:
   base task    : classify points inside vs outside an annulus (ring)
   shifted task : the same annulus, rotated-and-stretched inputs (a fixed
-                 linear warp) — the FEATURES the base net learned are still
+                 linear warp) - the FEATURES the base net learned are still
                  the right features, they just need re-routing. This is
                  exactly the regime where LoRA works (and why it works on
                  pretrained LMs: pretraining built the features).
 
 We compare, on the shifted task:
-  1. frozen base model (no adaptation)      — should be poor
-  2. full fine-tune of a copy               — the reference
-  3. frozen base + rank-r LoRA on each Linear — should match (2) with ~2-4%
+  1. frozen base model (no adaptation)      - should be poor
+  2. full fine-tune of a copy               - the reference
+  3. frozen base + rank-r LoRA on each Linear - should match (2) with ~2-4%
      of the trainable parameters
 """
 
@@ -111,7 +111,7 @@ class LoRALinear(nn.Module):
         return self.base(x) + self.scale * (x @ self.A.T) @ self.B.T
 
     def merge(self):
-        """Fold BA into W — zero inference overhead (notes.md §4.1)."""
+        """Fold BA into W - zero inference overhead (notes.md §4.1)."""
         with torch.no_grad():
             self.base.weight += self.scale * self.B @ self.A
         return self.base
@@ -143,7 +143,7 @@ def main():
     base_acc_on_base = accuracy(base, x_base, y_base)
     base_acc_on_shift = accuracy(base, x_test, y_test)
 
-    # 2) full fine-tune (a copy) on the shifted task — the reference
+    # 2) full fine-tune (a copy) on the shifted task - the reference
     full = make_mlp()
     full.load_state_dict(base.state_dict())
     n_full = sum(p.numel() for p in full.parameters())
@@ -167,7 +167,7 @@ def main():
     merged_acc = accuracy(merged, x_test, y_test)
 
     print("=" * 64)
-    print("LoRA from scratch — annulus task, shifted inputs")
+    print("LoRA from scratch - annulus task, shifted inputs")
     print("=" * 64)
     print(f"base model on base task:            {base_acc_on_base:6.1%}")
     print(f"base model on SHIFTED task (frozen):{base_acc_on_shift:6.1%}"
