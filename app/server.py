@@ -26,6 +26,9 @@ QUEUE = ROOT / "practice" / "queue.tsv"
 QUEUE_COLS = ["item_id", "source_path", "added", "last_result", "interval_days", "due"]
 QUEUE_CAP = 16  # mirror practice/review.py exactly
 _queue_lock = threading.Lock()
+LOG = ROOT / "practice" / "log.tsv"
+LOG_COLS = ["date", "item_id", "result"]
+MAX_BODY = 1_000_000  # POST body cap in bytes
 
 FOLDER_TITLES = {
     "01_arrays_strings_hashing": "Arrays, Strings & Hashing",
@@ -198,7 +201,10 @@ def _problem_files():
 def all_problems():
     out = []
     for f in _problem_files():
-        out.extend(_parse_problems_file(f)["problems"])
+        try:
+            out.extend(_parse_problems_file(f)["problems"])
+        except Exception as e:  # a broken problems.py must not take down the rest
+            print(f"warning: skipping {f}: {type(e).__name__}: {e}", file=sys.stderr)
     return out
 
 
@@ -212,34 +218,98 @@ def find_problem(pid):
 # ---------------------------------------------------------------------------
 # Queue (mirrors practice/review.py's file format and mechanics exactly)
 # ---------------------------------------------------------------------------
+_skipped_rows = 0  # malformed queue.tsv rows seen on the most recent load
+
+
 def queue_load():
+    global _skipped_rows
     if not QUEUE.exists():
         QUEUE.write_text("\t".join(QUEUE_COLS) + "\n")
     lines = QUEUE.read_text().splitlines()[1:]
-    return [dict(zip(QUEUE_COLS, ln.split("\t"))) for ln in lines if ln.strip()]
+    rows, skipped = [], 0
+    for ln in lines:
+        if not ln.strip():
+            continue
+        parts = ln.split("\t")
+        if len(parts) != len(QUEUE_COLS):
+            skipped += 1
+            continue
+        rows.append(dict(zip(QUEUE_COLS, parts)))
+    if skipped:
+        print(f"warning: {QUEUE.name}: skipped {skipped} malformed row(s)",
+              file=sys.stderr)
+    _skipped_rows = skipped
+    return rows
+
 
 def queue_save(rows):
+    """Atomic write: temp file in the same directory, then os.replace."""
     out = ["\t".join(QUEUE_COLS)] + ["\t".join(r[c] for c in QUEUE_COLS) for r in rows]
-    QUEUE.write_text("\n".join(out) + "\n")
+    fd, tmp = tempfile.mkstemp(dir=QUEUE.parent, prefix=".queue_", suffix=".tsv")
+    try:
+        with os.fdopen(fd, "w") as fh:
+            fh.write("\n".join(out) + "\n")
+        os.replace(tmp, QUEUE)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def _log_rows():
+    """Parsed practice/log.tsv history (append-only; header skipped)."""
+    if not LOG.exists():
+        return []
+    rows = []
+    for ln in LOG.read_text().splitlines()[1:]:
+        parts = ln.split("\t")
+        if len(parts) == len(LOG_COLS):
+            rows.append(dict(zip(LOG_COLS, parts)))
+    return rows
+
+
+def _log_append(item_id, result):
+    """Append one history line. Caller must hold _queue_lock."""
+    if not LOG.exists():
+        LOG.write_text("\t".join(LOG_COLS) + "\n")
+    with LOG.open("a") as fh:
+        fh.write(f"{date.today().isoformat()}\t{item_id}\t{result}\n")
 
 
 def queue_log(item_id, source_path, result):
-    """add-if-absent (interval 1), then pass doubles (cap 16) / fail resets."""
+    """Misses enter the queue (interval 1); existing rows: pass doubles
+    (cap 16) / fail resets. A pass on an unqueued item is a no-op — only
+    misses (and solution peeks) need spaced review. Same-day duplicate
+    results on an existing row are also no-ops (double-click protection).
+    Every applied result is appended to practice/log.tsv."""
     with _queue_lock:
         rows = queue_load()
         row = next((r for r in rows if r["item_id"] == item_id), None)
         today = date.today()
         if row is None:
+            if result == "pass":
+                return {"logged": False,
+                        "reason": "not queued — only misses (and solution "
+                                  "peeks) enter the review queue"}
             row = {"item_id": item_id, "source_path": source_path or "",
                    "added": today.isoformat(), "last_result": "new",
                    "interval_days": "1",
                    "due": (today + timedelta(days=1)).isoformat()}
             rows.append(row)
+        else:
+            t = today.isoformat()
+            if any(l["date"] == t and l["item_id"] == item_id
+                   and l["result"] == result for l in _log_rows()):
+                return {"logged": False, "reason": "already logged today",
+                        "row": row}
         iv = min(int(row["interval_days"]) * 2, QUEUE_CAP) if result == "pass" else 1
         row.update(last_result=result, interval_days=str(iv),
                    due=(today + timedelta(days=iv)).isoformat())
         queue_save(rows)
-        return row
+        _log_append(item_id, result)
+        return {"logged": True, "row": row}
 
 
 def queue_snapshot():
@@ -258,9 +328,31 @@ def queue_snapshot():
                 reviewed_today += 1
         except ValueError:
             pass
-    return {"rows": rows, "due_today": due, "today": today.isoformat(),
+    return {"rows": rows, "due_today": due, "due_count": len(due),
+            "today": today.isoformat(),
             "histogram": [{"interval": k, "count": v} for k, v in sorted(buckets.items())],
-            "reviewed_today": reviewed_today}
+            "reviewed_today": reviewed_today, "skipped_rows": _skipped_rows}
+
+
+def activity():
+    """History rollup from log.tsv: per-day counts for the last 120 calendar
+    days that have entries, plus today's reviewed/due tallies."""
+    by_date = {}
+    for l in _log_rows():
+        d = by_date.setdefault(l["date"], {"date": l["date"], "count": 0,
+                                           "passes": 0, "fails": 0})
+        d["count"] += 1
+        if l["result"] == "pass":
+            d["passes"] += 1
+        elif l["result"] == "fail":
+            d["fails"] += 1
+    today = date.today()
+    cutoff = (today - timedelta(days=119)).isoformat()
+    days = sorted((v for k, v in by_date.items() if k >= cutoff),
+                  key=lambda v: v["date"])
+    reviewed = by_date.get(today.isoformat(), {}).get("count", 0)
+    due = queue_snapshot()["due_count"]
+    return {"days": days, "today": {"reviewed": reviewed, "due": due}}
 
 
 def problem_status(pid, queue_rows):
@@ -338,8 +430,19 @@ def run_judge(pid, code):
             if not (bound & existing):
                 keep.append(n)
         elif isinstance(n, ast.Assign):
-            tgt = {t.id for t in n.targets if isinstance(t, ast.Name)}
-            if tgt and not (tgt & existing):
+            tgt, simple = set(), True
+            for t in n.targets:
+                if isinstance(t, ast.Name):
+                    tgt.add(t.id)
+                elif isinstance(t, ast.Tuple) and \
+                        all(isinstance(e, ast.Name) for e in t.elts):
+                    tgt |= {e.id for e in t.elts}
+                else:
+                    simple = False
+            if simple and tgt and not (tgt & existing):
+                keep.append(n)
+        elif isinstance(n, ast.AnnAssign):
+            if isinstance(n.target, ast.Name) and n.target.id not in existing:
                 keep.append(n)
         # anything else (docstrings, __main__ blocks, prints) is dropped
 
@@ -520,8 +623,12 @@ def read_md(raw_path):
     root. Python sources are wrapped in a fenced block so the client's existing
     markdown renderer shows them as read-only highlighted code."""
     p = (ROOT / raw_path).resolve()
-    if not p.is_relative_to(ROOT) or p.suffix not in (".md", ".py"):
-        return None, (400, "path must be a .md or .py file inside the repo")
+    ok = (p.is_relative_to(ROOT) and p.suffix in (".md", ".py")
+          and len(p.relative_to(ROOT).parts) >= 2
+          and p.relative_to(ROOT).parts[0] in ("ml", "dsa", "practice"))
+    if not ok:
+        return None, (400, "path must be a .md or .py file under "
+                           "ml/, dsa/ or practice/")
     if not p.is_file():
         return None, (404, "no such file")
     text = p.read_text()
@@ -643,6 +750,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(parse_flashcards())
             elif u.path == "/api/queue":
                 self._json(queue_snapshot())
+            elif u.path == "/api/activity":
+                self._json(activity())
             else:
                 self._err(404, "not found")
         except Exception as e:  # keep the local tool honest about failures
@@ -652,6 +761,12 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         try:
             length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return self._err(400, "invalid Content-Length")
+        if length > MAX_BODY:
+            self.close_connection = True  # body is unread; don't reuse socket
+            return self._err(413, f"request body too large (limit {MAX_BODY} bytes)")
+        try:
             body = json.loads(self.rfile.read(length) or b"{}")
         except (ValueError, json.JSONDecodeError):
             return self._err(400, "invalid JSON body")
@@ -672,8 +787,7 @@ class Handler(BaseHTTPRequestHandler):
                 item, result = body.get("item_id", ""), body.get("result", "")
                 if not item or result not in ("pass", "fail"):
                     return self._err(400, "need item_id and result pass|fail")
-                row = queue_log(item, body.get("source_path", ""), result)
-                self._json({"logged": True, "row": row})
+                self._json(queue_log(item, body.get("source_path", ""), result))
             else:
                 self._err(404, "not found")
         except Exception as e:
