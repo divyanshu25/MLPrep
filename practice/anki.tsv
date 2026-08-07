@@ -9,7 +9,7 @@ Why do gradients vanish or explode in deep nets?	Backward signal is a product of
 Gradient of ||Xw − y||², and what does setting it to 0 give?	2Xᵀ(Xw − y); zero gives the normal equations XᵀXw = Xᵀy - closed-form least squares.
 Derive Bayes rule in one line.	Joint factors both ways: P(A|B)P(B) = P(B|A)P(A); divide by P(B).
 Why is minimizing cross-entropy the same as maximum likelihood?	NLL of a probabilistic classifier with one-hot labels is exactly the cross-entropy loss. (MSE = MLE under Gaussian noise; L1 under Laplace.)
-99%-accurate test, 1% prevalence, you test positive - roughly P(sick)?	~17%, not 99%: false positives from the healthy 99% swamp the rare true positives (base-rate neglect).
+Test with 99% sensitivity, 95% specificity, 1% prevalence, you test positive - roughly P(sick)?	~17%, not 99%: per 100k people, 990 true positives vs 4,950 false positives from the healthy 99% (base-rate neglect). At 99%/99% it would still be only 50%.
 Why divide by n−1 in sample variance?	Deviations are from the sample mean, which chases the data - /n underestimates σ² by (n−1)/n; Bessel's correction unbiases it.
 Why does averaging reduce noise, and at what rate?	Var(mean) = σ²/n, so standard error shrinks as 1/√n - 4× the data for half the error; CLT makes the mean ~Gaussian.
 Accuracy 91.0% → 91.5% on 1,000 test examples. Real?	No - SE ≈ √(p(1−p)/n) ≈ 1%, so 0.5% is within noise; need a bigger test set, paired test, or multiple seeds.
@@ -131,7 +131,7 @@ Inference bytes per parameter, fp16?	2 - a 7B is ~14 GB, a 70B ~140 GB.
 Training compute rule?	C = 6ND FLOPs (2 forward + 4 backward per param per token).
 Chinchilla-optimal tokens for N params?	D ≈ 20N - so C ≈ 120N².
 A100 ballparks: bf16 compute, HBM bandwidth, ridge point?	~312 TFLOP/s, ~2 TB/s, ridge ≈ 156 FLOPs/byte.
-H100 memory per GPU?	80 GB (same as A100-80GB); SRAM ~20 MB at ~19 TB/s is the FlashAttention resource.
+H100 memory per GPU?	80 GB (same as A100-80GB). On-chip SRAM (~20 MB at ~19 TB/s on A100, more on H100) is the FlashAttention resource.
 KV bytes per token (dense fp16 model)?	2 × n_layers × d_model × 2 bytes - 7B (32 layers, d=4096): 512 KB/token.
 ZeRO-3 per-GPU state for 70B on 64 GPUs?	16Ψ/G = 16×70e9/64 ≈ 17.5 GB - the only stage under 80 GB.
 Pipeline bubble at p=8, m=32?	(p−1)/(m+p−1) = 7/39 ≈ 18%.
@@ -162,3 +162,9 @@ Dijkstra - why is greedy safe, and its precondition?	Cut argument: any shorter p
 The universal DP checklist?	State in words (checkable by hand) → recurrence as a decision ("what was the last move?") → base cases → evaluation order → where the answer lives. Cost = #states × transition cost.
 The 1-D knapsack compression bug?	Iterating capacity ascending reads dp entries already updated for THIS item - item taken twice (that's the unbounded variant); 0/1 needs descending capacity.
 When is greedy trustworthy?	Only with an exchange argument: any optimal solution can be swapped, one step at a time, into the greedy one without getting worse (e.g. earliest-finish interval scheduling). Guilty until proven safe.
+Merging intervals - the invariant after sorting by start?	Once sorted by start, a new interval can only overlap the CURRENT last merged interval (start ≥ every earlier start) - so one pass: extend the last if start ≤ its end, else append. O(n log n) for the sort.
+Meeting Rooms II - two equivalent views of "minimum rooms"?	Min-heap of end times (pop if the earliest end ≤ next start, heap size peak = rooms) or sort all endpoints and sweep +1/−1 tracking max concurrency - both compute the peak overlap count.
+RandomizedSet - why hashmap alone fails, and the O(1)-delete trick?	getRandom needs index access (hashmap can't), delete needs O(1) (array can't from the middle). Combo: array + value→index map; delete = swap target with the LAST element, pop, fix the moved element's index.
+Two's complement: why does -x = ~x + 1, and what does x & (x−1) do?	x + ~x is all 1s = −1, so ~x + 1 = −x. x & (x−1) clears the lowest set bit (the −1 borrows through the trailing zeros) - Kernighan popcount loops once per set bit; x & −x isolates that bit.
+Why does XOR-fold find the single number?	XOR is commutative/associative, a⊕a = 0, a⊕0 = a - fold the array and every pair annihilates, leaving the singleton. Same trick finds the missing number: XOR all values with all indices.
+Rotate a matrix 90° clockwise in place?	The index map (i,j) → (j, n−1−i) factors into transpose then reverse each row - two clean in-place passes; never try to spiral-swap by hand under time pressure.
