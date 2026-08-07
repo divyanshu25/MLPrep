@@ -1357,17 +1357,21 @@ async function viewNb(app, path) {
 
   app.innerHTML = `
   <div class="max-w-4xl mx-auto p-6">
-    ${crumbRow(nav, path, doc.title || (nav.entry && nav.entry.title) || path,
-      `<span class="flex items-center gap-1.5 text-xs text-mut !px-1"
-             title="Kernel state. Edits are session-only; the file on disk is untouched.">
-         <span id="nb-dot" class="inline-block w-2 h-2 rounded-full bg-good"></span>
-         <span id="nb-status" class="tnum">idle</span>
-       </span>
-       <button id="nb-runall" class="btn btn-text text-accent">Run all</button>
-       <button id="nb-restart" class="btn btn-text text-mut">Restart</button>
-       <a class="btn btn-text text-mut" href="#/notes/${encodeURIComponent(path)}"
-          title="Read-only view">Source</a>`,
+    ${crumbRow(nav, path, doc.title || (nav.entry && nav.entry.title) || path, '',
       doc.notes ? '#/notes/' + encodeURIComponent(doc.notes) : null)}
+    <div class="flex items-center gap-2 -mt-3 mb-5 text-xs">
+      <span class="flex items-center gap-1.5 text-mut"
+            title="Kernel state. Edits are session-only; the file on disk is untouched.">
+        <span id="nb-dot" class="inline-block w-2 h-2 rounded-full bg-good"></span>
+        <span id="nb-status" class="tnum">idle</span>
+      </span>
+      <div class="ml-auto flex items-center gap-1">
+        <button id="nb-runall" class="btn btn-text text-accent">Run all</button>
+        <button id="nb-restart" class="btn btn-text text-mut">Restart</button>
+        <a class="btn btn-text text-mut" href="#/notes/${encodeURIComponent(path)}"
+           title="Read-only view">Source</a>
+      </div>
+    </div>
     <div id="nb-cells"></div>
     <div class="mt-1">
       <button id="nb-add" class="btn btn-text text-mut text-sm" title="Append an empty scratch cell (this session only)">+ add cell</button>
