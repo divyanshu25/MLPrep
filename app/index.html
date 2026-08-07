@@ -969,7 +969,7 @@ function crumbRow(nav, path, title, extras) {
     <span class="text-mut opacity-50" aria-hidden="true">/</span>
     <span class="text-mut">${esc(mod)}</span>
     <span class="text-mut opacity-50" aria-hidden="true">/</span>
-    <span class="font-medium text-zinc-100">${esc(title)}</span>
+    <span class="font-medium text-zinc-100" title="${esc(title)}">${esc(title.length > 48 ? title.slice(0, 46).trimEnd() + '…' : title)}</span>
     <span class="font-mono text-[11px] text-mut">${esc(parts[parts.length - 1])}</span>
     <div class="ml-auto flex items-center gap-1 shrink-0">${extras || ''}${pager}</div>
   </div>`;

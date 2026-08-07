@@ -1307,10 +1307,9 @@ def read_md(raw_path):
     if not p.is_file():
         return None, (404, "no such file")
     if p.suffix == ".ipynb":
-        rel = p.relative_to(ROOT)
-        parts = [f"*`{rel}` - read-only view. To work through it cell by "
-                 f"cell and run the code, use **Open as notebook** above - "
-                 f"or open `{rel}` in Jupyter.*"]
+        # no header note: the breadcrumb already names the file and carries
+        # the Open-as-notebook action; the first markdown cell is the title
+        parts = []
         for kind, src in _ipynb_cells(p):
             src = src.rstrip("\n")
             if kind == "prose":
