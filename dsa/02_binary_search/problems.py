@@ -8,15 +8,22 @@ Run: uv run python dsa/02_binary_search/problems.py
 
 
 # ---------------------------------------------------------------------------
-# 1. First and Last Position of Target — pattern: boundary search x2
+# 1. First and Last Position of Target - pattern: boundary search x2
 # ---------------------------------------------------------------------------
 def search_range(nums, target):
-    """Sorted array with duplicates: return [first, last] index of target,
-    or [-1, -1] if absent.
+    """Given a non-decreasing sorted list nums (duplicates allowed) and an
+    integer target, return [first, last] - the indices of the first and last
+    occurrence of target - or [-1, -1] if target is absent. Must run in
+    O(log n).
+
+    Example:
+        search_range([5, 7, 7, 8, 8, 10], 8) -> [3, 4]
+        search_range([5, 7, 7, 8, 8, 10], 6) -> [-1, -1]   # absent
+        search_range([2, 2, 2], 2) -> [0, 2]               # all equal
 
     Pattern: two boundary searches. Key insight: first occurrence is the
     smallest i with the monotone predicate a[i] >= target; the last is
-    (smallest i with a[i] > target) - 1 — reuse ONE round-down template twice
+    (smallest i with a[i] > target) - 1 - reuse ONE round-down template twice
     instead of writing a fragile round-up variant.
     Complexity: O(log n) time, O(1) space.
     """
@@ -38,15 +45,21 @@ def search_range(nums, target):
 
 
 # ---------------------------------------------------------------------------
-# 2. Search in Rotated Sorted Array — pattern: sorted-half elimination
+# 2. Search in Rotated Sorted Array - pattern: sorted-half elimination
 # ---------------------------------------------------------------------------
 def search_rotated(nums, target):
-    """Distinct sorted array rotated at an unknown pivot; return target's
-    index or -1.
+    """Given a sorted list of DISTINCT integers that has been rotated at an
+    unknown pivot (e.g. [0,1,2,4,5,6,7] -> [4,5,6,7,0,1,2]) and an integer
+    target, return target's index, or -1 if absent. Must run in O(log n); the
+    rotation may be zero, so the input can arrive fully sorted.
+
+    Example:
+        search_rotated([4, 5, 6, 7, 0, 1, 2], 0) -> 4
+        search_rotated([4, 5, 6, 7, 0, 1, 2], 3) -> -1   # absent
 
     Pattern: modified binary search. Key insight: any cut leaves at least one
     properly sorted half, and a sorted half answers "is target inside you?"
-    with an O(1) range check — either way half the array is eliminated.
+    with an O(1) range check - either way half the array is eliminated.
     Complexity: O(log n) time, O(1) space.
     """
     lo, hi = 0, len(nums) - 1
@@ -68,12 +81,18 @@ def search_rotated(nums, target):
 
 
 # ---------------------------------------------------------------------------
-# 3. Find Minimum in Rotated Sorted Array — pattern: boundary search
+# 3. Find Minimum in Rotated Sorted Array - pattern: boundary search
 # ---------------------------------------------------------------------------
 def find_min_rotated(nums):
-    """Minimum of a distinct sorted array rotated at an unknown pivot.
+    """Given a sorted list of distinct integers rotated at an unknown pivot,
+    return the minimum VALUE (not its index) in O(log n). The array may also
+    arrive unrotated; it is never empty.
 
-    Pattern: boundary search with predicate p(i) = nums[i] <= nums[-1] —
+    Example:
+        find_min_rotated([3, 4, 5, 1, 2]) -> 1
+        find_min_rotated([11, 13, 15, 17]) -> 11   # unrotated: min is in front
+
+    Pattern: boundary search with predicate p(i) = nums[i] <= nums[-1]  - 
     false on the high shelf before the rotation cliff, true after. Key
     insight: compare mid to the RIGHT end (comparing to the left end breaks
     on unrotated input); a[mid] > a[hi] puts the cliff strictly right of mid.
@@ -90,15 +109,23 @@ def find_min_rotated(nums):
 
 
 # ---------------------------------------------------------------------------
-# 4. Search a 2D Matrix — pattern: flatten the index space
+# 4. Search a 2D Matrix - pattern: flatten the index space
 # ---------------------------------------------------------------------------
 def search_matrix(matrix, target):
-    """m x n matrix, rows sorted, each row's first element > previous row's
-    last. Return True iff target present.
+    """Given an m x n integer matrix where each row is sorted ascending and
+    each row's first element is greater than the previous row's last, plus an
+    integer target, return True iff target appears in the matrix. Must run in
+    O(log(m*n)), not O(m + log n).
+
+    Example:
+        search_matrix([[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], 3)
+            -> True
+        search_matrix([[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], 13)
+            -> False   # 13 falls in the gap between 11 and 16
 
     Pattern: plain binary search on a virtual 1D array. Key insight: the
     sortedness condition means row-major order IS sorted order, so index k
-    maps to matrix[k // n][k % n] and one search over m*n items suffices —
+    maps to matrix[k // n][k % n] and one search over m*n items suffices  - 
     no need for a two-phase row-then-column search.
     Complexity: O(log(m*n)) time, O(1) space.
     """
@@ -117,17 +144,24 @@ def search_matrix(matrix, target):
 
 
 # ---------------------------------------------------------------------------
-# 5. Koko Eating Bananas — pattern: binary search on the answer
+# 5. Koko Eating Bananas - pattern: binary search on the answer
 # ---------------------------------------------------------------------------
 def min_eating_speed(piles, h):
-    """Koko eats at speed k bananas/hour; each hour she picks one pile and
-    eats min(k, pile) from it. Find the smallest k finishing all piles in
-    <= h hours.
+    """Koko has a list piles of banana counts and h hours. At integer speed k
+    she picks one pile each hour and eats min(k, remaining) bananas from it;
+    unused capacity in that hour is wasted. Return the smallest integer k that
+    finishes every pile within h hours. Guaranteed h >= len(piles), so an
+    answer always exists.
+
+    Example:
+        min_eating_speed([3, 6, 7, 11], 8) -> 4
+        min_eating_speed([30, 11, 23, 4, 20], 5) -> 30   # h == #piles: k must
+                                                         # clear the biggest pile
 
     Pattern: search on the answer. Key insight: p(k) = "finishes within h at
     speed k" is monotone (faster never hurts), so find the smallest k where
     it flips to true. Hours for one pile = ceil(pile / k); bracket is
-    [1, max(piles)] — speed above max(piles) can't help (one pile per hour).
+    [1, max(piles)] - speed above max(piles) can't help (one pile per hour).
     Complexity: O(n log max(piles)) time, O(1) space.
     """
     def feasible(k):
@@ -144,12 +178,18 @@ def min_eating_speed(piles, h):
 
 
 # ---------------------------------------------------------------------------
-# 6. Capacity to Ship Packages Within D Days — pattern: search on the answer
+# 6. Capacity to Ship Packages Within D Days - pattern: search on the answer
 # ---------------------------------------------------------------------------
 def ship_within_days(weights, days):
-    """Packages must ship IN ORDER; a ship of capacity c loads a prefix of
-    the remaining packages each day without exceeding c. Find the least
-    capacity that ships everything within `days` days.
+    """Given a list weights of packages that must ship IN THE GIVEN ORDER and
+    an integer days, a ship of capacity c loads a prefix of the remaining
+    packages each day without exceeding c. Return the least integer capacity c
+    that ships every package within `days` days (1 <= days <= len(weights)).
+
+    Example:
+        ship_within_days([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5) -> 15
+            # days: 1-5 | 6,7 | 8 | 9 | 10
+        ship_within_days([3, 2, 2, 4, 1, 4], 3) -> 6   # 3,2 | 2,4 | 1,4
 
     Pattern: search on the answer with a greedy checker. Key insight:
     p(c) = "greedy loading needs <= days" is monotone in c; the greedy
@@ -178,16 +218,24 @@ def ship_within_days(weights, days):
 
 
 # ---------------------------------------------------------------------------
-# 7. Median of Two Sorted Arrays — pattern: binary search on a partition
+# 7. Median of Two Sorted Arrays - pattern: binary search on a partition
 # ---------------------------------------------------------------------------
 def find_median_sorted_arrays(a, b):
-    """Median of two sorted arrays in O(log(min(m, n))) time.
+    """Given two sorted lists a and b (either may be empty, but not both),
+    return the median of their combined sorted order as a float, in
+    O(log(min(m, n))) time - merging is too slow. For an even combined length,
+    the median is the mean of the two middle values.
+
+    Example:
+        find_median_sorted_arrays([1, 3], [2]) -> 2.0
+        find_median_sorted_arrays([1, 2], [3, 4]) -> 2.5   # mean of 2 and 3
+        find_median_sorted_arrays([], [1]) -> 1.0          # one side empty
 
     Pattern: binary search on how many elements of the shorter array go to
     the combined left half. Key insight: a valid partition takes i from a and
     j = half - i from b such that every left element <= every right element;
     since j is determined by i, the ONE degree of freedom i can be binary
-    searched — a[i-1] > b[j] means i is too big, b[j-1] > a[i] means too
+    searched - a[i-1] > b[j] means i is too big, b[j-1] > a[i] means too
     small. Sentinels (+-inf) handle empty sides.
     Complexity: O(log min(m, n)) time, O(1) space.
     """
@@ -215,16 +263,22 @@ def find_median_sorted_arrays(a, b):
 
 
 # ---------------------------------------------------------------------------
-# 8. Find Peak Element — pattern: follow the uphill gradient
+# 8. Find Peak Element - pattern: follow the uphill gradient
 # ---------------------------------------------------------------------------
 def find_peak_element(nums):
-    """A peak is strictly greater than its neighbors (nums[-1] and nums[n]
-    are conceptually -inf; adjacent elements differ). Return any peak's index
-    in O(log n).
+    """Given a list nums in which adjacent elements always differ, a peak is an
+    element strictly greater than both neighbors, where the out-of-bounds
+    positions nums[-1] and nums[n] count as -infinity (so the ends can be
+    peaks). Return the index of ANY peak in O(log n) - when several exist, any
+    one is accepted. At least one peak always exists.
+
+    Example:
+        find_peak_element([1, 2, 3, 1]) -> 2   # 3 beats both neighbors
+        find_peak_element([1, 2, 3, 4]) -> 3   # end peak: nums[4] is -inf
 
     Pattern: binary search without global order. Key insight: if
     nums[mid] < nums[mid+1] the slope goes up to the right, and walking
-    uphill must hit a peak before the -inf wall at the end — so a peak
+    uphill must hit a peak before the -inf wall at the end - so a peak
     surely exists in [mid+1, hi]; otherwise one exists in [lo, mid]. The
     invariant "a peak lies in [lo, hi]" holds even though the array is
     unsorted. Complexity: O(log n) time, O(1) space.
