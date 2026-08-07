@@ -10,6 +10,8 @@ if (window.tailwind) tailwind.config = { theme: { extend: {
   colors: { base:'var(--base)', panel:'var(--panel)', panel2:'var(--panel2)', line:'var(--line)',
             accent:'#ffa116', good:'#2cbb5d', warn:'var(--warn)', bad:'#ef4743',
             mut:'var(--mut)' },
+  // text-* utilities use WCAG-safe per-theme colors; bg-* and border-* keep the vivid values
+  textColor: { accent:'var(--accent-text)', good:'var(--good-text)', bad:'var(--bad-text)' },
   fontFamily: { mono:['ui-monospace','SFMono-Regular','Menlo','Consolas','monospace'] }
 }}};
 // apply saved theme before first paint to avoid a flash (default: light)
@@ -31,6 +33,7 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
     --code-bg:#f3f4f6; --code-border:#e2e5e9; --code-text:#b45309;
     --pre-bg:#f6f8fa; --pre-text:#24292f; --th-bg:#f1f3f5;
     --quote:#57606a; --details-bg:#fafbfc; --scroll:#d1d5db; --dot-todo:#c8cdd4;
+    --accent-text:#b45309; --good-text:#15803d; --bad-text:#b91c1c;
   }
   html.dark {
     --base:#1a1a1a; --panel:#222222; --panel2:#2a2a2a; --line:#383838;
@@ -38,6 +41,7 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
     --code-bg:#2d2d2d; --code-border:#3a3a3a; --code-text:#fbbf24;
     --pre-bg:#161616; --pre-text:#d4d4d8; --th-bg:#262626;
     --quote:#a1a1aa; --details-bg:#232323; --scroll:#3f3f46; --dot-todo:#52525b;
+    --accent-text:#ffa116; --good-text:#2cbb5d; --bad-text:#ef4743;
   }
   /* Only #app and inner panes scroll: the page shell itself is locked so nothing
      (hidden helpers, momentum chaining) can scroll past the end of the content. */
@@ -63,7 +67,7 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .md ul, .md ol { margin:.55rem 0 .55rem 1.4rem; }
   .md ul { list-style:disc; } .md ol { list-style:decimal; }
   .md li { margin:.22rem 0; }
-  .md a { color:#ffa116; text-decoration:underline; text-underline-offset:2px; }
+  .md a { color:var(--accent-text); text-decoration:underline; text-underline-offset:2px; }
   .md code { background:var(--code-bg); border:1px solid var(--code-border); border-radius:4px;
              padding:.08rem .3rem; font-size:.85em; font-family:ui-monospace,Menlo,monospace; color:var(--code-text); }
   .md pre { background:var(--pre-bg); border:1px solid var(--code-border); border-radius:8px;
@@ -75,10 +79,12 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .md blockquote { border-left:3px solid #ffa116; padding-left:.9rem; color:var(--quote); margin:.7rem 0; }
   .md details { background:var(--details-bg); border:1px solid var(--code-border); border-radius:8px;
                 padding:.5rem .9rem; margin:.6rem 0; }
-  .md summary { cursor:pointer; color:#ffa116; font-weight:600; }
+  .md summary { cursor:pointer; color:var(--accent-text); font-weight:600; }
   .md hr { border-color:var(--line); margin:1.4rem 0; }
   .md input[type=checkbox] { accent-color:#ffa116; width:.95rem; height:.95rem; margin-right:.35rem; }
   .md img { max-width:100%; }
+  /* roving keyboard highlight on the problems table */
+  tr.rove { outline:2px solid var(--accent-text); outline-offset:-2px; }
   ::-webkit-scrollbar { width:10px; height:10px; }
   ::-webkit-scrollbar-thumb { background:var(--scroll); border-radius:6px; }
   ::-webkit-scrollbar-track { background:transparent; }
@@ -90,14 +96,16 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
      font:13px system-ui;border-bottom:1px solid #9a3412;"></div>
 
 <nav class="h-14 flex items-center gap-6 px-5 border-b border-line bg-panel sticky top-0 z-20">
-  <a href="#/problems" class="flex items-center gap-2 font-bold text-lg tracking-tight">
+  <a href="#/today" class="flex items-center gap-2 font-bold text-lg tracking-tight">
     <span class="text-accent">▲</span><span>MLPrep</span>
   </a>
   <div class="flex gap-1 text-sm" id="nav-tabs">
+    <a href="#/today"    data-tab="today"    class="px-3 py-1.5 rounded-md hover:bg-panel2">Today</a>
     <a href="#/problems" data-tab="problems" class="px-3 py-1.5 rounded-md hover:bg-panel2">Problems</a>
     <a href="#/notes"    data-tab="notes"    class="px-3 py-1.5 rounded-md hover:bg-panel2">Notes</a>
     <a href="#/cards"    data-tab="cards"    class="px-3 py-1.5 rounded-md hover:bg-panel2">Cards</a>
-    <a href="#/review"   data-tab="review"   class="px-3 py-1.5 rounded-md hover:bg-panel2">Review</a>
+    <a href="#/review"   data-tab="review"   class="px-3 py-1.5 rounded-md hover:bg-panel2">Review<span
+      id="due-badge" class="hidden ml-1.5 px-1.5 py-px rounded-full bg-warn/15 text-warn text-[10px] font-bold align-middle">0</span></a>
   </div>
   <div class="ml-auto flex items-center gap-3 text-xs text-mut" id="nav-progress"></div>
   <button id="theme-toggle" class="px-2.5 py-1.5 rounded-md border border-line hover:bg-panel2 text-sm"
@@ -147,13 +155,16 @@ async function api(path, body) {
   const opts = body ? {method:'POST', headers:{'Content-Type':'application/json'},
                        body: JSON.stringify(body)} : undefined;
   const res = await fetch(path, opts);
-  let data = null;
-  try { data = await res.json(); } catch (e) {}
+  let data = null, parsed = false;
+  try { data = await res.json(); parsed = true; } catch (e) {}
   if (!res.ok) throw new Error((data && data.error) || res.status + ' ' + res.statusText);
+  if (!parsed) throw new Error('Unexpected non-JSON response from ' + path);
   return data;
 }
 const errBox = e => `<div class="m-6 p-4 rounded-lg border border-bad/50 bg-bad/10 text-bad text-sm">
-  <b>Error:</b> ${esc(e.message || e)}</div>`;
+  <b>Error:</b> ${esc(e.message || e)}
+  <a href="#/today" class="ml-3 underline hover:opacity-80"
+     onclick="if (history.length > 1) { event.preventDefault(); history.back(); }">← back</a></div>`;
 const spinner = msg => `<div class="p-10 text-center text-mut text-sm animate-pulse">${esc(msg || 'Loading…')}</div>`;
 
 let problemsCache = null;
@@ -166,11 +177,26 @@ async function getCards() {
   if (!cardsCache) cardsCache = await api('/api/flashcards');
   return cardsCache;
 }
+let treeCache = null;
+async function getTree() {
+  if (!treeCache) treeCache = await api('/api/tree');
+  return treeCache;
+}
+
+/* local (not UTC) YYYY-MM-DD */
+const localISO = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+                    + '-' + String(d.getDate()).padStart(2, '0');
+/* tiny FNV-1a hash, for stable per-text checklist keys */
+function hashText(s) {
+  let h = 2166136261;
+  for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(36);
+}
 
 /* seeded daily shuffle: same order all day, new order tomorrow */
 function dailyShuffle(arr) {
   let h = 2166136261;
-  for (const c of new Date().toISOString().slice(0, 10)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+  for (const c of localISO(new Date())) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
   const rand = () => { h = Math.imul(h ^ h >>> 15, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909);
                        return ((h ^= h >>> 16) >>> 0) / 4294967296; };
   const a = arr.slice();
@@ -185,7 +211,20 @@ function fmtClock(sec) { return Math.floor(sec / 60) + ':' + String(sec % 60).pa
 
 /* ---------------------------------------------------------------- router */
 let cleanup = null;
+/* Every navigation bumps the epoch; async views capture it on entry and bail
+   before any post-await DOM write if the user has since routed elsewhere. */
+let routeEpoch = 0;
 window.addEventListener('hashchange', route);
+
+/* amber due-count pill on the Review tab; refreshed on load + after any log */
+async function refreshDueBadge() {
+  try {
+    const q = await api('/api/queue');
+    const n = typeof q.due_count === 'number' ? q.due_count : (q.due_today || []).length;
+    const b = $('#due-badge');
+    if (b) { b.textContent = n; b.classList.toggle('hidden', !n); }
+  } catch (e) { /* badge is decorative */ }
+}
 function syncTheme() {
   const dark = document.documentElement.classList.contains('dark');
   const btn = $('#theme-toggle');
@@ -209,18 +248,22 @@ window.addEventListener('load', () => {
     b.textContent = 'Offline? These CDN assets failed to load: ' + missing.join(', ') +
       '. The app still works, but with degraded styling / a plain-textarea editor / raw markdown.';
   }
+  refreshDueBadge();
   route();
 });
 
 function route() {
+  routeEpoch++;
+  window._cm = null;   // detached editors must not be re-themed by the toggle
   if (cleanup) { try { cleanup(); } catch (e) {} cleanup = null; }
-  const h = location.hash || '#/problems';
+  const h = location.hash || '#/today';
   const app = $('#app');
   app.scrollTop = 0;
   const tab = h.startsWith('#/problem') ? 'problems'
+            : h.startsWith('#/lab') ? 'notes'
             : h.startsWith('#/notes') ? 'notes'
             : h.startsWith('#/cards') ? 'cards'
-            : h.startsWith('#/review') ? 'review' : 'problems';
+            : h.startsWith('#/review') ? 'review' : 'today';
   $$('#nav-tabs a').forEach(a => a.className =
     'px-3 py-1.5 rounded-md hover:bg-panel2 ' +
     (a.dataset.tab === tab ? 'bg-panel2 text-accent font-semibold' : 'text-zinc-300'));
@@ -230,7 +273,124 @@ function route() {
   else if (h.startsWith('#/notes')) viewNotes(app, h.slice('#/notes'.length).replace(/^\//, ''));
   else if (h.startsWith('#/cards')) viewCards(app, h.slice('#/cards'.length).replace(/^\//, ''));
   else if (h.startsWith('#/review')) viewReview(app);
-  else viewProblems(app);
+  else if (h.startsWith('#/problems')) viewProblems(app);
+  else viewToday(app);   // #/today + fallback for unknown hashes
+}
+
+/* ------------------------------------------------- global keys + palette */
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+    e.preventDefault(); openPalette(); return;
+  }
+  if (e.key === 'Escape') {
+    const pal = $('#palette');
+    if (pal && !pal.classList.contains('hidden')) { closePalette(); return; }
+    const lr = $('#lab-result');
+    if (lr && lr.innerHTML.trim()) { lr.innerHTML = ''; return; }
+    const r = $('#result');
+    if (r && r.innerHTML.trim()) r.innerHTML = '';
+  }
+});
+
+let palItems = null, palFiltered = [], palSel = 0;
+function fuzzyScore(q, s) {
+  if (!q) return 0;
+  q = q.toLowerCase(); s = s.toLowerCase();
+  let idx = -1, score = 0;
+  for (const ch of q) {
+    idx = s.indexOf(ch, idx + 1);
+    if (idx < 0) return -1;
+    score += idx;
+  }
+  return score;
+}
+function ensurePaletteDOM() {
+  if ($('#palette')) return;
+  const div = document.createElement('div');
+  div.id = 'palette';
+  div.className = 'hidden fixed inset-0 z-50';
+  div.innerHTML = `
+    <div id="pal-backdrop" class="absolute inset-0 bg-black/40"></div>
+    <div class="relative max-w-xl mx-auto mt-24 bg-panel border border-line rounded-xl shadow-2xl overflow-hidden">
+      <input id="pal-q" placeholder="Jump to a problem, note, or flashcard deck…" autocomplete="off" spellcheck="false"
+        class="w-full bg-transparent px-4 py-3 text-sm outline-none border-b border-line">
+      <div id="pal-list" class="max-h-80 overflow-y-auto text-sm"></div>
+      <div class="px-4 py-2 text-[11px] text-mut border-t border-line flex gap-4">
+        <span>↑↓ navigate</span><span>⏎ open</span><span>esc close</span>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  $('#pal-backdrop').onclick = closePalette;
+  $('#pal-q').oninput = () => { palSel = 0; renderPalette(); };
+  $('#pal-q').addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); movePal(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); movePal(-1); }
+    else if (e.key === 'Enter') { e.preventDefault(); openPalSel(); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closePalette(); }
+  });
+}
+function renderPalette() {
+  const list = $('#pal-list'); if (!list) return;
+  const qs = $('#pal-q').value.trim();
+  palFiltered = (palItems || [])
+    .map(it => [fuzzyScore(qs, it.label + ' ' + it.sub), it])
+    .filter(x => x[0] >= 0)
+    .sort((a, b) => a[0] - b[0])
+    .slice(0, 40).map(x => x[1]);
+  if (palSel >= palFiltered.length) palSel = Math.max(0, palFiltered.length - 1);
+  list.innerHTML = palFiltered.length
+    ? palFiltered.map((it, i) => `
+      <div class="pal-row px-4 py-2 cursor-pointer flex items-center gap-2 ${i === palSel ? 'bg-panel2 text-accent' : ''}" data-i="${i}">
+        <span class="text-[10px] uppercase text-mut border border-line rounded px-1 w-16 text-center shrink-0">${it.kind}</span>
+        <span class="truncate">${esc(it.label)}</span>
+        <span class="text-xs text-mut truncate ml-auto">${esc(it.sub)}</span>
+      </div>`).join('')
+    : `<div class="px-4 py-6 text-center text-mut">${palItems ? 'No matches.' : 'Loading index…'}</div>`;
+  $$('.pal-row').forEach(r => r.onclick = () => { palSel = +r.dataset.i; openPalSel(); });
+  const sel = list.children[palSel];
+  if (sel && palFiltered.length) sel.scrollIntoView({ block: 'nearest' });
+}
+function movePal(d) {
+  if (!palFiltered.length) return;
+  palSel = (palSel + d + palFiltered.length) % palFiltered.length;
+  renderPalette();
+}
+function openPalSel() {
+  const it = palFiltered[palSel];
+  if (!it) return;
+  closePalette();
+  location.hash = it.hash;
+}
+function closePalette() {
+  const pal = $('#palette');
+  if (pal) { pal.classList.add('hidden'); $('#pal-q').blur(); }
+}
+async function openPalette() {
+  ensurePaletteDOM();
+  const pal = $('#palette');
+  pal.classList.remove('hidden');
+  const inp = $('#pal-q');
+  inp.value = ''; palSel = 0;
+  renderPalette();
+  inp.focus();
+  if (!palItems) {   // build the index lazily, once, from cached endpoints
+    const items = [];
+    try {
+      (await getProblems()).forEach(p =>
+        items.push({ kind: 'problem', label: p.name, sub: p.folder_title, hash: '#/problem/' + p.id }));
+    } catch (e) {}
+    try {
+      (await getTree()).forEach(g => g.folders.forEach(f => f.files.forEach(x =>
+        items.push({ kind: 'note', label: x.title, sub: x.path, hash: '#/notes/' + encodeURIComponent(x.path) }))));
+    } catch (e) {}
+    try {
+      const cards = await getCards();
+      [...new Map(cards.map(c => [c.slug, c.section])).entries()].forEach(([s, t]) =>
+        items.push({ kind: 'cards', label: t, sub: 'flashcard deck', hash: '#/cards/' + s }));
+    } catch (e) {}
+    palItems = items;
+    if (!pal.classList.contains('hidden')) renderPalette();
+  }
 }
 
 async function updateNavProgress() {
@@ -245,13 +405,140 @@ async function updateNavProgress() {
   } catch (e) { /* nav progress is decorative */ }
 }
 
+/* ------------------------------------------------------------ view: today */
+function queueItemLink(r) {
+  const id = String(r.item_id || '');
+  if (id.startsWith('app:')) return '#/problem/' + encodeURIComponent(id.slice(4));
+  if (id.startsWith('lab:')) return '#/lab/' + encodeURIComponent(id.slice(4));
+  const m = id.match(/^cards?:([^#]+)/);
+  if (m) return '#/cards/' + encodeURIComponent(m[1]);
+  const sp = String(r.source_path || '');
+  if (/\.(md|py)$/i.test(sp)) return '#/notes/' + encodeURIComponent(sp);
+  return null;
+}
+const dueRowHTML = (r, today) => {
+  const href = queueItemLink(r);
+  const label = `<span class="font-mono text-sm">${esc(r.item_id)}</span>`;
+  return `<div class="flex items-center gap-3 px-4 py-2.5 border-t border-line hover:bg-panel2">
+    <span class="text-xs font-mono ${r.due < today ? 'text-bad' : 'text-warn'}">${esc(r.due)}</span>
+    ${href ? `<a class="text-accent hover:underline" href="${href}">${label}</a>` : label}
+    <span class="text-xs text-mut ml-auto font-mono truncate max-w-[16rem]">${esc(r.source_path)}</span>
+    <span class="text-xs text-mut w-10 text-right shrink-0">${esc(r.interval_days)}d</span>
+  </div>`;
+};
+
+/* 120-day consistency heatmap — a record, not a nag */
+function activityHeatmap(act) {
+  if (!act || !Array.isArray(act.days)) return '';
+  const counts = {};
+  act.days.forEach(d => { counts[d.date] = d.count; });
+  const start = new Date(); start.setDate(start.getDate() - 119);
+  let cells = '';
+  for (let i = 0; i < start.getDay(); i++) cells += '<div class="w-2.5 h-2.5"></div>';
+  for (let i = 0; i < 120; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    const key = localISO(d);
+    const c = counts[key] || 0;
+    const bg = c === 0 ? 'var(--panel2)'
+             : c < 2 ? 'rgba(44,187,93,.3)'
+             : c < 4 ? 'rgba(44,187,93,.55)'
+             : c < 7 ? 'rgba(44,187,93,.8)' : '#2cbb5d';
+    cells += `<div class="w-2.5 h-2.5 rounded-[2px]" style="background:${bg}"
+      title="${key} · ${c} review${c === 1 ? '' : 's'}"></div>`;
+  }
+  return `
+  <div class="border border-line rounded-lg overflow-hidden mb-6">
+    <div class="px-4 py-2.5 bg-panel text-xs uppercase tracking-wider text-mut flex items-baseline gap-3">
+      <span>Last 120 days</span>
+      ${act.today ? `<span class="normal-case tracking-normal">${act.today.reviewed} reviewed today · ${act.today.due} due</span>` : ''}
+    </div>
+    <div class="p-4 overflow-x-auto">
+      <div class="grid gap-[3px] w-max" style="grid-template-rows:repeat(7,.625rem);grid-auto-flow:column;grid-auto-columns:min-content">${cells}</div>
+      <div class="text-[11px] text-mut mt-2">A record, not a scoreboard — gaps are part of a long prep.</div>
+    </div>
+  </div>`;
+}
+
+async function viewToday(app) {
+  const epoch = routeEpoch;
+  app.innerHTML = spinner('Loading today…');
+  let q = null, qErr = null, act = null, ps = [];
+  try { q = await api('/api/queue'); } catch (e) { qErr = e; }
+  try { act = await api('/api/activity'); } catch (e) { /* endpoint may not exist yet — hide the heatmap */ }
+  try { ps = await getProblems(); } catch (e) {}
+  if (epoch !== routeEpoch) return;
+
+  const due = (q && q.due_today) || [];
+  const dueCount = q ? (typeof q.due_count === 'number' ? q.due_count : due.length) : 0;
+  const skipped = (q && q.skipped_rows) || 0;
+  const now = new Date();
+  const firstTodo = ps.find(x => x.status === 'todo');
+  const newLink = firstTodo
+    ? `<a class="text-accent hover:underline font-semibold" href="#/problem/${esc(firstTodo.id)}">Start: ${esc(firstTodo.name)} →</a>`
+    : `<a class="text-accent hover:underline font-semibold" href="#/problems">Open the problem list →</a>`;
+  const PLAN = {
+    0: { text: 'Mock interview or rest — consolidation needs the downtime too.',
+         link: `<a class="text-accent hover:underline font-semibold" href="#/cards">Light flashcards if you feel like it →</a>` },
+    1: { text: 'New material — next unsolved problem.', link: newLink },
+    2: { text: 'New material — next unsolved problem.', link: newLink },
+    3: { text: 'Queue sweep + one flashcard section.',
+         link: `<a class="text-accent hover:underline font-semibold" href="#/review">Review queue →</a> ·
+                <a class="text-accent hover:underline font-semibold" href="#/cards">Flashcards →</a>` },
+    4: { text: 'One interleaved mixed set — name the pattern before you peek.',
+         link: `<a class="text-accent hover:underline font-semibold" href="#/problems"
+                   onclick="store.set('mlprep.interleave', true)">Problems → interleave on</a>` },
+    5: { text: 'New material — next unsolved problem.', link: newLink },
+    6: { text: 'Timed drills / mock round — strict time boxes.',
+         link: `<a class="text-accent hover:underline font-semibold" href="#/problems">Open problems →</a>` },
+  };
+  const plan = PLAN[now.getDay()];
+
+  app.innerHTML = `
+  <div class="max-w-4xl mx-auto p-8">
+    <div class="flex items-baseline justify-between flex-wrap gap-2 mb-4">
+      <h1 class="text-xl font-bold">Today</h1>
+      <div class="text-sm text-mut">${esc(now.toLocaleDateString(undefined,
+        { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }))}</div>
+    </div>
+
+    ${skipped ? `<div class="mb-4 px-4 py-2.5 rounded-lg border border-warn/40 bg-warn/10 text-warn text-sm">
+      ${skipped} malformed row${skipped === 1 ? '' : 's'} in queue.tsv ${skipped === 1 ? 'was' : 'were'} skipped.</div>` : ''}
+
+    <div class="p-5 rounded-xl border ${dueCount ? 'border-accent bg-accent/10' : 'border-good/50 bg-good/10'} mb-6">
+      <div class="text-[11px] uppercase tracking-widest ${dueCount ? 'text-accent' : 'text-good'} font-bold mb-1">What to do now</div>
+      ${dueCount
+        ? `<div class="text-lg font-semibold">Clear your queue first — ${dueCount} item${dueCount > 1 ? 's' : ''} due.</div>
+           <div class="text-sm text-mut mt-1 mb-3">Attempt each cold (blank page, timer on), then log pass/fail.</div>
+           <button id="today-start" class="px-4 py-2 rounded-md bg-accent text-black text-sm font-semibold hover:opacity-90">
+             Start the due list ↓</button>`
+        : `<div class="text-lg font-semibold">${esc(plan.text)}</div>
+           <div class="text-sm mt-2">${plan.link}</div>`}
+    </div>
+
+    <div id="today-due" class="border border-line rounded-lg overflow-hidden mb-6">
+      <div class="px-4 py-2.5 bg-panel text-xs uppercase tracking-wider text-mut">Due today</div>
+      ${qErr
+        ? `<div class="px-4 py-6 border-t border-line text-sm text-mut text-center">Queue unavailable: ${esc(qErr.message)}</div>`
+        : due.length
+          ? due.map(r => dueRowHTML(r, q.today)).join('')
+          : `<div class="px-4 py-6 border-t border-line text-sm text-mut text-center">Nothing due — the gap is the point.</div>`}
+    </div>
+
+    ${activityHeatmap(act)}
+  </div>`;
+  const sb = $('#today-start');
+  if (sb) sb.onclick = () => $('#today-due').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 /* ---------------------------------------------------- view: problem list */
 const filt = { q: '', folder: 'all', diff: 'all', status: 'all' };
 
 async function viewProblems(app) {
+  const epoch = routeEpoch;
   app.innerHTML = spinner('Loading problems…');
   let ps;
-  try { ps = await getProblems(); } catch (e) { app.innerHTML = errBox(e); return; }
+  try { ps = await getProblems(); } catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
+  if (epoch !== routeEpoch) return;
   const interleave = !!store.get('mlprep.interleave', false);
   const folders = [...new Map(ps.map(p => [p.folder, p.folder_title])).entries()];
 
@@ -297,6 +584,7 @@ async function viewProblems(app) {
     <div id="ptable"></div>
   </div>`;
 
+  let rove = -1, shown = [];
   const renderTable = () => {
     const inter = !!store.get('mlprep.interleave', false);
     let list = ps.filter(p =>
@@ -305,6 +593,7 @@ async function viewProblems(app) {
       (filt.diff === 'all' || p.difficulty === filt.diff) &&
       (filt.status === 'all' || p.status === filt.status));
     list = inter ? dailyShuffle(list) : list;
+    shown = list; rove = -1;
     $('#ptable').innerHTML = `
     <div class="border border-line rounded-lg overflow-hidden">
     <table class="w-full text-sm">
@@ -322,7 +611,9 @@ async function viewProblems(app) {
           <td class="px-4 py-2.5"><span class="inline-block w-2.5 h-2.5 rounded-full ${STATUS_DOT[p.status]}"
               title="${STATUS_TITLE[p.status]}"></span></td>
           <td class="px-4 py-2.5">
-            <div class="font-medium text-zinc-100">${esc(p.name)}
+            <div class="font-medium">
+              <a href="#/problem/${esc(p.id)}" class="text-zinc-100 hover:text-accent"
+                 onclick="event.stopPropagation()">${esc(p.name)}</a>
               <span class="text-[10px] text-mut border border-line rounded px-1 py-px ml-1">${p.kind}</span></div>
             <div class="text-xs text-mut truncate max-w-xl">${esc(p.statement_first_line)}</div>
           </td>
@@ -343,17 +634,46 @@ async function viewProblems(app) {
   $('#f-folder').onchange = e => { filt.folder = e.target.value; renderTable(); };
   $('#f-diff').onchange = e => { filt.diff = e.target.value; renderTable(); };
   $('#f-status').onchange = e => { filt.status = e.target.value; renderTable(); };
-  $('#f-inter').onchange = e => { store.set('mlprep.interleave', e.target.checked); viewProblems(app); };
+  $('#f-inter').onchange = e => { store.set('mlprep.interleave', e.target.checked); route(); };
+
+  /* j/k roving highlight, Enter opens, / focuses search */
+  const setRove = i => {
+    const rows = $$('#ptable tbody tr');
+    if (!rows.length) return;
+    i = Math.max(0, Math.min(i, rows.length - 1));
+    rows.forEach(r => r.classList.remove('rove'));
+    rows[i].classList.add('rove');
+    rows[i].scrollIntoView({ block: 'nearest' });
+    rove = i;
+  };
+  const keyH = e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) {
+      if (e.key === 'Escape') t.blur();
+      return;
+    }
+    if (e.key === 'j') setRove(rove + 1);
+    else if (e.key === 'k') setRove(rove - 1);
+    else if (e.key === 'Enter') { if (rove >= 0 && shown[rove]) location.hash = '#/problem/' + shown[rove].id; }
+    else if (e.key === '/') { e.preventDefault(); const q = $('#f-q'); if (q) q.focus(); }
+  };
+  document.addEventListener('keydown', keyH);
+  cleanup = () => document.removeEventListener('keydown', keyH);
 }
 
 /* ------------------------------------------------- view: single problem */
 async function viewProblem(app, pid) {
+  const epoch = routeEpoch;
   app.innerHTML = spinner('Loading problem…');
   let p;
   try { p = await api('/api/problem?id=' + encodeURIComponent(pid)); }
-  catch (e) { app.innerHTML = errBox(e); return; }
+  catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
+  if (epoch !== routeEpoch) return;
 
   const itemId = 'app:' + p.id;
+  const draftKey = 'mlprep.draft.problem.' + p.id;
+  const tKey = 'mlprep.t0.' + p.id;
   app.innerHTML = `
   <div class="flex h-full">
     <section class="w-1/2 overflow-y-auto border-r border-line p-6">
@@ -408,8 +728,14 @@ async function viewProblem(app, pid) {
           <span class="text-mut text-xs">/ ${p.time_box_min} min box</span>
         </div>
       </div>
+      <div id="draft-bar" style="display:none"
+           class="px-4 py-1.5 text-xs border-b border-warn/40 bg-warn/10 text-warn items-center gap-3">
+        <span>Unsaved draft from a previous visit.</span>
+        <button id="draft-restore" class="underline hover:opacity-80">restore draft</button>
+        <button id="draft-discard" class="underline hover:opacity-80">start from stub</button>
+      </div>
       <div id="editor-wrap" class="flex-1 min-h-0 relative"></div>
-      <div id="result" class="border-t border-line max-h-[45%] overflow-y-auto"></div>
+      <div id="result" role="status" aria-live="polite" class="border-t border-line max-h-[45%] overflow-y-auto"></div>
     </section>
   </div>`;
 
@@ -429,9 +755,34 @@ async function viewProblem(app, pid) {
       class="w-full h-full bg-[#1e1e1e] text-zinc-200 font-mono text-sm p-3 outline-none resize-none">${esc(p.stub)}</textarea>`;
   }
   const getCode = () => cmEditor ? cmEditor.getValue() : $('#code-ta').value;
+  const setCode = v => cmEditor ? cmEditor.setValue(v) : ($('#code-ta').value = v);
 
-  /* timer vs time box */
-  const t0 = Date.now(), boxSec = p.time_box_min * 60;
+  /* draft autosave (localStorage, per problem, debounced) + restore bar */
+  let saveT = null;
+  const flushDraft = () => {
+    try {
+      const v = getCode();
+      if (v === p.stub) localStorage.removeItem(draftKey); else store.set(draftKey, v);
+    } catch (e) {}
+  };
+  const queueSave = () => { clearTimeout(saveT); saveT = setTimeout(flushDraft, 500); };
+  if (cmEditor) cmEditor.on('change', queueSave);
+  else $('#code-ta').addEventListener('input', queueSave);
+  const draft = store.get(draftKey, null);
+  if (typeof draft === 'string' && draft !== p.stub) {
+    const bar = $('#draft-bar');
+    bar.style.display = 'flex';
+    $('#draft-restore').onclick = () => { setCode(draft); bar.style.display = 'none'; };
+    $('#draft-discard').onclick = () => {
+      try { localStorage.removeItem(draftKey); } catch (e) {}
+      setCode(p.stub); bar.style.display = 'none';
+    };
+  }
+
+  /* timer vs time box — start time survives navigation via sessionStorage */
+  let t0 = Number(sessionStorage.getItem(tKey)) || Date.now();
+  try { sessionStorage.setItem(tKey, String(t0)); } catch (e) {}
+  const boxSec = p.time_box_min * 60;
   const tick = () => {
     const el = $('#timer'); if (!el) return;
     const s = Math.floor((Date.now() - t0) / 1000);
@@ -441,11 +792,23 @@ async function viewProblem(app, pid) {
   };
   const timerIv = setInterval(tick, 1000); tick();
 
+  /* verdict: 'pass' after Accepted, 'fail' after Rejected — drives one-key grading */
+  let verdict = null;
   const keyHandler = e => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); run(); return; }
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target;
+    if (t && t.closest && t.closest('.CodeMirror, input, textarea, select, button')) return;
+    if (verdict === 'pass' && e.key === 'Enter') { e.preventDefault(); logResult('pass'); }
+    else if (verdict === 'fail' && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); logResult('fail'); }
   };
   document.addEventListener('keydown', keyHandler);
-  cleanup = () => { clearInterval(timerIv); document.removeEventListener('keydown', keyHandler); };
+  cleanup = () => {
+    clearInterval(timerIv);
+    document.removeEventListener('keydown', keyHandler);
+    clearTimeout(saveT);
+    flushDraft();
+  };
 
   /* progressive disclosure, tutor-ordered: hint first, then gated solution */
   $('#btn-hint').onclick = () => {
@@ -458,77 +821,122 @@ async function viewProblem(app, pid) {
   $('#btn-sol').onclick = () => $('#sol-confirm').classList.toggle('hidden');
   $('#btn-sol-no').onclick = () => $('#sol-confirm').classList.add('hidden');
   $('#btn-sol-yes').onclick = async () => {
+    const yes = $('#btn-sol-yes');
+    if (yes.disabled) return;
+    yes.disabled = true;                       // sync, before the await — no double log
     $('#sol-confirm').classList.add('hidden');
     $('#sol-box').classList.remove('hidden');
     $('#btn-sol').disabled = true; $('#btn-sol').classList.add('opacity-50');
     try {
       const r = await api('/api/log', { item_id: itemId, source_path: p.source_path, result: 'fail' });
-      $('#sol-note').textContent = `Logged as a miss — cold re-attempt scheduled for ${r.row.due}.`;
-      problemsCache = null; updateNavProgress();
-    } catch (e) { $('#sol-note').textContent = 'Could not log to queue: ' + e.message; }
+      if (epoch !== routeEpoch) return;
+      $('#sol-note').textContent = (r && r.logged === false)
+        ? (r.reason || 'not logged')
+        : `Logged as a miss — cold re-attempt scheduled for ${r.row.due}.`;
+      problemsCache = null; updateNavProgress(); refreshDueBadge();
+    } catch (e) {
+      if (epoch !== routeEpoch) return;
+      $('#sol-note').textContent = 'Could not log to queue: ' + e.message;
+    }
   };
 
   /* run + verdict */
   async function run() {
     const btn = $('#btn-run'); if (!btn || btn.disabled) return;
+    verdict = null;
     btn.disabled = true; btn.textContent = 'Running…';
     $('#result').innerHTML = `<div class="p-4 text-sm text-mut animate-pulse">Judging — your ${esc(p.kind)} is swapped into
       ${esc(p.source_path)} and the file's full assert suite runs (30 s limit)…</div>`;
     let r;
     try { r = await api('/api/run', { id: p.id, code: getCode() }); }
-    catch (e) { $('#result').innerHTML = errBox(e); btn.disabled = false; btn.textContent = '▶ Run'; return; }
+    catch (e) {
+      if (epoch !== routeEpoch) return;
+      $('#result').innerHTML = errBox(e); btn.disabled = false; btn.textContent = '▶ Run'; return;
+    }
+    if (epoch !== routeEpoch) return;
     btn.disabled = false; btn.textContent = '▶ Run';
+    btn.blur();   // Enter must grade, not re-run
     const solveSec = Math.floor((Date.now() - t0) / 1000);
     if (r.ok) {
+      verdict = 'pass';
       $('#result').innerHTML = `
       <div class="p-4">
         <div class="p-3 rounded-lg bg-good/15 border border-good/40 text-good font-semibold text-sm">
           ✓ Accepted — full suite passed (${r.asserts} asserts) · judge ${r.elapsed_ms} ms · you ${fmtClock(solveSec)}
+          <span class="ml-2 font-normal text-xs opacity-75">⏎ log pass</span>
         </div>
         ${r.output ? `<pre class="mt-2 text-xs font-mono text-mut">${esc(r.output.trim())}</pre>` : ''}
-        <div class="mt-3 flex items-center gap-3">
+        <div class="mt-3 flex items-center gap-3 flex-wrap">
           <button id="btn-logpass" class="px-3 py-1.5 rounded-md bg-good/80 text-white text-sm hover:bg-good">
-            Log pass to review queue</button>
+            Log pass to review queue (⏎)</button>
           <span id="log-note" class="text-xs text-mut"></span>
+          <span id="log-next"></span>
           <button id="res-close" class="ml-auto px-2 py-1 rounded border border-line hover:bg-panel2 text-mut text-xs" title="Hide this panel">✕ hide</button>
         </div>
       </div>`;
       $('#btn-logpass').onclick = () => logResult('pass');
-      $('#res-close').onclick = () => { $('#result').innerHTML = ''; };
+      $('#btn-logpass').focus();   // ⏎ logs the pass even if the run came from the editor
+      $('#res-close').onclick = () => { $('#result').innerHTML = ''; verdict = null; };
     } else {
+      verdict = 'fail';
       $('#result').innerHTML = `
       <div class="p-4">
-        <div class="p-3 rounded-lg bg-bad/15 border border-bad/40 text-bad font-semibold text-sm">✗ Rejected</div>
+        <div class="p-3 rounded-lg bg-bad/15 border border-bad/40 text-bad font-semibold text-sm">✗ Rejected
+          <span class="ml-2 font-normal text-xs opacity-75">f log fail</span></div>
         <pre class="mt-2 p-3 text-xs font-mono bg-panel border border-line rounded-lg overflow-auto max-h-64 whitespace-pre-wrap">${esc(r.error || 'no error output')}</pre>
-        <div class="mt-3 flex items-center gap-3">
+        <div class="mt-3 flex items-center gap-3 flex-wrap">
           <button id="btn-logfail" class="px-3 py-1.5 rounded-md bg-bad/80 text-white text-sm hover:bg-bad">
-            Log fail (schedules re-attempt)</button>
+            Log fail (f) — schedules re-attempt</button>
           <span id="log-note" class="text-xs text-mut"></span>
           <button id="res-close" class="ml-auto px-2 py-1 rounded border border-line hover:bg-panel2 text-mut text-xs" title="Hide this panel">✕ hide</button>
         </div>
       </div>`;
       $('#btn-logfail').onclick = () => logResult('fail');
-      $('#res-close').onclick = () => { $('#result').innerHTML = ''; };
+      $('#res-close').onclick = () => { $('#result').innerHTML = ''; verdict = null; };
     }
   }
   async function logResult(result) {
+    const b = $('#btn-logpass') || $('#btn-logfail');
+    if (!b || b.disabled) return;
+    b.disabled = true; b.classList.add('opacity-50');   // sync, before the await
+    verdict = null;
     const note = $('#log-note');
     try {
       const r = await api('/api/log', { item_id: itemId, source_path: p.source_path, result });
+      if (epoch !== routeEpoch) return;
+      if (r && r.logged === false) { note.textContent = r.reason || 'not logged'; return; }
       note.textContent = `Logged "${result}" — next due ${r.row.due} (interval ${r.row.interval_days}d).`;
-      const b = $('#btn-logpass') || $('#btn-logfail');
-      if (b) { b.disabled = true; b.classList.add('opacity-50'); }
-      problemsCache = null; updateNavProgress();
-    } catch (e) { note.textContent = 'Log failed: ' + e.message; }
+      problemsCache = null; updateNavProgress(); refreshDueBadge();
+      if (result === 'pass') {
+        clearInterval(timerIv);                          // solve is over — freeze the clock
+        try { sessionStorage.removeItem(tKey); } catch (e) {}
+        try {
+          const ps = await getProblems();
+          if (epoch !== routeEpoch) return;
+          const nxt = ps.find(x => x.status === 'todo');
+          const slot = $('#log-next');
+          if (nxt && slot) slot.innerHTML =
+            `<a class="text-accent hover:underline text-sm font-semibold" href="#/problem/${esc(nxt.id)}">Next unsolved: ${esc(nxt.name)} →</a>`;
+        } catch (e) {}
+      }
+    } catch (e) {
+      if (epoch !== routeEpoch) return;
+      note.textContent = 'Log failed: ' + e.message;
+      b.disabled = false; b.classList.remove('opacity-50');
+      verdict = result === 'pass' ? 'pass' : 'fail';      // allow a retry by key
+    }
   }
   $('#btn-run').onclick = () => run();
 }
 
 /* ------------------------------------------------------------ view: notes */
 async function viewNotes(app, encodedPath) {
+  const epoch = routeEpoch;
   app.innerHTML = spinner('Loading notes tree…');
   let tree;
-  try { tree = await api('/api/tree'); } catch (e) { app.innerHTML = errBox(e); return; }
+  try { tree = await api('/api/tree'); treeCache = tree; }
+  catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
+  if (epoch !== routeEpoch) return;
   const current = encodedPath ? decodeURIComponent(encodedPath) : null;
 
   app.innerHTML = `
@@ -556,7 +964,8 @@ async function viewNotes(app, encodedPath) {
   if (!current) return;
   let doc;
   try { doc = await api('/api/md?path=' + encodeURIComponent(current)); }
-  catch (e) { $('#notes-body').innerHTML = errBox(e); return; }
+  catch (e) { if (epoch === routeEpoch) $('#notes-body').innerHTML = errBox(e); return; }
+  if (epoch !== routeEpoch) return;
   const labBtn = current.endsWith('.py')
     ? `<div class="max-w-3xl mx-auto mb-3 flex justify-end">
          <a href="#/lab/${encodeURIComponent(current)}"
@@ -565,15 +974,23 @@ async function viewNotes(app, encodedPath) {
        </div>` : '';
   $('#notes-body').innerHTML =
     labBtn + `<div class="max-w-3xl mx-auto md" id="md-root">${md(doc.content)}</div>`;
-  /* checklists: real checkboxes, state in localStorage per file (UI-only) */
+  /* checklists: real checkboxes, state in localStorage per file (UI-only).
+     Keys hash the item's text (not its index) so edits to the doc don't
+     silently shift every saved tick onto the wrong line. */
   const key = 'mlprep.checks.' + current;
   const saved = store.get(key, {});
-  $$('#md-root input[type=checkbox]').forEach((cb, i) => {
+  const seen = {};
+  $$('#md-root input[type=checkbox]').forEach(cb => {
     cb.disabled = false;
-    if (i in saved) cb.checked = !!saved[i];
+    const li = cb.closest('li');
+    const txt = ((li ? li.textContent : (cb.parentElement && cb.parentElement.textContent)) || '').trim();
+    const h = hashText(txt);
+    const n = seen[h] || 0; seen[h] = n + 1;
+    const id = n ? h + ':' + n : h;   // disambiguate duplicate item texts
+    if (id in saved) cb.checked = !!saved[id];
     cb.addEventListener('change', () => {
       const cur = store.get(key, {});
-      cur[i] = cb.checked;
+      cur[id] = cb.checked;
       store.set(key, cur);
     });
   });
@@ -585,11 +1002,16 @@ async function viewNotes(app, encodedPath) {
    green means every check in the script passed, not that "an answer matched".
    Edits run from a scratch copy; the repo file is never modified. */
 async function viewLab(app, path) {
+  const epoch = routeEpoch;
   app.innerHTML = spinner('Loading ' + esc(path) + '…');
   let doc;
   try { doc = await api('/api/source?path=' + encodeURIComponent(path)); }
-  catch (e) { app.innerHTML = errBox(e); return; }
+  catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
+  if (epoch !== routeEpoch) return;
   const itemId = 'lab:' + path;
+  const draftKey = 'mlprep.draft.lab.' + path;
+  const draft = store.get(draftKey, null);
+  const startVal = (typeof draft === 'string' && draft !== doc.content) ? draft : doc.content;
   app.innerHTML = `
   <div class="flex flex-col h-full">
     <div class="flex items-center gap-3 px-4 py-2 border-b border-line bg-panel">
@@ -602,8 +1024,13 @@ async function viewLab(app, path) {
         <button id="lab-run" class="px-4 py-1.5 rounded-md bg-accent text-black text-sm font-semibold hover:opacity-90">▶ Run (⌘⏎)</button>
       </div>
     </div>
+    <div id="lab-draft-bar" style="display:none"
+         class="px-4 py-1.5 text-xs border-b border-warn/40 bg-warn/10 text-warn items-center gap-3">
+      <span>Draft restored from your last visit.</span>
+      <button id="lab-draft-discard" class="underline hover:opacity-80">discard</button>
+    </div>
     <div id="lab-editor" class="flex-1 min-h-0 relative"></div>
-    <div id="lab-result" class="border-t border-line max-h-[45%] overflow-y-auto"></div>
+    <div id="lab-result" role="status" aria-live="polite" class="border-t border-line max-h-[45%] overflow-y-auto"></div>
   </div>`;
 
   let cm = null;
@@ -611,7 +1038,7 @@ async function viewLab(app, path) {
   const setCode = v => cm ? cm.setValue(v) : ($('#lab-ta').value = v);
   if (window.CodeMirror) {
     cm = CodeMirror($('#lab-editor'), {
-      value: doc.content, mode: 'python', lineNumbers: true,
+      value: startVal, mode: 'python', lineNumbers: true,
       theme: document.documentElement.classList.contains('dark') ? 'material-darker' : 'default',
       indentUnit: 4, tabSize: 4, indentWithTabs: false,
       extraKeys: { 'Cmd-Enter': () => run(), 'Ctrl-Enter': () => run(),
@@ -621,8 +1048,29 @@ async function viewLab(app, path) {
   } else {
     $('#lab-editor').innerHTML = `<textarea id="lab-ta" spellcheck="false"
       class="w-full h-full bg-panel p-3 font-mono text-sm outline-none resize-none"></textarea>`;
-    $('#lab-ta').value = doc.content;
+    $('#lab-ta').value = startVal;
   }
+
+  /* draft autosave (localStorage, per path, debounced) */
+  let saveT = null;
+  const flushDraft = () => {
+    try {
+      const v = getCode();
+      if (v === doc.content) localStorage.removeItem(draftKey); else store.set(draftKey, v);
+    } catch (e) {}
+  };
+  const queueSave = () => { clearTimeout(saveT); saveT = setTimeout(flushDraft, 500); };
+  if (cm) cm.on('change', queueSave);
+  else $('#lab-ta').addEventListener('input', queueSave);
+  if (startVal !== doc.content) {
+    const bar = $('#lab-draft-bar');
+    bar.style.display = 'flex';
+    $('#lab-draft-discard').onclick = () => {
+      try { localStorage.removeItem(draftKey); } catch (e) {}
+      setCode(doc.content); bar.style.display = 'none';
+    };
+  }
+  cleanup = () => { clearTimeout(saveT); flushDraft(); };
 
   const logBtns = () => `
     <span class="ml-auto flex gap-2 items-center text-xs">
@@ -632,20 +1080,34 @@ async function viewLab(app, path) {
       <span id="lab-log-note" class="text-mut"></span>
     </span>`;
   const wireLog = () => $$('.lab-log').forEach(b => b.onclick = async () => {
+    if (b.disabled) return;
+    $$('.lab-log').forEach(x => { x.disabled = true; x.classList.add('opacity-50'); });   // sync, before the await
     try {
       const res = await api('/api/log', { item_id: itemId, source_path: path, result: b.dataset.r });
-      $('#lab-log-note').textContent = 'logged — next due ' + res.row.due;
-    } catch (e) { $('#lab-log-note').textContent = 'log failed: ' + e.message; }
+      if (epoch !== routeEpoch) return;
+      const note = $('#lab-log-note');
+      if (res && res.logged === false) note.textContent = res.reason || 'not logged';
+      else { note.textContent = 'logged — next due ' + res.row.due; refreshDueBadge(); }
+    } catch (e) {
+      if (epoch !== routeEpoch) return;
+      $$('.lab-log').forEach(x => { x.disabled = false; x.classList.remove('opacity-50'); });
+      $('#lab-log-note').textContent = 'log failed: ' + e.message;
+    }
   });
 
   async function run() {
     const btn = $('#lab-run');
+    if (!btn || btn.disabled) return;
     btn.disabled = true; btn.textContent = 'Running…';
     $('#lab-result').innerHTML = `<div class="p-4 text-sm text-mut animate-pulse">
       Running the full edited file — its own asserts and checks are the verdict…</div>`;
     let r;
     try { r = await api('/api/runfile', { path, code: getCode() }); }
-    catch (e) { $('#lab-result').innerHTML = errBox(e); btn.disabled = false; btn.textContent = '▶ Run (⌘⏎)'; return; }
+    catch (e) {
+      if (epoch !== routeEpoch) return;
+      $('#lab-result').innerHTML = errBox(e); btn.disabled = false; btn.textContent = '▶ Run (⌘⏎)'; return;
+    }
+    if (epoch !== routeEpoch) return;
     btn.disabled = false; btn.textContent = '▶ Run (⌘⏎)';
     const closeBtn = `<button id="lab-close" title="Hide this panel (Esc)"
       class="px-2 py-0.5 rounded border border-line hover:bg-panel2 text-mut text-xs">✕ hide</button>`;
@@ -658,21 +1120,28 @@ async function viewLab(app, path) {
       : `<div class="p-4">
            <div class="flex items-center gap-3 text-bad font-semibold text-sm">✗ Failed
              <span class="text-mut font-normal">(${r.elapsed_ms} ms)</span>${logBtns()}${closeBtn}</div>
-           <pre class="mt-3 text-xs bg-panel border border-line rounded p-3 overflow-x-auto whitespace-pre-wrap text-bad/90">${esc(r.error)}</pre>
+           <pre class="mt-3 text-xs bg-panel border border-line rounded p-3 overflow-x-auto whitespace-pre-wrap text-bad">${esc(r.error)}</pre>
            ${r.output ? `<pre class="mt-2 text-xs bg-panel border border-line rounded p-3 overflow-x-auto whitespace-pre-wrap">${esc(r.output)}</pre>` : ''}
          </div>`;
     wireLog();
     $('#lab-close').onclick = () => { $('#lab-result').innerHTML = ''; (cm || $('#lab-ta')).focus(); };
   }
   $('#lab-run').onclick = run;
-  $('#lab-reset').onclick = () => { if (confirm('Discard your edits and reload the original file?')) setCode(doc.content); };
+  $('#lab-reset').onclick = () => {
+    if (!confirm('Discard your edits and reload the original file?')) return;
+    setCode(doc.content);
+    try { localStorage.removeItem(draftKey); } catch (e) {}
+    const bar = $('#lab-draft-bar'); if (bar) bar.style.display = 'none';
+  };
 }
 
 /* ------------------------------------------------------------ view: cards */
 async function viewCards(app, slug) {
+  const epoch = routeEpoch;
   app.innerHTML = spinner('Loading flashcards…');
   let cards;
-  try { cards = await getCards(); } catch (e) { app.innerHTML = errBox(e); return; }
+  try { cards = await getCards(); } catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
+  if (epoch !== routeEpoch) return;
   const sections = [...new Map(cards.map(c => [c.slug, c.section])).entries()];
 
   if (!slug) {
@@ -698,6 +1167,7 @@ async function viewCards(app, slug) {
   const state = { i: 0, flipped: false, got: 0, missed: [], logNote: '' };
 
   const render = () => {
+    if (epoch !== routeEpoch) return;   // async log callbacks may fire after navigation
     if (state.i >= deck.length) {
       app.innerHTML = `
       <div class="max-w-xl mx-auto p-10 text-center">
@@ -749,14 +1219,23 @@ async function viewCards(app, slug) {
   const grade = (result) => {
     const c = deck[state.i];
     if (result === 'pass') state.got++; else state.missed.push(c.question);
-    state.logNote = '';
+    state.logNote = result === 'fail' ? 'queued for re-attempt' : '';
     api('/api/log', { item_id: `card:${c.slug}#${c.n}`, source_path: 'practice/flashcards.md', result })
+      .then(r => {
+        if (r && r.logged === false) { state.logNote = r.reason || 'not logged'; render(); }
+        else refreshDueBadge();
+      })
       .catch(e => { state.logNote = 'queue log failed: ' + e.message; render(); });
     state.i++; state.flipped = false; render();
   };
   const keyHandler = e => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.code === 'Space') { e.preventDefault(); if (state.i < deck.length) { state.flipped = !state.flipped; render(); } }
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A') return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.code === 'Space' || e.key === 'Enter') {
+      e.preventDefault();
+      if (state.i < deck.length) { state.flipped = !state.flipped; render(); }
+    }
     else if (state.flipped && e.key === '1') grade('fail');
     else if (state.flipped && e.key === '2') grade('pass');
   };
@@ -767,23 +1246,13 @@ async function viewCards(app, slug) {
 
 /* ----------------------------------------------------------- view: review */
 async function viewReview(app) {
+  const epoch = routeEpoch;
   app.innerHTML = spinner('Loading review queue…');
   let q;
-  try { q = await api('/api/queue'); } catch (e) { app.innerHTML = errBox(e); return; }
+  try { q = await api('/api/queue'); } catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
+  if (epoch !== routeEpoch) return;
   const due = q.due_today, maxBar = Math.max(1, ...q.histogram.map(h => h.count));
-
-  const dueRow = r => {
-    const isApp = r.item_id.startsWith('app:');
-    const label = `<span class="font-mono text-sm">${esc(r.item_id)}</span>`;
-    return `<div class="flex items-center gap-3 px-4 py-2.5 border-t border-line hover:bg-panel2">
-      <span class="text-xs font-mono ${r.due < q.today ? 'text-bad' : 'text-warn'}">${esc(r.due)}</span>
-      ${isApp
-        ? `<a class="text-accent hover:underline" href="#/problem/${esc(r.item_id.slice(4))}">${label}</a>`
-        : label}
-      <span class="text-xs text-mut ml-auto font-mono">${esc(r.source_path)}</span>
-      <span class="text-xs text-mut w-10 text-right">${esc(r.interval_days)}d</span>
-    </div>`;
-  };
+  const dueRow = r => dueRowHTML(r, q.today);
 
   app.innerHTML = `
   <div class="max-w-4xl mx-auto p-8">
