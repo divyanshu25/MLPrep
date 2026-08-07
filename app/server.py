@@ -423,6 +423,9 @@ def notes_tree():
         for d in sorted((ROOT / track).iterdir()):
             if d.is_dir():
                 files = [_md_entry(f) for f in sorted(d.glob("*.md"))]
+                # source scripts the notes/exercises reference, viewable read-only
+                files += [{"path": str(f.relative_to(ROOT)), "title": f.name,
+                           "name": f.name} for f in sorted(d.glob("*.py"))]
                 if files:
                     folders.append({"name": d.name, "files": files})
         groups.append({"group": track, "folders": folders})
@@ -433,13 +436,22 @@ def notes_tree():
 
 
 def read_md(raw_path):
-    """Resolve and serve a markdown file — must stay inside the repo root."""
+    """Resolve and serve a markdown or python file — must stay inside the repo
+    root. Python sources are wrapped in a fenced block so the client's existing
+    markdown renderer shows them as read-only highlighted code."""
     p = (ROOT / raw_path).resolve()
-    if not p.is_relative_to(ROOT) or p.suffix != ".md":
-        return None, (400, "path must be a .md file inside the repo")
+    if not p.is_relative_to(ROOT) or p.suffix not in (".md", ".py"):
+        return None, (400, "path must be a .md or .py file inside the repo")
     if not p.is_file():
         return None, (404, "no such file")
-    return p.read_text(), None
+    text = p.read_text()
+    if p.suffix == ".py":
+        rel = p.relative_to(ROOT)
+        text = (f"# `{rel}`\n\n*Read-only view. To work on it (e.g. an exercise "
+                f"says to modify this file), open `{rel}` in your editor and run "
+                f"it with `uv run python {rel}`.*\n\n"
+                "```python\n" + text.replace("```", "`​``") + "\n```")
+    return text, None
 
 
 def _slug(text):

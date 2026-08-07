@@ -39,8 +39,12 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
     --pre-bg:#161616; --pre-text:#d4d4d8; --th-bg:#262626;
     --quote:#a1a1aa; --details-bg:#232323; --scroll:#3f3f46; --dot-todo:#52525b;
   }
+  /* Only #app and inner panes scroll: the page shell itself is locked so nothing
+     (hidden helpers, momentum chaining) can scroll past the end of the content. */
+  html, body { height:100%; overflow:hidden; }
   html { background:var(--base); }
   body { background:var(--base); color:var(--text); }
+  .overflow-y-auto { overscroll-behavior-y: contain; }
   /* legacy fixed-shade classes → semantic theme colors */
   .text-zinc-100, .text-zinc-200 { color:var(--text-strong) !important; }
   .text-zinc-300 { color:var(--text) !important; }
