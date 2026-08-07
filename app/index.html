@@ -226,6 +226,7 @@ function route() {
     (a.dataset.tab === tab ? 'bg-panel2 text-accent font-semibold' : 'text-zinc-300'));
   updateNavProgress();
   if (h.startsWith('#/problem/')) viewProblem(app, decodeURIComponent(h.slice('#/problem/'.length)));
+  else if (h.startsWith('#/lab/')) viewLab(app, decodeURIComponent(h.slice('#/lab/'.length)));
   else if (h.startsWith('#/notes')) viewNotes(app, h.slice('#/notes'.length).replace(/^\//, ''));
   else if (h.startsWith('#/cards')) viewCards(app, h.slice('#/cards'.length).replace(/^\//, ''));
   else if (h.startsWith('#/review')) viewReview(app);
@@ -489,21 +490,25 @@ async function viewProblem(app, pid) {
           <button id="btn-logpass" class="px-3 py-1.5 rounded-md bg-good/80 text-white text-sm hover:bg-good">
             Log pass to review queue</button>
           <span id="log-note" class="text-xs text-mut"></span>
+          <button id="res-close" class="ml-auto px-2 py-1 rounded border border-line hover:bg-panel2 text-mut text-xs" title="Hide this panel">✕ hide</button>
         </div>
       </div>`;
       $('#btn-logpass').onclick = () => logResult('pass');
+      $('#res-close').onclick = () => { $('#result').innerHTML = ''; };
     } else {
       $('#result').innerHTML = `
       <div class="p-4">
         <div class="p-3 rounded-lg bg-bad/15 border border-bad/40 text-bad font-semibold text-sm">✗ Rejected</div>
-        <pre class="mt-2 p-3 text-xs font-mono text-zinc-300 bg-[#161616] border border-line rounded-lg overflow-auto max-h-64 whitespace-pre-wrap">${esc(r.error || 'no error output')}</pre>
+        <pre class="mt-2 p-3 text-xs font-mono bg-panel border border-line rounded-lg overflow-auto max-h-64 whitespace-pre-wrap">${esc(r.error || 'no error output')}</pre>
         <div class="mt-3 flex items-center gap-3">
           <button id="btn-logfail" class="px-3 py-1.5 rounded-md bg-bad/80 text-white text-sm hover:bg-bad">
             Log fail (schedules re-attempt)</button>
           <span id="log-note" class="text-xs text-mut"></span>
+          <button id="res-close" class="ml-auto px-2 py-1 rounded border border-line hover:bg-panel2 text-mut text-xs" title="Hide this panel">✕ hide</button>
         </div>
       </div>`;
       $('#btn-logfail').onclick = () => logResult('fail');
+      $('#res-close').onclick = () => { $('#result').innerHTML = ''; };
     }
   }
   async function logResult(result) {
@@ -552,8 +557,14 @@ async function viewNotes(app, encodedPath) {
   let doc;
   try { doc = await api('/api/md?path=' + encodeURIComponent(current)); }
   catch (e) { $('#notes-body').innerHTML = errBox(e); return; }
+  const labBtn = current.endsWith('.py')
+    ? `<div class="max-w-3xl mx-auto mb-3 flex justify-end">
+         <a href="#/lab/${encodeURIComponent(current)}"
+            class="px-3 py-1.5 rounded-md bg-accent text-black text-sm font-semibold hover:opacity-90">
+           ✎ Edit &amp; run in playground</a>
+       </div>` : '';
   $('#notes-body').innerHTML =
-    `<div class="max-w-3xl mx-auto md" id="md-root">${md(doc.content)}</div>`;
+    labBtn + `<div class="max-w-3xl mx-auto md" id="md-root">${md(doc.content)}</div>`;
   /* checklists: real checkboxes, state in localStorage per file (UI-only) */
   const key = 'mlprep.checks.' + current;
   const saved = store.get(key, {});
@@ -566,6 +577,95 @@ async function viewNotes(app, encodedPath) {
       store.set(key, cur);
     });
   });
+}
+
+/* -------------------------------------------------------------- view: lab */
+/* Playground: edit a curriculum script and run the WHOLE edited file. The
+   feedback loop is deliberately the file's own gradient checks and asserts —
+   green means every check in the script passed, not that "an answer matched".
+   Edits run from a scratch copy; the repo file is never modified. */
+async function viewLab(app, path) {
+  app.innerHTML = spinner('Loading ' + esc(path) + '…');
+  let doc;
+  try { doc = await api('/api/source?path=' + encodeURIComponent(path)); }
+  catch (e) { app.innerHTML = errBox(e); return; }
+  const itemId = 'lab:' + path;
+  app.innerHTML = `
+  <div class="flex flex-col h-full">
+    <div class="flex items-center gap-3 px-4 py-2 border-b border-line bg-panel">
+      <a href="#/notes/${encodeURIComponent(path)}" class="text-xs text-mut hover:text-accent">← read-only view</a>
+      <span class="font-mono text-sm font-semibold">${esc(path)}</span>
+      <span class="text-[11px] text-mut italic hidden md:inline">edits run from a scratch copy — the repo file is untouched.
+        Make the file prove your change: extend its own checks (gradient check, asserts), then Run.</span>
+      <div class="ml-auto flex items-center gap-2">
+        <button id="lab-reset" class="px-3 py-1.5 rounded-md border border-line hover:bg-panel2 text-xs">Reset to original</button>
+        <button id="lab-run" class="px-4 py-1.5 rounded-md bg-accent text-black text-sm font-semibold hover:opacity-90">▶ Run (⌘⏎)</button>
+      </div>
+    </div>
+    <div id="lab-editor" class="flex-1 min-h-0 relative"></div>
+    <div id="lab-result" class="border-t border-line max-h-[45%] overflow-y-auto"></div>
+  </div>`;
+
+  let cm = null;
+  const getCode = () => cm ? cm.getValue() : $('#lab-ta').value;
+  const setCode = v => cm ? cm.setValue(v) : ($('#lab-ta').value = v);
+  if (window.CodeMirror) {
+    cm = CodeMirror($('#lab-editor'), {
+      value: doc.content, mode: 'python', lineNumbers: true,
+      theme: document.documentElement.classList.contains('dark') ? 'material-darker' : 'default',
+      indentUnit: 4, tabSize: 4, indentWithTabs: false,
+      extraKeys: { 'Cmd-Enter': () => run(), 'Ctrl-Enter': () => run(),
+                   Tab: c => c.somethingSelected() ? c.indentSelection('add') : c.replaceSelection('    ') },
+    });
+    window._cm = cm;
+  } else {
+    $('#lab-editor').innerHTML = `<textarea id="lab-ta" spellcheck="false"
+      class="w-full h-full bg-panel p-3 font-mono text-sm outline-none resize-none"></textarea>`;
+    $('#lab-ta').value = doc.content;
+  }
+
+  const logBtns = () => `
+    <span class="ml-auto flex gap-2 items-center text-xs">
+      <span class="text-mut">log to review queue:</span>
+      <button class="lab-log px-2 py-1 rounded border border-line hover:bg-panel2" data-r="pass">pass</button>
+      <button class="lab-log px-2 py-1 rounded border border-line hover:bg-panel2" data-r="fail">fail</button>
+      <span id="lab-log-note" class="text-mut"></span>
+    </span>`;
+  const wireLog = () => $$('.lab-log').forEach(b => b.onclick = async () => {
+    try {
+      const res = await api('/api/log', { item_id: itemId, source_path: path, result: b.dataset.r });
+      $('#lab-log-note').textContent = 'logged — next due ' + res.row.due;
+    } catch (e) { $('#lab-log-note').textContent = 'log failed: ' + e.message; }
+  });
+
+  async function run() {
+    const btn = $('#lab-run');
+    btn.disabled = true; btn.textContent = 'Running…';
+    $('#lab-result').innerHTML = `<div class="p-4 text-sm text-mut animate-pulse">
+      Running the full edited file — its own asserts and checks are the verdict…</div>`;
+    let r;
+    try { r = await api('/api/runfile', { path, code: getCode() }); }
+    catch (e) { $('#lab-result').innerHTML = errBox(e); btn.disabled = false; btn.textContent = '▶ Run (⌘⏎)'; return; }
+    btn.disabled = false; btn.textContent = '▶ Run (⌘⏎)';
+    const closeBtn = `<button id="lab-close" title="Hide this panel (Esc)"
+      class="px-2 py-0.5 rounded border border-line hover:bg-panel2 text-mut text-xs">✕ hide</button>`;
+    $('#lab-result').innerHTML = r.ok
+      ? `<div class="p-4">
+           <div class="flex items-center gap-3 text-good font-semibold text-sm">✓ Exit 0 — every check in the file passed
+             <span class="text-mut font-normal">(${r.elapsed_ms} ms)</span>${logBtns()}${closeBtn}</div>
+           ${r.output ? `<pre class="mt-3 text-xs bg-panel border border-line rounded p-3 overflow-x-auto whitespace-pre-wrap">${esc(r.output)}</pre>` : ''}
+         </div>`
+      : `<div class="p-4">
+           <div class="flex items-center gap-3 text-bad font-semibold text-sm">✗ Failed
+             <span class="text-mut font-normal">(${r.elapsed_ms} ms)</span>${logBtns()}${closeBtn}</div>
+           <pre class="mt-3 text-xs bg-panel border border-line rounded p-3 overflow-x-auto whitespace-pre-wrap text-bad/90">${esc(r.error)}</pre>
+           ${r.output ? `<pre class="mt-2 text-xs bg-panel border border-line rounded p-3 overflow-x-auto whitespace-pre-wrap">${esc(r.output)}</pre>` : ''}
+         </div>`;
+    wireLog();
+    $('#lab-close').onclick = () => { $('#lab-result').innerHTML = ''; (cm || $('#lab-ta')).focus(); };
+  }
+  $('#lab-run').onclick = run;
+  $('#lab-reset').onclick = () => { if (confirm('Discard your edits and reload the original file?')) setCode(doc.content); };
 }
 
 /* ------------------------------------------------------------ view: cards */
@@ -687,7 +787,12 @@ async function viewReview(app) {
 
   app.innerHTML = `
   <div class="max-w-4xl mx-auto p-8">
-    <h1 class="text-xl font-bold mb-5">Review dashboard</h1>
+    <h1 class="text-xl font-bold mb-1">Review dashboard</h1>
+    <p class="text-sm text-mut mb-5 max-w-2xl">Your spaced-repetition queue (stored in
+      <span class="font-mono">practice/queue.tsv</span>). Anything you log — a missed flashcard, a failed problem,
+      an opened solution — is scheduled for a cold re-attempt: first after 1 day, then 2, 4, 8, 16 as you keep
+      passing; any miss resets it to 1. The <b>due list</b> below is what's scheduled for today (or overdue) —
+      clear it before starting new material, because re-retrieval on the edge of forgetting is what makes it stick.</p>
 
     <div class="p-5 rounded-xl border ${due.length ? 'border-accent bg-accent/10' : 'border-good/50 bg-good/10'} mb-6">
       <div class="text-[11px] uppercase tracking-widest ${due.length ? 'text-accent' : 'text-good'} font-bold mb-1">What to do now</div>
