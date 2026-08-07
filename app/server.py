@@ -396,6 +396,65 @@ def run_judge(pid, code):
 
 
 # ---------------------------------------------------------------------------
+# Playground: edit-and-run any curriculum script (ml/ and dsa/ only)
+# ---------------------------------------------------------------------------
+def _lab_path(raw_path):
+    """Resolve a playground-eligible script: a .py inside ml/ or dsa/."""
+    p = (ROOT / raw_path).resolve()
+    ok = (p.is_relative_to(ROOT) and p.suffix == ".py"
+          and p.relative_to(ROOT).parts[0] in ("ml", "dsa"))
+    if not ok:
+        return None, (400, "path must be a .py file under ml/ or dsa/")
+    if not p.is_file():
+        return None, (404, "no such file")
+    return p, None
+
+
+def run_lab(raw_path, code):
+    """Run an edited copy of a curriculum script. The edit is written to a
+    scratch file in the script's own directory (so imports/paths behave) and
+    deleted after; the repo file is never touched. The file's own asserts and
+    printed checks are the feedback — exit 0 means every check passed."""
+    path, err = _lab_path(raw_path)
+    if err:
+        return {"ok": False, "output": "", "error": err[1], "elapsed_ms": 0}, err[0]
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix="_lab_", suffix=".py")
+    t0 = time.time()
+    try:
+        with os.fdopen(fd, "w") as fh:
+            fh.write(code)
+        try:
+            proc = subprocess.run([sys.executable, tmp], cwd=ROOT,
+                                  capture_output=True, text=True, timeout=180)
+        except subprocess.TimeoutExpired:
+            return {"ok": False, "output": "",
+                    "elapsed_ms": int((time.time() - t0) * 1000),
+                    "error": "Timed out after 180 s — infinite loop, or a "
+                             "training script grown past playground size."}, 200
+    finally:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+    elapsed = int((time.time() - t0) * 1000)
+    pretty = str(path.relative_to(ROOT)) + " (edited copy)"
+    stderr = proc.stderr.replace(tmp, pretty)
+    error = ""
+    if proc.returncode != 0:
+        lines = re.findall(rf'File "{re.escape(pretty)}", line (\d+)', stderr)
+        verdict = ""
+        if lines:
+            lineno = int(lines[-1])
+            src = code.split("\n")
+            if 0 < lineno <= len(src):
+                verdict = f"Failing line {lineno}:  {src[lineno - 1].strip()}"
+        tail = stderr.strip().split("\n")[-1] if stderr.strip() else "non-zero exit"
+        error = "\n".join(x for x in (tail, verdict, "", stderr.strip()) if x)
+    return {"ok": proc.returncode == 0, "output": proc.stdout,
+            "error": error, "elapsed_ms": elapsed}, 200
+
+
+# ---------------------------------------------------------------------------
 # Notes tree, markdown, flashcards
 # ---------------------------------------------------------------------------
 def _md_title(path):
@@ -413,6 +472,26 @@ def _md_entry(path):
             "name": path.name}
 
 
+def _reading_order(f):
+    """Pedagogical order within a folder, not alphabetical: read the notes,
+    study the implementations, then practice — solutions dead last so they
+    never sit above the drill they spoil."""
+    n = f.name.lower()
+    if n == "readme.md":
+        rank = 0
+    elif n == "notes.md":
+        rank = 1
+    elif f.suffix == ".py":
+        rank = 2
+    elif "solution" in n:
+        rank = 5
+    elif n in ("exercises.md", "drills.md"):
+        rank = 4
+    else:
+        rank = 3
+    return (rank, n)
+
+
 def notes_tree():
     groups = []
     for track in ("ml", "dsa"):
@@ -422,10 +501,11 @@ def notes_tree():
             folders.append({"name": "overview", "files": [_md_entry(readme)]})
         for d in sorted((ROOT / track).iterdir()):
             if d.is_dir():
-                files = [_md_entry(f) for f in sorted(d.glob("*.md"))]
-                # source scripts the notes/exercises reference, viewable read-only
-                files += [{"path": str(f.relative_to(ROOT)), "title": f.name,
-                           "name": f.name} for f in sorted(d.glob("*.py"))]
+                paths = sorted(list(d.glob("*.md")) + list(d.glob("*.py")),
+                               key=_reading_order)
+                files = [_md_entry(f) if f.suffix == ".md" else
+                         {"path": str(f.relative_to(ROOT)), "title": f.name,
+                          "name": f.name} for f in paths]
                 if files:
                     folders.append({"name": d.name, "files": files})
         groups.append({"group": track, "folders": folders})
@@ -447,9 +527,10 @@ def read_md(raw_path):
     text = p.read_text()
     if p.suffix == ".py":
         rel = p.relative_to(ROOT)
-        text = (f"# `{rel}`\n\n*Read-only view. To work on it (e.g. an exercise "
-                f"says to modify this file), open `{rel}` in your editor and run "
-                f"it with `uv run python {rel}`.*\n\n"
+        text = (f"# `{rel}`\n\n*Read-only view. To modify it (e.g. an exercise "
+                f"says to add an op to this file), use the **Edit & run** button "
+                f"above — or open `{rel}` in your editor and run "
+                f"`uv run python {rel}`.*\n\n"
                 "```python\n" + text.replace("```", "`​``") + "\n```")
     return text, None
 
@@ -552,6 +633,12 @@ class Handler(BaseHTTPRequestHandler):
                 if err:
                     return self._err(*err)
                 self._json({"path": raw, "content": content})
+            elif u.path == "/api/source":
+                raw = (qs.get("path") or [""])[0]
+                p, err = _lab_path(raw)
+                if err:
+                    return self._err(*err)
+                self._json({"path": raw, "content": p.read_text()})
             elif u.path == "/api/flashcards":
                 self._json(parse_flashcards())
             elif u.path == "/api/queue":
@@ -574,6 +661,12 @@ class Handler(BaseHTTPRequestHandler):
                 if not pid or not isinstance(code, str) or not code.strip():
                     return self._err(400, "need id and code")
                 result, status = run_judge(pid, code)
+                self._json(result, status)
+            elif u.path == "/api/runfile":
+                raw, code = body.get("path", ""), body.get("code", "")
+                if not raw or not isinstance(code, str) or not code.strip():
+                    return self._err(400, "need path and code")
+                result, status = run_lab(raw, code)
                 self._json(result, status)
             elif u.path == "/api/log":
                 item, result = body.get("item_id", ""), body.get("result", "")
