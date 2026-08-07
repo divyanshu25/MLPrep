@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MLPrep study app server — stdlib only (Python 3.11).
+"""MLPrep study app server - stdlib only (Python 3.11).
 
 Serves app/index.html at / and a JSON API over the repo's dsa/ problems,
 notes, flashcards, and the practice/queue.tsv spaced-repetition queue.
@@ -81,19 +81,75 @@ def _split_doc(doc):
     In this repo the docstrings are: problem statement paragraph(s), then a
     paragraph starting with "Pattern:" / "Key insight:" / "Complexity:" that
     names the pattern, the insight, and the complexity. That tail is the hint,
-    not the statement — showing it up front would spoil the problem.
+    not the statement - showing it up front would spoil the problem.
     """
+    HINT_MARKERS = ("pattern", "key insight", "complexity", "state:",
+                    "invariant:", "approach:", "hint:", "recurrence:",
+                    "decision:", "why it works", "backtracking", "greedy",
+                    "dp:", "dp ", "monotonic", "two pointers", "two-heap",
+                    "sliding window", "binary search on", "bfs", "dfs",
+                    "union-find", "dijkstra", "kadane", "xor ", "bitmask",
+                    "heap:", "space optimization")
     paras = re.split(r"\n\s*\n", doc.strip())
     stmt, insight = [], []
     for p in paras:
         head = p.strip().lower()
-        if insight or (stmt and (head.startswith("pattern") or
-                                 head.startswith("key insight") or
-                                 head.startswith("complexity"))):
+        if insight or (stmt and head.startswith(HINT_MARKERS)):
             insight.append(p)
         else:
             stmt.append(p)
     return "\n\n".join(stmt), "\n\n".join(insight)
+
+
+def _statement_md(stmt):
+    """Format a raw docstring statement for markdown rendering. Docstrings hold
+    Example lines as plain indented text; markdown collapses single newlines,
+    smearing them into one run-on line. Examples become fenced code blocks and
+    Note/Constraints paragraphs become blockquote callouts, giving the three
+    kinds of information (task, examples, rules) distinct visual forms."""
+    import textwrap
+
+    def looks_code(para):
+        lines = [l for l in para.split("\n") if l.strip()]
+        indented = sum(1 for l in lines if l.startswith("  "))
+        return lines and (indented >= len(lines) / 2
+                          or lines[0].lstrip().startswith(("Input:", "Output:")))
+
+    def fence(lines):
+        body = textwrap.dedent("\n".join(l.rstrip() for l in lines)).strip("\n")
+        return f"\n\n```text\n{body}\n```" if body else ""
+
+    paras = re.split(r"\n\s*\n", stmt.strip())
+    out, i = [], 0
+    while i < len(paras):
+        para = paras[i]
+        first, *rest = para.split("\n")
+        head = first.strip().lower()
+        if head.startswith("example"):
+            label, _, tail = first.strip().partition(":")
+            body_lines = ([tail] if tail.strip() else []) + rest
+            # absorb following code-like paragraphs (blank-line-after-header
+            # style), keeping their blank-line separation inside the fence
+            while i + 1 < len(paras) and looks_code(paras[i + 1]):
+                body_lines += [""] + paras[i + 1].split("\n")
+                i += 1
+            out.append(f"**{label}:**" + fence(body_lines))
+        elif head.startswith(("note:", "constraints:")):
+            out.append("> " + para.strip().replace("\n", "\n> "))
+        elif looks_code(para):  # orphan indented block - fence it verbatim
+            out.append(fence(para.split("\n")).lstrip("\n"))
+        else:
+            out.append(para)
+        i += 1
+    return "\n\n".join(out)
+
+
+def _first_sentence(text):
+    """First sentence of the statement, unwrapped, for table subtitles."""
+    flat = " ".join(text.strip().split())
+    m = re.match(r"(.+?\.)(?:\s|$)", flat)
+    s = m.group(1) if m else flat
+    return s if len(s) <= 140 else s[:137] + "..."
 
 
 def _doc_block(doc, ind):
@@ -117,7 +173,7 @@ def _fn_stub_lines(node, doc, indent=""):
 
 
 def _make_stub(node, statement):
-    """Signature + statement docstring + pass — the solution body is dropped."""
+    """Signature + statement docstring + pass - the solution body is dropped."""
     if isinstance(node, ast.ClassDef):
         bases = ""
         if node.bases:
@@ -159,16 +215,17 @@ def _parse_problems_file(path):
             helpers[node.name] = seg
             continue
         statement, insight = _split_doc(doc)
-        if not statement:  # docstring opens with "Key insight" — keep 1st para
+        if not statement:  # docstring opens with "Key insight" - keep 1st para
             statement, insight = doc.split("\n\n")[0], insight or doc
+        statement_md = _statement_md(statement)
         problems.append({
             "id": f"{folder}/{node.name}",
             "name": node.name,
             "kind": "class" if isinstance(node, ast.ClassDef) else "function",
             "folder": folder,
             "folder_title": FOLDER_TITLES.get(folder, folder),
-            "statement": statement,
-            "statement_first_line": statement.strip().split("\n")[0],
+            "statement": statement_md,
+            "statement_first_line": _first_sentence(statement),
             "key_insight": insight,
             "stub": _make_stub(node, statement),
             "solution_source": seg,
@@ -280,7 +337,7 @@ def _log_append(item_id, result):
 
 def queue_log(item_id, source_path, result):
     """Misses enter the queue (interval 1); existing rows: pass doubles
-    (cap 16) / fail resets. A pass on an unqueued item is a no-op — only
+    (cap 16) / fail resets. A pass on an unqueued item is a no-op - only
     misses (and solution peeks) need spaced review. Same-day duplicate
     results on an existing row are also no-ops (double-click protection).
     Every applied result is appended to practice/log.tsv."""
@@ -291,7 +348,7 @@ def queue_log(item_id, source_path, result):
         if row is None:
             if result == "pass":
                 return {"logged": False,
-                        "reason": "not queued — only misses (and solution "
+                        "reason": "not queued - only misses (and solution "
                                   "peeks) enter the review queue"}
             row = {"item_id": item_id, "source_path": source_path or "",
                    "added": today.isoformat(), "last_result": "new",
@@ -384,7 +441,7 @@ def run_judge(pid, code):
 
     NOTE on semantics: the original file's __main__ block asserts EVERY problem
     in that file, so the reference solutions for the other problems execute too
-    — only the target def is replaced by the user's code. ok:true therefore
+    - only the target def is replaced by the user's code. ok:true therefore
     means the whole suite (including every assert for the user's function)
     passed with the user's implementation in place.
     """
@@ -470,7 +527,7 @@ def run_judge(pid, code):
         except subprocess.TimeoutExpired:
             return {"ok": False, "output": "",
                     "elapsed_ms": int((time.time() - t0) * 1000),
-                    "error": "Timed out after 30 s — likely an infinite loop.",
+                    "error": "Timed out after 30 s - likely an infinite loop.",
                     "asserts": assert_count}, 200
     finally:
         try:
@@ -517,7 +574,7 @@ def run_lab(raw_path, code):
     """Run an edited copy of a curriculum script. The edit is written to a
     scratch file in the script's own directory (so imports/paths behave) and
     deleted after; the repo file is never touched. The file's own asserts and
-    printed checks are the feedback — exit 0 means every check passed."""
+    printed checks are the feedback - exit 0 means every check passed."""
     path, err = _lab_path(raw_path)
     if err:
         return {"ok": False, "output": "", "error": err[1], "elapsed_ms": 0}, err[0]
@@ -532,7 +589,7 @@ def run_lab(raw_path, code):
         except subprocess.TimeoutExpired:
             return {"ok": False, "output": "",
                     "elapsed_ms": int((time.time() - t0) * 1000),
-                    "error": "Timed out after 180 s — infinite loop, or a "
+                    "error": "Timed out after 180 s - infinite loop, or a "
                              "training script grown past playground size."}, 200
     finally:
         try:
@@ -577,13 +634,15 @@ def _md_entry(path):
 
 def _reading_order(f):
     """Pedagogical order within a folder, not alphabetical: read the notes,
-    study the implementations, then practice — solutions dead last so they
+    study the implementations, then practice - solutions dead last so they
     never sit above the drill they spoil."""
     n = f.name.lower()
     if n == "readme.md":
         rank = 0
     elif n == "notes.md":
         rank = 1
+    elif n == "problems.py":
+        rank = 5  # full reference solutions: below the drills they'd spoil
     elif f.suffix == ".py":
         rank = 2
     elif "solution" in n:
@@ -619,7 +678,7 @@ def notes_tree():
 
 
 def read_md(raw_path):
-    """Resolve and serve a markdown or python file — must stay inside the repo
+    """Resolve and serve a markdown or python file - must stay inside the repo
     root. Python sources are wrapped in a fenced block so the client's existing
     markdown renderer shows them as read-only highlighted code."""
     p = (ROOT / raw_path).resolve()
@@ -636,7 +695,7 @@ def read_md(raw_path):
         rel = p.relative_to(ROOT)
         text = (f"# `{rel}`\n\n*Read-only view. To modify it (e.g. an exercise "
                 f"says to add an op to this file), use the **Edit & run** button "
-                f"above — or open `{rel}` in your editor and run "
+                f"above - or open `{rel}` in your editor and run "
                 f"`uv run python {rel}`.*\n\n"
                 "```python\n" + text.replace("```", "`​``") + "\n```")
     return text, None
@@ -752,6 +811,17 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(queue_snapshot())
             elif u.path == "/api/activity":
                 self._json(activity())
+            elif u.path.endswith((".md", ".py")):
+                # a repo file hit directly (hand-typed or stale link):
+                # bounce into the SPA's notes view instead of a JSON 404
+                rel = u.path.lstrip("/")
+                if (ROOT / rel).is_file():
+                    self.send_response(302)
+                    self.send_header("Location", "/#/notes/" + rel)
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                else:
+                    self._err(404, "not found")
             else:
                 self._err(404, "not found")
         except Exception as e:  # keep the local tool honest about failures
