@@ -8,9 +8,9 @@ derived and every estimate worked with real numbers, because these are exactly
 the questions frontier labs ask - "walk me through the memory of training a
 70B model" is not trivia, it's a fluency check.
 
-Companion scripts: `memory_math.py` (all the memory arithmetic, runnable),
-`speculative_decoding_demo.py` (proves the sampling algorithm is exact),
-`lora_scratch.py` (LoRA by hand, matching full fine-tuning).
+Companion scripts: `memory_math.ipynb` (all the memory arithmetic, runnable),
+`speculative_decoding_demo.ipynb` (proves the sampling algorithm is exact),
+`lora_scratch.ipynb` (LoRA by hand, matching full fine-tuning).
 
 ---
 
@@ -769,7 +769,7 @@ $$P(X = x) = \min(p(x), q(x)) + \max(0,\, p(x) - q(x)) = p(x) \qquad \blacksquar
 (the identity $\min(p,q) + (p-q)^+ = p$ holds case-by-case: if $p \le q$ it's
 $p + 0$; if $p > q$ it's $q + (p - q)$). No approximation anywhere - the big
 model's distribution, exactly, at a fraction of the weight-streams.
-`speculative_decoding_demo.py` verifies this empirically to TV distance ~0.
+`speculative_decoding_demo.ipynb` verifies this empirically to TV distance ~0.
 
 **Speedup.** Note $P(\text{accept}) = \sum_y \min(p, q) = 1 - \text{TV}(p,q)$ - acceptance rate *is* draft–target agreement. If per-position acceptance is
 $a$ (i.i.d. approximation), expected tokens emitted per target pass =

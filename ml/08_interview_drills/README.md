@@ -9,7 +9,7 @@ taught here - every concept lives in an earlier module. What's new is the clock.
 
 | File | What it is |
 |------|-----------|
-| [`buggy_transformer.py`](buggy_transformer.py) | The flagship drill: a working transformer LM with 7 planted bugs. Find and fix them, then add KV caching. |
+| [`buggy_transformer.ipynb`](buggy_transformer.ipynb) | The flagship drill: a working transformer LM with 7 planted bugs. Open it in the study app or JupyterLab, run all cells, then find and fix the bugs cell by cell before adding KV caching. |
 | [`buggy_transformer_solutions.md`](buggy_transformer_solutions.md) | Bug-by-bug solutions, the KV-cache implementation, and the general debugging playbook. **Do not open until done.** |
 | [`drills.md`](drills.md) | 10 timed implementation drills with full reference solutions folded away. |
 | [`rapid_fire_quiz.md`](rapid_fire_quiz.md) | 40 rapid-fire definition questions, DeepMind style. |
@@ -21,12 +21,12 @@ This module only works if you treat it as deliberate practice, not reading
 material. For every drill:
 
 1. **Read the reference** - the relevant implementation in modules 3–4 (e.g.
-   `attention_scratch.py`, `mini_gpt.py`, `micrograd_plus.py`). Understand it
-   until you could explain every line.
-2. **Close it.** Close the file, close the notes, close the solution.
+   `attention_scratch.ipynb`, `mini_gpt.ipynb`, `micrograd_plus.ipynb`). Understand it
+   until you could explain every cell.
+2. **Close it.** Close the notebook, close the notes, close the solution.
 3. **Re-implement, timed.** Set a real timer for the drill's time box. Write
-   code in an empty file. Run it. No peeking - in the real round there is
-   nothing to peek at.
+   code in an empty file or fresh notebook. Run it. No peeking - in the real
+   round there is nothing to peek at.
 4. **Diff against the reference.** Every divergence is either a style choice
    (fine) or a gap (that's your study list for tomorrow). Log the gaps.
 5. **Repeat in 2–3 days.** A drill is "done" when you finish inside the time
@@ -39,7 +39,7 @@ complete. Recognition is not recall, and interviews test recall under pressure.
 
 | Drill | Company / round simulated | Time box |
 |-------|---------------------------|----------|
-| `buggy_transformer.py` | **OpenAI** - the most-reported ML round: ~300-line PyTorch transformer with planted bugs; fix, then extend with KV caching | 45 min + 30 min extension |
+| `buggy_transformer.ipynb` | **OpenAI** - the most-reported ML round: a complete PyTorch transformer notebook with planted bugs; run it, debug it cell by cell, then extend with KV caching | 45 min + 30 min extension |
 | drills.md #1 attention in numpy | OpenAI / Anthropic - "implement attention from scratch" | 25 min |
 | drills.md #2 BPE tokenizer | **Anthropic** - build BPE train/encode/decode from scratch | 40 min |
 | drills.md #3 sampling (top-k/top-p/temperature) | Anthropic - sampling from logits | 20 min |

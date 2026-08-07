@@ -11,7 +11,7 @@ Numbering matches the round-mapping table in [README.md](README.md).
 
 ## Drill 1 - Multi-head causal self-attention in numpy
 
-**Time box: 25 min · Simulates: OpenAI / Anthropic "attention from scratch" · Reference: module 4, `attention_scratch.py`**
+**Time box: 25 min · Simulates: OpenAI / Anthropic "attention from scratch" · Reference: module 4, `attention_scratch.ipynb`**
 
 Isolates: the single most-asked implementation - can you produce
 `softmax(QKᵀ/√d_h + mask)V` with correct head reshapes, from a blank buffer.
@@ -222,7 +222,7 @@ turns `top_p=0.9` into a harsher filter than specified.
 
 ## Drill 4 - Logistic regression with a manual backward pass
 
-**Time box: 25 min · Simulates: general ML screen, "no autograd" · Reference: modules 1–2, `linear_models_scratch.py`**
+**Time box: 25 min · Simulates: general ML screen, "no autograd" · Reference: modules 1–2, `linear_models_scratch.ipynb`**
 
 Isolates: the derivation you must own cold - `∂L/∂z = (p − y)/N` for
 sigmoid + BCE - and turning it into two matrix products.
@@ -333,7 +333,7 @@ Same identity powers the `ln V` init check in the debugging playbook.
 
 ## Drill 6 - k-means in numpy
 
-**Time box: 20 min · Simulates: classical-ML screen · Reference: module 2, `kmeans_pca_scratch.py`**
+**Time box: 20 min · Simulates: classical-ML screen · Reference: module 2, `kmeans_pca_scratch.ipynb`**
 
 Isolates: vectorized pairwise distances via broadcasting, and knowing the two
 gotchas - empty clusters and local optima - before being asked.
@@ -395,7 +395,7 @@ Assignment step decreases inertia (nearest center), update step decreases it
 
 ## Drill 7 - AUC from scores, pure Python
 
-**Time box: 15 min · Simulates: metrics screen · Reference: module 5, `metrics_scratch.py` and notes**
+**Time box: 15 min · Simulates: metrics screen · Reference: module 5, `metrics_scratch.ipynb` and notes**
 
 Isolates: knowing AUC's rank-statistic identity - P(random positive scores
 above random negative) - and handling ties with average ranks, no curve built.

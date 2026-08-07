@@ -188,7 +188,7 @@ lowers the loss, proportional to its sensitivity.
 Numerics aside: in code, prefer the **centered** difference
 $\frac{f(x+h) - f(x-h)}{2h}$ - its error is $O(h^2)$ instead of $O(h)$ (the even-order
 error terms cancel; Taylor-expand both sides to see it). This is the standard gradient
-checker, implemented in `gradients_from_scratch.py`.
+checker, implemented in `gradients_from_scratch.ipynb`.
 
 ### 2.2 The chain rule is the ONLY thing backprop needs
 
@@ -325,7 +325,7 @@ that it converts **likelihood** ("probability of the evidence given the hypothes
 often easy to model) into the **posterior** ("probability of the hypothesis given the
 evidence", the thing you actually want), weighted by the **prior** $P(A)$.
 
-The classic trap (run it with raw counts, as in `probability_demos.py`): a disease has
+The classic trap (run it with raw counts, as in `probability_demos.ipynb`): a disease has
 prevalence 1%, the test has 99% sensitivity and 95% specificity. You test positive  - 
 what's the chance you're sick? Take 10,000 people: 100 sick → 99 true positives;
 9,900 healthy → 5% false positive rate → 495 false positives. Positive tests: $99 +
@@ -359,7 +359,7 @@ model ($-\log$ of a Gaussian density is a squared error plus constants), and L1 
 is MLE under Laplace noise. When an interviewer asks "why this loss?", the deep answer
 is always "it's the negative log-likelihood under this noise/output model."
 
-Simplest concrete MLE (verified numerically in `probability_demos.py`): coin with
+Simplest concrete MLE (verified numerically in `probability_demos.ipynb`): coin with
 unknown $p$, observe $h$ heads in $n$ flips. $\log L(p) = h \log p + (n - h)\log(1-p)$.
 Differentiate, set to zero: $h/p = (n-h)/(1-p) \Rightarrow \hat p = h/n$. The empirical
 frequency - MLE formalizes the obvious.
@@ -426,7 +426,7 @@ smooths - idiosyncratic features (skew, bumps) wash out, and the Gaussian is the
 point of this smoothing (only skew/kurtosis die slowly; mean and variance are
 preserved by design of the normalization). Start with something as lopsided as an
 exponential distribution: means of 100 draws are already visibly symmetric and bell-
-shaped (see `probability_demos.py`, which tracks the skewness → 0 and std →
+shaped (see `probability_demos.ipynb`, which tracks the skewness → 0 and std →
 $\sigma/\sqrt{n}$ numerically).
 
 Why care in ML: minibatch gradients are sample means of per-example gradients (SGD

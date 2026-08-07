@@ -5,11 +5,12 @@ from scratch - derivations done by hand, code written in plain numpy before any
 framework, and nothing justified with "it can be shown". If you can't rebuild an
 idea from nothing, you don't own it yet; the goal of this material is that you own it.
 
-Every script runs on CPU in seconds-to-minutes with no downloads:
+Every notebook runs on CPU in seconds-to-minutes with no downloads. Open them
+in the study app (Notes tab) or JupyterLab, or verify one headlessly:
 
 ```bash
 uv sync                                   # once
-uv run python ml/03_neural_networks/micrograd_plus.py   # any script, like this
+uv run jupyter execute ml/03_neural_networks/micrograd_plus.ipynb   # any notebook, like this
 ```
 
 ## The modules
@@ -29,9 +30,9 @@ Each module directory contains:
 
 - **`notes.md`** - the concepts, derived from first principles, ending with a bank of
   common interview questions and concise answers.
-- **`*.py`** - runnable from-scratch implementations (numpy first; sklearn/torch only
-  to verify our math against a reference). Read them top to bottom - the comments
-  carry the derivations.
+- **`*.ipynb`** - runnable from-scratch implementation notebooks (numpy first;
+  sklearn/torch only to verify our math against a reference). Work through them
+  top to bottom, cell by cell - the markdown cells carry the derivations.
 - **`exercises.md`** - problems from easy to hard, each with a full solution folded
   under a `<details>` block. Attempt before unfolding.
 
@@ -47,7 +48,7 @@ fundamentals questions appear everywhere as follow-ups.
 
 | Company | Fingerprint | Prep emphasis |
 |---|---|---|
-| **OpenAI** (RE/MTS) | Speed-coding with a high execution bar; the signature ML round is *debug a buggy transformer, then implement KV caching*; a stats/information-theory round; project deep-dive presentation | Module 8's `buggy_transformer.py` closed-book, module 4, module 7 inference sections, module 1 probability |
+| **OpenAI** (RE/MTS) | Speed-coding with a high execution bar; the signature ML round is *debug a buggy transformer, then implement KV caching*; a stats/information-theory round; project deep-dive presentation | Module 8's `buggy_transformer.ipynb` closed-book, module 4, module 7 inference sections, module 1 probability |
 | **Anthropic** (MTS/RE) | Progressive multi-level build (the CodeSignal "bank/KV-store" style) rewarding tests-first iteration; concurrency; theory on scaling laws, RL/RLHF, Constitutional AI; a values/safety round that is a genuine gate | Module 8 drills 9–10, module 7 post-training + scaling laws, rehearsed safety-motivation answers |
 | **Google DeepMind** (RE/RS) | Rapid-fire math-definitions quiz (eigen-things, SVD, autodiff modes, stable cross-entropy); code must run by end of round; distributed-training and evals-infrastructure design; paper defense for RS | Module 8's `rapid_fire_quiz.md`, modules 1–3 derivations, module 7 distributed training + evals |
 | **Google** (broad MLE) | 2–3 DSA rounds plus ML fundamentals and the L5+ gate: end-to-end ML system design | Modules 2 and 5 for fundamentals, module 6 for the design round, separate DSA practice |
@@ -63,18 +64,18 @@ repo deliberately does not cover: your own project deep-dive / paper defense
 **Week 1 - Foundations + Classical ML (modules 1–2).**
 Do the derivations on paper *before* reading them. The exercises here are the ones
 interviewers actually ask ("derive the gradient of logistic regression", "why does
-L1 give sparsity?"). Run `linear_models_scratch.py` and make sure you could rewrite
+L1 give sparsity?"). Run `linear_models_scratch.ipynb` and make sure you could rewrite
 its backward pass from memory.
 
 **Week 2 - Neural Networks (module 3).**
-The core week. Work through `micrograd_plus.py` line by line, then close it and
+The core week. Work through `micrograd_plus.ipynb` line by line, then close it and
 re-implement the `Value` class yourself - this single exercise covers ~half of all
 deep-learning interview questions, because backprop *is* the interview question.
-Then `mlp_numpy.py` for the vectorized version.
+Then `mlp_numpy.ipynb` for the vectorized version.
 
 **Week 3 - Deep Learning + Evaluation (modules 4–5).**
 Hand-compute attention on the 3-token example in the notes before reading the code.
-Train `mini_gpt.py` and watch the samples improve. For evaluation, build the ROC
+Train `mini_gpt.ipynb` and watch the samples improve. For evaluation, build the ROC
 curve from the 6-example table by hand - being fast and correct at confusion-matrix
 arithmetic is table stakes.
 
@@ -84,14 +85,14 @@ candidate. Practice the latency and hardware back-of-envelope math until the
 estimation constants are automatic.
 
 **Week 5 - The LLM Stack (module 7).**
-The frontier-lab week. Work the memory math by hand before running `memory_math.py`
+The frontier-lab week. Work the memory math by hand before running `memory_math.ipynb`
 to check yourself - "walk me through training memory for a 70B model" is now a
 canonical question. Derive DPO from the RLHF objective on paper once; run the
 speculative-decoding demo and make sure you can state *why* it's exact.
 
 **Week 6 - Drills (module 8) + mock interviews.**
 Now switch from learning to retrieval practice, which is the part that transfers to
-a live interview. Do `buggy_transformer.py` cold with a 45-minute timer. Work through
+a live interview. Do `buggy_transformer.ipynb` cold with a 45-minute timer. Work through
 the timed drills closed-book, diffing against the reference solutions after. Run the
 rapid-fire quiz until every answer is 2 sentences and instant. Take the debugging
 scenario cards one per day. Then take each module's `exercises.md` cold, under time

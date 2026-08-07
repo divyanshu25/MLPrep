@@ -500,7 +500,7 @@ in the model itself.
    vocabulary/hash mappings, or imputation values computed on the training set
    but not exported with the model - serving recomputes them on different data or
    hardcodes stale ones. (This includes the classic "fit the scaler on all data"
-   variant - see `feature_pipeline_demo.py` in this directory for a runnable
+   variant - see `feature_pipeline_demo.ipynb` in this directory for a runnable
    demonstration.)
 
 **How a feature store addresses it - derived, not name-dropped.** The root cause
@@ -537,7 +537,7 @@ with timestamp $< t$ (optionally $< t - \delta$ to model real pipeline delay).
 This requires storing feature *history*, not just current values - you can't
 as-of join against a table that only holds the latest snapshot, which is exactly
 why naive "join features from the production DB" training sets are leaky by
-default. Runnable demonstration: `feature_pipeline_demo.py`.
+default. Runnable demonstration: `feature_pipeline_demo.ipynb`.
 
 ### C3. Labels from user behavior and their biases
 

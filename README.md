@@ -32,7 +32,7 @@ re-attempt, per-problem timers).
 Every script runs on CPU in seconds-to-minutes, with fixed seeds and no downloads:
 
 ```bash
-uv run python ml/03_neural_networks/micrograd_plus.py
+uv run jupyter execute ml/03_neural_networks/micrograd_plus.ipynb
 uv run python dsa/05_graphs/problems.py
 ```
 

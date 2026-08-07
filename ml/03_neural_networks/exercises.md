@@ -87,7 +87,7 @@ $(1/4)^{15} \approx 9.3 \times 10^{-10}$. Unless the weight matrices amplify by
 $\sim 4\times$ per layer (which would cause other pathologies), gradients at the
 input end are ~a billion times smaller than at the output end: the early layers
 effectively don't train. This is the vanishing gradient problem;
-`training_dynamics.py` EXPT 2 measures it.
+`training_dynamics.ipynb` EXPT 2 measures it.
 </details>
 
 ---
@@ -174,7 +174,7 @@ Let $z \sim$ symmetric around 0 with variance $\sigma^2$, and $a = \max(0, z)$.
 (i) Show $E[a^2] = \sigma^2/2$. (ii) Use this to derive He initialization
 $\mathrm{Var}(w) = 2/n_{in}$ for ReLU networks. (iii) Predict what happens to
 activation scale in a 30-layer ReLU net initialized with Xavier
-$\mathrm{Var}(w) = 1/n_{in}$ (then check against EXPT 1 of `training_dynamics.py`).
+$\mathrm{Var}(w) = 1/n_{in}$ (then check against EXPT 1 of `training_dynamics.ipynb`).
 
 <details><summary>Solution</summary>
 
@@ -305,7 +305,7 @@ layer networks train, and why every transformer block is
 
 ## Exercise 12 (hard) - Implement a new op in the Value engine
 
-Add a `sigmoid()` op to the `Value` class in `micrograd_plus.py`:
+Add a `sigmoid()` op to the `Value` class in `micrograd_plus.ipynb`:
 (i) derive the backward rule, expressing it in terms of the forward **output**;
 (ii) write the code; (iii) explain why `x.sigmoid()` computed as a primitive is
 numerically/computationally preferable to composing it as `1 / (1 + (-x).exp())`

@@ -3,6 +3,6 @@ ml03/ex4	ml/03_neural_networks/exercises.md	2026-08-02	fail	1	2026-08-03
 ml07/kv-cache-math	ml/07_llm_stack/notes.md	2026-08-01	pass	2	2026-08-04
 dsa02/koko	dsa/02_binary_search/problems.py	2026-08-03	fail	1	2026-08-04
 dsa05/drill2	dsa/05_graphs/drills.md	2026-08-01	pass	4	2026-08-05
-drill:buggy_transformer	ml/08_interview_drills/buggy_transformer.py	2026-07-30	pass	4	2026-08-05
+drill:buggy_transformer	ml/08_interview_drills/buggy_transformer.ipynb	2026-07-30	pass	4	2026-08-05
 cards:estimation	practice/flashcards.md	2026-08-04	pass	2	2026-08-06
-lab:ml/03_neural_networks/mlp_numpy.py	ml/03_neural_networks/mlp_numpy.py	2026-08-07	fail	1	2026-08-08
+lab:ml/03_neural_networks/mlp_numpy.ipynb	ml/03_neural_networks/mlp_numpy.ipynb	2026-08-07	fail	1	2026-08-08

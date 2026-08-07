@@ -9,9 +9,9 @@ generality with $O(n^2)$ compute and a hunger for data.
 
 Companion code (all runnable, CPU-only):
 
-- `attention_scratch.py` - attention in numpy, verified against PyTorch
-- `mini_gpt.py` - a complete GPT trained on an embedded corpus in ~5 seconds
-- `cnn_scratch.py` - conv forward/backward from scratch, gradient-checked
+- `attention_scratch.ipynb` - attention in numpy, verified against PyTorch
+- `mini_gpt.ipynb` - a complete GPT trained on an embedded corpus in ~5 seconds
+- `cnn_scratch.ipynb` - conv forward/backward from scratch, gradient-checked
 
 ---
 
@@ -424,7 +424,7 @@ weights, right at initialization when you need them most; (2) the model
 starts with hard, arbitrary attention patterns it must unlearn. Dividing by
 $\sqrt{d_k}$ restores $\operatorname{Var}(s/\sqrt{d_k}) = 1$ regardless of
 $d_k$, keeping softmax in its soft, trainable regime.
-`attention_scratch.py` measures this: at $d_k=64$, $T=16$, mean row entropy
+`attention_scratch.ipynb` measures this: at $d_k=64$, $T=16$, mean row entropy
 is ~0.46 nats unscaled vs ~2.37 nats scaled (max $\ln 16 \approx 2.77$).
 
 ### 3.3 Full worked example: attention on 3 tokens, $d=2$
@@ -527,7 +527,7 @@ order from the recurrence, CNNs from the kernel's spatial layout.)
 
 Fix: inject position into the token vectors before attention sees them.
 
-- **Learned absolute** (GPT-2, our `mini_gpt.py`): a trainable table
+- **Learned absolute** (GPT-2, our `mini_gpt.ipynb`): a trainable table
   $P \in \mathbb{R}^{T_{\max}\times d}$; input is $x_t = \text{tokemb}(t) + P[t]$.
   Simple, works, can't extrapolate past $T_{\max}$.
 - **Sinusoidal** (original transformer):
@@ -687,7 +687,7 @@ that this one objective, at scale, forces the model to learn syntax, facts,
 and reasoning, because they all reduce prediction error. As noted in §3.7,
 causal masking lets one forward pass supply all $n$ classification losses in
 parallel. Useful sanity number: an untrained model gives uniform
-probabilities, so initial loss $\approx \ln V$ (our `mini_gpt.py` prints
+probabilities, so initial loss $\approx \ln V$ (our `mini_gpt.ipynb` prints
 $\ln 36 = 3.58$ and indeed starts at ~3.76 before dropping).
 
 ### 5.2 Tokenization: BPE in five sentences
