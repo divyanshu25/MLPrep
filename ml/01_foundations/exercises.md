@@ -123,7 +123,7 @@ Check: $f(x) = x^\top A x$ with the given numbers: $Ax = [4, 6]^\top$, so
 $f = 1\cdot4 + 2\cdot6 = 16$. And
 $(A + A^\top)x = \begin{bmatrix} 4 & 1 \\ 1 & 6 \end{bmatrix}
 \begin{bmatrix}1\\2\end{bmatrix} = [6, 13]^\top$.
-Numerical check (see `gradients_from_scratch.py`): wiggling $x_1$ by $10^{-5}$
+Numerical check (see `gradients_from_scratch.ipynb`): wiggling $x_1$ by $10^{-5}$
 changes $f$ at rate $\approx 6$; wiggling $x_2$, at rate $\approx 13$. ✓
 
 This form is everywhere: quadratic losses, Gaussians ($x^\top \Sigma^{-1} x$ in the

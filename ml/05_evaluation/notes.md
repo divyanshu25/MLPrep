@@ -7,9 +7,9 @@ with tiny numeric examples first, formulas second, and derivations in full.
 
 Companion code in this directory:
 
-- `metrics_scratch.py` - confusion matrix, precision/recall/F1, ROC/AUC (two ways), PR/AP, imbalance demo
-- `bias_variance_experiment.py` - empirical bias²/variance decomposition + k-fold CV
-- `calibration_scratch.py` - reliability tables, ECE, temperature scaling
+- `metrics_scratch.ipynb` - confusion matrix, precision/recall/F1, ROC/AUC (two ways), PR/AP, imbalance demo
+- `bias_variance_experiment.ipynb` - empirical bias²/variance decomposition + k-fold CV
+- `calibration_scratch.ipynb` - reliability tables, ECE, temperature scaling
 - `../../src/roc_curve.ipynb` - companion notebook with a plotted ROC curve (this note builds the same curve by hand, in words)
 
 ---
@@ -190,7 +190,7 @@ probability a random positive outranks a random negative. $\blacksquare$
 
 Check on our example: pairs are $(A,B,D) \times (C,E,F)$, 9 pairs. A beats C,E,F (3).
 B beats C,E,F (3). D loses to C (0.70 > 0.60) but beats E,F (2). Total $8/9 \approx 0.889$
-= AUC. `metrics_scratch.py` verifies both computations agree (and agree with sklearn).
+= AUC. `metrics_scratch.ipynb` verifies both computations agree (and agree with sklearn).
 
 Consequences of the ranking view:
 
@@ -235,7 +235,7 @@ honest behavior. Rules of thumb:
   → ROC/AUC is fine and has nicer properties (baseline is always 0.5; PR's baseline
   is $\pi$, so PR-AUCs aren't comparable across datasets with different prevalence).
 
-`metrics_scratch.py` demonstrates this numerically: 100× the imbalance, AUC stays flat,
+`metrics_scratch.ipynb` demonstrates this numerically: 100× the imbalance, AUC stays flat,
 average precision collapses.
 
 Interview trap: "our fraud model has AUC 0.98" is close to meaningless on 1:10,000
@@ -295,7 +295,7 @@ probability - you can't game it by hedging.
   softens (fixes overconfidence), $T < 1$ sharpens. One parameter, fit by minimizing
   validation NLL. Crucially, $z/T$ is a monotone transform, so **argmax and AUC are
   unchanged** - you fix the probabilities without touching accuracy. The standard fix
-  for neural nets. `calibration_scratch.py` implements it with golden-section search.
+  for neural nets. `calibration_scratch.ipynb` implements it with golden-section search.
 
 ---
 
@@ -350,7 +350,7 @@ Read it out loud:
 **Tie to under/overfitting.** As capacity grows, bias² falls (the family can express
 $f$) while variance rises (more knobs chasing noise). Their sum is U-shaped;
 underfitting = left of the minimum (bias-dominated), overfitting = right
-(variance-dominated). `bias_variance_experiment.py` measures all three terms
+(variance-dominated). `bias_variance_experiment.ipynb` measures all three terms
 empirically for polynomial degrees 1–15 and prints the U.
 
 Two classic knobs restated in this language: **more data** reduces variance (bias

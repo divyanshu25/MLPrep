@@ -22,7 +22,7 @@ over the pool for the round type:
 | Coding (DSA) | `dsa/*/drills.md` - 8+6+6+5 timed drills with time boxes attached | Pick a folder 01–06 by die, then a drill number within it |
 | Coding (speed / progressive) | `ml/08_interview_drills/drills.md` #8, #9, #10 (LRU, KV store, inference queue) | One of the three |
 | ML implementation | `ml/08_interview_drills/drills.md` #1–7 | Die over 1–7 |
-| ML debugging (flagship) | `ml/08_interview_drills/buggy_transformer.py` | Fixed - run at most twice ever, it doesn't survive a third exposure |
+| ML debugging (flagship) | `ml/08_interview_drills/buggy_transformer.ipynb` | Fixed - run at most twice ever, it doesn't survive a third exposure |
 | ML breadth | `ml/08_interview_drills/rapid_fire_quiz.md` (draw 10 of 40) + 2 cards from `debugging_scenarios.md` (of 12) | random.choice per item |
 | ML system design | A prompt from `ml/06_ml_systems/exercises.md`, or a fresh variant of the `design_walkthroughs.md` scenarios | Interviewer picks one the candidate hasn't done |
 

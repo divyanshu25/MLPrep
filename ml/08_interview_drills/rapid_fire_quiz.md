@@ -125,7 +125,7 @@ backward, computing a vector-Jacobian product vᵀJ - a *row* of the Jacobian
 per pass. A loss has one output and millions of inputs, so one reverse pass
 yields the entire gradient; forward mode would need one pass per parameter.
 The price is memory: activations must be kept (or recomputed - checkpointing).
-*[Modules 1, 3; `micrograd_plus.py` is reverse mode built by hand]*
+*[Modules 1, 3; `micrograd_plus.ipynb` is reverse mode built by hand]*
 </details>
 
 **12. When does forward mode win?**
@@ -144,7 +144,7 @@ Central differences: (f(x+h) − f(x−h)) / 2h per coordinate, h ≈ 1e-5, comp
 by *relative* error. Central is O(h²)-accurate vs O(h) one-sided. Pitfalls:
 too-small h drowns in float cancellation, too-large h in truncation; use
 float64 and perturb one coordinate at a time. *[Module 1,
-`gradients_from_scratch.py`]*
+`gradients_from_scratch.ipynb`]*
 </details>
 
 ---

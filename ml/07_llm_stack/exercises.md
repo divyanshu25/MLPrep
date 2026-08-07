@@ -2,7 +2,7 @@
 
 Twelve exercises, easy → hard, mirroring questions reported from frontier-lab
 interviews. Do the arithmetic on paper - every one of these is meant to be
-solvable at a whiteboard. Notation follows `notes.md`; `memory_math.py` checks
+solvable at a whiteboard. Notation follows `notes.md`; `memory_math.ipynb` checks
 several answers numerically.
 
 ---
@@ -105,7 +105,7 @@ replicate 140–280 GB of weights(+grads) per GPU.
 (e) ~1.5× DP communication volume: weights must be all-gathered layer-by-
 layer in forward *and again* in backward (they were freed), on top of the
 gradient reduce-scatter. Plus activations (~5–11 GB with checkpointing at
-seq 4096) and runtime buffers. Run `memory_math.py` to check the numbers.
+seq 4096) and runtime buffers. Run `memory_math.ipynb` to check the numbers.
 </details>
 
 ---

@@ -1,8 +1,8 @@
 # Classical ML from First Principles
 
 These notes derive everything. No "it can be shown". If a formula appears, we
-build it. Companion code: `linear_models_scratch.py`,
-`trees_and_ensembles_scratch.py`, `kmeans_pca_scratch.py`.
+build it. Companion code: `linear_models_scratch.ipynb`,
+`trees_and_ensembles_scratch.ipynb`, `kmeans_pca_scratch.ipynb`.
 
 Notation: $n$ = number of examples, $d$ = number of features,
 $X \in \mathbb{R}^{n \times d}$ (rows are examples), $y \in \mathbb{R}^n$,
@@ -486,7 +486,7 @@ individual tree gets slightly worse (a bit more bias/variance); the ensemble
 wins anyway because $\rho$ enters the floor and per-tree quality doesn't.
 That single formula is the whole design rationale of random forests.
 
-(Our `trees_and_ensembles_scratch.py` shows the flip side: with only 2
+(Our `trees_and_ensembles_scratch.ipynb` shows the flip side: with only 2
 informative features out of 5, too-aggressive subsampling starves trees of
 signal - $m$ is a real hyperparameter, not folklore.)
 
@@ -609,7 +609,7 @@ $J(z^{t+1}, \mu^t) \le J(z^t, \mu^t)$ and
 $J(z^{t+1}, \mu^{t+1}) \le J(z^{t+1}, \mu^t)$: **$J$ never increases.** $J$ is
 bounded below by 0, and there are finitely many assignments ($k^n$), so the
 algorithm reaches a state where the assignment stops changing - a fixed
-point - in finite time. (`kmeans_pca_scratch.py` prints the trace; watch it
+point - in finite time. (`kmeans_pca_scratch.ipynb` prints the trace; watch it
 be monotone.) What is *not* guaranteed: a global optimum. Lloyd's halts at a
 local minimum that depends entirely on initialization.
 
@@ -674,7 +674,7 @@ two derivations are the same problem - Pythagoras splits each point's energy
 into "kept" (variance along the subspace) and "lost" (reconstruction error),
 and the lost energy is exactly the sum of the discarded eigenvalues
 $\sum_{j > k} \lambda_j$. That's why the reconstruction-error-vs-$k$ curve in
-`kmeans_pca_scratch.py` falls off a cliff once $k$ reaches the true latent
+`kmeans_pca_scratch.ipynb` falls off a cliff once $k$ reaches the true latent
 dimension.
 
 ### 9.3 SVD connection
@@ -738,7 +738,7 @@ generative/discriminative pair of the same family.
 
 ## 11. Gaussian mixture models and EM
 
-Companion code: `gmm_em_scratch.py`.
+Companion code: `gmm_em_scratch.ipynb`.
 
 ### 11.1 The latent-variable model, and why direct MLE breaks
 
@@ -819,7 +819,7 @@ $$\ell(\theta^{t+1}) \;\ge\; \mathcal{L}(q^t, \theta^{t+1}) \;\ge\; \mathcal{L}(
 First inequality: ELBO is always a lower bound. Second: the M-step maximized
 over $\theta$. Equality: the E-step made the bound tight. **The
 log-likelihood never decreases** - the same alternating-minimization shape as
-Lloyd's algorithm (§8.2), and `gmm_em_scratch.py` asserts this trace is
+Lloyd's algorithm (§8.2), and `gmm_em_scratch.ipynb` asserts this trace is
 monotone. What is *not* guaranteed: a global optimum. EM climbs to a
 stationary point that depends on initialization (in practice: init with
 k-means, use restarts).
@@ -901,7 +901,7 @@ $\sigma(5) = 0.993$. $\varepsilon = 0.01$: $\sigma(50) \approx 1 - 2\cdot
   $-\frac{1}{2\varepsilon}\sum_i \|x_i - \mu_{z_i}\|^2 + \text{const}$  - 
   maximizing it *is* minimizing the k-means objective $J$ from §8.1.
 
-`gmm_em_scratch.py` demonstrates this numerically: EM with tiny frozen
+`gmm_em_scratch.ipynb` demonstrates this numerically: EM with tiny frozen
 spherical covariances produces assignments identical to Lloyd's algorithm.
 This is also the honest explanation of k-means' failure modes (§8.3): you
 silently assumed spherical, equal-covariance, equal-weight clusters.
@@ -1044,7 +1044,7 @@ heavy tail lets moderate dissimilarities map to large distances; see the
 
 ## 13. Collaborative filtering and matrix factorization
 
-Companion code: `matrix_factorization_scratch.py`. This is the recsys
+Companion code: `matrix_factorization_scratch.ipynb`. This is the recsys
 baseline every interviewer expects before any deep-learning talk; the
 production side (retrieval/ranking, serving) is module 6
 (`../06_ml_systems/`).
@@ -1160,7 +1160,7 @@ p_u)$, symmetric for $q_i$) - cheap per epoch, trivially handles biases,
 needs a learning rate. ALS - no learning rate, parallelizes per row, and is
 the standard choice for implicit-feedback weighting where the "sum over all
 entries" trick makes SGD infeasible. Both are in
-`matrix_factorization_scratch.py`; they reach essentially the same RMSE.
+`matrix_factorization_scratch.ipynb`; they reach essentially the same RMSE.
 
 ### 13.5 Implicit feedback and BPR
 

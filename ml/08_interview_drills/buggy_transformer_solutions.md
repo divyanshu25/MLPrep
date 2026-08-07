@@ -1,4 +1,4 @@
-# Solutions - buggy_transformer.py
+# Solutions - buggy_transformer.ipynb
 
 **Do not read this until you've spent the 45 minutes.** Finding bugs is the
 skill; reading about bugs is not.
@@ -19,7 +19,7 @@ and gets *worse* late in training. Each bug below explains its share of that.
 
 ### Bug 1 - positional embedding indexed by token ids
 
-**Location:** `TinyLM.forward`, line 190: `pos = self.pos_emb(idx)`.
+**Location:** cell 12 (`TinyLM`), in `forward`: `pos = self.pos_emb(idx)`.
 
 **Symptom:** the model never learns word order - it behaves like a bag-of-chars
 model. Generations have locally plausible character frequencies but no
@@ -33,11 +33,11 @@ broadcast `(T, C)` against `tok (B, T, C)`.
 
 **Concept:** attention is permutation-equivariant; positional embeddings are
 the *only* thing telling the model where a token sits. Module 4 notes
-(attention section) and `mini_gpt.py`.
+(attention section) and `mini_gpt.ipynb`.
 
 ### Bug 2 - causal mask uses the wrong triangle
 
-**Location:** `CausalSelfAttention.__init__`, line 124:
+**Location:** cell 11 (`CausalSelfAttention`), in `__init__`:
 `torch.triu(torch.ones(...))`.
 
 **Symptom:** with `triu`, the *kept* entries are `j >= i` - every position
@@ -51,12 +51,12 @@ suspiciously low train loss + garbage samples.
 
 **Concept:** autoregressive factorization requires `p(x_t | x_{<t})`; the mask
 enforces it. Module 4 notes (the causal-mask derivation) and
-`attention_scratch.py`. Related reported variants: mask missing entirely, or
+`attention_scratch.ipynb`. Related reported variants: mask missing entirely, or
 applied *after* softmax (rows then don't sum to 1).
 
 ### Bug 3 - softmax over the wrong axis
 
-**Location:** `CausalSelfAttention.forward`, line 142:
+**Location:** cell 11 (`CausalSelfAttention`), in `forward`:
 `F.softmax(att, dim=-2)`.
 
 **Symptom:** normalizes over *queries* (columns) instead of *keys* (rows), so
@@ -73,7 +73,7 @@ module 3 for softmax itself.
 
 ### Bug 4 - missing `optimizer.zero_grad()`
 
-**Location:** training loop in `main()`, lines 246–249 - `loss.backward()`
+**Location:** cell 14 (`main`), the training loop - `loss.backward()`
 then `opt.step()` with no `opt.zero_grad()` anywhere.
 
 **Symptom:** `.backward()` *accumulates* into `.grad`, so the effective
@@ -87,11 +87,11 @@ instead of hovering.
 
 **Concept:** the accumulate-by-default contract of autograd (it exists to
 support gradient accumulation over micro-batches - when done *deliberately*).
-Module 3 notes, training-loop anatomy; `training_dynamics.py`.
+Module 3 notes, training-loop anatomy; `training_dynamics.ipynb`.
 
 ### Bug 5 - missing output projection after concatenating heads
 
-**Location:** `CausalSelfAttention.forward`, line 146: `return y` - the
+**Location:** cell 11 (`CausalSelfAttention`), end of `forward`: `return y` - the
 `self.proj` defined in `__init__` is never applied.
 
 **Symptom:** the subtlest one. Shapes are fine (`(B, T, C)` either way) and the
@@ -108,7 +108,7 @@ subspaces and W_o recombines them. Module 4 notes, multi-head section.
 
 ### Bug 6 - scaling by d_model instead of √d_head
 
-**Location:** `CausalSelfAttention.forward`, line 138:
+**Location:** cell 11 (`CausalSelfAttention`), in `forward`:
 `(q @ k.T) / n_embd` - divides by 64 instead of √16 = 4.
 
 **Symptom:** scores are 16× too small, so after softmax every row is nearly
@@ -126,7 +126,7 @@ Xavier init. Module 4 notes (the √d_k derivation); module 3 for init variance.
 
 ### Bug 7 - residual taken from the normalized tensor
 
-**Location:** `Block.forward`, lines 171–172:
+**Location:** cell 11 (`Block`), in `forward`:
 
 ```python
 h = self.ln1(x)

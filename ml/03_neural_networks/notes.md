@@ -3,14 +3,14 @@
 > Style note: nothing here is magic. Every formula is derived, every gradient is
 > computed by hand at least once on actual numbers, and every design choice
 > (init, normalization, Adam, residuals) is motivated by a concrete failure you
-> can reproduce in `training_dynamics.py`. If a claim seems hand-wavy, it's a
+> can reproduce in `training_dynamics.ipynb`. If a claim seems hand-wavy, it's a
 > bug - the goal is Karpathy's "Zero to Hero" in written form.
 
 Companion code in this directory:
 
-- `micrograd_plus.py` - scalar autograd engine + MLP + training loop + gradient check
-- `mlp_numpy.py` - vectorized 2-layer MLP, manual backward, SGD vs momentum vs Adam
-- `training_dynamics.py` - numeric experiments: init variance, vanishing gradients, learning rates
+- `micrograd_plus.ipynb` - scalar autograd engine + MLP + training loop + gradient check
+- `mlp_numpy.ipynb` - vectorized 2-layer MLP, manual backward, SGD vs momentum vs Adam
+- `training_dynamics.ipynb` - numeric experiments: init variance, vanishing gradients, learning rates
 
 ---
 
@@ -160,7 +160,7 @@ this loop, a million times, on bigger graphs.
 - **Any unary $f$**: gradient scaled by $f'$ evaluated at the forward value.
 
 Matrix versions ($Z = XW$: $\partial L/\partial X = G W^\top$, $\partial L/\partial W = X^\top G$)
-are just these rules batched - derived element-wise in `mlp_numpy.py`'s comments. A
+are just these rules batched - derived element-wise in `mlp_numpy.ipynb`'s comments. A
 useful mnemonic: shapes must match, and there's exactly one transpose arrangement that
 makes them match.
 
@@ -229,7 +229,7 @@ $$\log p_i = z_i - m - \log\sum_j e^{z_j - m}$$
 
 because `log(tiny)` where `tiny` underflowed to `0.0` gives `-inf`. Every serious
 framework's `cross_entropy` fuses softmax + log + NLL for exactly this reason; you
-should too (see `stable_logsumexp` in `mlp_numpy.py`).
+should too (see `stable_logsumexp` in `mlp_numpy.ipynb`).
 
 ---
 
@@ -251,7 +251,7 @@ So **every** sigmoid in the backward path multiplies the gradient by *at most* $
 of sigmoid layers, the activation-path factor is bounded by $0.25^d$ times weight
 terms: $0.25^{10} \approx 10^{-6}$, $0.25^{20} \approx 10^{-12}$. Layer 1 of a deep
 sigmoid net receives essentially zero signal about the loss. That is the **vanishing
-gradient problem**, and it's not folklore - `training_dynamics.py` prints the actual
+gradient problem**, and it's not folklore - `training_dynamics.ipynb` prints the actual
 per-layer gradient norms and you can watch them decay geometrically.
 
 Two further sigmoid sins: outputs are **not zero-centered** (always positive → the
@@ -355,7 +355,7 @@ $$n_{in} \cdot \sigma_w^2 \cdot \tfrac12 = 1 \;\Rightarrow\; \boxed{\sigma_w^2 =
 
 Use Xavier init with ReLU in a 30-layer net and the missing $2^{d/2}$ factor shrinks
 activations by $\sim (1/\sqrt2)^{30} \approx 3\times10^{-5}$ - watch it happen
-numerically in `training_dynamics.py`. Biases: init to 0 (they don't feed the variance
+numerically in `training_dynamics.ipynb`. Biases: init to 0 (they don't feed the variance
 argument). Never init weights to 0 or any constant: all neurons in a layer then
 compute identical outputs and receive identical gradients forever - the **symmetry
 problem**; random init exists to break symmetry, and the *scale* of that randomness is
@@ -437,7 +437,7 @@ $\beta^t \to 0$ and the correction fades to a no-op; it only matters for early s
 ### Learning-rate schedules
 
 $\eta$ is the single most important hyperparameter (see the divergence/slow/converge
-experiment in `training_dynamics.py`). Common schedules:
+experiment in `training_dynamics.ipynb`). Common schedules:
 
 - **Step decay**: drop $\eta$ by 10× at fixed milestones.
 - **Cosine**: $\eta_t = \eta_{\min} + \tfrac12(\eta_{\max}-\eta_{\min})(1 + \cos(\pi t/T))$ - smooth decay to ~0, the modern default.
@@ -760,7 +760,7 @@ $\frac{L(\theta_i + h) - L(\theta_i - h)}{2h}$, $h \approx 10^{-5}$, using **rel
 error $\frac{|g_a - g_n|}{|g_a| + |g_n| + \epsilon} \lesssim 10^{-6}$ in float64.
 Centered differences have $O(h^2)$ error vs. $O(h)$ for one-sided. Do it on a tiny
 model/batch, ideally at a point where ReLUs aren't near their kink. Both
-`micrograd_plus.py` and `mlp_numpy.py` implement this.
+`micrograd_plus.ipynb` and `mlp_numpy.ipynb` implement this.
 
 **Q20. Momentum: what does it actually do to the update?**
 It's an exponentially-decayed sum of past gradients: $v_t = \sum_i \beta^{t-i} g_i$.

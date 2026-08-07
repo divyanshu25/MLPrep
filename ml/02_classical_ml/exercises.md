@@ -364,7 +364,7 @@ $$\min \sum_i \|x_i - UU^\top x_i\|^2 = (n-1)\sum_{j > k} \lambda_j.$$
 (That the top-$k$ eigenspace is optimal among all $k$-dim subspaces follows
 from the Courant–Fischer/Ky Fan characterization: no $k$-dim subspace can
 capture more trace than the top eigenvalues.) This is exactly why the
-reconstruction-error curve in `kmeans_pca_scratch.py` equals the tail sum of
+reconstruction-error curve in `kmeans_pca_scratch.ipynb` equals the tail sum of
 eigenvalues and plummets after the true latent dimension.
 </details>
 
