@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MLPrep — Study App</title>
+<title>MLPrep - Study App</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
 if (window.tailwind) tailwind.config = { theme: { extend: {
@@ -26,43 +26,109 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
 <style>
-  /* Theme palettes: light is the default; html.dark switches to the LC-dark look. */
+  /* Theme palettes: light is the default; html.dark switches to the dark look.
+     Light = Apple white base + pure-white cards + hairline borders;
+     dark = near-black base + elevated panels (elevation, not shadows). */
   :root {
-    --base:#f7f8fa; --panel:#ffffff; --panel2:#f1f3f5; --line:#e2e5e9;
-    --warn:#c98f0a; --mut:#6b7280; --text:#24292f; --text-strong:#111318;
-    --code-bg:#f3f4f6; --code-border:#e2e5e9; --code-text:#b45309;
-    --pre-bg:#f6f8fa; --pre-text:#24292f; --th-bg:#f1f3f5;
-    --quote:#57606a; --details-bg:#fafbfc; --scroll:#d1d5db; --dot-todo:#c8cdd4;
+    --base:#fbfbfd; --panel:#ffffff; --panel2:#f2f2f4; --line:rgba(0,0,0,.08);
+    --warn:#c98f0a; --mut:#6b7280; --text:#1d1d1f; --text-strong:#111113;
+    --code-bg:#f4f4f6; --code-border:rgba(0,0,0,.07); --code-text:#b45309;
+    --pre-bg:#f6f7f9; --pre-text:#24292f; --th-bg:#fbfbfd;
+    --quote:#57606a; --details-bg:#fafafc; --scroll:#d1d5db; --dot-todo:#c8cdd4;
     --accent-text:#b45309; --good-text:#15803d; --bad-text:#b91c1c;
+    --accent:#ffa116;
+    --nav-bg:rgba(251,251,253,.78);
+    --shadow-card:0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.05);
   }
   html.dark {
-    --base:#1a1a1a; --panel:#222222; --panel2:#2a2a2a; --line:#383838;
-    --warn:#ffc01e; --mut:#9ca3af; --text:#e4e4e7; --text-strong:#fafafa;
-    --code-bg:#2d2d2d; --code-border:#3a3a3a; --code-text:#fbbf24;
-    --pre-bg:#161616; --pre-text:#d4d4d8; --th-bg:#262626;
-    --quote:#a1a1aa; --details-bg:#232323; --scroll:#3f3f46; --dot-todo:#52525b;
-    --accent-text:#ffa116; --good-text:#2cbb5d; --bad-text:#ef4743;
+    --base:#0d0d0f; --panel:#1c1c1f; --panel2:#26262b; --line:rgba(255,255,255,.09);
+    --warn:#ffc01e; --mut:#9ca3af; --text:#e6e6ea; --text-strong:#f5f5f7;
+    --code-bg:#26262b; --code-border:rgba(255,255,255,.1); --code-text:#fbbf24;
+    --pre-bg:#141416; --pre-text:#d4d4d8; --th-bg:#202024;
+    --quote:#a1a1aa; --details-bg:#202023; --scroll:#3f3f46; --dot-todo:#52525b;
+    --accent:#ffa116; --accent-text:#ffa116; --good-text:#2cbb5d; --bad-text:#ef4743;
+    --nav-bg:rgba(13,13,15,.72);
+    --shadow-card:none;
   }
   /* Only #app and inner panes scroll: the page shell itself is locked so nothing
      (hidden helpers, momentum chaining) can scroll past the end of the content. */
   html, body { height:100%; overflow:hidden; }
   html { background:var(--base); }
-  body { background:var(--base); color:var(--text); }
+  body { background:var(--base); color:var(--text); font-size:15px;
+         font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;
+         -webkit-font-smoothing:antialiased; }
   .overflow-y-auto { overscroll-behavior-y: contain; }
+  /* type scale helpers */
+  .page-title { font-size:1.75rem; line-height:1.15; font-weight:700; letter-spacing:-.022em; color:var(--text-strong); }
+  .tnum { font-variant-numeric:tabular-nums; }
+  .microlabel { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; }
   /* legacy fixed-shade classes → semantic theme colors */
   .text-zinc-100, .text-zinc-200 { color:var(--text-strong) !important; }
   .text-zinc-300 { color:var(--text) !important; }
   .text-zinc-400 { color:var(--mut) !important; }
   .bg-zinc-600 { background-color:var(--dot-todo) !important; }
-  .CodeMirror { height:100%; font-size:14px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  /* focus + motion: visible keyboard focus everywhere, transitions only on
+     hover/appear, and everything collapses under prefers-reduced-motion. */
+  :focus-visible { outline:2px solid var(--accent-text); outline-offset:2px; border-radius:4px; }
+  .CodeMirror *:focus-visible, #pal-q:focus-visible { outline:none; }
+  a, button, select, input, summary { transition:background-color .15s ease, border-color .15s ease,
+    color .15s ease, opacity .15s ease, box-shadow .15s ease, transform .15s ease; }
+  button:active:not(:disabled) { transform:scale(.98); }
+  @keyframes rise { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+  .rise { animation:rise .2s ease both; }
+  @media (prefers-reduced-motion:reduce) {
+    *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+  /* frosted chrome (nav bar, command palette) */
+  .frost { background:var(--nav-bg); -webkit-backdrop-filter:saturate(180%) blur(20px);
+           backdrop-filter:saturate(180%) blur(20px); }
+  .nav-tab { padding:.35rem .85rem; border-radius:9999px; color:var(--mut); font-weight:500; }
+  .nav-tab:hover { color:var(--text-strong); background:var(--panel2); }
+  .nav-tab.active { background:var(--panel2); color:var(--text-strong); font-weight:600; }
+  /* button hierarchy: one filled accent primary per screen, quiet bordered
+     secondaries, quiet text buttons for progressive disclosure. */
+  .btn { display:inline-flex; align-items:center; gap:.4rem; border-radius:8px; font-size:.875rem;
+         font-weight:500; padding:.42rem .9rem; border:1px solid transparent; cursor:pointer; }
+  .btn:disabled { opacity:.45; cursor:default; }
+  .btn-primary { background:var(--accent); color:#1d1d1f; font-weight:600; }
+  .btn-primary:hover:not(:disabled) { background:#ffab2e; }
+  .btn-secondary { background:var(--panel); border-color:var(--line); color:var(--text); }
+  .btn-secondary:hover:not(:disabled) { background:var(--panel2); }
+  .btn-text { padding:.3rem .55rem; border-radius:6px; background:none; }
+  .btn-text:hover:not(:disabled) { background:var(--panel2); }
+  /* raised card surface */
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow-card); }
+  /* toolbar fields: one consistent height */
+  .field { height:2.25rem; background:var(--panel); border:1px solid var(--line); border-radius:8px;
+           padding:0 .7rem; font-size:.875rem; color:var(--text); }
+  .field:focus { border-color:var(--accent); }
+  /* tinted translucent surfaces for callouts / verdicts (theme-tuned, no harsh solids) */
+  .soft-good { background:rgba(44,187,93,.1); border:1px solid rgba(44,187,93,.3); }
+  .soft-bad { background:rgba(239,71,67,.08); border:1px solid rgba(239,71,67,.3); }
+  .soft-warn { background:rgba(201,143,10,.07); border:1px solid rgba(201,143,10,.28); }
+  html.dark .soft-warn { background:rgba(255,192,30,.08); border-color:rgba(255,192,30,.25); }
+  .bar-warn { background:rgba(201,143,10,.07); border-bottom:1px solid rgba(201,143,10,.3); }
+  html.dark .bar-warn { background:rgba(255,192,30,.08); border-bottom-color:rgba(255,192,30,.25); }
+  /* difficulty pills: semantic colors stay green/amber/red */
+  .diff-pill { font-size:12px; font-weight:600; text-transform:capitalize; padding:.14rem .6rem; border-radius:9999px; }
+  .diff-pill.easy { color:var(--good-text); background:rgba(44,187,93,.12); }
+  .diff-pill.medium { color:var(--warn); background:rgba(201,143,10,.1); }
+  html.dark .diff-pill.medium { background:rgba(255,192,30,.12); }
+  .diff-pill.hard { color:var(--bad-text); background:rgba(239,71,67,.1); }
+  /* status dots get a subtle ring */
+  .sdot { box-shadow:0 0 0 3px transparent; }
+  .sdot.bg-good { box-shadow:0 0 0 3px rgba(44,187,93,.16); }
+  .sdot.bg-warn { box-shadow:0 0 0 3px rgba(255,192,30,.18); }
+  .sdot.bg-zinc-600 { box-shadow:0 0 0 3px rgba(120,120,128,.12); }
+  .CodeMirror { height:100%; font-size:13.5px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
   .cm-s-material-darker.CodeMirror { background:#1e1e1e; }
   .cm-s-default.CodeMirror { background:#fff; border:1px solid var(--line); }
-  /* markdown body */
-  .md { line-height:1.65; font-size:.925rem; }
-  .md h1 { font-size:1.5rem; font-weight:700; margin:1.2rem 0 .8rem; color:var(--text-strong); }
-  .md h2 { font-size:1.2rem; font-weight:700; margin:1.6rem 0 .6rem; color:var(--text-strong);
+  /* markdown body: comfortable reading measure */
+  .md { line-height:1.7; font-size:.9375rem; }
+  .md h1 { font-size:1.45rem; font-weight:700; letter-spacing:-.015em; margin:1.2rem 0 .8rem; color:var(--text-strong); }
+  .md h2 { font-size:1.17rem; font-weight:700; letter-spacing:-.01em; margin:1.6rem 0 .6rem; color:var(--text-strong);
            border-bottom:1px solid var(--line); padding-bottom:.3rem; }
-  .md h3 { font-size:1.05rem; font-weight:600; margin:1.2rem 0 .5rem; color:var(--text-strong); }
+  .md h3 { font-size:1.02rem; font-weight:600; margin:1.2rem 0 .5rem; color:var(--text-strong); }
   .md p { margin:.55rem 0; }
   .md ul, .md ol { margin:.55rem 0 .55rem 1.4rem; }
   .md ul { list-style:disc; } .md ol { list-style:decimal; }
@@ -70,21 +136,28 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .md a { color:var(--accent-text); text-decoration:underline; text-underline-offset:2px; }
   .md code { background:var(--code-bg); border:1px solid var(--code-border); border-radius:4px;
              padding:.08rem .3rem; font-size:.85em; font-family:ui-monospace,Menlo,monospace; color:var(--code-text); }
-  .md pre { background:var(--pre-bg); border:1px solid var(--code-border); border-radius:8px;
-            padding:.8rem 1rem; overflow-x:auto; margin:.7rem 0; }
-  .md pre code { background:none; border:none; padding:0; color:var(--pre-text); font-size:.83rem; }
+  .md pre { background:var(--pre-bg); border:1px solid var(--code-border); border-radius:10px;
+            padding:.85rem 1rem; overflow-x:auto; margin:.75rem 0; }
+  .md pre code { background:none; border:none; padding:0; color:var(--pre-text); font-size:13px; line-height:1.6; }
+  /* fenced ```text example blocks render as distinct example cards */
+  .md pre:has(> code.language-text) { background:var(--panel2); border:1px solid var(--line); }
+  html.dark .md pre:has(> code.language-text) { background:var(--details-bg); }
+  .md pre:has(> code.language-text) code { color:var(--text); }
   .md table { border-collapse:collapse; margin:.8rem 0; font-size:.86rem; display:block; overflow-x:auto; }
   .md th, .md td { border:1px solid var(--code-border); padding:.4rem .7rem; text-align:left; vertical-align:top; }
   .md th { background:var(--th-bg); color:var(--text-strong); }
-  .md blockquote { border-left:3px solid #ffa116; padding-left:.9rem; color:var(--quote); margin:.7rem 0; }
-  .md details { background:var(--details-bg); border:1px solid var(--code-border); border-radius:8px;
+  /* blockquote Note/Constraints callouts: quiet, accent hairline, muted text */
+  .md blockquote { border-left:2px solid var(--accent); padding:.1rem 0 .1rem .95rem;
+                   color:var(--quote); margin:.9rem 0; font-size:.9rem; }
+  .md blockquote strong { color:var(--text); }
+  .md details { background:var(--details-bg); border:1px solid var(--code-border); border-radius:10px;
                 padding:.5rem .9rem; margin:.6rem 0; }
   .md summary { cursor:pointer; color:var(--accent-text); font-weight:600; }
   .md hr { border-color:var(--line); margin:1.4rem 0; }
   .md input[type=checkbox] { accent-color:#ffa116; width:.95rem; height:.95rem; margin-right:.35rem; }
   .md img { max-width:100%; }
   /* roving keyboard highlight on the problems table */
-  tr.rove { outline:2px solid var(--accent-text); outline-offset:-2px; }
+  tr.rove { outline:2px solid var(--accent); outline-offset:-2px; background:rgba(255,161,22,.06); }
   ::-webkit-scrollbar { width:10px; height:10px; }
   ::-webkit-scrollbar-thumb { background:var(--scroll); border-radius:6px; }
   ::-webkit-scrollbar-track { background:transparent; }
@@ -95,20 +168,19 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
 <div id="offline-banner" style="display:none;background:#7c2d12;color:#fed7aa;padding:8px 16px;
      font:13px system-ui;border-bottom:1px solid #9a3412;"></div>
 
-<nav class="h-14 flex items-center gap-6 px-5 border-b border-line bg-panel sticky top-0 z-20">
-  <a href="#/today" class="flex items-center gap-2 font-bold text-lg tracking-tight">
+<nav class="frost h-14 flex items-center gap-6 px-5 border-b border-line sticky top-0 z-20">
+  <a href="#/problems" class="flex items-center gap-2 font-semibold text-[15px] tracking-tight text-zinc-100">
     <span class="text-accent">▲</span><span>MLPrep</span>
   </a>
-  <div class="flex gap-1 text-sm" id="nav-tabs">
-    <a href="#/today"    data-tab="today"    class="px-3 py-1.5 rounded-md hover:bg-panel2">Today</a>
-    <a href="#/problems" data-tab="problems" class="px-3 py-1.5 rounded-md hover:bg-panel2">Problems</a>
-    <a href="#/notes"    data-tab="notes"    class="px-3 py-1.5 rounded-md hover:bg-panel2">Notes</a>
-    <a href="#/cards"    data-tab="cards"    class="px-3 py-1.5 rounded-md hover:bg-panel2">Cards</a>
-    <a href="#/review"   data-tab="review"   class="px-3 py-1.5 rounded-md hover:bg-panel2">Review<span
-      id="due-badge" class="hidden ml-1.5 px-1.5 py-px rounded-full bg-warn/15 text-warn text-[10px] font-bold align-middle">0</span></a>
+  <div class="flex items-center gap-1 text-sm" id="nav-tabs">
+    <a href="#/problems" data-tab="problems" class="nav-tab">Problems</a>
+    <a href="#/notes"    data-tab="notes"    class="nav-tab">Notes</a>
+    <a href="#/cards"    data-tab="cards"    class="nav-tab">Cards</a>
   </div>
-  <div class="ml-auto flex items-center gap-3 text-xs text-mut" id="nav-progress"></div>
-  <button id="theme-toggle" class="px-2.5 py-1.5 rounded-md border border-line hover:bg-panel2 text-sm"
+  <div class="ml-auto flex items-center gap-3 text-xs text-mut tnum" id="nav-progress"></div>
+  <button id="palette-hint" class="btn btn-secondary !px-2.5 !py-1 text-xs text-mut"
+          title="Jump to any problem, note, or deck" onclick="openPalette()">⌘K</button>
+  <button id="theme-toggle" class="btn btn-secondary !px-2.5 !py-1 text-sm"
           title="Toggle light / dark theme"></button>
 </nav>
 
@@ -125,6 +197,30 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g,
    spans are stashed behind placeholder tokens before parsing, typeset with
    KaTeX, and spliced back into the rendered HTML afterwards. Fenced code
    blocks are exempt so `$` in shell/code snippets is never treated as math. */
+/* Rewrite links inside rendered markdown so relative repo links stay in the
+   SPA: "01_foundations/notes.md" inside ml/README.md resolves against the
+   current file's directory and becomes #/notes/ml/01_foundations/notes.md.
+   External links open in a new tab; non-viewable repo files (images, ipynb)
+   become inert with a tooltip pointing at the editor. */
+function fixMdLinks(container, basePath) {
+  if (!container) return;
+  container.querySelectorAll('a[href]').forEach(a => {
+    const href = a.getAttribute('href');
+    if (/^(https?:|mailto:)/.test(href)) { a.target = '_blank'; a.rel = 'noopener'; return; }
+    if (href.startsWith('#')) return;                       // in-page anchor
+    let resolved;
+    try { resolved = new URL(href, 'file:///' + basePath).pathname.replace(/^\//, ''); }
+    catch (e) { return; }
+    if (/\.(md|py)$/.test(resolved)) {
+      a.href = '#/notes/' + encodeURIComponent(resolved);
+    } else {
+      a.removeAttribute('href');
+      a.title = 'not viewable in the app - open ' + resolved + ' in your editor';
+      a.classList.add('cursor-help', 'opacity-70');
+    }
+  });
+}
+
 const md = t => {
   if (!window.marked) return '<pre>'+esc(t)+'</pre>';
   const stash = [];
@@ -143,13 +239,14 @@ const md = t => {
     if (seg.startsWith('```')) return seg;
     return seg
       .replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => hold(tex.trim(), true))
-      .replace(/(?<!\\)\$(?!\s)((?:\\.|[^$\n])+?)\$(?!\d)/g, (_, tex) => hold(tex, false));
+      .replace(/(?<!\\)\$(?!\s)((?:\\.|[^$])+?)\$(?!\d)/g, (m, tex) =>
+        /\n\s*\n/.test(tex) ? m : hold(tex.replace(/\n/g, ' '), false));
   }).join('');
   return marked.parse(guarded, {gfm:true}).replace(/@@MATH(\d+)@@/g, (_, i) => stash[+i]);
 };
 const DIFF_CLS = {easy:'text-good', medium:'text-warn', hard:'text-bad'};
 const STATUS_DOT = {solved:'bg-good', attempted:'bg-warn', todo:'bg-zinc-600'};
-const STATUS_TITLE = {solved:'Solved (last logged: pass)', attempted:'Attempted (last logged: fail)', todo:'Not attempted'};
+const STATUS_TITLE = {solved:'Solved (accepted here)', attempted:'Attempted (rejected run or opened solution)', todo:'Not attempted'};
 
 async function api(path, body) {
   const opts = body ? {method:'POST', headers:{'Content-Type':'application/json'},
@@ -161,16 +258,28 @@ async function api(path, body) {
   if (!parsed) throw new Error('Unexpected non-JSON response from ' + path);
   return data;
 }
-const errBox = e => `<div class="m-6 p-4 rounded-lg border border-bad/50 bg-bad/10 text-bad text-sm">
+const errBox = e => `<div class="m-6 p-4 rounded-xl soft-bad text-bad text-sm rise">
   <b>Error:</b> ${esc(e.message || e)}
-  <a href="#/today" class="ml-3 underline hover:opacity-80"
+  <a href="#/problems" class="ml-3 underline hover:opacity-80"
      onclick="if (history.length > 1) { event.preventDefault(); history.back(); }">← back</a></div>`;
 const spinner = msg => `<div class="p-10 text-center text-mut text-sm animate-pulse">${esc(msg || 'Loading…')}</div>`;
 
+/* problem status lives in localStorage - mlprep.status = {problemId: "solved"|"attempted"}.
+   The server's queue-derived status field is ignored entirely; anything not in the
+   local map is "todo". Accepted runs mark solved automatically; a rejected run or
+   an opened solution marks attempted (never downgrading a solve). */
+const STATUS_KEY = 'mlprep.status';
+function setLocalStatus(id, s) {
+  const m = store.get(STATUS_KEY, {});
+  if (m[id] === 'solved' || m[id] === s) return;   // solved is sticky
+  m[id] = s;
+  store.set(STATUS_KEY, m);
+}
 let problemsCache = null;
 async function getProblems(force) {
   if (force || !problemsCache) problemsCache = await api('/api/problems');
-  return problemsCache;
+  const st = store.get(STATUS_KEY, {});
+  return problemsCache.map(p => ({ ...p, status: st[p.id] || 'todo' }));
 }
 let cardsCache = null;
 async function getCards() {
@@ -216,15 +325,6 @@ let cleanup = null;
 let routeEpoch = 0;
 window.addEventListener('hashchange', route);
 
-/* amber due-count pill on the Review tab; refreshed on load + after any log */
-async function refreshDueBadge() {
-  try {
-    const q = await api('/api/queue');
-    const n = typeof q.due_count === 'number' ? q.due_count : (q.due_today || []).length;
-    const b = $('#due-badge');
-    if (b) { b.textContent = n; b.classList.toggle('hidden', !n); }
-  } catch (e) { /* badge is decorative */ }
-}
 function syncTheme() {
   const dark = document.documentElement.classList.contains('dark');
   const btn = $('#theme-toggle');
@@ -248,7 +348,6 @@ window.addEventListener('load', () => {
     b.textContent = 'Offline? These CDN assets failed to load: ' + missing.join(', ') +
       '. The app still works, but with degraded styling / a plain-textarea editor / raw markdown.';
   }
-  refreshDueBadge();
   route();
 });
 
@@ -256,25 +355,20 @@ function route() {
   routeEpoch++;
   window._cm = null;   // detached editors must not be re-themed by the toggle
   if (cleanup) { try { cleanup(); } catch (e) {} cleanup = null; }
-  const h = location.hash || '#/today';
+  const h = location.hash || '#/problems';
   const app = $('#app');
   app.scrollTop = 0;
-  const tab = h.startsWith('#/problem') ? 'problems'
-            : h.startsWith('#/lab') ? 'notes'
+  const tab = h.startsWith('#/lab') ? 'notes'
             : h.startsWith('#/notes') ? 'notes'
-            : h.startsWith('#/cards') ? 'cards'
-            : h.startsWith('#/review') ? 'review' : 'today';
+            : h.startsWith('#/cards') ? 'cards' : 'problems';
   $$('#nav-tabs a').forEach(a => a.className =
-    'px-3 py-1.5 rounded-md hover:bg-panel2 ' +
-    (a.dataset.tab === tab ? 'bg-panel2 text-accent font-semibold' : 'text-zinc-300'));
+    'nav-tab' + (a.dataset.tab === tab ? ' active' : ''));
   updateNavProgress();
   if (h.startsWith('#/problem/')) viewProblem(app, decodeURIComponent(h.slice('#/problem/'.length)));
   else if (h.startsWith('#/lab/')) viewLab(app, decodeURIComponent(h.slice('#/lab/'.length)));
   else if (h.startsWith('#/notes')) viewNotes(app, h.slice('#/notes'.length).replace(/^\//, ''));
   else if (h.startsWith('#/cards')) viewCards(app, h.slice('#/cards'.length).replace(/^\//, ''));
-  else if (h.startsWith('#/review')) viewReview(app);
-  else if (h.startsWith('#/problems')) viewProblems(app);
-  else viewToday(app);   // #/today + fallback for unknown hashes
+  else viewProblems(app);   // #/problems + fallback for unknown hashes
 }
 
 /* ------------------------------------------------- global keys + palette */
@@ -310,12 +404,12 @@ function ensurePaletteDOM() {
   div.id = 'palette';
   div.className = 'hidden fixed inset-0 z-50';
   div.innerHTML = `
-    <div id="pal-backdrop" class="absolute inset-0 bg-black/40"></div>
-    <div class="relative max-w-xl mx-auto mt-24 bg-panel border border-line rounded-xl shadow-2xl overflow-hidden">
+    <div id="pal-backdrop" class="absolute inset-0 bg-black/30"></div>
+    <div class="frost relative max-w-xl mx-auto mt-28 border border-line rounded-[14px] shadow-2xl overflow-hidden rise">
       <input id="pal-q" placeholder="Jump to a problem, note, or flashcard deck…" autocomplete="off" spellcheck="false"
-        class="w-full bg-transparent px-4 py-3 text-sm outline-none border-b border-line">
-      <div id="pal-list" class="max-h-80 overflow-y-auto text-sm"></div>
-      <div class="px-4 py-2 text-[11px] text-mut border-t border-line flex gap-4">
+        class="w-full bg-transparent px-5 py-3.5 text-base outline-none border-b border-line placeholder:text-mut">
+      <div id="pal-list" class="max-h-80 overflow-y-auto text-sm py-1.5"></div>
+      <div class="px-5 py-2.5 text-[11px] text-mut border-t border-line flex gap-4">
         <span>↑↓ navigate</span><span>⏎ open</span><span>esc close</span>
       </div>
     </div>`;
@@ -340,8 +434,8 @@ function renderPalette() {
   if (palSel >= palFiltered.length) palSel = Math.max(0, palFiltered.length - 1);
   list.innerHTML = palFiltered.length
     ? palFiltered.map((it, i) => `
-      <div class="pal-row px-4 py-2 cursor-pointer flex items-center gap-2 ${i === palSel ? 'bg-panel2 text-accent' : ''}" data-i="${i}">
-        <span class="text-[10px] uppercase text-mut border border-line rounded px-1 w-16 text-center shrink-0">${it.kind}</span>
+      <div class="pal-row mx-1.5 px-3.5 py-2 rounded-lg cursor-pointer flex items-center gap-2.5 ${i === palSel ? 'bg-panel2 text-zinc-100' : ''}" data-i="${i}">
+        <span class="text-[10px] uppercase tracking-wide text-mut border border-line rounded-md px-1 py-0.5 w-16 text-center shrink-0">${it.kind}</span>
         <span class="truncate">${esc(it.label)}</span>
         <span class="text-xs text-mut truncate ml-auto">${esc(it.sub)}</span>
       </div>`).join('')
@@ -398,137 +492,13 @@ async function updateNavProgress() {
     const ps = await getProblems();
     const solved = ps.filter(p => p.status === 'solved').length;
     $('#nav-progress').innerHTML = `
-      <span>${solved}/${ps.length} solved</span>
+      <span class="tnum">${solved}/${ps.length} solved</span>
       <div class="w-28 h-1.5 bg-panel2 rounded-full overflow-hidden">
-        <div class="h-full bg-good" style="width:${ps.length ? 100 * solved / ps.length : 0}%"></div>
+        <div class="h-full bg-good transition-all" style="width:${ps.length ? 100 * solved / ps.length : 0}%"></div>
       </div>`;
   } catch (e) { /* nav progress is decorative */ }
 }
 
-/* ------------------------------------------------------------ view: today */
-function queueItemLink(r) {
-  const id = String(r.item_id || '');
-  if (id.startsWith('app:')) return '#/problem/' + encodeURIComponent(id.slice(4));
-  if (id.startsWith('lab:')) return '#/lab/' + encodeURIComponent(id.slice(4));
-  const m = id.match(/^cards?:([^#]+)/);
-  if (m) return '#/cards/' + encodeURIComponent(m[1]);
-  const sp = String(r.source_path || '');
-  if (/\.(md|py)$/i.test(sp)) return '#/notes/' + encodeURIComponent(sp);
-  return null;
-}
-const dueRowHTML = (r, today) => {
-  const href = queueItemLink(r);
-  const label = `<span class="font-mono text-sm">${esc(r.item_id)}</span>`;
-  return `<div class="flex items-center gap-3 px-4 py-2.5 border-t border-line hover:bg-panel2">
-    <span class="text-xs font-mono ${r.due < today ? 'text-bad' : 'text-warn'}">${esc(r.due)}</span>
-    ${href ? `<a class="text-accent hover:underline" href="${href}">${label}</a>` : label}
-    <span class="text-xs text-mut ml-auto font-mono truncate max-w-[16rem]">${esc(r.source_path)}</span>
-    <span class="text-xs text-mut w-10 text-right shrink-0">${esc(r.interval_days)}d</span>
-  </div>`;
-};
-
-/* 120-day consistency heatmap — a record, not a nag */
-function activityHeatmap(act) {
-  if (!act || !Array.isArray(act.days)) return '';
-  const counts = {};
-  act.days.forEach(d => { counts[d.date] = d.count; });
-  const start = new Date(); start.setDate(start.getDate() - 119);
-  let cells = '';
-  for (let i = 0; i < start.getDay(); i++) cells += '<div class="w-2.5 h-2.5"></div>';
-  for (let i = 0; i < 120; i++) {
-    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-    const key = localISO(d);
-    const c = counts[key] || 0;
-    const bg = c === 0 ? 'var(--panel2)'
-             : c < 2 ? 'rgba(44,187,93,.3)'
-             : c < 4 ? 'rgba(44,187,93,.55)'
-             : c < 7 ? 'rgba(44,187,93,.8)' : '#2cbb5d';
-    cells += `<div class="w-2.5 h-2.5 rounded-[2px]" style="background:${bg}"
-      title="${key} · ${c} review${c === 1 ? '' : 's'}"></div>`;
-  }
-  return `
-  <div class="border border-line rounded-lg overflow-hidden mb-6">
-    <div class="px-4 py-2.5 bg-panel text-xs uppercase tracking-wider text-mut flex items-baseline gap-3">
-      <span>Last 120 days</span>
-      ${act.today ? `<span class="normal-case tracking-normal">${act.today.reviewed} reviewed today · ${act.today.due} due</span>` : ''}
-    </div>
-    <div class="p-4 overflow-x-auto">
-      <div class="grid gap-[3px] w-max" style="grid-template-rows:repeat(7,.625rem);grid-auto-flow:column;grid-auto-columns:min-content">${cells}</div>
-      <div class="text-[11px] text-mut mt-2">A record, not a scoreboard — gaps are part of a long prep.</div>
-    </div>
-  </div>`;
-}
-
-async function viewToday(app) {
-  const epoch = routeEpoch;
-  app.innerHTML = spinner('Loading today…');
-  let q = null, qErr = null, act = null, ps = [];
-  try { q = await api('/api/queue'); } catch (e) { qErr = e; }
-  try { act = await api('/api/activity'); } catch (e) { /* endpoint may not exist yet — hide the heatmap */ }
-  try { ps = await getProblems(); } catch (e) {}
-  if (epoch !== routeEpoch) return;
-
-  const due = (q && q.due_today) || [];
-  const dueCount = q ? (typeof q.due_count === 'number' ? q.due_count : due.length) : 0;
-  const skipped = (q && q.skipped_rows) || 0;
-  const now = new Date();
-  const firstTodo = ps.find(x => x.status === 'todo');
-  const newLink = firstTodo
-    ? `<a class="text-accent hover:underline font-semibold" href="#/problem/${esc(firstTodo.id)}">Start: ${esc(firstTodo.name)} →</a>`
-    : `<a class="text-accent hover:underline font-semibold" href="#/problems">Open the problem list →</a>`;
-  const PLAN = {
-    0: { text: 'Mock interview or rest — consolidation needs the downtime too.',
-         link: `<a class="text-accent hover:underline font-semibold" href="#/cards">Light flashcards if you feel like it →</a>` },
-    1: { text: 'New material — next unsolved problem.', link: newLink },
-    2: { text: 'New material — next unsolved problem.', link: newLink },
-    3: { text: 'Queue sweep + one flashcard section.',
-         link: `<a class="text-accent hover:underline font-semibold" href="#/review">Review queue →</a> ·
-                <a class="text-accent hover:underline font-semibold" href="#/cards">Flashcards →</a>` },
-    4: { text: 'One interleaved mixed set — name the pattern before you peek.',
-         link: `<a class="text-accent hover:underline font-semibold" href="#/problems"
-                   onclick="store.set('mlprep.interleave', true)">Problems → interleave on</a>` },
-    5: { text: 'New material — next unsolved problem.', link: newLink },
-    6: { text: 'Timed drills / mock round — strict time boxes.',
-         link: `<a class="text-accent hover:underline font-semibold" href="#/problems">Open problems →</a>` },
-  };
-  const plan = PLAN[now.getDay()];
-
-  app.innerHTML = `
-  <div class="max-w-4xl mx-auto p-8">
-    <div class="flex items-baseline justify-between flex-wrap gap-2 mb-4">
-      <h1 class="text-xl font-bold">Today</h1>
-      <div class="text-sm text-mut">${esc(now.toLocaleDateString(undefined,
-        { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }))}</div>
-    </div>
-
-    ${skipped ? `<div class="mb-4 px-4 py-2.5 rounded-lg border border-warn/40 bg-warn/10 text-warn text-sm">
-      ${skipped} malformed row${skipped === 1 ? '' : 's'} in queue.tsv ${skipped === 1 ? 'was' : 'were'} skipped.</div>` : ''}
-
-    <div class="p-5 rounded-xl border ${dueCount ? 'border-accent bg-accent/10' : 'border-good/50 bg-good/10'} mb-6">
-      <div class="text-[11px] uppercase tracking-widest ${dueCount ? 'text-accent' : 'text-good'} font-bold mb-1">What to do now</div>
-      ${dueCount
-        ? `<div class="text-lg font-semibold">Clear your queue first — ${dueCount} item${dueCount > 1 ? 's' : ''} due.</div>
-           <div class="text-sm text-mut mt-1 mb-3">Attempt each cold (blank page, timer on), then log pass/fail.</div>
-           <button id="today-start" class="px-4 py-2 rounded-md bg-accent text-black text-sm font-semibold hover:opacity-90">
-             Start the due list ↓</button>`
-        : `<div class="text-lg font-semibold">${esc(plan.text)}</div>
-           <div class="text-sm mt-2">${plan.link}</div>`}
-    </div>
-
-    <div id="today-due" class="border border-line rounded-lg overflow-hidden mb-6">
-      <div class="px-4 py-2.5 bg-panel text-xs uppercase tracking-wider text-mut">Due today</div>
-      ${qErr
-        ? `<div class="px-4 py-6 border-t border-line text-sm text-mut text-center">Queue unavailable: ${esc(qErr.message)}</div>`
-        : due.length
-          ? due.map(r => dueRowHTML(r, q.today)).join('')
-          : `<div class="px-4 py-6 border-t border-line text-sm text-mut text-center">Nothing due — the gap is the point.</div>`}
-    </div>
-
-    ${activityHeatmap(act)}
-  </div>`;
-  const sb = $('#today-start');
-  if (sb) sb.onclick = () => $('#today-due').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
 
 /* ---------------------------------------------------- view: problem list */
 const filt = { q: '', folder: 'all', diff: 'all', status: 'all' };
@@ -545,40 +515,40 @@ async function viewProblems(app) {
   const chips = folders.map(([f, title]) => {
     const all = ps.filter(p => p.folder === f);
     const s = all.filter(p => p.status === 'solved').length;
-    return `<span class="px-2 py-0.5 rounded-full bg-panel2 border border-line text-[11px]
-      ${s === all.length ? 'text-good border-good/40' : 'text-mut'}">${esc(title)} ${s}/${all.length}</span>`;
+    return `<span class="px-2.5 py-0.5 rounded-full border text-[11px] tnum
+      ${s === all.length ? 'text-good border-good/40 bg-good/10' : 'text-mut border-line bg-panel'}">${esc(title)} ${s}/${all.length}</span>`;
   }).join(' ');
   const solved = ps.filter(p => p.status === 'solved').length;
 
   app.innerHTML = `
   <div class="max-w-6xl mx-auto p-6">
-    <div class="flex items-end justify-between flex-wrap gap-3 mb-1">
-      <h1 class="text-xl font-bold">Problems</h1>
-      <div class="flex items-center gap-2 flex-wrap">${chips}</div>
+    <div class="flex items-end justify-between flex-wrap gap-3 mb-2">
+      <h1 class="page-title">Problems</h1>
+      <div class="flex items-center gap-1.5 flex-wrap">${chips}</div>
     </div>
-    <div class="h-2 bg-panel2 rounded-full overflow-hidden mb-5">
+    <div class="h-1.5 bg-panel2 rounded-full overflow-hidden mb-6">
       <div class="h-full bg-good transition-all" style="width:${ps.length ? 100 * solved / ps.length : 0}%"></div>
     </div>
     <div class="flex items-center gap-2 flex-wrap mb-4 text-sm">
       <input id="f-q" placeholder="Search title / name…" value="${esc(filt.q)}"
-        class="bg-panel border border-line rounded-md px-3 py-1.5 w-56 outline-none focus:border-accent">
-      <select id="f-folder" class="bg-panel border border-line rounded-md px-2 py-1.5 ${interleave ? 'hidden' : ''}">
+        class="field w-64 outline-none">
+      <select id="f-folder" class="field ${interleave ? 'hidden' : ''}">
         <option value="all">All patterns</option>
         ${folders.map(([f, t]) => `<option value="${esc(f)}" ${filt.folder === f ? 'selected' : ''}>${esc(t)}</option>`).join('')}
       </select>
-      <select id="f-diff" class="bg-panel border border-line rounded-md px-2 py-1.5">
+      <select id="f-diff" class="field">
         <option value="all">All difficulties</option>
         ${['easy', 'medium', 'hard'].map(d => `<option value="${d}" ${filt.diff === d ? 'selected' : ''}>${d[0].toUpperCase() + d.slice(1)}</option>`).join('')}
       </select>
-      <select id="f-status" class="bg-panel border border-line rounded-md px-2 py-1.5">
+      <select id="f-status" class="field">
         <option value="all">Any status</option>
         ${['todo', 'attempted', 'solved'].map(s => `<option value="${s}" ${filt.status === s ? 'selected' : ''}>${s[0].toUpperCase() + s.slice(1)}</option>`).join('')}
       </select>
-      <label class="ml-auto flex items-center gap-2 cursor-pointer select-none px-3 py-1.5 rounded-md border
-        ${interleave ? 'border-accent bg-accent/10 text-accent' : 'border-line bg-panel text-mut'}"
-        title="Interleaving hides the pattern labels and shuffles topics (stable per day) — deciding WHICH pattern applies is the interview skill, and labeled lists decide it for you.">
+      <label class="ml-auto flex items-center gap-2 cursor-pointer select-none h-9 px-3 rounded-lg border
+        ${interleave ? 'border-accent/60 bg-accent/10 text-accent' : 'border-transparent text-mut hover:border-line'}"
+        title="Interleaving hides the pattern labels and shuffles topics (stable per day) - deciding WHICH pattern applies is the interview skill, and labeled lists decide it for you.">
         <input id="f-inter" type="checkbox" class="accent-[#ffa116]" ${interleave ? 'checked' : ''}>
-        <span class="font-semibold">Interleave mode</span>
+        <span class="font-medium">Interleave mode</span>
       </label>
     </div>
     <div id="ptable"></div>
@@ -595,39 +565,39 @@ async function viewProblems(app) {
     list = inter ? dailyShuffle(list) : list;
     shown = list; rove = -1;
     $('#ptable').innerHTML = `
-    <div class="border border-line rounded-lg overflow-hidden">
+    <div class="card overflow-hidden">
     <table class="w-full text-sm">
-      <thead><tr class="bg-panel text-mut text-xs uppercase tracking-wider">
-        <th class="px-4 py-2.5 text-left w-14">Status</th>
-        <th class="px-4 py-2.5 text-left">Title</th>
-        ${inter ? '' : '<th class="px-4 py-2.5 text-left w-56">Pattern</th>'}
-        <th class="px-4 py-2.5 text-left w-28">Difficulty</th>
-        <th class="px-4 py-2.5 text-left w-24">Time box</th>
+      <thead><tr class="text-mut microlabel">
+        <th class="px-4 pt-3.5 pb-2.5 text-left w-14 font-semibold">Status</th>
+        <th class="px-4 pt-3.5 pb-2.5 text-left font-semibold">Title</th>
+        ${inter ? '' : '<th class="px-4 pt-3.5 pb-2.5 text-left w-56 font-semibold">Pattern</th>'}
+        <th class="px-4 pt-3.5 pb-2.5 text-left w-28 font-semibold">Difficulty</th>
+        <th class="px-4 pt-3.5 pb-2.5 text-left w-24 font-semibold">Time box</th>
       </tr></thead>
       <tbody>
-      ${list.map((p, i) => `
-        <tr class="border-t border-line hover:bg-panel2 cursor-pointer ${i % 2 ? 'bg-panel/40' : ''}"
+      ${list.map(p => `
+        <tr class="border-t border-line hover:bg-panel2 cursor-pointer"
             onclick="location.hash='#/problem/${esc(p.id)}'">
-          <td class="px-4 py-2.5"><span class="inline-block w-2.5 h-2.5 rounded-full ${STATUS_DOT[p.status]}"
+          <td class="px-4 py-3"><span class="sdot inline-block w-2.5 h-2.5 rounded-full ${STATUS_DOT[p.status]}"
               title="${STATUS_TITLE[p.status]}"></span></td>
-          <td class="px-4 py-2.5">
+          <td class="px-4 py-3">
             <div class="font-medium">
               <a href="#/problem/${esc(p.id)}" class="text-zinc-100 hover:text-accent"
                  onclick="event.stopPropagation()">${esc(p.name)}</a>
-              <span class="text-[10px] text-mut border border-line rounded px-1 py-px ml-1">${p.kind}</span></div>
-            <div class="text-xs text-mut truncate max-w-xl">${esc(p.statement_first_line)}</div>
+              <span class="text-[10px] text-mut border border-line rounded px-1 py-px ml-1.5">${p.kind}</span></div>
+            <div class="text-[13px] text-mut truncate max-w-xl">${esc(p.statement_first_line)}</div>
           </td>
-          ${inter ? '' : `<td class="px-4 py-2.5 text-mut text-xs">${esc(p.folder_title)}</td>`}
-          <td class="px-4 py-2.5 ${DIFF_CLS[p.difficulty]} capitalize">${p.difficulty}</td>
-          <td class="px-4 py-2.5 text-mut">${p.time_box_min} min</td>
+          ${inter ? '' : `<td class="px-4 py-3 text-mut text-[13px]">${esc(p.folder_title)}</td>`}
+          <td class="px-4 py-3 ${DIFF_CLS[p.difficulty]} capitalize text-[13px] font-medium">${p.difficulty}</td>
+          <td class="px-4 py-3 text-mut tnum text-[13px]">${p.time_box_min} min</td>
         </tr>`).join('')}
       </tbody>
     </table>
-    ${list.length ? '' : '<div class="p-8 text-center text-mut text-sm">No problems match these filters.</div>'}
+    ${list.length ? '' : '<div class="p-10 text-center text-mut text-sm">No problems match these filters.</div>'}
     </div>
-    <p class="text-xs text-mut mt-3">${list.length} shown · ${inter
-      ? 'Interleave on: labels hidden, order reshuffles daily — name the pattern out loud before you open a problem.'
-      : 'Tip: once a folder feels comfortable, switch on Interleave — recognizing the pattern unprompted is the actual interview skill.'}</p>`;
+    <p class="text-xs text-mut mt-3 tnum">${list.length} shown · ${inter
+      ? 'Interleave on: labels hidden, order reshuffles daily - name the pattern out loud before you open a problem.'
+      : 'Tip: once a folder feels comfortable, switch on Interleave - recognizing the pattern unprompted is the actual interview skill.'}</p>`;
   };
   renderTable();
   $('#f-q').oninput = e => { filt.q = e.target.value; renderTable(); };
@@ -671,65 +641,62 @@ async function viewProblem(app, pid) {
   catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
   if (epoch !== routeEpoch) return;
 
-  const itemId = 'app:' + p.id;
   const draftKey = 'mlprep.draft.problem.' + p.id;
   const tKey = 'mlprep.t0.' + p.id;
   app.innerHTML = `
   <div class="flex h-full">
     <section class="w-1/2 overflow-y-auto border-r border-line p-6">
-      <div class="flex items-center gap-3 flex-wrap mb-1">
-        <h1 class="text-lg font-bold text-zinc-100 font-mono">${esc(p.name)}</h1>
-        <span class="text-xs ${DIFF_CLS[p.difficulty]} capitalize font-semibold">${p.difficulty}</span>
+      <div class="max-w-[65ch]">
+      <div class="flex items-center gap-2.5 flex-wrap mb-1.5">
+        <h1 class="text-[1.35rem] font-bold tracking-tight text-zinc-100">${esc(p.name)}</h1>
+        <span class="diff-pill ${p.difficulty}">${p.difficulty}</span>
         <span class="text-[10px] text-mut border border-line rounded px-1.5 py-px">${p.kind}</span>
-        <span class="text-xs text-mut">${esc(p.folder_title)}</span>
       </div>
-      <div class="text-xs text-mut mb-4 font-mono">${esc(p.source_path)}</div>
-      <div class="md mb-5">${md(p.statement)}</div>
+      <div class="text-[13px] text-mut mb-5">${esc(p.folder_title)} · <span class="font-mono text-xs">${esc(p.source_path)}</span></div>
+      <div class="md mb-6">${md(p.statement)}</div>
       ${p.helpers ? `
-      <details class="mb-5 bg-panel border border-line rounded-lg px-4 py-2.5">
+      <details class="mb-6 card !rounded-lg px-4 py-2.5">
         <summary class="cursor-pointer text-sm text-zinc-300 font-semibold">Provided helpers (not spoilers)</summary>
-        <pre class="mt-2 text-xs font-mono text-zinc-300 overflow-x-auto bg-[#161616] border border-line rounded p-3">${esc(p.helpers)}</pre>
+        <pre class="mt-2 text-xs font-mono overflow-x-auto bg-[var(--pre-bg)] text-[var(--pre-text)] border border-[var(--code-border)] rounded-lg p-3">${esc(p.helpers)}</pre>
       </details>` : ''}
 
-      <div class="space-y-3">
+      <div class="space-y-3 border-t border-line pt-4">
         <div>
-          <button id="btn-hint" class="px-3 py-1.5 rounded-md border border-warn/50 text-warn text-sm hover:bg-warn/10">
-            Hint — key insight</button>
-          <span class="text-xs text-mut ml-2 italic">stuck? try 10 more minutes first — the struggle is the training signal</span>
-          <div id="hint-box" class="hidden mt-2 p-3 rounded-md border-l-4 border-warn bg-warn/5 text-sm md"></div>
+          <button id="btn-hint" class="btn btn-text text-warn text-sm font-medium">Hint - key insight</button>
+          <span class="text-xs text-mut ml-1 italic">stuck? try 10 more minutes first - the struggle is the training signal</span>
+          <div id="hint-box" class="hidden mt-2 p-3.5 rounded-xl soft-warn text-sm md rise"></div>
         </div>
         <div>
-          <button id="btn-sol" class="px-3 py-1.5 rounded-md border border-bad/50 text-bad text-sm hover:bg-bad/10">
-            Reference solution</button>
-          <div id="sol-confirm" class="hidden mt-2 p-3 rounded-md border border-bad/40 bg-bad/5 text-sm">
-            Opening the solution converts this problem into a worked example — you'll need a cold
-            re-attempt in 2 days for it to count. A "fail" will be logged to the review queue so the
-            re-attempt gets scheduled. Open?
-            <div class="mt-2 flex gap-2">
-              <button id="btn-sol-no" class="px-3 py-1 rounded border border-line text-zinc-300 hover:bg-panel2">Not yet</button>
-              <button id="btn-sol-yes" class="px-3 py-1 rounded bg-bad/80 text-white hover:bg-bad">Open</button>
+          <button id="btn-sol" class="btn btn-text text-bad text-sm font-medium">Reference solution</button>
+          <div id="sol-confirm" class="hidden mt-2 p-3.5 rounded-xl soft-bad text-sm rise">
+            Opening the solution converts this problem into a worked example - you'll need a cold
+            re-attempt in a couple of days for it to count. It will be marked "attempted" until you
+            solve it here. Open?
+            <div class="mt-2.5 flex gap-2">
+              <button id="btn-sol-no" class="btn btn-secondary !py-1">Not yet</button>
+              <button id="btn-sol-yes" class="btn !py-1 bg-bad/90 text-white hover:bg-bad font-semibold">Open</button>
             </div>
           </div>
-          <div id="sol-box" class="hidden mt-2">
-            <div id="sol-note" class="text-xs text-warn mb-1"></div>
-            <pre class="text-xs font-mono text-zinc-200 overflow-x-auto bg-[#161616] border border-line rounded-lg p-3">${esc(p.solution_source)}</pre>
+          <div id="sol-box" class="hidden mt-2 rise">
+            <div id="sol-note" class="text-xs text-warn mb-1.5"></div>
+            <pre class="text-xs font-mono overflow-x-auto bg-[var(--pre-bg)] text-[var(--pre-text)] border border-[var(--code-border)] rounded-xl p-3.5">${esc(p.solution_source)}</pre>
           </div>
         </div>
+      </div>
       </div>
     </section>
 
     <section class="w-1/2 flex flex-col min-w-0">
-      <div class="flex items-center gap-3 px-4 py-2 border-b border-line bg-panel">
-        <button id="btn-run" class="px-4 py-1.5 rounded-md bg-good text-white text-sm font-semibold hover:bg-good/80">
-          ▶ Run</button>
-        <span class="text-xs text-mut">Cmd/Ctrl+Enter</span>
-        <div class="ml-auto flex items-center gap-2 text-sm font-mono">
-          <span id="timer" class="text-zinc-300">0:00</span>
-          <span class="text-mut text-xs">/ ${p.time_box_min} min box</span>
+      <div class="flex items-center gap-3 px-4 h-12 border-b border-line bg-panel">
+        <button id="btn-run" class="btn btn-primary">Run</button>
+        <span class="text-xs text-mut hidden sm:inline">⌘⏎</span>
+        <div class="ml-auto flex items-baseline gap-2 text-sm">
+          <span id="timer" class="tnum font-mono text-zinc-300">0:00</span>
+          <span class="text-mut text-xs tnum">/ ${p.time_box_min} min box</span>
         </div>
       </div>
       <div id="draft-bar" style="display:none"
-           class="px-4 py-1.5 text-xs border-b border-warn/40 bg-warn/10 text-warn items-center gap-3">
+           class="bar-warn px-4 py-1.5 text-xs text-warn items-center gap-3">
         <span>Unsaved draft from a previous visit.</span>
         <button id="draft-restore" class="underline hover:opacity-80">restore draft</button>
         <button id="draft-discard" class="underline hover:opacity-80">start from stub</button>
@@ -752,7 +719,7 @@ async function viewProblem(app, pid) {
     window._cm = cmEditor;   // let the theme toggle re-theme a live editor
   } else {
     $('#editor-wrap').innerHTML = `<textarea id="code-ta" spellcheck="false"
-      class="w-full h-full bg-[#1e1e1e] text-zinc-200 font-mono text-sm p-3 outline-none resize-none">${esc(p.stub)}</textarea>`;
+      class="w-full h-full bg-panel font-mono text-sm p-3 outline-none resize-none">${esc(p.stub)}</textarea>`;
   }
   const getCode = () => cmEditor ? cmEditor.getValue() : $('#code-ta').value;
   const setCode = v => cmEditor ? cmEditor.setValue(v) : ($('#code-ta').value = v);
@@ -779,7 +746,7 @@ async function viewProblem(app, pid) {
     };
   }
 
-  /* timer vs time box — start time survives navigation via sessionStorage */
+  /* timer vs time box - start time survives navigation via sessionStorage */
   let t0 = Number(sessionStorage.getItem(tKey)) || Date.now();
   try { sessionStorage.setItem(tKey, String(t0)); } catch (e) {}
   const boxSec = p.time_box_min * 60;
@@ -787,20 +754,23 @@ async function viewProblem(app, pid) {
     const el = $('#timer'); if (!el) return;
     const s = Math.floor((Date.now() - t0) / 1000);
     el.textContent = fmtClock(s);
-    el.className = s >= boxSec ? 'text-bad font-bold' : s >= boxSec * 0.8 ? 'text-warn' : 'text-zinc-300';
-    if (s >= boxSec) el.textContent += '  (box expired — take the hint ladder)';
+    el.className = 'tnum font-mono ' +
+      (s >= boxSec ? 'text-bad font-bold' : s >= boxSec * 0.8 ? 'text-warn' : 'text-zinc-300');
+    if (s >= boxSec) el.textContent += '  (box expired - take the hint ladder)';
   };
   const timerIv = setInterval(tick, 1000); tick();
 
-  /* verdict: 'pass' after Accepted, 'fail' after Rejected — drives one-key grading */
+  /* verdict: 'pass' after Accepted - ⏎ then jumps to the next unsolved problem */
   let verdict = null;
   const keyHandler = e => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); run(); return; }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const t = e.target;
     if (t && t.closest && t.closest('.CodeMirror, input, textarea, select, button')) return;
-    if (verdict === 'pass' && e.key === 'Enter') { e.preventDefault(); logResult('pass'); }
-    else if (verdict === 'fail' && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); logResult('fail'); }
+    if (verdict === 'pass' && e.key === 'Enter') {
+      const nxt = $('#next-unsolved');
+      if (nxt) { e.preventDefault(); nxt.click(); }
+    }
   };
   document.addEventListener('keydown', keyHandler);
   cleanup = () => {
@@ -815,29 +785,24 @@ async function viewProblem(app, pid) {
     const box = $('#hint-box');
     box.classList.remove('hidden');
     box.innerHTML = p.key_insight ? md(p.key_insight)
-      : '<i>No separate key-insight note for this one — the reference solution is the next rung.</i>';
+      : '<i>No separate key-insight note for this one - the reference solution is the next rung.</i>';
     $('#btn-hint').disabled = true; $('#btn-hint').classList.add('opacity-50');
   };
   $('#btn-sol').onclick = () => $('#sol-confirm').classList.toggle('hidden');
   $('#btn-sol-no').onclick = () => $('#sol-confirm').classList.add('hidden');
-  $('#btn-sol-yes').onclick = async () => {
+  $('#btn-sol-yes').onclick = () => {
     const yes = $('#btn-sol-yes');
     if (yes.disabled) return;
-    yes.disabled = true;                       // sync, before the await — no double log
+    yes.disabled = true;
     $('#sol-confirm').classList.add('hidden');
     $('#sol-box').classList.remove('hidden');
     $('#btn-sol').disabled = true; $('#btn-sol').classList.add('opacity-50');
-    try {
-      const r = await api('/api/log', { item_id: itemId, source_path: p.source_path, result: 'fail' });
-      if (epoch !== routeEpoch) return;
-      $('#sol-note').textContent = (r && r.logged === false)
-        ? (r.reason || 'not logged')
-        : `Logged as a miss — cold re-attempt scheduled for ${r.row.due}.`;
-      problemsCache = null; updateNavProgress(); refreshDueBadge();
-    } catch (e) {
-      if (epoch !== routeEpoch) return;
-      $('#sol-note').textContent = 'Could not log to queue: ' + e.message;
-    }
+    const wasSolved = (store.get(STATUS_KEY, {})[p.id] === 'solved');
+    setLocalStatus(p.id, 'attempted');
+    $('#sol-note').textContent = wasSolved
+      ? 'Already solved - status unchanged.'
+      : 'Marked attempted - come back for a cold re-attempt before counting it.';
+    updateNavProgress();
   };
 
   /* run + verdict */
@@ -845,85 +810,71 @@ async function viewProblem(app, pid) {
     const btn = $('#btn-run'); if (!btn || btn.disabled) return;
     verdict = null;
     btn.disabled = true; btn.textContent = 'Running…';
-    $('#result').innerHTML = `<div class="p-4 text-sm text-mut animate-pulse">Judging — your ${esc(p.kind)} is swapped into
+    $('#result').innerHTML = `<div class="p-4 text-sm text-mut animate-pulse">Judging - your ${esc(p.kind)} is swapped into
       ${esc(p.source_path)} and the file's full assert suite runs (30 s limit)…</div>`;
     let r;
     try { r = await api('/api/run', { id: p.id, code: getCode() }); }
     catch (e) {
       if (epoch !== routeEpoch) return;
-      $('#result').innerHTML = errBox(e); btn.disabled = false; btn.textContent = '▶ Run'; return;
+      $('#result').innerHTML = errBox(e); btn.disabled = false; btn.textContent = 'Run'; return;
     }
     if (epoch !== routeEpoch) return;
-    btn.disabled = false; btn.textContent = '▶ Run';
+    btn.disabled = false; btn.textContent = 'Run';
     btn.blur();   // Enter must grade, not re-run
     const solveSec = Math.floor((Date.now() - t0) / 1000);
     if (r.ok) {
       verdict = 'pass';
+      setLocalStatus(p.id, 'solved');                  // automatic - no button to click
+      updateNavProgress();
+      clearInterval(timerIv);                          // solve is over - freeze the clock
+      try { sessionStorage.removeItem(tKey); } catch (e) {}
       $('#result').innerHTML = `
-      <div class="p-4">
-        <div class="p-3 rounded-lg bg-good/15 border border-good/40 text-good font-semibold text-sm">
-          ✓ Accepted — full suite passed (${r.asserts} asserts) · judge ${r.elapsed_ms} ms · you ${fmtClock(solveSec)}
-          <span class="ml-2 font-normal text-xs opacity-75">⏎ log pass</span>
+      <div class="p-4 rise">
+        <div class="p-3.5 rounded-xl soft-good text-good text-sm flex items-start gap-2.5">
+          <span aria-hidden="true" class="shrink-0 w-5 h-5 rounded-full bg-good text-white text-[11px] font-bold flex items-center justify-center mt-px">✓</span>
+          <div>
+            <span class="font-semibold">Accepted</span> - full suite passed
+            <span class="tnum">(${r.asserts} asserts)</span>
+            <span class="text-xs opacity-75 tnum"> · judge ${r.elapsed_ms} ms · you ${fmtClock(solveSec)}</span>
+            <div class="mt-0.5 text-xs opacity-75">marked solved</div>
+          </div>
         </div>
         ${r.output ? `<pre class="mt-2 text-xs font-mono text-mut">${esc(r.output.trim())}</pre>` : ''}
         <div class="mt-3 flex items-center gap-3 flex-wrap">
-          <button id="btn-logpass" class="px-3 py-1.5 rounded-md bg-good/80 text-white text-sm hover:bg-good">
-            Log pass to review queue (⏎)</button>
-          <span id="log-note" class="text-xs text-mut"></span>
-          <span id="log-next"></span>
-          <button id="res-close" class="ml-auto px-2 py-1 rounded border border-line hover:bg-panel2 text-mut text-xs" title="Hide this panel">✕ hide</button>
+          <span id="log-next" class="text-sm"></span>
+          <button id="res-close" class="btn btn-text ml-auto text-mut text-xs" title="Hide this panel">✕ hide</button>
         </div>
       </div>`;
-      $('#btn-logpass').onclick = () => logResult('pass');
-      $('#btn-logpass').focus();   // ⏎ logs the pass even if the run came from the editor
       $('#res-close').onclick = () => { $('#result').innerHTML = ''; verdict = null; };
+      try {
+        const ps = await getProblems();
+        if (epoch !== routeEpoch) return;
+        const nxt = ps.find(x => x.status === 'todo');
+        const slot = $('#log-next');
+        if (nxt && slot) {
+          slot.innerHTML = `<a id="next-unsolved" class="text-accent hover:underline font-semibold"
+            href="#/problem/${esc(nxt.id)}">Next unsolved: ${esc(nxt.name)} →</a>
+            <span class="text-xs text-mut ml-1">⏎ next unsolved</span>`;
+        }
+      } catch (e) {}
     } else {
       verdict = 'fail';
+      const wasSolved = (store.get(STATUS_KEY, {})[p.id] === 'solved');
+      setLocalStatus(p.id, 'attempted');   // no-op if already solved
+      updateNavProgress();
       $('#result').innerHTML = `
-      <div class="p-4">
-        <div class="p-3 rounded-lg bg-bad/15 border border-bad/40 text-bad font-semibold text-sm">✗ Rejected
-          <span class="ml-2 font-normal text-xs opacity-75">f log fail</span></div>
+      <div class="p-4 rise">
+        <div class="p-3.5 rounded-xl soft-bad text-bad text-sm flex items-start gap-2.5">
+          <span aria-hidden="true" class="shrink-0 w-5 h-5 rounded-full bg-bad text-white text-[11px] font-bold flex items-center justify-center mt-px">✕</span>
+          <div><span class="font-semibold">Rejected</span>
+          <span class="ml-1 font-normal text-xs opacity-75">${wasSolved ? 'still solved' : 'marked attempted'}</span></div>
+        </div>
         <pre class="mt-2 p-3 text-xs font-mono bg-panel border border-line rounded-lg overflow-auto max-h-64 whitespace-pre-wrap">${esc(r.error || 'no error output')}</pre>
         <div class="mt-3 flex items-center gap-3 flex-wrap">
-          <button id="btn-logfail" class="px-3 py-1.5 rounded-md bg-bad/80 text-white text-sm hover:bg-bad">
-            Log fail (f) — schedules re-attempt</button>
-          <span id="log-note" class="text-xs text-mut"></span>
-          <button id="res-close" class="ml-auto px-2 py-1 rounded border border-line hover:bg-panel2 text-mut text-xs" title="Hide this panel">✕ hide</button>
+          <button id="res-close" class="btn btn-text ml-auto text-mut text-xs" title="Hide this panel">✕ hide</button>
         </div>
       </div>`;
-      $('#btn-logfail').onclick = () => logResult('fail');
       $('#res-close').onclick = () => { $('#result').innerHTML = ''; verdict = null; };
-    }
-  }
-  async function logResult(result) {
-    const b = $('#btn-logpass') || $('#btn-logfail');
-    if (!b || b.disabled) return;
-    b.disabled = true; b.classList.add('opacity-50');   // sync, before the await
-    verdict = null;
-    const note = $('#log-note');
-    try {
-      const r = await api('/api/log', { item_id: itemId, source_path: p.source_path, result });
-      if (epoch !== routeEpoch) return;
-      if (r && r.logged === false) { note.textContent = r.reason || 'not logged'; return; }
-      note.textContent = `Logged "${result}" — next due ${r.row.due} (interval ${r.row.interval_days}d).`;
-      problemsCache = null; updateNavProgress(); refreshDueBadge();
-      if (result === 'pass') {
-        clearInterval(timerIv);                          // solve is over — freeze the clock
-        try { sessionStorage.removeItem(tKey); } catch (e) {}
-        try {
-          const ps = await getProblems();
-          if (epoch !== routeEpoch) return;
-          const nxt = ps.find(x => x.status === 'todo');
-          const slot = $('#log-next');
-          if (nxt && slot) slot.innerHTML =
-            `<a class="text-accent hover:underline text-sm font-semibold" href="#/problem/${esc(nxt.id)}">Next unsolved: ${esc(nxt.name)} →</a>`;
-        } catch (e) {}
-      }
-    } catch (e) {
-      if (epoch !== routeEpoch) return;
-      note.textContent = 'Log failed: ' + e.message;
-      b.disabled = false; b.classList.remove('opacity-50');
-      verdict = result === 'pass' ? 'pass' : 'fail';      // allow a retry by key
     }
   }
   $('#btn-run').onclick = () => run();
@@ -941,23 +892,23 @@ async function viewNotes(app, encodedPath) {
 
   app.innerHTML = `
   <div class="flex h-full">
-    <aside class="w-80 shrink-0 overflow-y-auto border-r border-line bg-panel/50 p-3 text-sm">
+    <aside class="w-80 shrink-0 overflow-y-auto border-r border-line p-3 text-sm">
       ${tree.map(g => `
-        <div class="mb-3">
-          <div class="px-2 py-1 text-[11px] uppercase tracking-widest text-accent font-bold">${esc(g.group)}</div>
+        <div class="mb-4">
+          <div class="px-2 py-1 microlabel text-mut">${esc(g.group)}</div>
           ${g.folders.map(f => `
             <details ${f.files.some(x => x.path === current) ? 'open' : ''} class="ml-1">
-              <summary class="px-2 py-1 cursor-pointer text-zinc-400 hover:text-zinc-200 text-xs font-mono">${esc(f.name)}</summary>
+              <summary class="px-2 py-1 rounded-md cursor-pointer text-zinc-400 hover:text-zinc-200 hover:bg-panel2 text-xs font-mono">${esc(f.name)}</summary>
               ${f.files.map(x => `
                 <a href="#/notes/${encodeURIComponent(x.path)}"
-                   class="block ml-3 px-2 py-1 rounded truncate ${x.path === current ? 'bg-panel2 text-accent' : 'text-zinc-300 hover:bg-panel2'}"
+                   class="block ml-3 px-2 py-1 rounded-md truncate text-[13px] ${x.path === current ? 'bg-panel2 text-accent font-medium' : 'text-zinc-300 hover:bg-panel2'}"
                    title="${esc(x.path)}">${esc(x.title)}</a>`).join('')}
             </details>`).join('')}
         </div>`).join('')}
     </aside>
     <section id="notes-body" class="flex-1 overflow-y-auto p-8">
-      ${current ? spinner('Loading file…') : `<div class="text-mut text-sm mt-10 text-center">
-        Pick a file — exit-checklist checkboxes are saved locally (browser only), never written back to the repo.</div>`}
+      ${current ? spinner('Loading file…') : `<div class="text-mut text-sm mt-16 text-center">
+        Pick a file from the sidebar - checklist ticks save locally in this browser, never to the repo.</div>`}
     </section>
   </div>`;
 
@@ -968,12 +919,12 @@ async function viewNotes(app, encodedPath) {
   if (epoch !== routeEpoch) return;
   const labBtn = current.endsWith('.py')
     ? `<div class="max-w-3xl mx-auto mb-3 flex justify-end">
-         <a href="#/lab/${encodeURIComponent(current)}"
-            class="px-3 py-1.5 rounded-md bg-accent text-black text-sm font-semibold hover:opacity-90">
-           ✎ Edit &amp; run in playground</a>
+         <a href="#/lab/${encodeURIComponent(current)}" class="btn btn-primary">
+           Edit &amp; run in playground</a>
        </div>` : '';
   $('#notes-body').innerHTML =
     labBtn + `<div class="max-w-3xl mx-auto md" id="md-root">${md(doc.content)}</div>`;
+  fixMdLinks($('#md-root'), current);
   /* checklists: real checkboxes, state in localStorage per file (UI-only).
      Keys hash the item's text (not its index) so edits to the doc don't
      silently shift every saved tick onto the wrong line. */
@@ -998,7 +949,7 @@ async function viewNotes(app, encodedPath) {
 
 /* -------------------------------------------------------------- view: lab */
 /* Playground: edit a curriculum script and run the WHOLE edited file. The
-   feedback loop is deliberately the file's own gradient checks and asserts —
+   feedback loop is deliberately the file's own gradient checks and asserts  - 
    green means every check in the script passed, not that "an answer matched".
    Edits run from a scratch copy; the repo file is never modified. */
 async function viewLab(app, path) {
@@ -1008,24 +959,23 @@ async function viewLab(app, path) {
   try { doc = await api('/api/source?path=' + encodeURIComponent(path)); }
   catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
   if (epoch !== routeEpoch) return;
-  const itemId = 'lab:' + path;
   const draftKey = 'mlprep.draft.lab.' + path;
   const draft = store.get(draftKey, null);
   const startVal = (typeof draft === 'string' && draft !== doc.content) ? draft : doc.content;
   app.innerHTML = `
   <div class="flex flex-col h-full">
-    <div class="flex items-center gap-3 px-4 py-2 border-b border-line bg-panel">
+    <div class="flex items-center gap-3 px-4 h-12 border-b border-line bg-panel">
       <a href="#/notes/${encodeURIComponent(path)}" class="text-xs text-mut hover:text-accent">← read-only view</a>
-      <span class="font-mono text-sm font-semibold">${esc(path)}</span>
-      <span class="text-[11px] text-mut italic hidden md:inline">edits run from a scratch copy — the repo file is untouched.
+      <span class="font-mono text-[13px] font-semibold text-zinc-100">${esc(path)}</span>
+      <span class="text-[11px] text-mut hidden md:inline truncate">edits run from a scratch copy - the repo file is untouched.
         Make the file prove your change: extend its own checks (gradient check, asserts), then Run.</span>
-      <div class="ml-auto flex items-center gap-2">
-        <button id="lab-reset" class="px-3 py-1.5 rounded-md border border-line hover:bg-panel2 text-xs">Reset to original</button>
-        <button id="lab-run" class="px-4 py-1.5 rounded-md bg-accent text-black text-sm font-semibold hover:opacity-90">▶ Run (⌘⏎)</button>
+      <div class="ml-auto flex items-center gap-2 shrink-0">
+        <button id="lab-reset" class="btn btn-secondary !py-1 text-xs">Reset to original</button>
+        <button id="lab-run" class="btn btn-primary">Run ⌘⏎</button>
       </div>
     </div>
     <div id="lab-draft-bar" style="display:none"
-         class="px-4 py-1.5 text-xs border-b border-warn/40 bg-warn/10 text-warn items-center gap-3">
+         class="bar-warn px-4 py-1.5 text-xs text-warn items-center gap-3">
       <span>Draft restored from your last visit.</span>
       <button id="lab-draft-discard" class="underline hover:opacity-80">discard</button>
     </div>
@@ -1038,7 +988,7 @@ async function viewLab(app, path) {
   const setCode = v => cm ? cm.setValue(v) : ($('#lab-ta').value = v);
   if (window.CodeMirror) {
     cm = CodeMirror($('#lab-editor'), {
-      value: startVal, mode: 'python', lineNumbers: true,
+      value: startVal, mode: 'python', lineNumbers: true, autofocus: true,
       theme: document.documentElement.classList.contains('dark') ? 'material-darker' : 'default',
       indentUnit: 4, tabSize: 4, indentWithTabs: false,
       extraKeys: { 'Cmd-Enter': () => run(), 'Ctrl-Enter': () => run(),
@@ -1050,6 +1000,11 @@ async function viewLab(app, path) {
       class="w-full h-full bg-panel p-3 font-mono text-sm outline-none resize-none"></textarea>`;
     $('#lab-ta').value = startVal;
   }
+  // run works from anywhere on the page, not just inside the editor
+  const labKeyH = e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+  };
+  document.addEventListener('keydown', labKeyH);
 
   /* draft autosave (localStorage, per path, debounced) */
   let saveT = null;
@@ -1070,60 +1025,37 @@ async function viewLab(app, path) {
       setCode(doc.content); bar.style.display = 'none';
     };
   }
-  cleanup = () => { clearTimeout(saveT); flushDraft(); };
-
-  const logBtns = () => `
-    <span class="ml-auto flex gap-2 items-center text-xs">
-      <span class="text-mut">log to review queue:</span>
-      <button class="lab-log px-2 py-1 rounded border border-line hover:bg-panel2" data-r="pass">pass</button>
-      <button class="lab-log px-2 py-1 rounded border border-line hover:bg-panel2" data-r="fail">fail</button>
-      <span id="lab-log-note" class="text-mut"></span>
-    </span>`;
-  const wireLog = () => $$('.lab-log').forEach(b => b.onclick = async () => {
-    if (b.disabled) return;
-    $$('.lab-log').forEach(x => { x.disabled = true; x.classList.add('opacity-50'); });   // sync, before the await
-    try {
-      const res = await api('/api/log', { item_id: itemId, source_path: path, result: b.dataset.r });
-      if (epoch !== routeEpoch) return;
-      const note = $('#lab-log-note');
-      if (res && res.logged === false) note.textContent = res.reason || 'not logged';
-      else { note.textContent = 'logged — next due ' + res.row.due; refreshDueBadge(); }
-    } catch (e) {
-      if (epoch !== routeEpoch) return;
-      $$('.lab-log').forEach(x => { x.disabled = false; x.classList.remove('opacity-50'); });
-      $('#lab-log-note').textContent = 'log failed: ' + e.message;
-    }
-  });
+  cleanup = () => { clearTimeout(saveT); flushDraft();
+                    document.removeEventListener('keydown', labKeyH); };
 
   async function run() {
     const btn = $('#lab-run');
     if (!btn || btn.disabled) return;
     btn.disabled = true; btn.textContent = 'Running…';
     $('#lab-result').innerHTML = `<div class="p-4 text-sm text-mut animate-pulse">
-      Running the full edited file — its own asserts and checks are the verdict…</div>`;
+      Running the full edited file - its own asserts and checks are the verdict…</div>`;
     let r;
     try { r = await api('/api/runfile', { path, code: getCode() }); }
     catch (e) {
       if (epoch !== routeEpoch) return;
-      $('#lab-result').innerHTML = errBox(e); btn.disabled = false; btn.textContent = '▶ Run (⌘⏎)'; return;
+      $('#lab-result').innerHTML = errBox(e); btn.disabled = false; btn.textContent = 'Run ⌘⏎'; return;
     }
     if (epoch !== routeEpoch) return;
-    btn.disabled = false; btn.textContent = '▶ Run (⌘⏎)';
+    btn.disabled = false; btn.textContent = 'Run ⌘⏎';
     const closeBtn = `<button id="lab-close" title="Hide this panel (Esc)"
-      class="px-2 py-0.5 rounded border border-line hover:bg-panel2 text-mut text-xs">✕ hide</button>`;
+      class="btn btn-text ml-auto text-mut text-xs">✕ hide</button>`;
     $('#lab-result').innerHTML = r.ok
-      ? `<div class="p-4">
-           <div class="flex items-center gap-3 text-good font-semibold text-sm">✓ Exit 0 — every check in the file passed
-             <span class="text-mut font-normal">(${r.elapsed_ms} ms)</span>${logBtns()}${closeBtn}</div>
-           ${r.output ? `<pre class="mt-3 text-xs bg-panel border border-line rounded p-3 overflow-x-auto whitespace-pre-wrap">${esc(r.output)}</pre>` : ''}
+      ? `<div class="p-4 rise">
+           <div class="p-3 rounded-xl soft-good flex items-center gap-3 text-good font-semibold text-sm">✓ Exit 0 - every check in the file passed
+             <span class="text-mut font-normal tnum">(${r.elapsed_ms} ms)</span>${closeBtn}</div>
+           ${r.output ? `<pre class="mt-3 text-xs bg-panel border border-line rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">${esc(r.output)}</pre>` : ''}
          </div>`
-      : `<div class="p-4">
-           <div class="flex items-center gap-3 text-bad font-semibold text-sm">✗ Failed
-             <span class="text-mut font-normal">(${r.elapsed_ms} ms)</span>${logBtns()}${closeBtn}</div>
-           <pre class="mt-3 text-xs bg-panel border border-line rounded p-3 overflow-x-auto whitespace-pre-wrap text-bad">${esc(r.error)}</pre>
-           ${r.output ? `<pre class="mt-2 text-xs bg-panel border border-line rounded p-3 overflow-x-auto whitespace-pre-wrap">${esc(r.output)}</pre>` : ''}
+      : `<div class="p-4 rise">
+           <div class="p-3 rounded-xl soft-bad flex items-center gap-3 text-bad font-semibold text-sm">✕ Failed
+             <span class="text-mut font-normal tnum">(${r.elapsed_ms} ms)</span>${closeBtn}</div>
+           <pre class="mt-3 text-xs bg-panel border border-line rounded-lg p-3 overflow-x-auto whitespace-pre-wrap text-bad">${esc(r.error)}</pre>
+           ${r.output ? `<pre class="mt-2 text-xs bg-panel border border-line rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">${esc(r.output)}</pre>` : ''}
          </div>`;
-    wireLog();
     $('#lab-close').onclick = () => { $('#lab-result').innerHTML = ''; (cm || $('#lab-ta')).focus(); };
   }
   $('#lab-run').onclick = run;
@@ -1147,15 +1079,15 @@ async function viewCards(app, slug) {
   if (!slug) {
     app.innerHTML = `
     <div class="max-w-3xl mx-auto p-8">
-      <h1 class="text-xl font-bold mb-1">Flashcards</h1>
-      <p class="text-sm text-mut mb-6">${cards.length} cards. Answer <b>out loud</b> before flipping —
-        a hesitation counts as a miss. Misses are logged to the review queue.</p>
+      <h1 class="page-title mb-1.5">Flashcards</h1>
+      <p class="text-sm text-mut mb-6">${cards.length} cards. Answer <b>out loud</b> before flipping  - 
+        a hesitation counts as a miss. Missed cards are listed at the end of the deck so you can re-run them.</p>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         ${sections.map(([s, title]) => {
           const n = cards.filter(c => c.slug === s).length;
-          return `<a href="#/cards/${esc(s)}" class="block p-4 rounded-lg bg-panel border border-line hover:border-accent">
+          return `<a href="#/cards/${esc(s)}" class="card block p-4 hover:border-accent">
             <div class="font-semibold text-zinc-100">${esc(title)}</div>
-            <div class="text-xs text-mut mt-1">${n} cards</div></a>`;
+            <div class="text-[13px] text-mut mt-1 tnum">${n} cards</div></a>`;
         }).join('')}
       </div>
     </div>`;
@@ -1164,25 +1096,25 @@ async function viewCards(app, slug) {
 
   const deck = cards.filter(c => c.slug === slug);
   if (!deck.length) { app.innerHTML = errBox(new Error('unknown section: ' + slug)); return; }
-  const state = { i: 0, flipped: false, got: 0, missed: [], logNote: '' };
+  const state = { i: 0, flipped: false, got: 0, missed: [] };
 
   const render = () => {
-    if (epoch !== routeEpoch) return;   // async log callbacks may fire after navigation
+    if (epoch !== routeEpoch) return;   // guard against renders after navigation
     if (state.i >= deck.length) {
       app.innerHTML = `
-      <div class="max-w-xl mx-auto p-10 text-center">
-        <h1 class="text-xl font-bold mb-2">Deck complete</h1>
-        <p class="text-sm text-mut mb-4">${esc(deck[0].section)}</p>
-        <div class="text-4xl font-bold mb-1 ${state.missed.length ? 'text-warn' : 'text-good'}">
+      <div class="max-w-xl mx-auto p-10 text-center rise">
+        <h1 class="page-title mb-2">Deck complete</h1>
+        <p class="text-sm text-mut mb-5">${esc(deck[0].section)}</p>
+        <div class="text-4xl font-bold tracking-tight tnum mb-1 ${state.missed.length ? 'text-warn' : 'text-good'}">
           ${state.got}/${deck.length}</div>
-        <p class="text-sm text-mut mb-6">got it — ${state.missed.length} missed
-          ${state.missed.length ? '(each logged to the queue for a re-attempt)' : ''}</p>
-        ${state.missed.length ? `<div class="text-left text-sm bg-panel border border-line rounded-lg p-4 mb-6">
-          <div class="text-xs uppercase tracking-wider text-mut mb-2">Missed</div>
+        <p class="text-sm text-mut mb-6">got it - ${state.missed.length} missed
+          ${state.missed.length ? '(listed below - restart the deck to re-run them)' : ''}</p>
+        ${state.missed.length ? `<div class="card text-left text-sm p-4 mb-6">
+          <div class="microlabel text-mut mb-2">Missed</div>
           <ul class="list-disc ml-5 space-y-1">${state.missed.map(q => `<li>${esc(q)}</li>`).join('')}</ul></div>` : ''}
         <div class="flex gap-3 justify-center">
-          <button id="c-restart" class="px-4 py-2 rounded-md border border-line hover:bg-panel2 text-sm">Restart deck</button>
-          <a href="#/cards" class="px-4 py-2 rounded-md bg-accent text-black font-semibold text-sm">All sections</a>
+          <button id="c-restart" class="btn btn-secondary">Restart deck</button>
+          <a href="#/cards" class="btn btn-primary">All sections</a>
         </div>
       </div>`;
       $('#c-restart').onclick = () => { state.i = 0; state.flipped = false; state.got = 0; state.missed = []; render(); };
@@ -1193,23 +1125,23 @@ async function viewCards(app, slug) {
     <div class="max-w-2xl mx-auto p-8 relative">
       <div class="flex items-baseline justify-between mb-4">
         <a href="#/cards" class="text-xs text-mut hover:text-accent">← sections</a>
-        <div class="text-sm text-mut">${esc(c.section)} · <b class="text-zinc-200">${state.i + 1}/${deck.length}</b></div>
+        <div class="text-[13px] text-mut">${esc(c.section)} · <b class="text-zinc-200 tnum">${state.i + 1}/${deck.length}</b></div>
       </div>
-      <div id="card" class="cursor-pointer select-none rounded-xl border ${state.flipped ? 'border-accent/60' : 'border-line'}
-           bg-panel p-8 min-h-[16rem] flex flex-col justify-center" title="click or Space to flip">
-        <div class="text-[11px] uppercase tracking-widest ${state.flipped ? 'text-accent' : 'text-mut'} mb-3">
+      <div id="card" class="card rise cursor-pointer select-none ${state.flipped ? '!border-accent/50' : ''}
+           p-9 min-h-[17rem] flex flex-col justify-center" title="click or Space to flip">
+        <div class="microlabel ${state.flipped ? 'text-accent' : 'text-mut'} mb-3">
           ${state.flipped ? 'Answer' : 'Question'}</div>
         ${state.flipped
           ? `<div class="md text-[.95rem]">${md(c.answer)}</div>`
-          : `<div class="text-lg font-medium leading-relaxed">${esc(c.question)}</div>`}
+          : `<div class="text-lg font-medium leading-relaxed text-zinc-100">${esc(c.question)}</div>`}
       </div>
       <div class="mt-4 flex items-center gap-3 ${state.flipped ? '' : 'invisible'}">
-        <button id="c-miss" class="px-4 py-2 rounded-md bg-bad/80 hover:bg-bad text-white text-sm font-semibold">✗ Missed (1)</button>
-        <button id="c-got" class="px-4 py-2 rounded-md bg-good/80 hover:bg-good text-white text-sm font-semibold">✓ Got it (2)</button>
-        <span class="text-xs text-mut">${esc(state.logNote)}</span>
-        <span class="ml-auto text-[11px] text-mut italic">grade before you flip back — recognition is not recall</span>
+        <button id="c-miss" class="btn soft-bad text-bad font-semibold">✕ Missed <span class="text-xs opacity-70 font-normal">1</span></button>
+        <button id="c-got" class="btn soft-good text-good font-semibold">✓ Got it <span class="text-xs opacity-70 font-normal">2</span></button>
+        <span class="ml-auto text-[11px] text-mut italic">grade before you flip back - recognition is not recall</span>
       </div>
     </div>`;
+    fixMdLinks($('#card'), 'practice/flashcards.md');
     $('#card').onclick = () => { state.flipped = !state.flipped; render(); };
     if (state.flipped) {
       $('#c-miss').onclick = e => { e.stopPropagation(); grade('fail'); };
@@ -1219,13 +1151,6 @@ async function viewCards(app, slug) {
   const grade = (result) => {
     const c = deck[state.i];
     if (result === 'pass') state.got++; else state.missed.push(c.question);
-    state.logNote = result === 'fail' ? 'queued for re-attempt' : '';
-    api('/api/log', { item_id: `card:${c.slug}#${c.n}`, source_path: 'practice/flashcards.md', result })
-      .then(r => {
-        if (r && r.logged === false) { state.logNote = r.reason || 'not logged'; render(); }
-        else refreshDueBadge();
-      })
-      .catch(e => { state.logNote = 'queue log failed: ' + e.message; render(); });
     state.i++; state.flipped = false; render();
   };
   const keyHandler = e => {
@@ -1244,72 +1169,6 @@ async function viewCards(app, slug) {
   render();
 }
 
-/* ----------------------------------------------------------- view: review */
-async function viewReview(app) {
-  const epoch = routeEpoch;
-  app.innerHTML = spinner('Loading review queue…');
-  let q;
-  try { q = await api('/api/queue'); } catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
-  if (epoch !== routeEpoch) return;
-  const due = q.due_today, maxBar = Math.max(1, ...q.histogram.map(h => h.count));
-  const dueRow = r => dueRowHTML(r, q.today);
-
-  app.innerHTML = `
-  <div class="max-w-4xl mx-auto p-8">
-    <h1 class="text-xl font-bold mb-1">Review dashboard</h1>
-    <p class="text-sm text-mut mb-5 max-w-2xl">Your spaced-repetition queue (stored in
-      <span class="font-mono">practice/queue.tsv</span>). Anything you log — a missed flashcard, a failed problem,
-      an opened solution — is scheduled for a cold re-attempt: first after 1 day, then 2, 4, 8, 16 as you keep
-      passing; any miss resets it to 1. The <b>due list</b> below is what's scheduled for today (or overdue) —
-      clear it before starting new material, because re-retrieval on the edge of forgetting is what makes it stick.</p>
-
-    <div class="p-5 rounded-xl border ${due.length ? 'border-accent bg-accent/10' : 'border-good/50 bg-good/10'} mb-6">
-      <div class="text-[11px] uppercase tracking-widest ${due.length ? 'text-accent' : 'text-good'} font-bold mb-1">What to do now</div>
-      ${due.length
-        ? `<div class="text-lg font-semibold">Clear your queue first — ${due.length} item${due.length > 1 ? 's' : ''} due.</div>
-           <div class="text-sm text-mut mt-1">Attempt each cold (blank page, timer on), then log pass/fail.
-           Retrieval right before forgetting is where the gains are.</div>`
-        : `<div class="text-lg font-semibold">Queue clear. Pull one interleaved set or a flashcard section.</div>
-           <div class="text-sm text-mut mt-1">
-             <a class="text-accent hover:underline" href="#/problems"
-                onclick="store.set('mlprep.interleave', true)">Problems with Interleave on</a> ·
-             <a class="text-accent hover:underline" href="#/cards">flashcards</a></div>`}
-    </div>
-
-    <div class="grid grid-cols-3 gap-4 mb-6 text-center">
-      <div class="p-4 rounded-lg bg-panel border border-line">
-        <div class="text-2xl font-bold ${due.length ? 'text-warn' : 'text-good'}">${due.length}</div>
-        <div class="text-xs text-mut mt-1">due today (or overdue)</div></div>
-      <div class="p-4 rounded-lg bg-panel border border-line">
-        <div class="text-2xl font-bold text-zinc-100">${q.reviewed_today}</div>
-        <div class="text-xs text-mut mt-1">items reviewed today</div></div>
-      <div class="p-4 rounded-lg bg-panel border border-line">
-        <div class="text-2xl font-bold text-zinc-100">${q.rows.length}</div>
-        <div class="text-xs text-mut mt-1">items in the queue</div></div>
-    </div>
-
-    <div class="border border-line rounded-lg overflow-hidden mb-6">
-      <div class="px-4 py-2.5 bg-panel text-xs uppercase tracking-wider text-mut">Due list</div>
-      ${due.length ? due.map(dueRow).join('')
-        : '<div class="px-4 py-6 border-t border-line text-sm text-mut text-center">Nothing due. Consolidation needs the gap — don\'t review early.</div>'}
-    </div>
-
-    <div class="border border-line rounded-lg overflow-hidden">
-      <div class="px-4 py-2.5 bg-panel text-xs uppercase tracking-wider text-mut">
-        Interval histogram <span class="normal-case">(right = closer to mastered; pass doubles the interval, cap 16d)</span></div>
-      <div class="p-4 space-y-2">
-        ${q.histogram.map(h => `
-          <div class="flex items-center gap-3 text-xs">
-            <span class="w-12 text-right font-mono text-mut">≤${h.interval}d</span>
-            <div class="flex-1 h-4 bg-panel2 rounded overflow-hidden">
-              <div class="h-full ${h.interval >= 8 ? 'bg-good' : h.interval >= 4 ? 'bg-warn' : 'bg-accent'}"
-                   style="width:${100 * h.count / maxBar}%"></div></div>
-            <span class="w-6 font-mono text-mut">${h.count}</span>
-          </div>`).join('')}
-      </div>
-    </div>
-  </div>`;
-}
 </script>
 </body>
 </html>
