@@ -1,8 +1,8 @@
-"""Trees and heaps — 14 classic problems, solved from first principles.
+"""Trees and heaps - 14 classic problems, solved from first principles.
 
 Every solution follows the template from notes.md: base case for the empty
 tree, recurse on subtrees, combine at the node. Heap problems use heapq
-(min-heap only — negate for max); the trie problems at the end instantiate
+(min-heap only - negate for max); the trie problems at the end instantiate
 notes.md section 10. Run this file; it asserts every test and prints a
 success line.
 """
@@ -42,9 +42,20 @@ def build(values):
 # 1. Maximum Depth of Binary Tree
 # ---------------------------------------------------------------------------
 def max_depth(root):
-    """Return the number of nodes on the longest root-to-leaf path.
+    """Given the root of a binary tree (TreeNode objects with .val, .left, .right;
+    None means an empty tree), return its maximum depth: the number of nodes on
+    the longest path from the root down to a leaf. An empty tree has depth 0.
 
-    Key insight: the purest instance of the tree template — empty tree has
+    Example:
+        Input:  root = build([3, 9, 20, None, None, 15, 7])
+                  3
+                 / \\
+                9  20
+                   /  \\
+                  15   7
+        Output: 3   (e.g. the path 3 -> 20 -> 15 has 3 nodes)
+
+    Key insight: the purest instance of the tree template - empty tree has
     depth 0; otherwise 1 + the deeper subtree.
     Complexity: O(n) time, O(h) recursion stack.
     """
@@ -57,10 +68,22 @@ def max_depth(root):
 # 2. Diameter of Binary Tree
 # ---------------------------------------------------------------------------
 def diameter(root):
-    """Return the length (in edges) of the longest path between any two nodes.
+    """Given the root of a binary tree (TreeNode with .left/.right, None if
+    empty), return the diameter: the number of EDGES on the longest path
+    between any two nodes. The path may or may not pass through the root.
+    Return 0 for an empty or single-node tree.
+
+    Example:
+        Input:  root = build([1, 2, 3, 4, 5])
+                  1
+                 / \\
+                2   3
+               / \\
+              4   5
+        Output: 3   (path 4 -> 2 -> 1 -> 3 has 3 edges)
 
     Key insight: the best path through a node is depth(left) + depth(right),
-    but the answer may live anywhere — so return depth to the parent while a
+    but the answer may live anywhere - so return depth to the parent while a
     nonlocal tracks the global best ("return one thing, track another").
     Complexity: O(n) time, O(h) space.
     """
@@ -82,10 +105,16 @@ def diameter(root):
 # 3. Invert Binary Tree
 # ---------------------------------------------------------------------------
 def invert(root):
-    """Mirror the tree: swap left and right subtrees everywhere.
+    """Given the root of a binary tree (TreeNode, or None), produce its mirror
+    image: for every node, swap its left and right subtrees. Mutate the tree in
+    place and return its root (None for an empty tree).
+
+    Example:
+        Input:  root = build([4, 2, 7, 1, 3, 6, 9])
+        Output: tree whose level order is [[4], [7, 2], [9, 6, 3, 1]]
 
     Key insight: invert(tree) = node with children invert(right), invert(left).
-    Swap first or recurse first — both work; just don't lose a pointer.
+    Swap first or recurse first - both work; just don't lose a pointer.
     Complexity: O(n) time, O(h) space.
     """
     if root is None:
@@ -98,9 +127,15 @@ def invert(root):
 # 4. Binary Tree Level Order Traversal
 # ---------------------------------------------------------------------------
 def level_order(root):
-    """Return values grouped by level, top to bottom.
+    """Given the root of a binary tree (TreeNode, or None), return a list of
+    lists: the node values at each depth, top level first, and left to right
+    within each level. Return [] for an empty tree.
 
-    Key insight: BFS with a frozen len(q) snapshot per outer iteration — the
+    Example:
+        Input:  root = build([3, 9, 20, None, None, 15, 7])
+        Output: [[3], [9, 20], [15, 7]]
+
+    Key insight: BFS with a frozen len(q) snapshot per outer iteration - the
     queue holds exactly one level at the top of each pass.
     Complexity: O(n) time, O(w) space (w = max width).
     """
@@ -124,7 +159,19 @@ def level_order(root):
 # 5. Validate Binary Search Tree
 # ---------------------------------------------------------------------------
 def is_valid_bst(root):
-    """Return True iff the tree satisfies the global BST invariant.
+    """Given the root of a binary tree (TreeNode with integer .val, or None),
+    return True iff it is a valid binary search tree: for EVERY node, all
+    values in its left subtree are strictly less than its value and all values
+    in its right subtree are strictly greater. An empty tree is valid.
+
+    Example:
+        Input:  root = build([2, 1, 3])                    Output: True
+        Input:  root = build([5, 1, 4, None, None, 3, 6])  Output: False
+                (4 sits in 5's right subtree but 3 < 5 lives under it)
+
+    Note: duplicates are NOT allowed anywhere ([1, 1] is invalid), and the
+    constraint is global - a node deep in the left subtree must still be
+    smaller than the root.
 
     Key insight: comparing each node only to its children is the classic bug
     (the invariant constrains whole subtrees, not just children). Carry down
@@ -145,10 +192,20 @@ def is_valid_bst(root):
 # 6. Lowest Common Ancestor of a Binary Tree
 # ---------------------------------------------------------------------------
 def lowest_common_ancestor(root, p, q):
-    """Return the deepest node having both p and q in its subtree.
+    """Given the root of a binary tree (TreeNode, all values distinct) and two
+    node references p and q that are guaranteed to exist in the tree, return
+    the TreeNode that is their lowest common ancestor: the deepest node whose
+    subtree contains both p and q. A node counts as an ancestor of itself, so
+    if q lies inside p's subtree the answer is p.
+
+    Example:
+        Input:  root = build([3, 5, 1, 6, 2, 0, 8, None, None, 7, 4]),
+                p = node 5, q = node 1        Output: node 3
+        Input:  same tree, p = node 5, q = node 4 (inside 5's subtree)
+        Output: node 5
 
     Key insight: ask each subtree "did you find p or q?". If both sides
-    report a find, this node is the split point — the LCA. If you land on p
+    report a find, this node is the split point - the LCA. If you land on p
     or q itself, return it immediately: if the other target is below it, it
     is its own ancestor and still the right answer.
     Complexity: O(n) time, O(h) space.
@@ -166,7 +223,13 @@ def lowest_common_ancestor(root, p, q):
 # 7. Construct Binary Tree from Preorder and Inorder Traversal
 # ---------------------------------------------------------------------------
 def build_tree(preorder, inorder):
-    """Rebuild the unique tree with the given traversals (distinct values).
+    """Given two integer lists, preorder and inorder - the preorder and inorder
+    traversals of the same binary tree, with all values distinct - reconstruct
+    that tree and return its root TreeNode. The tree is unique for such a pair.
+
+    Example:
+        Input:  preorder = [3, 9, 20, 15, 7], inorder = [9, 3, 15, 20, 7]
+        Output: root of the tree whose level order is [[3], [9, 20], [15, 7]]
 
     Key insight: preorder[0] is the root; its position in inorder splits
     inorder into left/right subtrees, and those sizes split the rest of
@@ -184,7 +247,7 @@ def build_tree(preorder, inorder):
         root = TreeNode(preorder[pre_i])
         pre_i += 1
         mid = idx[root.val]
-        root.left = rec(in_lo, mid)      # left consumed before right —
+        root.left = rec(in_lo, mid)      # left consumed before right  - 
         root.right = rec(mid + 1, in_hi)  # matches preorder's order
         return root
 
@@ -195,9 +258,19 @@ def build_tree(preorder, inorder):
 # 8. Serialize and Deserialize Binary Tree
 # ---------------------------------------------------------------------------
 def serialize(root):
-    """Encode a tree to a comma-separated string.
+    """Design a pair of functions: serialize(root) encodes a binary tree
+    (TreeNode with integer values, or None) into a single string, and
+    deserialize(data) reconstructs the exact same tree from that string.
+    Any format works as long as the round trip is lossless; this one emits
+    comma-separated values with "#" marking empty children.
 
-    Key insight: preorder WITH null markers is unambiguous — the encoding of
+    Example:
+        Input:  root = build([1, 2, 3, None, None, 4, 5])
+        serialize(root)  -> "1,2,#,#,3,4,#,#,5,#,#"
+        deserialize(...) -> a tree with level order [[1], [2, 3], [4, 5]]
+        serialize(None)  -> "#"
+
+    Key insight: preorder WITH null markers is unambiguous - the encoding of
     a subtree is self-delimiting, so decode can mirror encode exactly.
     Complexity: O(n) time and space, both directions.
     """
@@ -234,9 +307,22 @@ def deserialize(data):
 # 9. Kth Largest Element in a Stream
 # ---------------------------------------------------------------------------
 class KthLargest:
-    """Maintain the kth largest element as values stream in.
+    """Design a class that tracks the kth largest element in a stream of
+    integers. The constructor takes an integer k and an initial list nums
+    (possibly shorter than k, or empty). add(val) appends a new value to the
+    stream and returns the kth largest element seen so far. Duplicates count
+    separately, so the kth largest is the kth element in sorted order, not the
+    kth distinct value.
 
-    Key insight: keep a MIN-heap of the k largest seen — its root is the
+    Example:
+        kl = KthLargest(3, [4, 5, 8, 2])
+        kl.add(3)  -> 4;  kl.add(5)  -> 5;  kl.add(10) -> 5
+        kl.add(9)  -> 8;  kl.add(4)  -> 8
+
+    Note: it is guaranteed that at least k values have been seen whenever
+    add() must produce an answer.
+
+    Key insight: keep a MIN-heap of the k largest seen - its root is the
     gatekeeper (smallest keeper), which is exactly the kth largest. A
     max-heap's root says nothing about whether a newcomer makes the cut.
     Complexity: O(log k) per add, O(k) space.
@@ -267,7 +353,15 @@ class ListNode:
 
 
 def merge_k_lists(lists):
-    """Merge k sorted linked lists into one sorted list.
+    """Given a Python list `lists` containing the head nodes of k sorted linked
+    lists (ListNode with .val and .next; individual entries may be None for
+    empty lists), merge them into one sorted linked list and return its head.
+    Return None if all input lists are empty (or k == 0). Reuse the existing
+    nodes rather than allocating new ones.
+
+    Example:
+        Input:  lists = [1->4->5, 1->3->4, 2->6]
+        Output: 1->1->2->3->4->4->5->6
 
     Key insight: the next output must be the min of the k current heads
     (lists are sorted, nothing later can be smaller). Heap of heads gives it
@@ -291,9 +385,18 @@ def merge_k_lists(lists):
 # 11. Find Median from Data Stream
 # ---------------------------------------------------------------------------
 class MedianFinder:
-    """Support add_num and O(1) find_median over a growing stream.
+    """Design a class that supports two operations over a growing stream of
+    integers: add_num(num) inserts a value, and find_median() returns the
+    median of all values added so far as a float. With an odd count the median
+    is the middle value; with an even count it is the mean of the two middle
+    values. find_median() is only called after at least one add_num.
 
-    Key insight: two heaps — max-heap `lo` (smaller half, negated values)
+    Example:
+        mf = MedianFinder()
+        mf.add_num(1); mf.add_num(2); mf.find_median() -> 1.5
+        mf.add_num(3);                mf.find_median() -> 2.0
+
+    Key insight: two heaps - max-heap `lo` (smaller half, negated values)
     and min-heap `hi` (larger half), with len(lo) in {len(hi), len(hi)+1}.
     Routing every push through lo then rebalancing keeps max(lo) <= min(hi)
     no matter where the new value belongs.
@@ -320,11 +423,21 @@ class MedianFinder:
 # 12. Implement Trie (Prefix Tree)
 # ---------------------------------------------------------------------------
 class Trie:
-    """insert(word), search(word), starts_with(prefix) — all O(L).
+    """Implement a prefix tree over lowercase strings with three operations:
+    insert(word) stores a word; search(word) returns True iff that exact word
+    was previously inserted; starts_with(prefix) returns True iff ANY inserted
+    word begins with the given prefix. A stored word's proper prefix is not
+    itself a word unless it was inserted separately.
+
+    Example:
+        t = Trie(); t.insert("apple")
+        t.search("apple") -> True;  t.search("app") -> False
+        t.starts_with("app") -> True
+        t.insert("app");  t.search("app") -> True
 
     Key insight (notes.md section 10): a hashset answers exact membership but
-    hashing destroys prefix structure. Store words as root-paths instead —
-    node = children dict + terminal flag — and both queries become the same
+    hashing destroys prefix structure. Store words as root-paths instead  - 
+    node = children dict + terminal flag - and both queries become the same
     walk, differing only in whether the terminal flag is consulted. Cost is
     O(L) independent of the number of words; shared prefixes are stored once.
     Complexity: O(L) per operation, O(total chars) space.
@@ -359,10 +472,19 @@ class Trie:
 # 13. Design Add and Search Words (wildcard '.')
 # ---------------------------------------------------------------------------
 class WordDictionary:
-    """add_word(word); search(word) where '.' matches any single character.
+    """Design a data structure supporting add_word(word), which stores a
+    lowercase word, and search(pattern), which returns True iff any stored word
+    matches the pattern. A pattern is lowercase letters and/or '.' where '.'
+    matches exactly one arbitrary character; lengths must match exactly
+    (no partial or prefix matches).
+
+    Example:
+        wd = WordDictionary(); wd.add_word("bad"); wd.add_word("dad")
+        wd.search("pad") -> False;  wd.search(".ad") -> True
+        wd.search("b..") -> True;   wd.search("b.")  -> False (wrong length)
 
     Key insight: a literal character follows one trie edge, but '.' must try
-    EVERY child — so search generalizes from a walk to a DFS over
+    EVERY child - so search generalizes from a walk to a DFS over
     (node, position). Wildcards trade away the O(L) guarantee: an all-dots
     pattern can touch every node, and saying so is part of the answer.
     Complexity: O(L) add; search O(L) without dots, O(total nodes) worst case.
@@ -394,18 +516,28 @@ class WordDictionary:
 # 14. Word Search II
 # ---------------------------------------------------------------------------
 def find_words(board, words):
-    """Return every word (from a dictionary of k words) that can be traced in
-    the m x n letter grid through adjacent (up/down/left/right) cells, each
-    cell used at most once per word.
+    """Given an m x n board (list of lists of single lowercase letters) and a
+    list of k distinct words, return every word that can be traced in the grid
+    by starting at any cell and stepping to 4-directionally adjacent cells
+    (up/down/left/right), using each cell at most once per word. Return the
+    found words in any order, each at most once even if it can be traced along
+    several paths; return [] if none can be formed. The board must be left
+    unmodified when the function returns.
+
+    Example:
+        Input:  board = [["o","a","a","n"], ["e","t","a","e"],
+                         ["i","h","k","r"], ["i","f","l","v"]],
+                words = ["oath", "pea", "eat", "rain"]
+        Output: ["oath", "eat"]   (any order)
 
     Key insight: per-word grid backtracking re-explores the same paths k
     times. Build ONE trie of all the words and DFS the grid walking the trie
-    in lockstep — a path is abandoned the moment it stops being a prefix of
+    in lockstep - a path is abandoned the moment it stops being a prefix of
     any word, and all words are matched in a single sweep. Pop the terminal
     flag on a match (each word reported once) and prune childless trie nodes
     on the way out, so the search space shrinks as words are found.
     Complexity: O(total word chars) to build; DFS O(m*n * 3^L) worst case
-    (first step has 4 choices, later steps at most 3 — no going back).
+    (first step has 4 choices, later steps at most 3 - no going back).
     """
     root = {}
     for w in words:
@@ -432,7 +564,7 @@ def find_words(board, words):
                 dfs(nr, nc, child)             # explore
         board[r][c] = ch                       # unchoose: restore the cell
         if not child:                          # dead leaf: no words need it
-            del node[ch]                       # prune — future DFS skips it
+            del node[ch]                       # prune - future DFS skips it
 
     for r in range(rows):
         for c in range(cols):
@@ -463,7 +595,7 @@ if __name__ == "__main__":
     assert level_order(build([3, 9, 20, None, None, 15, 7])) == [[3], [9, 20], [15, 7]]
     assert level_order(None) == []
 
-    # 5. validate BST — including the local-check trap tree
+    # 5. validate BST - including the local-check trap tree
     assert is_valid_bst(build([2, 1, 3])) is True
     assert is_valid_bst(build([5, 1, 4, None, None, 3, 6])) is False
     trap = build([5, 3, 8, None, None, 2, 9])  # 2 valid vs parent 8, not vs root 5

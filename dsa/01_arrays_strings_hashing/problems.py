@@ -1,5 +1,5 @@
 """17 classic array/string/hashing problems, each solved with the pattern derived
-in notes.md. Read the docstring, attempt on paper, then read the code — the key
+in notes.md. Read the docstring, attempt on paper, then read the code - the key
 insight is in the comment above each implementation.
 
 Run: uv run python dsa/01_arrays_strings_hashing/problems.py
@@ -10,15 +10,23 @@ from collections import Counter, defaultdict, deque
 
 
 # ---------------------------------------------------------------------------
-# 1. Two Sum — pattern: hashing (value -> index)
+# 1. Two Sum - pattern: hashing (value -> index)
 # ---------------------------------------------------------------------------
 def two_sum(nums, target):
-    """Return indices [i, j], i < j, with nums[i] + nums[j] == target.
-    Exactly one solution exists.
+    """Given a list of integers nums and an integer target, return indices
+    [i, j], i < j, with nums[i] + nums[j] == target. Exactly one solution
+    exists, and the same element may not be used twice (the same value at two
+    different indices is fine).
+
+    Example:
+        two_sum([2, 7, 11, 15], 9) -> [0, 1]   # 2 + 7 == 9
+        two_sum([3, 3], 6) -> [0, 1]           # equal values, distinct indices
+
+    Note: nums may contain negative numbers.
 
     Pattern: hashmap. Key insight: while scanning, asking "does target - x
     exist among earlier elements?" is an O(1) lookup instead of an O(n) scan
-    — the hashmap turns the O(n^2) pair search into one pass.
+    - the hashmap turns the O(n^2) pair search into one pass.
     Complexity: O(n) time, O(n) space.
     """
     seen = {}  # value -> index
@@ -30,14 +38,19 @@ def two_sum(nums, target):
 
 
 # ---------------------------------------------------------------------------
-# 2. Longest Substring Without Repeating Characters — pattern: sliding window
+# 2. Longest Substring Without Repeating Characters - pattern: sliding window
 # ---------------------------------------------------------------------------
 def longest_unique_substring(s):
-    """Length of the longest substring of s with all distinct characters.
+    """Given a string s, return the length of the longest contiguous substring
+    in which no character repeats. Return 0 for the empty string.
+
+    Example:
+        longest_unique_substring("abcabcbb") -> 3   # "abc"
+        longest_unique_substring("abba") -> 2       # "ab" or "ba"
 
     Pattern: variable sliding window. Key insight: the predicate "no repeats"
     is monotone under shrinking, so the smallest valid left end never moves
-    left — l only advances, giving O(n) despite the nested while.
+    left - l only advances, giving O(n) despite the nested while.
     Complexity: O(n) time, O(min(n, alphabet)) space.
     """
     window = set()
@@ -52,14 +65,23 @@ def longest_unique_substring(s):
 
 
 # ---------------------------------------------------------------------------
-# 3. Container With Most Water — pattern: two pointers
+# 3. Container With Most Water - pattern: two pointers
 # ---------------------------------------------------------------------------
 def max_area(height):
-    """Max water between two lines: area = (r - l) * min(h[l], h[r]).
+    """Given a list height where height[i] is a vertical line at x = i, choose
+    two lines that together with the x-axis form the container holding the most
+    water: area = (r - l) * min(height[l], height[r]). Return that maximum
+    area.
+
+    Example:
+        max_area([1, 8, 6, 2, 5, 4, 8, 3, 7]) -> 49   # i=1, i=8: width 7 * height 7
+        max_area([1, 1]) -> 1
+
+    Constraints: len(height) >= 2; the container may not be tilted.
 
     Pattern: two pointers. Key insight (elimination argument): if
     h[l] < h[r], every container (l, x) with x < r is capped by h[l] and is
-    narrower, so (l, r) already realized the best container using l — index l
+    narrower, so (l, r) already realized the best container using l - index l
     is provably exhausted and can be discarded. n steps kill n^2 pairs.
     Complexity: O(n) time, O(1) space.
     """
@@ -75,10 +97,17 @@ def max_area(height):
 
 
 # ---------------------------------------------------------------------------
-# 4. 3Sum — pattern: sort + two pointers
+# 4. 3Sum - pattern: sort + two pointers
 # ---------------------------------------------------------------------------
 def three_sum(nums):
-    """All unique triplets summing to 0, as a sorted list of sorted triplets.
+    """Given a list of integers nums, return all unique triplets of values (three
+    distinct indices) that sum to 0. Each triplet must be sorted ascending, no
+    triplet may repeat, and the order of triplets in the output does not matter.
+    Return [] if none exist.
+
+    Example:
+        three_sum([-1, 0, 1, 2, -1, -4]) -> [[-1, -1, 2], [-1, 0, 1]]
+        three_sum([0, 0, 0, 0]) -> [[0, 0, 0]]   # duplicates collapse to one
 
     Pattern: sort, fix the smallest element, then two-pointer the rest for a
     pair summing to -nums[i]. Key insight: sorting makes duplicates adjacent
@@ -110,10 +139,18 @@ def three_sum(nums):
 
 
 # ---------------------------------------------------------------------------
-# 5. Product of Array Except Self — pattern: prefix/suffix products
+# 5. Product of Array Except Self - pattern: prefix/suffix products
 # ---------------------------------------------------------------------------
 def product_except_self(nums):
-    """out[i] = product of all nums except nums[i]; no division allowed.
+    """Given a list of integers nums, return a list out where out[i] is the
+    product of every element of nums except nums[i]. Division is not allowed,
+    and the solution must run in O(n) time.
+
+    Example:
+        product_except_self([1, 2, 3, 4]) -> [24, 12, 8, 6]
+        product_except_self([-1, 1, 0, -3, 3]) -> [0, 0, 9, 0, 0]   # one zero
+
+    Note: nums may contain zeros and negative numbers.
 
     Pattern: prefix sums, multiplicative flavor. Key insight: the answer at i
     is (product of the prefix left of i) * (product of the suffix right of i);
@@ -132,14 +169,23 @@ def product_except_self(nums):
 
 
 # ---------------------------------------------------------------------------
-# 6. Subarray Sum Equals K — pattern: prefix sum + hashmap
+# 6. Subarray Sum Equals K - pattern: prefix sum + hashmap
 # ---------------------------------------------------------------------------
 def subarray_sum(nums, k):
-    """Count contiguous subarrays whose sum is exactly k (negatives allowed).
+    """Given a list of integers nums and an integer k, return the number of
+    non-empty contiguous subarrays whose elements sum to exactly k. Subarrays
+    are counted by position, so identical contents at different positions count
+    separately.
+
+    Example:
+        subarray_sum([1, 1, 1], 2) -> 2    # [1,1] starting at 0 and at 1
+        subarray_sum([1, -1, 0], 0) -> 3   # [1,-1], [0], and [1,-1,0]
+
+    Note: negatives and zeros are allowed, so a running sum can repeat.
 
     Pattern: prefix sum + hashmap. Key insight: sum(i..j) = pre[j+1] - pre[i],
     so a subarray ending here has sum k iff some earlier prefix equals
-    (current prefix - k) — a counting lookup. Seed {0:1} for the empty prefix.
+    (current prefix - k) - a counting lookup. Seed {0:1} for the empty prefix.
     Complexity: O(n) time, O(n) space.
     """
     count = 0
@@ -154,14 +200,21 @@ def subarray_sum(nums, k):
 
 
 # ---------------------------------------------------------------------------
-# 7. Longest Consecutive Sequence — pattern: hashing (set membership)
+# 7. Longest Consecutive Sequence - pattern: hashing (set membership)
 # ---------------------------------------------------------------------------
 def longest_consecutive(nums):
-    """Length of the longest run of consecutive integers in an unsorted list.
+    """Given an unsorted list of integers nums (duplicates possible), return the
+    length of the longest run of consecutive integer VALUES, e.g. 1, 2, 3, 4  - 
+    the values need not sit next to each other in the list. Must run in O(n);
+    return 0 for an empty list.
+
+    Example:
+        longest_consecutive([100, 4, 200, 1, 3, 2]) -> 4   # the run 1, 2, 3, 4
+        longest_consecutive([]) -> 0
 
     Pattern: hash set. Key insight: only start counting from a run's LEFT end
     (x such that x-1 is absent); then each element is visited O(1) times total
-    — the inner while walks each run exactly once, so O(n) overall despite the
+    - the inner while walks each run exactly once, so O(n) overall despite the
     nested loop. Complexity: O(n) time, O(n) space.
     """
     s = set(nums)
@@ -177,14 +230,24 @@ def longest_consecutive(nums):
 
 
 # ---------------------------------------------------------------------------
-# 8. Group Anagrams — pattern: canonical hashable key
+# 8. Group Anagrams - pattern: canonical hashable key
 # ---------------------------------------------------------------------------
 def group_anagrams(strs):
-    """Group words that are anagrams of each other.
+    """Given a list of lowercase words strs, group the words that are anagrams
+    of each other and return the groups as a list of lists. Every word lands in
+    exactly one group; the order of groups, and of words within a group, does
+    not matter.
+
+    Example:
+        group_anagrams(["eat", "tea", "tan", "ate", "nat", "bat"])
+            -> [["ate", "eat", "tea"], ["bat"], ["nat", "tan"]]  # any order
+        group_anagrams([""]) -> [[""]]
+
+    Constraints: words use only lowercase a-z and may be empty strings.
 
     Pattern: frequency counting. Key insight: anagram-ness is equality of
     character multisets, so a canonical form of the multiset (26-tuple of
-    counts) is a valid dict key — grouping becomes one pass of key -> bucket.
+    counts) is a valid dict key - grouping becomes one pass of key -> bucket.
     Complexity: O(total chars) time, O(total chars) space.
     """
     groups = defaultdict(list)
@@ -197,10 +260,16 @@ def group_anagrams(strs):
 
 
 # ---------------------------------------------------------------------------
-# 9. Trapping Rain Water — pattern: two pointers
+# 9. Trapping Rain Water - pattern: two pointers
 # ---------------------------------------------------------------------------
 def trap(height):
-    """Total water trapped above the bars after rain.
+    """Given a list height of non-negative bar heights (each bar has width 1),
+    return the total units of water trapped between the bars after it rains.
+    Return 0 for an empty list or a profile that holds nothing.
+
+    Example:
+        trap([0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]) -> 6
+        trap([3, 2, 1]) -> 0   # strictly downhill traps nothing
 
     Pattern: two pointers. Key insight: water above bar i is
     min(max_left, max_right) - h[i]. Working from the side with the SMALLER
@@ -227,11 +296,16 @@ def trap(height):
 
 
 # ---------------------------------------------------------------------------
-# 10. Minimum Window Substring — pattern: sliding window + frequency counts
+# 10. Minimum Window Substring - pattern: sliding window + frequency counts
 # ---------------------------------------------------------------------------
 def min_window(s, t):
-    """Smallest substring of s containing every char of t (with multiplicity);
-    "" if none exists.
+    """Given strings s and t, return the smallest contiguous substring of s that
+    contains every character of t with at least t's multiplicity (extra
+    characters in the window are fine). Return "" if no such window exists.
+
+    Example:
+        min_window("ADOBECODEBANC", "ABC") -> "BANC"
+        min_window("aa", "aa") -> "aa"   # multiplicity counts: one 'a' won't do
 
     Pattern: variable sliding window, minimizing flavor: expand r until the
     window covers t, then shrink l while coverage holds, recording the best.
@@ -261,10 +335,18 @@ def min_window(s, t):
 
 
 # ---------------------------------------------------------------------------
-# 11. Merge Intervals — pattern: sort + linear sweep
+# 11. Merge Intervals - pattern: sort + linear sweep
 # ---------------------------------------------------------------------------
 def merge_intervals(intervals):
-    """Merge overlapping intervals; return sorted disjoint intervals.
+    """Given a list of intervals [start, end] in any order, merge every group of
+    overlapping intervals and return the result sorted by start, all intervals
+    disjoint. Intervals that merely touch (one's end == the next's start) also
+    merge.
+
+    Example:
+        merge_intervals([[1, 3], [2, 6], [8, 10], [15, 18]])
+            -> [[1, 6], [8, 10], [15, 18]]
+        merge_intervals([[1, 4], [4, 5]]) -> [[1, 5]]   # touching merges
 
     Pattern: sort by start, then sweep. Key insight: after sorting, an
     interval can only overlap the LAST merged interval (anything earlier
@@ -281,14 +363,20 @@ def merge_intervals(intervals):
 
 
 # ---------------------------------------------------------------------------
-# 12. Sliding Window Maximum — pattern: monotonic deque
+# 12. Sliding Window Maximum - pattern: monotonic deque
 # ---------------------------------------------------------------------------
 def max_sliding_window(nums, k):
-    """Max of every contiguous window of size k.
+    """Given a list of integers nums and a window size k (1 <= k <= len(nums)),
+    return the maximum of every contiguous window of size k, scanning left to
+    right. The output has len(nums) - k + 1 entries. Aim for O(n), not O(nk).
+
+    Example:
+        max_sliding_window([1, 3, -1, -3, 5, 3, 6, 7], 3) -> [3, 3, 5, 5, 6, 7]
+        max_sliding_window([1, 2, 3, 4], 4) -> [4]   # k == n: one window
 
     Pattern: monotonic (decreasing) deque of indices. Key insight: when x
     enters, any smaller element already in the deque can never be a future
-    window max (x is newer AND bigger) — pop it forever. Each index is pushed
+    window max (x is newer AND bigger) - pop it forever. Each index is pushed
     and popped at most once, so O(n) total; the deque front is always the
     current window's max. Complexity: O(n) time, O(k) space.
     """
@@ -306,15 +394,20 @@ def max_sliding_window(nums, k):
 
 
 # ---------------------------------------------------------------------------
-# 13. Insert Interval — pattern: three-phase sweep over sorted intervals
+# 13. Insert Interval - pattern: three-phase sweep over sorted intervals
 # ---------------------------------------------------------------------------
 def insert_interval(intervals, new_interval):
-    """Given sorted disjoint intervals, insert new_interval and merge so the
-    result is again sorted and disjoint.
+    """Given a list of disjoint intervals sorted by start and a new_interval
+    [s, e], insert the newcomer and merge any overlaps so the result is again
+    sorted and disjoint. Return the new list; the input list may be empty.
+
+    Example:
+        insert_interval([[1, 3], [6, 9]], [2, 5]) -> [[1, 5], [6, 9]]
+        insert_interval([[1, 5]], [2, 3]) -> [[1, 5]]   # newcomer swallowed
 
     Pattern: three phases (notes.md pattern 7). Key insight: relative to
     [s, e], the sorted input splits into strictly-left (end < s), overlapping
-    (start <= running e — each folds into the newcomer), and strictly-right;
+    (start <= running e - each folds into the newcomer), and strictly-right;
     the phase boundaries are monotone, so one pass suffices and no re-sort is
     needed. Complexity: O(n) time, O(n) space for output.
     """
@@ -324,7 +417,7 @@ def insert_interval(intervals, new_interval):
     while i < n and intervals[i][1] < s:        # phase 1: strictly left
         out.append(intervals[i])
         i += 1
-    while i < n and intervals[i][0] <= e:       # phase 2: overlap — fold in
+    while i < n and intervals[i][0] <= e:       # phase 2: overlap - fold in
         s = min(s, intervals[i][0])
         e = max(e, intervals[i][1])             # RUNNING e, not the original
         i += 1
@@ -334,14 +427,21 @@ def insert_interval(intervals, new_interval):
 
 
 # ---------------------------------------------------------------------------
-# 14. Meeting Rooms I — pattern: sort + adjacent overlap check
+# 14. Meeting Rooms I - pattern: sort + adjacent overlap check
 # ---------------------------------------------------------------------------
 def can_attend_meetings(intervals):
-    """Can one person attend every meeting (no two overlap)?
+    """Given a list of meeting intervals [start, end] in any order, return True
+    iff one person can attend every meeting, i.e. no two meetings overlap. A
+    meeting ending exactly when the next starts is NOT an overlap. An empty
+    schedule returns True.
+
+    Example:
+        can_attend_meetings([[0, 30], [5, 10], [15, 20]]) -> False  # [0,30] clashes
+        can_attend_meetings([[1, 2], [2, 3]]) -> True               # touching ok
 
     Pattern: sort by start. Key insight: after sorting, any overlap must show
-    up between ADJACENT meetings — an earlier meeting reaching a later one
-    would reach (or engulf) everything in between first — so n-1 local checks
+    up between ADJACENT meetings - an earlier meeting reaching a later one
+    would reach (or engulf) everything in between first - so n-1 local checks
     replace n^2/2 pairwise ones. Touching endpoints (end == next start) are
     fine. Complexity: O(n log n) time, O(1) extra space.
     """
@@ -351,16 +451,23 @@ def can_attend_meetings(intervals):
 
 
 # ---------------------------------------------------------------------------
-# 15. Meeting Rooms II — pattern: min-heap of end times
+# 15. Meeting Rooms II - pattern: min-heap of end times
 # ---------------------------------------------------------------------------
 def min_meeting_rooms(intervals):
-    """Minimum number of rooms so all meetings run without sharing.
+    """Given a list of meeting intervals [start, end] in any order, return the
+    minimum number of conference rooms needed so that no two overlapping
+    meetings share a room. A room frees up exactly at its meeting's end time,
+    so back-to-back meetings can reuse it. Return 0 for no meetings.
+
+    Example:
+        min_meeting_rooms([[0, 30], [5, 10], [15, 20]]) -> 2   # [0,30] overlaps both
+        min_meeting_rooms([[1, 2], [2, 3], [3, 4]]) -> 1       # back-to-back reuse
 
     Pattern: sweep by start + min-heap of end times (notes.md pattern 7).
     Key insight: the answer is the maximum number of meetings alive at once
     (each alive meeting needs its own room, and that many always suffice).
     Ask the earliest-freeing room (heap min): if even IT is busy at this
-    start, no room is free — allocate. Heap size only grows exactly when
+    start, no room is free - allocate. Heap size only grows exactly when
     concurrency hits a new high, so max heap size = the answer.
     Complexity: O(n log n) time, O(n) space.
     """
@@ -374,13 +481,20 @@ def min_meeting_rooms(intervals):
 
 
 # ---------------------------------------------------------------------------
-# 16. Best Time to Buy and Sell Stock — pattern: one-pass running minimum
+# 16. Best Time to Buy and Sell Stock - pattern: one-pass running minimum
 # ---------------------------------------------------------------------------
 def max_profit(prices):
-    """One buy then one later sell; return the best profit (0 if none).
+    """Given a list prices where prices[i] is a stock's price on day i, choose
+    one day to buy and a strictly later day to sell so profit is maximized.
+    Return that maximum profit, or 0 if every trade would lose money (you may
+    decline to trade).
+
+    Example:
+        max_profit([7, 1, 5, 3, 6, 4]) -> 5   # buy at 1 (day 1), sell at 6 (day 4)
+        max_profit([7, 6, 4, 3, 1]) -> 0      # prices only fall: don't trade
 
     Pattern: running minimum. Key insight: the best sell at day i uses the
-    cheapest buy among days 0..i — a single running min. Track it while
+    cheapest buy among days 0..i - a single running min. Track it while
     scanning and score prices[i] - min_so_far each day; every (buy, sell)
     pair is thereby considered without the O(n^2) enumeration.
     Complexity: O(n) time, O(1) space.
@@ -394,15 +508,21 @@ def max_profit(prices):
 
 
 # ---------------------------------------------------------------------------
-# 17. Maximum Subarray (Kadane) — pattern: extend-or-restart
+# 17. Maximum Subarray (Kadane) - pattern: extend-or-restart
 # ---------------------------------------------------------------------------
 def max_subarray(nums):
-    """Largest sum of any non-empty contiguous subarray.
+    """Given a non-empty list of integers nums (negatives allowed), return the
+    largest sum achievable by any non-empty contiguous subarray. With an
+    all-negative input the answer is the largest single element, not 0.
 
-    Pattern: Kadane's algorithm. Key insight — derive the decision: let
+    Example:
+        max_subarray([-2, 1, -3, 4, -1, 2, 1, -5, 4]) -> 6   # [4, -1, 2, 1]
+        max_subarray([-3, -1, -2]) -> -1                     # best single element
+
+    Pattern: Kadane's algorithm. Key insight - derive the decision: let
     cur = best sum of a subarray ENDING exactly at i. That subarray either
     extends the best one ending at i-1 (worth cur + x) or starts fresh at i
-    (worth x). Extending is better iff the previous cur is positive — a
+    (worth x). Extending is better iff the previous cur is positive - a
     negative prefix can only drag x down, so drop it. Hence
     cur = max(cur + x, x), answer = max over all i (the best subarray ends
     somewhere). Complexity: O(n) time, O(1) space.

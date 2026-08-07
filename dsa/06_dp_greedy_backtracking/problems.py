@@ -9,8 +9,16 @@ from bisect import bisect_left
 
 # ---------------------------------------------------------------- 1. climbing stairs
 def climb_stairs(n: int) -> int:
-    """You climb a staircase of n steps, taking 1 or 2 steps at a time.
-    Return the number of distinct ways to reach the top.
+    """You are climbing a staircase that takes exactly n steps (n >= 0) to
+    reach the top. Each move you climb either 1 or 2 steps. Return the number
+    of distinct ways to reach the top; two ways are distinct if their sequences
+    of moves differ.
+
+    Example:
+        climb_stairs(3) -> 3    (1+1+1, 1+2, 2+1)
+        climb_stairs(5) -> 8
+
+    Note: n = 0 counts as one way (the empty climb).
 
     State: dp[k] = number of ways to climb exactly k steps.
     Decision: the LAST move was a 1-step (from k-1) or a 2-step (from k-2),
@@ -28,8 +36,13 @@ def climb_stairs(n: int) -> int:
 
 # ------------------------------------------------------------------ 2. house robber
 def rob(nums: list[int]) -> int:
-    """Houses hold loot nums[i]; adjacent houses can't both be robbed.
-    Return the maximum total loot.
+    """A row of houses holds loot: nums[i] is the amount in house i. You may
+    rob any subset of the houses, but never two adjacent ones. Return the
+    maximum total loot obtainable; an empty street yields 0.
+
+    Example:
+        rob([1, 2, 3, 1]) -> 4        (rob houses 0 and 2: 1 + 3)
+        rob([2, 7, 9, 3, 1]) -> 12    (2 + 9 + 1)
 
     State: dp[i] = max loot obtainable from houses i..n-1.
     Decision at house i: rob it (nums[i] + dp[i+2]) or skip it (dp[i+1]).
@@ -44,8 +57,16 @@ def rob(nums: list[int]) -> int:
 
 # ------------------------------------------------------------------- 3. coin change
 def coin_change(coins: list[int], amount: int) -> int:
-    """Unlimited coins of the given denominations. Return the fewest coins
-    summing to `amount`, or -1 if impossible.
+    """You are given a list of coin denominations `coins` (positive integers)
+    and a target `amount` (>= 0). Return the minimum number of coins whose
+    values sum to exactly `amount`, or -1 if no combination of the coins can
+    reach it. An amount of 0 requires 0 coins.
+
+    Example:
+        coin_change([1, 2, 5], 11) -> 3    (5 + 5 + 1)
+        coin_change([2], 3) -> -1          (even coins can't make an odd sum)
+
+    Constraints: you have an unlimited supply of every denomination.
 
     State: dp[a] = fewest coins making exactly amount a.
     Decision: the LAST coin used was some c, so dp[a] = 1 + min(dp[a-c]).
@@ -63,7 +84,14 @@ def coin_change(coins: list[int], amount: int) -> int:
 
 # --------------------------------------------------- 4. longest common subsequence
 def longest_common_subsequence(a: str, b: str) -> int:
-    """Return the length of the longest subsequence common to strings a and b.
+    """Given two strings a and b, return the length of their longest common
+    subsequence: the longest string obtainable from both a and b by deleting
+    characters without reordering the survivors. Return 0 when they share no
+    subsequence (e.g. either string is empty).
+
+    Example:
+        longest_common_subsequence("abcde", "ace") -> 3       ("ace")
+        longest_common_subsequence("AGGTAB", "GXTXAYB") -> 4  ("GTAB")
 
     State: dp[i][j] = LCS length of prefixes a[:i] and b[:j].
     Decision on the last characters: equal -> 1 + dp[i-1][j-1];
@@ -85,8 +113,14 @@ def longest_common_subsequence(a: str, b: str) -> int:
 
 # ------------------------------------------------------------------ 5. edit distance
 def edit_distance(a: str, b: str) -> int:
-    """Return the minimum number of insert/delete/replace operations to turn
-    string a into string b (Levenshtein distance).
+    """Given two strings a and b, return the minimum number of single-character
+    edits needed to turn a into b (the Levenshtein distance). An edit inserts
+    one character, deletes one character, or replaces one character; each
+    costs 1.
+
+    Example:
+        edit_distance("horse", "ros") -> 3    (h->r, drop the r, drop the e)
+        edit_distance("same", "same") -> 0
 
     State: dp[i][j] = min ops turning a[:i] into b[:j].
     Decision (three-way, on the last operation): match/replace via
@@ -108,7 +142,14 @@ def edit_distance(a: str, b: str) -> int:
 
 # ------------------------------------------- 6. longest increasing subsequence (x2)
 def lis_quadratic(nums: list[int]) -> int:
-    """Return the length of the longest strictly increasing subsequence.
+    """Given an integer list nums, return the length of its longest strictly
+    increasing subsequence: elements keep their relative order but need not be
+    contiguous, and equal values do NOT count as increasing. Return 0 for an
+    empty list.
+
+    Example:
+        lis_quadratic([10, 9, 2, 5, 3, 7, 101, 18]) -> 4    (2, 3, 7, 101)
+        lis_quadratic([7, 7, 7, 7]) -> 1    (strictly increasing: ties break it)
 
     State: dp[i] = LIS length ENDING exactly at index i (pinning the endpoint
     encodes the last value, which extension needs).
@@ -127,7 +168,13 @@ def lis_quadratic(nums: list[int]) -> int:
 
 
 def lis_nlogn(nums: list[int]) -> int:
-    """Same problem in O(n log n) via patience sorting.
+    """The same problem as lis_quadratic - given an integer list nums, return
+    the length of its longest strictly increasing subsequence - but this time
+    meeting an O(n log n) time bound.
+
+    Example:
+        lis_nlogn([0, 1, 0, 3, 2, 3]) -> 4    (0, 1, 2, 3)
+        lis_nlogn([3, 1, 2]) -> 2    (1, 2)
 
     Invariant: tails[k] = smallest possible tail value of any increasing
     subsequence of length k+1 seen so far; tails is strictly increasing.
@@ -148,7 +195,17 @@ def lis_nlogn(nums: list[int]) -> int:
 
 # ----------------------------------------------------------------- 7. 0/1 knapsack
 def knapsack_2d(weights: list[int], values: list[int], capacity: int) -> int:
-    """Each item used at most once; maximize value within the weight capacity.
+    """0/1 knapsack: item i has weight weights[i] and value values[i] (parallel
+    lists), and your knapsack carries at most `capacity` total weight. Choose a
+    subset of items - each item taken at most once - whose weights sum to at
+    most capacity, and return the maximum achievable total value (0 if nothing
+    fits).
+
+    Example:
+        knapsack_2d([1, 3, 4, 5], [1, 4, 5, 7], 7) -> 9    (weights 3 + 4)
+        knapsack_2d([2], [10], 1) -> 0    (nothing fits)
+
+    Constraints: items are indivisible; each is used 0 or 1 times.
 
     State: dp[i][c] = best value using only the FIRST i items with capacity c
     (the extra dimension records which items are still undecided).
@@ -169,7 +226,15 @@ def knapsack_2d(weights: list[int], values: list[int], capacity: int) -> int:
 
 
 def knapsack_1d(weights: list[int], values: list[int], capacity: int) -> int:
-    """1-D compression of knapsack_2d: row i reads only row i-1, so overwrite
+    """The same 0/1 knapsack problem as knapsack_2d - parallel weights/values
+    lists, a weight capacity, each item usable at most once, maximize total
+    value - solved again using only O(capacity) extra space.
+
+    Example:
+        knapsack_1d([1, 3, 4, 5], [1, 4, 5, 7], 7) -> 9
+        knapsack_1d([2], [10], 6) -> 10    (one item: used once, not three times)
+
+    Key insight: 1-D compression of knapsack_2d: row i reads only row i-1, so overwrite
     one array in place -- but iterate capacity DOWNWARD so dp[c - w] is still
     the previous item's row. Upward iteration would let an item be taken
     repeatedly (it silently becomes unbounded knapsack -- the classic bug).
@@ -184,8 +249,14 @@ def knapsack_1d(weights: list[int], values: list[int], capacity: int) -> int:
 
 # ------------------------------------------------------------------ 8. unique paths
 def unique_paths(m: int, n: int) -> int:
-    """A robot at the top-left of an m x n grid moves only right or down.
-    Return the number of distinct paths to the bottom-right.
+    """A robot stands on the top-left cell of an m x n grid (m rows, n columns,
+    both >= 1) and wants to reach the bottom-right cell. Every move goes
+    exactly one cell right or one cell down. Return the number of distinct
+    paths from start to finish.
+
+    Example:
+        unique_paths(3, 2) -> 3     (DDR, DRD, RDD)
+        unique_paths(3, 7) -> 28
 
     State: dp[c] (current row) = number of paths reaching cell (r, c).
     Decision: the last move came from above (dp[c] before overwrite) or from
@@ -201,7 +272,14 @@ def unique_paths(m: int, n: int) -> int:
 
 # -------------------------------------------------------------------- 9. word break
 def word_break(s: str, word_dict: list[str]) -> bool:
-    """Return True if s can be segmented into a sequence of dictionary words.
+    """Given a string s and a list of dictionary words word_dict, return True
+    if s can be split into a sequence of dictionary words concatenated in
+    order, else False. Each word may be reused any number of times; the empty
+    string is trivially segmentable.
+
+    Example:
+        word_break("leetcode", ["leet", "code"]) -> True    ("leet" + "code")
+        word_break("catsandog", ["cats", "dog", "sand", "and", "cat"]) -> False
 
     State: dp[i] = True iff the prefix s[:i] can be segmented.
     Decision: what was the LAST word? Some s[j:i] in the dictionary with
@@ -222,7 +300,14 @@ def word_break(s: str, word_dict: list[str]) -> bool:
 
 # ---------------------------------------------------------- 10. subsets (backtrack)
 def subsets(nums: list[int]) -> list[list[int]]:
-    """Return all 2^n subsets of a list of distinct integers.
+    """Given a list nums of DISTINCT integers, return its power set: every
+    possible subset, including the empty subset and nums itself, as a list of
+    lists. Any order is fine, but no subset may appear twice; the result has
+    exactly 2^n entries.
+
+    Example:
+        subsets([1, 2]) -> [[], [1], [1, 2], [2]]    (in any order)
+        subsets([]) -> [[]]
 
     Backtracking: each node's children are the elements with index >= start;
     the start index enforces one canonical order per subset, so {1,2} and
@@ -246,7 +331,13 @@ def subsets(nums: list[int]) -> list[list[int]]:
 
 # ------------------------------------------------------ 11. permutations (backtrack)
 def permutations(nums: list[int]) -> list[list[int]]:
-    """Return all n! orderings of a list of distinct integers.
+    """Given a list nums of DISTINCT integers, return every possible ordering
+    (permutation) of its elements as a list of lists, in any order. The result
+    has exactly n! entries, each containing all of nums exactly once.
+
+    Example:
+        permutations([1, 2]) -> [[1, 2], [2, 1]]
+        permutations([1, 2, 3]) -> 6 lists: [1, 2, 3], [1, 3, 2], ..., [3, 2, 1]
 
     Backtracking: order matters, so there is no start index -- children are
     ALL unused elements, tracked with a used[] array. Contrast with subsets:
@@ -276,8 +367,15 @@ def permutations(nums: list[int]) -> list[list[int]]:
 
 # ----------------------------------------------------------- 12a. N-queens (count)
 def n_queens(n: int) -> tuple[int, list[str] | None]:
-    """Place n queens on an n x n board so none attack. Return
-    (number of solutions, one solution as a list of strings, or None).
+    """Place n queens on an n x n chessboard so that no two attack each other:
+    no two queens share a row, column, or diagonal. Return a tuple
+    (count, board) where count is the total number of distinct solutions and
+    board is any one solution drawn as n strings of '.' and 'Q' (one queen per
+    row), or None when no solution exists.
+
+    Example:
+        n_queens(4) -> (2, [".Q..", "...Q", "Q...", "..Q."])
+        n_queens(3) -> (0, None)    (a 3x3 board has no solution)
 
     Backtracking, one queen per row (every solution has exactly one, so this
     loses nothing and bounds branching by n). O(1) constraint checks via sets:
@@ -313,8 +411,15 @@ def n_queens(n: int) -> tuple[int, list[str] | None]:
 
 # ------------------------------------------- 12b. non-overlapping intervals (greedy)
 def erase_overlap_intervals(intervals: list[list[int]]) -> int:
-    """Return the minimum number of intervals to remove so the rest are
-    pairwise non-overlapping (touching endpoints do not overlap).
+    """Given a list of intervals [start, end], return the minimum number of
+    intervals to remove so that the remaining intervals are pairwise
+    non-overlapping. Intervals that merely touch at an endpoint, like [1, 2]
+    and [2, 3], do NOT overlap; duplicate intervals do.
+
+    Example:
+        erase_overlap_intervals([[1, 2], [2, 3], [3, 4], [1, 3]]) -> 1
+            (drop [1, 3]; the rest chain without overlap)
+        erase_overlap_intervals([[1, 2], [1, 2], [1, 2]]) -> 2
 
     Greedy: minimizing removals = maximizing the kept set, and interval
     scheduling by EARLIEST FINISH TIME is optimal (exchange argument: the
@@ -335,17 +440,27 @@ def erase_overlap_intervals(intervals: list[list[int]]) -> int:
 
 # ------------------------------------------------------- 13. word search (backtrack)
 def word_search(board: list[list[str]], word: str) -> bool:
-    """Can `word` be traced in the grid through adjacent (up/down/left/right)
-    cells, using each cell at most once?
+    """Given an m x n grid of single-character strings `board` and a string
+    `word`, return True if word can be spelled by starting at any cell and
+    stepping between horizontally or vertically adjacent cells, using each
+    cell at most once per path. The board must be unchanged when the call
+    returns.
 
-    Backtracking on a grid — the choose/explore/unchoose template of notes.md
+    Example:
+        board = [["A", "B", "C", "E"],
+                 ["S", "F", "C", "S"],
+                 ["A", "D", "E", "E"]]
+        word_search(board, "ABCCED") -> True
+        word_search(board, "ABCB") -> False    (would have to reuse the B)
+
+    Backtracking on a grid - the choose/explore/unchoose template of notes.md
     4.1 where "choose" = step onto a cell and mark it visited IN PLACE
     (board[r][c] = '#'), and "unchoose" = restore the letter so sibling paths
     see a clean board. The visited-restore is the whole discipline: forget it
     and either paths illegally reuse cells (never marking) or later starts see
-    a corrupted grid (never restoring). No DP here — paths don't overlap as
+    a corrupted grid (never restoring). No DP here - paths don't overlap as
     subproblems because "which cells are used" is part of the state.
-    Time O(m*n * 3^L) (4 choices at the first step, then at most 3 — you never
+    Time O(m*n * 3^L) (4 choices at the first step, then at most 3 - you never
     go back the way you came), space O(L) recursion.
     """
     rows, cols = len(board), len(board[0])
@@ -370,11 +485,17 @@ def word_search(board: list[list[str]], word: str) -> bool:
 
 # ------------------------------------------------------------ 14. jump game (greedy)
 def can_jump(nums: list[int]) -> bool:
-    """From index i you may jump up to nums[i] forward. Starting at index 0,
-    can you reach the last index?
+    """You start at index 0 of nums, where nums[i] is the MAXIMUM number of
+    positions you may jump forward from index i (any shorter jump is also
+    allowed). Return True if some sequence of jumps reaches the last index,
+    else False. A single-element array counts as already there.
+
+    Example:
+        can_jump([2, 3, 1, 1, 4]) -> True     (0 -> 1 -> 4)
+        can_jump([3, 2, 1, 0, 4]) -> False    (every path lands on the 0)
 
     Greedy furthest-reach sweep. The single scalar `furthest` loses nothing:
-    the reachable set is exactly the prefix [0, furthest] — the exchange
+    the reachable set is exactly the prefix [0, furthest] - the exchange
     argument proving that (any witness path can be swapped for one the scalar
     summarizes) is worked out in notes.md 5.1; this is its transcription.
     If the scan ever stands past `furthest`, no path exists.
@@ -392,23 +513,31 @@ def can_jump(nums: list[int]) -> bool:
 
 # ---------------------------------------------------------- 15. gas station (greedy)
 def can_complete_circuit(gas: list[int], cost: list[int]) -> int:
-    """gas[i] fuel is gained at station i; cost[i] is spent driving to station
-    i+1 (circular). Return the unique starting station from which the full
-    circuit can be driven, or -1 if impossible.
+    """n gas stations sit on a circular route: filling up at station i gains
+    gas[i] fuel, and driving from station i to station i+1 (wrapping around)
+    costs cost[i]. Starting with an empty tank at some station, return the
+    index of the station from which you can complete one full lap without the
+    tank ever going negative, or -1 if no such start exists. If an answer
+    exists it is guaranteed unique.
+
+    Example:
+        can_complete_circuit([1, 2, 3, 4, 5], [3, 4, 5, 1, 2]) -> 3
+            (start at 3 with 4 gas; the tank stays >= 0 all the way around)
+        can_complete_circuit([2, 3, 4], [3, 4, 3]) -> -1    (total gas < cost)
 
     Greedy restart. Sweep with a running tank; whenever the tank goes negative
     at station i, restart the candidate at i+1. Two claims prove it:
     (1) If a candidate start s fails first at i, no station in (s, i] can
     succeed either: any such station t was reached from s with tank >= 0, so
     starting AT t (tank exactly 0) has no more fuel at every point up to i and
-    fails there too — skipping straight to i+1 discards nothing.
-    (2) If total gas >= total cost, a solution exists — so checking the final
+    fails there too - skipping straight to i+1 discards nothing.
+    (2) If total gas >= total cost, a solution exists - so checking the final
     candidate against the whole sum suffices, no second lap needed. Proof:
     let s be the last restart. Every earlier candidate block [s_k, s_{k+1})
     ended with a NEGATIVE partial sum; total = (negative blocks) + (s's tail
     sum from s to n-1) >= 0 forces the tail to be positive enough that adding
     each negative block back, in order, while wrapping around, never dips the
-    running tank below zero — i.e., s completes the circuit.
+    running tank below zero - i.e., s completes the circuit.
     Time O(n), space O(1).
     """
     if sum(gas) < sum(cost):
