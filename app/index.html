@@ -158,6 +158,23 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .md hr { border-color:var(--line); margin:1.4rem 0; }
   .md input[type=checkbox] { accent-color:#ffa116; width:.95rem; height:.95rem; margin-right:.35rem; }
   .md img { max-width:100%; }
+  /* reading view: centered ~72ch column; on wide viewports an "On this page"
+     rail sits fixed on the right and the column re-centers in the remaining
+     space (padding-right on the wrap). Below 1280px the rail collapses into
+     a "Contents" details block at the top of the document instead. */
+  .doc-outline { display:none; }
+  .toc-link { display:block; padding:.2rem .6rem; border-left:2px solid transparent;
+              color:var(--mut); font-size:12.5px; line-height:1.5; border-radius:0 6px 6px 0; }
+  .toc-link:hover { color:var(--text-strong); background:var(--panel2); }
+  .doc-outline .toc-link.active { color:var(--accent-text); border-left-color:var(--accent); font-weight:600; }
+  .toc-link.lvl3 { padding-left:1.5rem; }
+  @media (min-width:1280px) {
+    .doc-wrap.has-outline { padding-right:17rem; }
+    .doc-wrap.has-outline .doc-outline { display:block; position:fixed; top:4.5rem; right:1rem;
+      width:15rem; max-height:calc(100vh - 6rem); overflow-y:auto; overscroll-behavior:contain;
+      padding-bottom:1rem; }
+    .doc-toc { display:none; }
+  }
   /* roving keyboard highlight on the problems table */
   tr.rove { outline:2px solid var(--accent); outline-offset:-2px; background:rgba(255,161,22,.06); }
   ::-webkit-scrollbar { width:10px; height:10px; }
@@ -202,18 +219,30 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g,
 /* Rewrite links inside rendered markdown so relative repo links stay in the
    SPA: "01_foundations/notes.md" inside ml/README.md resolves against the
    current file's directory and becomes #/notes/ml/01_foundations/notes.md.
-   External links open in a new tab; non-viewable repo files (images, ipynb)
+   External links open in a new tab; non-viewable repo files (images, data)
    become inert with a tooltip pointing at the editor. */
 function fixMdLinks(container, basePath) {
   if (!container) return;
   container.querySelectorAll('a[href]').forEach(a => {
     const href = a.getAttribute('href');
     if (/^(https?:|mailto:)/.test(href)) { a.target = '_blank'; a.rel = 'noopener'; return; }
-    if (href.startsWith('#')) return;                       // in-page anchor
+    if (href.startsWith('#')) {
+      /* in-page anchor: scroll to the slugified heading id ourselves - letting
+         the raw fragment hit location.hash would bounce off the SPA router */
+      a.addEventListener('click', ev => {
+        ev.preventDefault();
+        const frag = decodeURIComponent(href.slice(1));
+        const el = document.getElementById(frag) || document.getElementById(slugify(frag));
+        if (el) el.scrollIntoView({
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+          block: 'start' });
+      });
+      return;
+    }
     let resolved;
     try { resolved = new URL(href, 'file:///' + basePath).pathname.replace(/^\//, ''); }
     catch (e) { return; }
-    if (/\.(md|py)$/.test(resolved)) {
+    if (/\.(md|py|ipynb)$/.test(resolved)) {
       a.href = '#/notes/' + encodeURIComponent(resolved);
     } else {
       a.removeAttribute('href');
@@ -292,6 +321,11 @@ let treeCache = null;
 async function getTree() {
   if (!treeCache) treeCache = await api('/api/tree');
   return treeCache;
+}
+let nbIndexCache = null;
+async function getNotebooks() {
+  if (!nbIndexCache) nbIndexCache = await api('/api/notebooks');
+  return nbIndexCache;
 }
 
 /* local (not UTC) YYYY-MM-DD */
@@ -478,9 +512,9 @@ async function openPalette() {
         items.push({ kind: 'problem', label: p.name, sub: p.folder_title, hash: '#/problem/' + p.id }));
     } catch (e) {}
     try {
-      /* .py files open as notebooks by default; .md stay read-only notes */
+      /* .py and .ipynb files open as notebooks by default; .md stay read-only notes */
       (await getTree()).forEach(g => g.folders.forEach(f => f.files.forEach(x => {
-        const nb = x.path.endsWith('.py');
+        const nb = /\.(py|ipynb)$/.test(x.path);
         items.push({ kind: nb ? 'notebook' : 'note', label: x.title, sub: x.path,
                      hash: (nb ? '#/nb/' : '#/notes/') + encodeURIComponent(x.path) });
       })));
@@ -889,52 +923,190 @@ async function viewProblem(app, pid) {
 }
 
 /* ------------------------------------------------------------ view: notes */
+/* Reading-first notes: #/notes is the module index landing; #/notes/<path>
+   is a full-width centered document (no file tree). The cached /api/tree
+   payload supplies the breadcrumb module title and the prev/next reading
+   order; an h2/h3 outline rides along on wide viewports. */
+function folderTitle(name) {
+  return String(name || '').replace(/^\d+_/, '').replace(/_/g, ' ')
+    .replace(/\b[a-z]/g, c => c.toUpperCase());
+}
+function slugify(t) {
+  return String(t).toLowerCase().trim()
+    .replace(/[^a-z0-9\s_-]+/g, '').trim().replace(/[\s_]+/g, '-') || 'section';
+}
+/* flatten the tree into reading order and locate a path's entry + neighbors */
+function docNav(tree, path) {
+  const flat = [];
+  (tree || []).forEach(g => g.folders.forEach(f => f.files.forEach(x =>
+    flat.push({ path: x.path, title: x.title, folder: f.name,
+                folderTitle: folderTitle(f.name) }))));
+  const i = flat.findIndex(e => e.path === path);
+  return { entry: i >= 0 ? flat[i] : null,
+           prev: i > 0 ? flat[i - 1] : null,
+           next: i >= 0 && i < flat.length - 1 ? flat[i + 1] : null };
+}
+/* notebooks open as notebooks, everything else as read-only notes */
+const docHash = e => (/\.(py|ipynb)$/.test(e.path) ? '#/nb/' : '#/notes/') + encodeURIComponent(e.path);
+/* quiet single-row breadcrumb: Notes / module / title, filename in mono,
+   compact prev/next arrows (plus any view-specific text buttons) at right */
+function crumbRow(nav, path, title, extras) {
+  const parts = path.split('/');
+  const mod = nav.entry ? nav.entry.folderTitle
+            : folderTitle(parts.length > 1 ? parts[parts.length - 2] : parts[0]);
+  const pager = [['Previous', nav.prev, '←', '['], ['Next', nav.next, '→', ']']]
+    .map(([dir, e, arrow, key]) => e
+      ? `<a href="${docHash(e)}" class="btn btn-text text-mut !px-2"
+           title="${esc(dir + ': ' + e.title)} (${key})">${arrow}</a>`
+      : `<span class="btn btn-text !px-2 opacity-30 select-none" aria-hidden="true">${arrow}</span>`)
+    .join('');
+  return `
+  <div class="flex items-center gap-x-2 gap-y-1 flex-wrap text-[13px] mb-6">
+    <a href="#/notes" class="text-mut hover:text-accent">Notes</a>
+    <span class="text-mut opacity-50" aria-hidden="true">/</span>
+    <span class="text-mut">${esc(mod)}</span>
+    <span class="text-mut opacity-50" aria-hidden="true">/</span>
+    <span class="font-medium text-zinc-100">${esc(title)}</span>
+    <span class="font-mono text-[11px] text-mut">${esc(parts[parts.length - 1])}</span>
+    <div class="ml-auto flex items-center gap-1 shrink-0">${extras || ''}${pager}</div>
+  </div>`;
+}
+/* end-of-document pager: full-title prev/next, keyboard hint in between;
+   crossing a folder boundary labels next with the module it enters */
+function docFooter(nav) {
+  const prev = nav.prev
+    ? `<a href="${docHash(nav.prev)}" class="btn btn-text text-sm text-left">← ${esc(nav.prev.title)}</a>`
+    : '<span></span>';
+  const crosses = nav.next && nav.entry && nav.next.folder !== nav.entry.folder;
+  const next = nav.next
+    ? `<a href="${docHash(nav.next)}" class="btn btn-text text-sm text-right">${esc(crosses ? 'Next module: ' + nav.next.folderTitle : nav.next.title)} →</a>`
+    : '<span></span>';
+  return `<div class="mt-10 pt-4 border-t border-line flex items-center justify-between gap-3">
+    ${prev}
+    <span class="text-[11px] text-mut shrink-0" title="keyboard shortcuts">[ prev · ] next</span>
+    ${next}</div>`;
+}
+/* [ / ] navigate prev/next; ignored while typing in an editor or field */
+function docNavKeys(nav) {
+  return e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target;
+    if (t && t.closest && t.closest('.CodeMirror, input, textarea, select, [contenteditable]')) return;
+    if (e.key === '[' && nav.prev) location.hash = docHash(nav.prev);
+    else if (e.key === ']' && nav.next) location.hash = docHash(nav.next);
+  };
+}
+/* Give every h2/h3 a stable slug id (duplicates get -2, -3, …), then, when
+   there are >= 3 headings, build the outline twice from the same links: a
+   fixed right rail (>= 1280px) and a "Contents" details block for narrower
+   viewports. Returns the IntersectionObserver driving the active highlight
+   (or null) so the caller can disconnect it on route cleanup. */
+function buildOutline(rootEl, wrapEl, scrollRoot) {
+  const seen = {};
+  const hs = Array.from(rootEl.querySelectorAll('h2, h3'));
+  hs.forEach(h => {
+    const s = slugify(h.textContent);
+    const n = (seen[s] || 0) + 1; seen[s] = n;
+    h.id = n > 1 ? s + '-' + n : s;
+  });
+  if (hs.length < 3) return null;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const links = hs.map(h =>
+    `<a href="#${h.id}" data-target="${h.id}" class="toc-link${h.tagName === 'H3' ? ' lvl3' : ''}">${esc(h.textContent)}</a>`).join('');
+  const rail = document.createElement('nav');
+  rail.className = 'doc-outline';
+  rail.setAttribute('aria-label', 'On this page');
+  rail.innerHTML = `<div class="microlabel text-mut mb-2 px-2.5">On this page</div>${links}`;
+  wrapEl.appendChild(rail);
+  wrapEl.classList.add('has-outline');
+  const det = document.createElement('details');
+  det.className = 'doc-toc card !rounded-lg px-4 py-2.5 mb-5';
+  det.innerHTML = `<summary class="cursor-pointer microlabel text-mut select-none">Contents</summary>
+    <div class="mt-2 pb-1">${links}</div>`;
+  rootEl.parentNode.insertBefore(det, rootEl);
+  wrapEl.querySelectorAll('.toc-link').forEach(a => a.addEventListener('click', ev => {
+    ev.preventDefault();   // raw fragment writes would bounce off the router
+    const el = document.getElementById(a.dataset.target);
+    if (el) el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    det.open = false;
+  }));
+  const visible = new Set();
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(en => en.isIntersecting ? visible.add(en.target.id) : visible.delete(en.target.id));
+    const act = hs.find(h => visible.has(h.id));
+    if (!act) return;
+    rail.querySelectorAll('.toc-link').forEach(a =>
+      a.classList.toggle('active', a.dataset.target === act.id));
+  }, { root: scrollRoot, rootMargin: '0px 0px -55% 0px' });
+  hs.forEach(h => io.observe(h));
+  return io;
+}
+
 async function viewNotes(app, encodedPath) {
   const epoch = routeEpoch;
-  app.innerHTML = spinner('Loading notes tree…');
-  let tree;
-  try { tree = await api('/api/tree'); treeCache = tree; }
-  catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
-  if (epoch !== routeEpoch) return;
   const current = encodedPath ? decodeURIComponent(encodedPath) : null;
 
-  app.innerHTML = `
-  <div class="flex h-full">
-    <aside class="w-80 shrink-0 overflow-y-auto border-r border-line p-3 text-sm">
-      ${tree.map(g => `
-        <div class="mb-4">
-          <div class="px-2 py-1 microlabel text-mut">${esc(g.group)}</div>
-          ${g.folders.map(f => `
-            <details ${f.files.some(x => x.path === current) ? 'open' : ''} class="ml-1">
-              <summary class="px-2 py-1 rounded-md cursor-pointer text-zinc-400 hover:text-zinc-200 hover:bg-panel2 text-xs font-mono">${esc(f.name)}</summary>
-              ${f.files.map(x => `
-                <a href="#/notes/${encodeURIComponent(x.path)}"
-                   class="block ml-3 px-2 py-1 rounded-md truncate text-[13px] ${x.path === current ? 'bg-panel2 text-accent font-medium' : 'text-zinc-300 hover:bg-panel2'}"
-                   title="${esc(x.path)}">${esc(x.title)}</a>`).join('')}
-            </details>`).join('')}
+  if (!current) {
+    /* landing: the curriculum-ordered notebooks index */
+    app.innerHTML = spinner('Loading notebook index…');
+    let mods;
+    try { mods = await getNotebooks(); }
+    catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
+    if (epoch !== routeEpoch) return;
+    app.innerHTML = `
+    <div class="max-w-3xl mx-auto p-8">
+      <h1 class="page-title mb-1">Notebooks</h1>
+      <div class="microlabel text-mut mb-6">curriculum order · checklist ticks in notes save locally in this browser, never to the repo</div>
+      ${mods.map(m => `
+        <div class="card p-4 mb-4">
+          <div class="flex items-baseline gap-2.5 mb-1.5">
+            <span class="microlabel text-mut">${esc(m.track)}</span>
+            <span class="font-semibold text-zinc-100">${esc(m.folder_title)}</span>
+            ${m.notes_path ? `<a class="btn btn-text text-mut text-xs ml-auto shrink-0"
+               href="#/notes/${encodeURIComponent(m.notes_path)}">notes</a>` : ''}
+          </div>
+          ${m.notebooks.map(nb => `
+            <a href="#/nb/${encodeURIComponent(nb.path)}" class="block px-2.5 py-2 -mx-1 rounded-lg hover:bg-panel2">
+              <div class="flex items-baseline gap-2 flex-wrap">
+                <span class="font-medium text-zinc-100">${esc(nb.title)}</span>
+                <span class="font-mono text-[11px] text-mut">${esc(nb.file)}</span>
+              </div>
+              ${nb.blurb ? `<div class="text-[13px] text-mut mt-0.5 truncate">${esc(nb.blurb)}</div>` : ''}
+            </a>`).join('')}
         </div>`).join('')}
-    </aside>
-    <section id="notes-body" class="flex-1 overflow-y-auto p-8">
-      ${current ? spinner('Loading file…') : `<div class="text-mut text-sm mt-16 text-center">
-        Pick a file from the sidebar - checklist ticks save locally in this browser, never to the repo.</div>`}
-    </section>
-  </div>`;
+    </div>`;
+    return;
+  }
 
-  if (!current) return;
-  let doc;
-  try { doc = await api('/api/md?path=' + encodeURIComponent(current)); }
-  catch (e) { if (epoch === routeEpoch) $('#notes-body').innerHTML = errBox(e); return; }
+  app.innerHTML = spinner('Loading file…');
+  let doc, tree;
+  try {
+    [doc, tree] = await Promise.all([
+      api('/api/md?path=' + encodeURIComponent(current)),
+      getTree().catch(() => []),   // breadcrumb degrades, the document still renders
+    ]);
+  } catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
   if (epoch !== routeEpoch) return;
-  const labBtn = current.endsWith('.py')
-    ? `<div class="max-w-3xl mx-auto mb-3 flex justify-end gap-2">
-         <a href="#/nb/${encodeURIComponent(current)}" class="btn btn-primary">
-           Open as notebook</a>
-         <a href="#/lab/${encodeURIComponent(current)}" class="btn btn-secondary">
-           Playground</a>
-       </div>` : '';
-  $('#notes-body').innerHTML =
-    labBtn + `<div class="max-w-3xl mx-auto md" id="md-root">${md(doc.content)}</div>`;
+
+  const nav = docNav(tree, current);
+  const title = (nav.entry && nav.entry.title) || current.split('/').pop();
+  /* .ipynb gets only the notebook button - the whole-file Playground run is
+     a .py-only concept */
+  const extras = current.endsWith('.ipynb')
+    ? `<a href="#/nb/${encodeURIComponent(current)}" class="btn btn-text text-accent">Open as notebook</a>`
+    : current.endsWith('.py')
+    ? `<a href="#/nb/${encodeURIComponent(current)}" class="btn btn-text text-accent">Open as notebook</a>
+       <a href="#/lab/${encodeURIComponent(current)}" class="btn btn-text text-mut">Playground</a>` : '';
+  app.innerHTML = `
+  <div id="doc-wrap" class="doc-wrap">
+    <div class="max-w-[72ch] mx-auto px-6 py-8">
+      ${crumbRow(nav, current, title, extras)}
+      <div class="md" id="md-root">${md(doc.content)}</div>
+      ${docFooter(nav)}
+    </div>
+  </div>`;
   fixMdLinks($('#md-root'), current);
+  const outlineIO = buildOutline($('#md-root'), $('#doc-wrap'), app);
   /* checklists: real checkboxes, state in localStorage per file (UI-only).
      Keys hash the item's text (not its index) so edits to the doc don't
      silently shift every saved tick onto the wrong line. */
@@ -955,6 +1127,12 @@ async function viewNotes(app, encodedPath) {
       store.set(key, cur);
     });
   });
+  const keyH = docNavKeys(nav);
+  document.addEventListener('keydown', keyH);
+  cleanup = () => {
+    document.removeEventListener('keydown', keyH);
+    if (outlineIO) outlineIO.disconnect();
+  };
 }
 
 /* -------------------------------------------------------------- view: lab */
@@ -1078,10 +1256,11 @@ async function viewLab(app, path) {
 }
 
 /* --------------------------------------------------------- view: notebook */
-/* Jupyter-style cells over a curriculum script: the server splits the file
-   at its section banners, each cell runs in one persistent kernel process,
-   so state (imports, defs, arrays) carries from cell to cell. Cell edits are
-   session-only; the repo file is never written. */
+/* Jupyter-style cells over a curriculum file: .ipynb files use their own
+   cells verbatim; .py scripts are split at their section banners. Each cell
+   runs in one persistent kernel process, so state (imports, defs, arrays)
+   carries from cell to cell. Cell edits are session-only; the repo file is
+   never written. */
 const stopKernel = sid => {
   if (!sid) return;
   const body = JSON.stringify({ session: sid });
@@ -1097,23 +1276,51 @@ const stopKernel = sid => {
   } catch (e) {}
 };
 
+/* .py prose cell source -> readable text: comment markers and banner rules
+   are stripped; a module docstring keeps its text as-is (md() renders both).
+   .ipynb prose cells are already markdown and skip this entirely. */
+function proseText(src) {
+  const lines = src.replace(/\s+$/, '').split('\n');
+  const head = [];
+  let i = 0;
+  while (i < lines.length && /^\s*(#|$)/.test(lines[i])) {
+    if (!/^\s*#\s*[-=]{3,}/.test(lines[i])) head.push(lines[i].replace(/^\s*#\s?/, ''));
+    i++;
+  }
+  let tail = lines.slice(i).join('\n').trim();
+  const m = tail.match(/^[A-Za-z]{0,2}("""|''')([\s\S]*?)\1$/);
+  if (m) tail = m[2].trim();                    // docstring text, verbatim
+  else if (tail) tail = tail.split('\n')        // stray comments after it
+    .filter(l => !/^\s*#\s*[-=]{3,}/.test(l))
+    .map(l => l.replace(/^\s*#\s?/, '')).join('\n');
+  return [head.join('\n').trim(), tail].filter(Boolean).join('\n\n');
+}
+
 async function viewNb(app, path) {
   const epoch = routeEpoch;
   app.innerHTML = spinner('Loading notebook…');
-  let doc, session = null;
+  let doc, tree, session = null;
   try {
-    doc = await api('/api/nb/cells?path=' + encodeURIComponent(path));
+    [doc, tree] = await Promise.all([
+      api('/api/nb/cells?path=' + encodeURIComponent(path)),
+      getTree().catch(() => []),   // breadcrumb degrades, the notebook still opens
+    ]);
     if (epoch !== routeEpoch) return;
     session = (await api('/api/nb/start', { path })).session;
   } catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
   if (epoch !== routeEpoch) { stopKernel(session); return; }
+  const nav = docNav(tree, path);
 
   const S = { session, cells: [], counter: 0, busy: false, restarting: false, stopped: false };
+  /* "ipynb": prose cells are real markdown, rendered as-is; "py": prose cells
+     are comment/docstring blocks that go through proseText() first */
+  const fmt = doc.format || 'py';
 
   app.innerHTML = `
   <div class="max-w-4xl mx-auto p-6">
+    ${crumbRow(nav, path, doc.title || (nav.entry && nav.entry.title) || path,
+      `<a class="btn btn-text text-mut" href="#/notes/${encodeURIComponent(path)}">Read-only view</a>`)}
     <div class="flex items-center gap-3 flex-wrap">
-      <span class="font-mono text-[15px] font-semibold text-zinc-100">${esc(path)}</span>
       <span class="flex items-center gap-1.5 text-xs text-mut">
         <span id="nb-dot" class="inline-block w-2 h-2 rounded-full bg-good"></span>
         <span id="nb-status" class="tnum">idle</span>
@@ -1121,7 +1328,7 @@ async function viewNb(app, path) {
       <div class="ml-auto flex items-center gap-2">
         <button id="nb-runall" class="btn btn-secondary">Run all</button>
         <button id="nb-restart" class="btn btn-secondary">Restart kernel</button>
-        <a class="btn btn-text text-mut" href="#/notes/${encodeURIComponent(path)}">Read-only view</a>
+        ${doc.notes ? `<a class="btn btn-text text-mut" href="#/notes/${encodeURIComponent(doc.notes)}">notes</a>` : ''}
       </div>
     </div>
     <div class="microlabel text-mut mt-1.5 mb-5">edits are session-only, the file on disk is untouched</div>
@@ -1129,6 +1336,7 @@ async function viewNb(app, path) {
     <div class="mt-1">
       <button id="nb-add" class="btn btn-text text-mut text-sm" title="Append an empty scratch cell (this session only)">+ add cell</button>
     </div>
+    ${docFooter(nav)}
   </div>`;
 
   /* kernel status: dot + label, elapsed ticking while a cell runs */
@@ -1158,8 +1366,28 @@ async function viewNb(app, path) {
   const cellsEl = $('#nb-cells');
   const code = c => c.cm ? c.cm.getValue() : c.ta.value;
 
-  function makeCell(source) {
+  function makeCell(source, kind) {
     const i = S.cells.length;
+    if (kind === 'prose') {
+      /* reading prose, not an editor: no card chrome, no gutter number, not
+         runnable; "view source" keeps the raw text one click away */
+      const el = document.createElement('div');
+      el.className = 'nb-prose group mb-4 pl-14 pr-2';
+      el.innerHTML = `
+        <div class="md text-[.92rem]">${md(fmt === 'ipynb' ? source : proseText(source))}</div>
+        <button class="nb-src-btn btn btn-text text-mut text-xs opacity-0 group-hover:opacity-100 focus-visible:opacity-100">view source</button>
+        <pre class="nb-src hidden mt-1 p-3 rounded-lg text-xs font-mono whitespace-pre overflow-x-auto bg-[var(--pre-bg)] text-[var(--pre-text)] border border-[var(--code-border)]"></pre>`;
+      el.querySelector('.nb-src').textContent = source.replace(/\n+$/, '');
+      cellsEl.appendChild(el);
+      const btn = el.querySelector('.nb-src-btn'), pre = el.querySelector('.nb-src');
+      btn.onclick = () => {
+        const hidden = pre.classList.toggle('hidden');
+        btn.textContent = hidden ? 'view source' : 'hide source';
+      };
+      const cell = { el, kind: 'prose', cm: null, ta: null, order: null };
+      S.cells.push(cell);
+      return cell;
+    }
     const el = document.createElement('div');
     el.className = 'card mb-3 overflow-hidden';
     el.innerHTML = `
@@ -1174,7 +1402,8 @@ async function viewNb(app, path) {
       </div>`;
     cellsEl.appendChild(el);
     const cell = {
-      el, gut: el.querySelector('.nb-gut'), out: el.querySelector('.nb-out'),
+      el, kind: 'code',
+      gut: el.querySelector('.nb-gut'), out: el.querySelector('.nb-out'),
       so: el.querySelector('.nb-stdout'), se: el.querySelector('.nb-stderr'),
       ms: el.querySelector('.nb-ms'), cm: null, ta: null, order: null,
     };
@@ -1236,6 +1465,7 @@ async function viewNb(app, path) {
   function markAllUnrun() {
     S.counter = 0;
     S.cells.forEach(c => {
+      if (c.kind === 'prose') return;
       c.order = null;
       setGutter(c, '[ ]', false);
       /* outputs stay visible, but faded until their cell is re-run */
@@ -1267,6 +1497,7 @@ async function viewNb(app, path) {
   async function runCell(i, advance) {
     const cell = S.cells[i];
     if (!cell) return false;
+    if (cell.kind === 'prose') return true;   // prose never runs
     if (S.busy) { hint(cell, 'kernel busy: a cell is already running'); return false; }
     S.busy = true;
     setStatus('running');
@@ -1308,7 +1539,10 @@ async function viewNb(app, path) {
     showOut(cell, r);
     setStatus('idle');
     if (advance && r.ok) {
-      const nxt = S.cells[i + 1];   /* focus moves, no new cell is created */
+      /* focus moves to the next CODE cell (prose is skipped); none created */
+      let j = i + 1;
+      while (j < S.cells.length && S.cells[j].kind === 'prose') j++;
+      const nxt = S.cells[j];
       if (nxt) { (nxt.cm || nxt.ta).focus(); nxt.el.scrollIntoView({ block: 'nearest' }); }
     }
     return !!r.ok;
@@ -1317,16 +1551,18 @@ async function viewNb(app, path) {
   async function runAll() {
     if (S.busy || S.restarting) return;
     for (let i = 0; i < S.cells.length; i++) {
+      if (S.cells[i].kind === 'prose') continue;
       const ok = await runCell(i, false);
       if (epoch !== routeEpoch) return;
       if (!ok) { S.cells[i].el.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
     }
   }
 
-  (doc.cells.length ? doc.cells : [{ source: '' }]).forEach(c => makeCell(c.source));
+  (doc.cells.length ? doc.cells : [{ source: '', kind: 'code' }])
+    .forEach(c => makeCell(c.source, c.kind || 'code'));
   $('#nb-runall').onclick = runAll;
   $('#nb-restart').onclick = restartKernel;
-  $('#nb-add').onclick = () => { const c = makeCell(''); (c.cm || c.ta).focus(); };
+  $('#nb-add').onclick = () => { const c = makeCell('', 'code'); (c.cm || c.ta).focus(); };
 
   /* the theme toggle only re-themes window._cm; a notebook has many editors,
      so watch the html class and re-theme them all (window._cm stays null) */
@@ -1336,11 +1572,14 @@ async function viewNb(app, path) {
   });
   themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
+  const navKeyH = docNavKeys(nav);
+  document.addEventListener('keydown', navKeyH);
   const stopOnce = () => { if (!S.stopped) { S.stopped = true; stopKernel(S.session); } };
   window.addEventListener('pagehide', stopOnce);
   cleanup = () => {
     clearInterval(statT);
     themeObs.disconnect();
+    document.removeEventListener('keydown', navKeyH);
     window.removeEventListener('pagehide', stopOnce);
     stopOnce();
   };
