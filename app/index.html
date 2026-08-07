@@ -123,6 +123,8 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .CodeMirror { height:100%; font-size:13.5px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
   .cm-s-material-darker.CodeMirror { background:#1e1e1e; }
   .cm-s-default.CodeMirror { background:#fff; border:1px solid var(--line); }
+  /* notebook cells: editor sized to its content, chrome-free inside the card */
+  .nb-ed .CodeMirror { height:auto; border:none; background:transparent; }
   /* markdown body: comfortable reading measure */
   .md { line-height:1.7; font-size:.9375rem; }
   .md h1 { font-size:1.45rem; font-weight:700; letter-spacing:-.015em; margin:1.2rem 0 .8rem; color:var(--text-strong); }
@@ -359,6 +361,7 @@ function route() {
   const app = $('#app');
   app.scrollTop = 0;
   const tab = h.startsWith('#/lab') ? 'notes'
+            : h.startsWith('#/nb') ? 'notes'
             : h.startsWith('#/notes') ? 'notes'
             : h.startsWith('#/cards') ? 'cards' : 'problems';
   $$('#nav-tabs a').forEach(a => a.className =
@@ -366,6 +369,7 @@ function route() {
   updateNavProgress();
   if (h.startsWith('#/problem/')) viewProblem(app, decodeURIComponent(h.slice('#/problem/'.length)));
   else if (h.startsWith('#/lab/')) viewLab(app, decodeURIComponent(h.slice('#/lab/'.length)));
+  else if (h.startsWith('#/nb/')) viewNb(app, decodeURIComponent(h.slice('#/nb/'.length)));
   else if (h.startsWith('#/notes')) viewNotes(app, h.slice('#/notes'.length).replace(/^\//, ''));
   else if (h.startsWith('#/cards')) viewCards(app, h.slice('#/cards'.length).replace(/^\//, ''));
   else viewProblems(app);   // #/problems + fallback for unknown hashes
@@ -474,8 +478,12 @@ async function openPalette() {
         items.push({ kind: 'problem', label: p.name, sub: p.folder_title, hash: '#/problem/' + p.id }));
     } catch (e) {}
     try {
-      (await getTree()).forEach(g => g.folders.forEach(f => f.files.forEach(x =>
-        items.push({ kind: 'note', label: x.title, sub: x.path, hash: '#/notes/' + encodeURIComponent(x.path) }))));
+      /* .py files open as notebooks by default; .md stay read-only notes */
+      (await getTree()).forEach(g => g.folders.forEach(f => f.files.forEach(x => {
+        const nb = x.path.endsWith('.py');
+        items.push({ kind: nb ? 'notebook' : 'note', label: x.title, sub: x.path,
+                     hash: (nb ? '#/nb/' : '#/notes/') + encodeURIComponent(x.path) });
+      })));
     } catch (e) {}
     try {
       const cards = await getCards();
@@ -918,9 +926,11 @@ async function viewNotes(app, encodedPath) {
   catch (e) { if (epoch === routeEpoch) $('#notes-body').innerHTML = errBox(e); return; }
   if (epoch !== routeEpoch) return;
   const labBtn = current.endsWith('.py')
-    ? `<div class="max-w-3xl mx-auto mb-3 flex justify-end">
-         <a href="#/lab/${encodeURIComponent(current)}" class="btn btn-primary">
-           Edit &amp; run in playground</a>
+    ? `<div class="max-w-3xl mx-auto mb-3 flex justify-end gap-2">
+         <a href="#/nb/${encodeURIComponent(current)}" class="btn btn-primary">
+           Open as notebook</a>
+         <a href="#/lab/${encodeURIComponent(current)}" class="btn btn-secondary">
+           Playground</a>
        </div>` : '';
   $('#notes-body').innerHTML =
     labBtn + `<div class="max-w-3xl mx-auto md" id="md-root">${md(doc.content)}</div>`;
@@ -1064,6 +1074,275 @@ async function viewLab(app, path) {
     setCode(doc.content);
     try { localStorage.removeItem(draftKey); } catch (e) {}
     const bar = $('#lab-draft-bar'); if (bar) bar.style.display = 'none';
+  };
+}
+
+/* --------------------------------------------------------- view: notebook */
+/* Jupyter-style cells over a curriculum script: the server splits the file
+   at its section banners, each cell runs in one persistent kernel process,
+   so state (imports, defs, arrays) carries from cell to cell. Cell edits are
+   session-only; the repo file is never written. */
+const stopKernel = sid => {
+  if (!sid) return;
+  const body = JSON.stringify({ session: sid });
+  if (navigator.sendBeacon) {
+    try {
+      navigator.sendBeacon('/api/nb/stop', new Blob([body], { type: 'application/json' }));
+      return;
+    } catch (e) {}
+  }
+  try {
+    fetch('/api/nb/stop', { method: 'POST', keepalive: true,
+      headers: { 'Content-Type': 'application/json' }, body });
+  } catch (e) {}
+};
+
+async function viewNb(app, path) {
+  const epoch = routeEpoch;
+  app.innerHTML = spinner('Loading notebook…');
+  let doc, session = null;
+  try {
+    doc = await api('/api/nb/cells?path=' + encodeURIComponent(path));
+    if (epoch !== routeEpoch) return;
+    session = (await api('/api/nb/start', { path })).session;
+  } catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
+  if (epoch !== routeEpoch) { stopKernel(session); return; }
+
+  const S = { session, cells: [], counter: 0, busy: false, restarting: false, stopped: false };
+
+  app.innerHTML = `
+  <div class="max-w-4xl mx-auto p-6">
+    <div class="flex items-center gap-3 flex-wrap">
+      <span class="font-mono text-[15px] font-semibold text-zinc-100">${esc(path)}</span>
+      <span class="flex items-center gap-1.5 text-xs text-mut">
+        <span id="nb-dot" class="inline-block w-2 h-2 rounded-full bg-good"></span>
+        <span id="nb-status" class="tnum">idle</span>
+      </span>
+      <div class="ml-auto flex items-center gap-2">
+        <button id="nb-runall" class="btn btn-secondary">Run all</button>
+        <button id="nb-restart" class="btn btn-secondary">Restart kernel</button>
+        <a class="btn btn-text text-mut" href="#/notes/${encodeURIComponent(path)}">Read-only view</a>
+      </div>
+    </div>
+    <div class="microlabel text-mut mt-1.5 mb-5">edits are session-only, the file on disk is untouched</div>
+    <div id="nb-cells"></div>
+    <div class="mt-1">
+      <button id="nb-add" class="btn btn-text text-mut text-sm" title="Append an empty scratch cell (this session only)">+ add cell</button>
+    </div>
+  </div>`;
+
+  /* kernel status: dot + label, elapsed ticking while a cell runs */
+  let statT = null;
+  const setStatus = st => {
+    const dot = $('#nb-dot'), lab = $('#nb-status');
+    if (!dot || !lab) return;
+    clearInterval(statT); statT = null;
+    if (st === 'running' || st === 'restarting') {
+      dot.className = 'inline-block w-2 h-2 rounded-full bg-warn animate-pulse';
+      if (st === 'restarting') { lab.textContent = 'restarting…'; return; }
+      const t0 = Date.now();
+      const tick = () => {
+        const l = $('#nb-status');
+        if (l) l.textContent = 'running ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s';
+      };
+      statT = setInterval(tick, 100); tick();
+    } else if (st === 'dead') {
+      dot.className = 'inline-block w-2 h-2 rounded-full bg-bad';
+      lab.textContent = 'dead';
+    } else {
+      dot.className = 'inline-block w-2 h-2 rounded-full bg-good';
+      lab.textContent = 'idle';
+    }
+  };
+
+  const cellsEl = $('#nb-cells');
+  const code = c => c.cm ? c.cm.getValue() : c.ta.value;
+
+  function makeCell(source) {
+    const i = S.cells.length;
+    const el = document.createElement('div');
+    el.className = 'card mb-3 overflow-hidden';
+    el.innerHTML = `
+      <div class="flex items-stretch">
+        <div class="nb-gut w-14 shrink-0 pt-2.5 pr-2 text-right text-[11px] font-mono tnum text-mut select-none">[&nbsp;]</div>
+        <div class="nb-ed flex-1 min-w-0 py-1.5 pr-2"></div>
+      </div>
+      <div class="nb-out hidden border-t border-line">
+        <pre class="nb-stdout hidden px-4 py-3 text-xs font-mono whitespace-pre-wrap overflow-x-auto text-[var(--pre-text)]"></pre>
+        <pre class="nb-stderr hidden mx-3 my-2.5 p-3 rounded-lg soft-bad text-bad text-xs font-mono whitespace-pre-wrap overflow-x-auto"></pre>
+        <div class="nb-ms microlabel text-mut px-4 pb-2 pt-0.5 tnum"></div>
+      </div>`;
+    cellsEl.appendChild(el);
+    const cell = {
+      el, gut: el.querySelector('.nb-gut'), out: el.querySelector('.nb-out'),
+      so: el.querySelector('.nb-stdout'), se: el.querySelector('.nb-stderr'),
+      ms: el.querySelector('.nb-ms'), cm: null, ta: null, order: null,
+    };
+    const host = el.querySelector('.nb-ed');
+    /* trailing blank separator lines belong to the file, not the cell UI */
+    const display = source.replace(/\n+$/, '');
+    if (window.CodeMirror) {
+      cell.cm = CodeMirror(host, {
+        value: display, mode: 'python', lineNumbers: false,
+        theme: document.documentElement.classList.contains('dark') ? 'material-darker' : 'default',
+        viewportMargin: Infinity,
+        indentUnit: 4, tabSize: 4, indentWithTabs: false,
+        extraKeys: {
+          'Shift-Enter': () => { runCell(i, true); },
+          'Cmd-Enter': () => { runCell(i, false); },
+          'Ctrl-Enter': () => { runCell(i, false); },
+          Tab: c => c.somethingSelected() ? c.indentSelection('add') : c.replaceSelection('    '),
+        },
+      });
+      cell.cm.setSize(null, 'auto');
+    } else {
+      const ta = document.createElement('textarea');
+      ta.spellcheck = false;
+      ta.value = display;
+      ta.rows = Math.max(3, display.split('\n').length + 1);
+      ta.className = 'w-full bg-panel font-mono text-sm p-3 outline-none resize-y';
+      ta.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && (e.shiftKey || e.metaKey || e.ctrlKey)) {
+          e.preventDefault(); runCell(i, e.shiftKey);
+        }
+      });
+      host.appendChild(ta);
+      cell.ta = ta;
+    }
+    S.cells.push(cell);
+    return cell;
+  }
+
+  function setGutter(cell, txt, spin) {
+    cell.gut.textContent = txt;
+    cell.gut.classList.toggle('animate-pulse', !!spin);
+  }
+  function showOut(cell, r) {
+    cell.out.classList.remove('hidden', 'opacity-50');
+    cell.so.classList.toggle('hidden', !r.stdout);
+    cell.so.textContent = r.stdout || '';
+    const bad = [r.stderr, r.error].filter(Boolean).join('\n');
+    cell.se.classList.toggle('hidden', !bad);
+    cell.se.textContent = bad;
+    cell.ms.textContent = (r.elapsed_ms != null) ? r.elapsed_ms + ' ms' : '';
+  }
+  /* quiet hint in the cell's output area (kernel busy / dead / expired) */
+  function hint(cell, msg) {
+    cell.out.classList.remove('hidden', 'opacity-50');
+    cell.se.classList.remove('hidden');
+    cell.se.textContent = msg;
+    cell.ms.textContent = '';
+  }
+  function markAllUnrun() {
+    S.counter = 0;
+    S.cells.forEach(c => {
+      c.order = null;
+      setGutter(c, '[ ]', false);
+      /* outputs stay visible, but faded until their cell is re-run */
+      if (!c.out.classList.contains('hidden')) c.out.classList.add('opacity-50');
+    });
+  }
+
+  async function restartKernel() {
+    if (S.restarting) return;
+    S.restarting = true;
+    setStatus('restarting');
+    try { await api('/api/nb/restart', { session: S.session }); }
+    catch (e) {
+      /* session reaped or evicted: fall back to a brand-new kernel */
+      try { S.session = (await api('/api/nb/start', { path })).session; }
+      catch (e2) {
+        if (epoch === routeEpoch) setStatus('dead');
+        S.restarting = false;
+        return;
+      }
+    }
+    S.restarting = false;
+    if (epoch !== routeEpoch) return;
+    markAllUnrun();
+    setStatus('idle');
+  }
+
+  /* returns true when the cell ran cleanly (run-all stops on anything else) */
+  async function runCell(i, advance) {
+    const cell = S.cells[i];
+    if (!cell) return false;
+    if (S.busy) { hint(cell, 'kernel busy: a cell is already running'); return false; }
+    S.busy = true;
+    setStatus('running');
+    setGutter(cell, '[*]', true);
+    let r = null, threw = null;
+    try { r = await api('/api/nb/run', { session: S.session, code: code(cell) }); }
+    catch (e) { threw = e; }
+    S.busy = false;
+    if (epoch !== routeEpoch) return false;
+    setGutter(cell, cell.order ? '[' + cell.order + ']' : '[ ]', false);
+    if (threw) {
+      const m = String(threw.message || threw);
+      if (/unknown session/i.test(m)) {
+        /* reaped after 30 min idle, or LRU-evicted: start fresh, then rerun */
+        try { S.session = (await api('/api/nb/start', { path })).session; }
+        catch (e2) { if (epoch === routeEpoch) { hint(cell, m); setStatus('dead'); } return false; }
+        if (epoch !== routeEpoch) return false;
+        markAllUnrun();
+        hint(cell, 'kernel session expired, a fresh kernel was started: run cells again from the top');
+      } else if (/kernel busy/i.test(m)) {
+        hint(cell, 'kernel busy: wait for the running cell to finish');
+      } else {
+        hint(cell, m);
+      }
+      setStatus('idle');
+      return false;
+    }
+    if (r.dead) {
+      /* timed out or crashed: the server killed the process, respawn it so
+         the next run works, then surface the error where it happened */
+      await restartKernel();
+      if (epoch !== routeEpoch) return false;
+      hint(cell, r.error || 'kernel died: run cells again');
+      return false;
+    }
+    S.counter += 1;
+    cell.order = S.counter;
+    setGutter(cell, '[' + S.counter + ']', false);
+    showOut(cell, r);
+    setStatus('idle');
+    if (advance && r.ok) {
+      const nxt = S.cells[i + 1];   /* focus moves, no new cell is created */
+      if (nxt) { (nxt.cm || nxt.ta).focus(); nxt.el.scrollIntoView({ block: 'nearest' }); }
+    }
+    return !!r.ok;
+  }
+
+  async function runAll() {
+    if (S.busy || S.restarting) return;
+    for (let i = 0; i < S.cells.length; i++) {
+      const ok = await runCell(i, false);
+      if (epoch !== routeEpoch) return;
+      if (!ok) { S.cells[i].el.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+    }
+  }
+
+  (doc.cells.length ? doc.cells : [{ source: '' }]).forEach(c => makeCell(c.source));
+  $('#nb-runall').onclick = runAll;
+  $('#nb-restart').onclick = restartKernel;
+  $('#nb-add').onclick = () => { const c = makeCell(''); (c.cm || c.ta).focus(); };
+
+  /* the theme toggle only re-themes window._cm; a notebook has many editors,
+     so watch the html class and re-theme them all (window._cm stays null) */
+  const themeObs = new MutationObserver(() => {
+    const th = document.documentElement.classList.contains('dark') ? 'material-darker' : 'default';
+    S.cells.forEach(c => c.cm && c.cm.setOption('theme', th));
+  });
+  themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+  const stopOnce = () => { if (!S.stopped) { S.stopped = true; stopKernel(S.session); } };
+  window.addEventListener('pagehide', stopOnce);
+  cleanup = () => {
+    clearInterval(statT);
+    themeObs.disconnect();
+    window.removeEventListener('pagehide', stopOnce);
+    stopOnce();
   };
 }
 

@@ -615,6 +615,313 @@ def run_lab(raw_path, code):
 
 
 # ---------------------------------------------------------------------------
+# Notebook kernels: cell-based execution with a persistent worker process
+# ---------------------------------------------------------------------------
+NB_TIMEOUT = float(os.environ.get("NB_TIMEOUT", "120"))  # seconds per cell
+NB_IDLE_SEC = 30 * 60  # reap sessions idle longer than this
+NB_MAX_SESSIONS = 4    # LRU-kill beyond this many live kernels
+NB_CELL_CAP = 80       # soft max lines per heuristic cell
+
+# The worker: a bare exec loop over one shared namespace, so state (imports,
+# defs, arrays) persists across cells - the Jupyter paradigm. Protocol on
+# stdin/stdout: 4-byte big-endian length + JSON in both directions.
+NB_WORKER_SRC = r'''
+import contextlib, io, json, struct, sys, time, traceback
+try:
+    import matplotlib
+    matplotlib.use("Agg")  # never let a stray import hang on a GUI backend
+except Exception:
+    pass
+_ns = {"__name__": "__main__"}
+if len(sys.argv) > 1:
+    _ns["__file__"] = sys.argv[1]
+_in, _out = sys.stdin.buffer, sys.stdout.buffer
+
+
+def _read():
+    head = _in.read(4)
+    if len(head) < 4:
+        return None
+    n = struct.unpack(">I", head)[0]
+    data = b""
+    while len(data) < n:
+        chunk = _in.read(n - len(data))
+        if not chunk:
+            return None
+        data += chunk
+    return json.loads(data)
+
+
+def _write(obj):
+    data = json.dumps(obj).encode()
+    _out.write(struct.pack(">I", len(data)) + data)
+    _out.flush()
+
+
+while True:
+    msg = _read()
+    if msg is None:
+        break
+    out, err = io.StringIO(), io.StringIO()
+    t0 = time.time()
+    ok = True
+    try:
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            exec(compile(msg.get("code", ""), "<cell>", "exec"), _ns)
+    except BaseException:
+        ok = False
+        err.write(traceback.format_exc())
+    _write({"ok": ok, "stdout": out.getvalue(), "stderr": err.getvalue(),
+            "elapsed_ms": int((time.time() - t0) * 1000)})
+'''
+
+_nb_sessions = {}  # session_id -> {id, path, proc, lock, last_use, dead}
+_nb_lock = threading.Lock()  # guards the sessions dict itself
+
+
+def _nb_spawn(path):
+    """One kernel process; cwd is the file's directory so imports and
+    relative paths behave exactly like running the file there."""
+    return subprocess.Popen(
+        [sys.executable, "-u", "-c", NB_WORKER_SRC, str(path)],
+        cwd=path.parent, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL)
+
+
+def _nb_kill_proc(proc):
+    try:
+        proc.kill()
+        proc.wait(timeout=5)
+    except Exception:
+        pass
+
+
+def _nb_reap():
+    """Lazily drop idle sessions; called on every nb endpoint hit."""
+    now = time.time()
+    with _nb_lock:
+        for sid in [s for s, v in _nb_sessions.items()
+                    if now - v["last_use"] > NB_IDLE_SEC]:
+            _nb_kill_proc(_nb_sessions.pop(sid)["proc"])
+
+
+def nb_start(raw_path):
+    _nb_reap()
+    path, err = _lab_path(raw_path)
+    if err:
+        return {"error": err[1]}, err[0]
+    sid = os.urandom(16).hex()
+    sess = {"id": sid, "path": path, "proc": _nb_spawn(path),
+            "lock": threading.Lock(), "last_use": time.time(), "dead": False}
+    with _nb_lock:
+        _nb_sessions[sid] = sess
+        while len(_nb_sessions) > NB_MAX_SESSIONS:  # LRU-kill the oldest
+            oldest = min(_nb_sessions, key=lambda s: _nb_sessions[s]["last_use"])
+            if oldest == sid:
+                break
+            _nb_kill_proc(_nb_sessions.pop(oldest)["proc"])
+    return {"session": sid}, 200
+
+
+def _nb_exec(proc, code):
+    """Ship one cell to the worker and wait for its reply.
+
+    Returns (reply_or_None, timed_out). The blocking pipe I/O runs on a helper
+    thread so the timeout can fire; on timeout the process is killed, which
+    also unblocks the reader with EOF.
+    """
+    payload = json.dumps({"code": code}).encode()
+    box = {}
+
+    def talk():
+        try:
+            proc.stdin.write(len(payload).to_bytes(4, "big") + payload)
+            proc.stdin.flush()
+            head = proc.stdout.read(4)
+            if len(head) < 4:
+                return
+            n = int.from_bytes(head, "big")
+            data = b""
+            while len(data) < n:
+                chunk = proc.stdout.read(n - len(data))
+                if not chunk:
+                    return
+                data += chunk
+            box["msg"] = json.loads(data)
+        except Exception:
+            pass
+
+    t = threading.Thread(target=talk, daemon=True)
+    t.start()
+    t.join(NB_TIMEOUT)
+    if t.is_alive():
+        _nb_kill_proc(proc)
+        t.join(2)
+        return None, True
+    return box.get("msg"), False
+
+
+def nb_run(sid, code):
+    _nb_reap()
+    with _nb_lock:
+        sess = _nb_sessions.get(sid)
+    if sess is None:
+        return {"ok": False, "dead": True,
+                "error": "unknown session (expired or evicted): start a "
+                         "fresh kernel"}, 404
+    if not sess["lock"].acquire(blocking=False):
+        return {"error": "kernel busy"}, 409
+    try:
+        sess["last_use"] = time.time()
+        proc = sess["proc"]
+        if sess["dead"] or proc.poll() is not None:
+            sess["dead"] = True
+            return {"ok": False, "dead": True,
+                    "error": "kernel is dead: restart it and run cells "
+                             "again"}, 200
+        msg, timed_out = _nb_exec(proc, code)
+        sess["last_use"] = time.time()
+        if timed_out:
+            if sess["proc"] is proc:
+                sess["dead"] = True
+            return {"ok": False, "dead": True, "stdout": "", "stderr": "",
+                    "elapsed_ms": int(NB_TIMEOUT * 1000),
+                    "error": f"cell timed out after {NB_TIMEOUT:g} s, kernel "
+                             "restarted: run cells again"}, 200
+        if msg is None:  # worker crashed or was killed mid-cell
+            if sess["proc"] is proc:
+                sess["dead"] = True
+            return {"ok": False, "dead": True,
+                    "error": "kernel process died mid-cell: restart and run "
+                             "cells again"}, 200
+        return msg, 200
+    finally:
+        sess["lock"].release()
+
+
+def nb_restart(sid):
+    _nb_reap()
+    with _nb_lock:
+        sess = _nb_sessions.get(sid)
+    if sess is None:
+        return {"error": "unknown session"}, 404
+    _nb_kill_proc(sess["proc"])  # unblocks any in-flight run with EOF
+    with sess["lock"]:
+        sess["proc"] = _nb_spawn(sess["path"])
+        sess["dead"] = False
+        sess["last_use"] = time.time()
+    return {"session": sid, "restarted": True}, 200
+
+
+def nb_stop(sid):
+    with _nb_lock:
+        sess = _nb_sessions.pop(sid, None)
+    if sess is not None:
+        _nb_kill_proc(sess["proc"])
+    return {"stopped": sess is not None}, 200
+
+
+def _split_cells(src):
+    """Split a script into notebook cells, newline-preserving: the cells
+    always concatenate back to the original file byte-for-byte (asserted).
+
+    Explicit "# %%" separator lines win if present. Otherwise heuristic:
+    new cell at every top-level banner comment block (# --- / # ===), at
+    every top-level def/class that follows non-def code, and at the
+    __main__ block. Oversized cells are split at top-level statement
+    boundaries via ast, never inside a def/class/try/with body.
+    """
+    lines = src.splitlines(keepends=True)
+    if not lines:
+        return []
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return [src]
+
+    def start0(node):  # 0-based first line, decorators included
+        lo = node.lineno
+        for d in getattr(node, "decorator_list", None) or []:
+            lo = min(lo, d.lineno)
+        return lo - 1
+
+    spans = [(start0(nd), (nd.end_lineno or nd.lineno) - 1) for nd in tree.body]
+
+    def inside_stmt(i):  # line sits inside a top-level statement's span
+        return any(a <= i <= b for a, b in spans)
+
+    def is_comment(i):  # top-level (column-0) comment line
+        return lines[i].startswith("#") and not inside_stmt(i)
+
+    def attach(i):  # pull a boundary up over comment lines glued right above
+        while i > 0 and is_comment(i - 1):
+            i -= 1
+        return i
+
+    explicit = {i for i, l in enumerate(lines) if re.match(r"# %%", l)}
+    if explicit:
+        bounds = {0} | explicit
+    else:
+        banner_re = re.compile(r"#\s*[-=]{3,}")
+        bounds, banners = {0}, set()
+        for i, l in enumerate(lines):
+            # first line of a banner block only, so the block stays whole
+            if (banner_re.match(l) and not inside_stmt(i)
+                    and (i == 0 or not is_comment(i - 1))):
+                bounds.add(i)
+                banners.add(i)
+        prev = None
+        DEFS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+        for nd in tree.body:
+            s0 = start0(nd)
+            is_main = (isinstance(nd, ast.If)
+                       and re.match(r"if\s+__name__\b", lines[s0]))
+            wants = is_main or (isinstance(nd, DEFS) and prev is not None
+                                and not isinstance(prev, DEFS))
+            # a banner in the gap above already starts this cell: don't cut
+            # the banner off into a tiny cell of its own
+            if wants and not (prev is not None and
+                              any(prev.end_lineno <= j < s0 for j in banners)):
+                bounds.add(attach(s0))
+            prev = nd
+
+    # cap pass: split any oversized cell at top-level statement starts
+    ordered = sorted(bounds)
+    out = []
+    for a, b in zip(ordered, ordered[1:] + [len(lines)]):
+        out.append(a)
+        if b - a <= NB_CELL_CAP:
+            continue
+        cur = a
+        for nd in tree.body:
+            s0, e0 = start0(nd), (nd.end_lineno or nd.lineno) - 1
+            if not (a < s0 and e0 < b):
+                continue
+            w = attach(s0)
+            if w > cur and e0 - cur + 1 > NB_CELL_CAP:
+                out.append(w)
+                cur = w
+        # a single statement longer than the cap stays whole: never split
+        # inside a def/class/try/with body
+
+    ordered = sorted(set(out))
+    cells = ["".join(lines[a:b])
+             for a, b in zip(ordered, ordered[1:] + [len(lines)])]
+    cells = [c for c in cells if c]
+    assert "".join(cells) == src, "cell split lost bytes"
+    return cells
+
+
+def nb_cells(raw_path):
+    _nb_reap()
+    path, err = _lab_path(raw_path)
+    if err:
+        return {"error": err[1]}, err[0]
+    cells = _split_cells(path.read_text())
+    return {"path": raw_path, "cells": [{"source": c} for c in cells]}, 200
+
+
+# ---------------------------------------------------------------------------
 # Notes tree, markdown, flashcards
 # ---------------------------------------------------------------------------
 def _md_title(path):
@@ -693,10 +1000,10 @@ def read_md(raw_path):
     text = p.read_text()
     if p.suffix == ".py":
         rel = p.relative_to(ROOT)
-        text = (f"# `{rel}`\n\n*Read-only view. To modify it (e.g. an exercise "
-                f"says to add an op to this file), use the **Edit & run** button "
-                f"above - or open `{rel}` in your editor and run "
-                f"`uv run python {rel}`.*\n\n"
+        text = (f"# `{rel}`\n\n*Read-only view. To work through it cell by "
+                f"cell, use **Open as notebook** above; to edit and run the "
+                f"whole file, use **Playground** - or open `{rel}` in your "
+                f"editor and run `uv run python {rel}`.*\n\n"
                 "```python\n" + text.replace("```", "`​``") + "\n```")
     return text, None
 
@@ -805,6 +1112,10 @@ class Handler(BaseHTTPRequestHandler):
                 if err:
                     return self._err(*err)
                 self._json({"path": raw, "content": p.read_text()})
+            elif u.path == "/api/nb/cells":
+                raw = (qs.get("path") or [""])[0]
+                result, status = nb_cells(raw)
+                self._json(result, status)
             elif u.path == "/api/flashcards":
                 self._json(parse_flashcards())
             elif u.path == "/api/queue":
@@ -852,6 +1163,24 @@ class Handler(BaseHTTPRequestHandler):
                 if not raw or not isinstance(code, str) or not code.strip():
                     return self._err(400, "need path and code")
                 result, status = run_lab(raw, code)
+                self._json(result, status)
+            elif u.path == "/api/nb/start":
+                raw = body.get("path", "")
+                if not raw or not isinstance(raw, str):
+                    return self._err(400, "need path")
+                result, status = nb_start(raw)
+                self._json(result, status)
+            elif u.path == "/api/nb/run":
+                sid, code = body.get("session", ""), body.get("code", "")
+                if not sid or not isinstance(code, str):
+                    return self._err(400, "need session and code")
+                result, status = nb_run(sid, code)
+                self._json(result, status)
+            elif u.path == "/api/nb/restart":
+                result, status = nb_restart(body.get("session", ""))
+                self._json(result, status)
+            elif u.path == "/api/nb/stop":
+                result, status = nb_stop(body.get("session", ""))
                 self._json(result, status)
             elif u.path == "/api/log":
                 item, result = body.get("item_id", ""), body.get("result", "")
