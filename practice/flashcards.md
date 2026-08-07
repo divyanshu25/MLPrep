@@ -1,6 +1,6 @@
 # Rapid-Recall Flashcards
 
-~160 cards distilled from the interview-question banks at the end of each
+~170 cards distilled from the interview-question banks at the end of each
 `ml/` module's notes plus the invariants in `dsa/` - the answers you must
 produce in ≤15 seconds, because in a live round anything slower reads as
 not-known. Protocol: answer **out loud** before unfolding; a hesitation counts
@@ -77,10 +77,10 @@ Joint factors both ways: P(A|B)P(B) = P(B|A)P(A); divide by P(B).
 NLL of a probabilistic classifier with one-hot labels is exactly the cross-entropy loss. (MSE = MLE under Gaussian noise; L1 under Laplace.)
 </details>
 
-**Q:** 99%-accurate test, 1% prevalence, you test positive - roughly P(sick)?
+**Q:** Test with 99% sensitivity, 95% specificity, 1% prevalence, you test positive - roughly P(sick)?
 <details><summary>A</summary>
 
-~17%, not 99%: false positives from the healthy 99% swamp the rare true positives (base-rate neglect).
+~17%, not 99%: per 100k people, 990 true positives vs 4,950 false positives from the healthy 99% (base-rate neglect). At 99%/99% it would still be only 50%.
 </details>
 
 **Q:** Why divide by n−1 in sample variance?
@@ -844,7 +844,7 @@ D ≈ 20N - so C ≈ 120N².
 **Q:** H100 memory per GPU?
 <details><summary>A</summary>
 
-80 GB (same as A100-80GB); SRAM ~20 MB at ~19 TB/s is the FlashAttention resource.
+80 GB (same as A100-80GB). On-chip SRAM (~20 MB at ~19 TB/s on A100, more on H100) is the FlashAttention resource.
 </details>
 
 **Q:** KV bytes per token (dense fp16 model)?
@@ -897,7 +897,7 @@ D ≈ 20N - so C ≈ 120N².
 
 ---
 
-## 10. DSA invariants (dsa/01–06)
+## 10. DSA invariants (dsa/01–07)
 
 **Q:** Sliding window - the invariant and the precondition?
 <details><summary>A</summary>
@@ -1029,4 +1029,40 @@ Iterating capacity ascending reads dp entries already updated for THIS item - it
 <details><summary>A</summary>
 
 Only with an exchange argument: any optimal solution can be swapped, one step at a time, into the greedy one without getting worse (e.g. earliest-finish interval scheduling). Guilty until proven safe.
+</details>
+
+**Q:** Merging intervals - the invariant after sorting by start?
+<details><summary>A</summary>
+
+Once sorted by start, a new interval can only overlap the CURRENT last merged interval (start ≥ every earlier start) - so one pass: extend the last if start ≤ its end, else append. O(n log n) for the sort.
+</details>
+
+**Q:** Meeting Rooms II - two equivalent views of "minimum rooms"?
+<details><summary>A</summary>
+
+Min-heap of end times (pop if the earliest end ≤ next start, heap size peak = rooms) or sort all endpoints and sweep +1/−1 tracking max concurrency - both compute the peak overlap count.
+</details>
+
+**Q:** RandomizedSet - why hashmap alone fails, and the O(1)-delete trick?
+<details><summary>A</summary>
+
+getRandom needs index access (hashmap can't), delete needs O(1) (array can't from the middle). Combo: array + value→index map; delete = swap target with the LAST element, pop, fix the moved element's index.
+</details>
+
+**Q:** Two's complement: why does -x = ~x + 1, and what does x & (x−1) do?
+<details><summary>A</summary>
+
+x + ~x is all 1s = −1, so ~x + 1 = −x. x & (x−1) clears the lowest set bit (the −1 borrows through the trailing zeros) - Kernighan popcount loops once per set bit; x & −x isolates that bit.
+</details>
+
+**Q:** Why does XOR-fold find the single number?
+<details><summary>A</summary>
+
+XOR is commutative/associative, a⊕a = 0, a⊕0 = a - fold the array and every pair annihilates, leaving the singleton. Same trick finds the missing number: XOR all values with all indices.
+</details>
+
+**Q:** Rotate a matrix 90° clockwise in place?
+<details><summary>A</summary>
+
+The index map (i,j) → (j, n−1−i) factors into transpose then reverse each row - two clean in-place passes; never try to spiral-swap by hand under time pressure.
 </details>
