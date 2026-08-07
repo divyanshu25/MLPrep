@@ -1313,6 +1313,8 @@ def read_md(raw_path):
                 parts.append("```python\n" + src.replace("```", "`​``") + "\n```")
         return "\n\n".join(parts), None
     text = p.read_text()
+    if p.name == "problems.py" and p.relative_to(ROOT).parts[0] == "dsa":
+        return _problems_reference_md(p), None
     if p.suffix == ".py":
         rel = p.relative_to(ROOT)
         text = (f"# `{rel}`\n\n*Read-only view. To work through it cell by "
@@ -1321,6 +1323,38 @@ def read_md(raw_path):
                 f"editor and run `uv run python {rel}`.*\n\n"
                 "```python\n" + text.replace("```", "`​``") + "\n```")
     return text, None
+
+
+def _problems_reference_md(path):
+    """Render a dsa problems.py as a structured reference page instead of one
+    giant code block: a section per problem with the statement visible and the
+    hint and solution folded, so headings feed the on-page outline and nothing
+    spoils on scroll."""
+    data = _parse_problems_file(path)
+    folder = path.parent.name
+    rel = path.relative_to(ROOT)
+    fence = lambda s: "```python\n" + s.replace("```", "`​``") + "\n```"
+    parts = [
+        f"# {FOLDER_TITLES.get(folder, folder)}: reference solutions",
+        f"*`{rel}` - {len(data['problems'])} solved problems with "
+        f"{data['assert_count']} asserts. Drill these from the **Problems** tab "
+        f"(closed-book, timed); this page is for review after an attempt. "
+        f"Hints and solutions are folded so scrolling spoils nothing.*",
+    ]
+    for pr in data["problems"]:
+        parts.append(f"## {pr['name']}")
+        parts.append(f"`{pr['difficulty']}` · {pr['kind']} · "
+                     f"time box {pr['time_box_min']} min")
+        parts.append(pr["statement"])
+        if pr["helpers"]:
+            parts.append("<details><summary>Provided helpers</summary>\n\n"
+                         + fence(pr["helpers"]) + "\n</details>")
+        if pr["key_insight"]:
+            parts.append("<details><summary>Key insight</summary>\n\n"
+                         + pr["key_insight"] + "\n</details>")
+        parts.append("<details><summary>Solution</summary>\n\n"
+                     + fence(pr["solution_source"]) + "\n</details>")
+    return "\n\n".join(parts)
 
 
 def _slug(text):
