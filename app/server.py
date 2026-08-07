@@ -570,6 +570,20 @@ def _lab_path(raw_path):
     return p, None
 
 
+def _nb_path(raw_path):
+    """Resolve a notebook-viewable file: a .py or .ipynb inside ml/ or dsa/.
+    The playground (whole-file run) stays .py-only via _lab_path; the notebook
+    view and kernel accept both."""
+    p = (ROOT / raw_path).resolve()
+    ok = (p.is_relative_to(ROOT) and p.suffix in (".py", ".ipynb")
+          and p.relative_to(ROOT).parts[0] in ("ml", "dsa"))
+    if not ok:
+        return None, (400, "path must be a .py or .ipynb file under ml/ or dsa/")
+    if not p.is_file():
+        return None, (404, "no such file")
+    return p, None
+
+
 def run_lab(raw_path, code):
     """Run an edited copy of a curriculum script. The edit is written to a
     scratch file in the script's own directory (so imports/paths behave) and
@@ -707,7 +721,7 @@ def _nb_reap():
 
 def nb_start(raw_path):
     _nb_reap()
-    path, err = _lab_path(raw_path)
+    path, err = _nb_path(raw_path)
     if err:
         return {"error": err[1]}, err[0]
     sid = os.urandom(16).hex()
@@ -912,13 +926,300 @@ def _split_cells(src):
     return cells
 
 
+_BANNER_LINE = re.compile(r"#\s*[-=]{3,}")
+
+
+def _cell_kind(cell_src):
+    """"prose" when the cell holds no executable code: only comments, blank
+    lines, and/or bare string-literal expressions (the module docstring)."""
+    try:
+        tree = ast.parse(cell_src)
+    except SyntaxError:
+        return "code"
+    for n in tree.body:
+        if not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)):
+            return "code"
+    return "prose"
+
+
+def _prose_pieces(cell, first):
+    """Split one cell into [(kind, source)] pieces, byte-exact.
+
+    A cell that is entirely comments and/or a string-literal expression is
+    prose. A code cell that BEGINS with the module docstring (first cell of
+    the file only) or with a banner comment block (>= 2 leading #-comment
+    lines, or any leading #---/#=== rule line) gets that prefix split off as
+    its own prose cell; blank separator lines travel with the prose block so
+    the code cell starts clean."""
+    if _cell_kind(cell) == "prose":
+        return [("prose", cell)]
+    lines = cell.splitlines(keepends=True)
+    cut = 0
+    if first:  # module docstring prefix (any shebang/comment lines above it)
+        try:
+            body = ast.parse(cell).body
+        except SyntaxError:
+            body = []
+        if (body and isinstance(body[0], ast.Expr)
+                and isinstance(body[0].value, ast.Constant)
+                and isinstance(body[0].value.value, str)):
+            cut = body[0].end_lineno  # 1-based end == 0-based next line
+    if not cut:  # leading banner comment block
+        n = 0
+        while n < len(lines) and lines[n].startswith("#"):
+            n += 1
+        if n >= 2 or any(_BANNER_LINE.match(l) for l in lines[:n]):
+            cut = n
+    if cut:
+        while cut < len(lines) and not lines[cut].strip():
+            cut += 1
+        head, rest = "".join(lines[:cut]), "".join(lines[cut:])
+        if head and rest:
+            return [("prose", head)] + _prose_pieces(rest, False)
+    return [("code", cell)]
+
+
+def _ipynb_cells(path):
+    """[(kind, source)] pieces of a .ipynb (nbformat v4) file: markdown cells
+    are prose, code cells are code, anything else (raw) is skipped. Source
+    lists are joined; no nbformat dependency needed - it's just JSON."""
+    nb = json.loads(path.read_text())
+    out = []
+    for c in nb.get("cells", []):
+        src = c.get("source", "")
+        if isinstance(src, list):
+            src = "".join(src)
+        kind = {"markdown": "prose", "code": "code"}.get(c.get("cell_type"))
+        if kind:
+            out.append((kind, src))
+    return out
+
+
 def nb_cells(raw_path):
     _nb_reap()
-    path, err = _lab_path(raw_path)
+    path, err = _nb_path(raw_path)
     if err:
         return {"error": err[1]}, err[0]
-    cells = _split_cells(path.read_text())
-    return {"path": raw_path, "cells": [{"source": c} for c in cells]}, 200
+    if path.suffix == ".ipynb":
+        pieces = _ipynb_cells(path)
+        title, fmt = _ipynb_meta(path)[0], "ipynb"
+    else:
+        src = path.read_text()
+        pieces, first = [], True
+        for chunk in _split_cells(src):
+            pieces.extend(_prose_pieces(chunk, first))
+            first = False
+        assert "".join(s for _, s in pieces) == src, "prose split lost bytes"
+        title, fmt = _script_meta(path)[0], "py"
+    d = path.parent
+    notes = next((str((d / n).relative_to(ROOT))
+                  for n in ("notes.md", "README.md") if (d / n).is_file()), None)
+    return {"path": raw_path, "file": path.name, "format": fmt,
+            "title": title, "notes": notes,
+            "cells": [{"kind": k, "source": s} for k, s in pieces]}, 200
+
+
+# ---------------------------------------------------------------------------
+# Notebook index: docstring-derived titles + curriculum order
+# ---------------------------------------------------------------------------
+ML_FOLDER_TITLES = {
+    "01_foundations": "Foundations",
+    "02_classical_ml": "Classical ML",
+    "03_neural_networks": "Neural Networks",
+    "04_deep_learning": "Deep Learning",
+    "05_evaluation": "Evaluation",
+    "06_ml_systems": "ML Systems",
+    "07_llm_stack": "LLM Stack",
+    "08_interview_drills": "Interview Drills",
+}
+
+# Pedagogical order of the notebooks inside each module, matched to the flow
+# of that module's notes.md section headers. Anything unlisted (including the
+# single-script modules and every dsa problems.py) appends alphabetically.
+NB_ORDER = {
+    # notes: Part 2 calculus/chain rule before Part 3 probability
+    "01_foundations": ["gradients_from_scratch.py", "probability_demos.py"],
+    # notes: linear/logistic (SS1-2) -> trees/ensembles (SS5-6) ->
+    # k-means/PCA (SS8-9) -> GMM/EM (SS11) -> matrix factorization (SS13)
+    "02_classical_ml": ["linear_models_scratch.py",
+                        "trees_and_ensembles_scratch.py",
+                        "kmeans_pca_scratch.py", "gmm_em_scratch.py",
+                        "matrix_factorization_scratch.py"],
+    # notes: backprop/chain rule (b) -> losses+optimizers vectorized (c, f) ->
+    # init/lr/vanishing-gradient experiments (d, e, f folklore)
+    "03_neural_networks": ["micrograd_plus.py", "mlp_numpy.py",
+                           "training_dynamics.py"],
+    # notes: CNNs (SS1) -> attention (SS3) -> language modeling/GPT (SS3.6, SS5)
+    "04_deep_learning": ["cnn_scratch.py", "attention_scratch.py",
+                         "mini_gpt.py"],
+    # notes: confusion matrix/ROC (SS1-2) -> calibration (SS3) ->
+    # bias-variance + cross-validation (SS4-5)
+    "05_evaluation": ["metrics_scratch.py", "calibration_scratch.py",
+                      "bias_variance_experiment.py"],
+    # notes: training memory arithmetic (SS2) -> LoRA fine-tuning (SS4) ->
+    # speculative decoding inference (SS5)
+    "07_llm_stack": ["memory_math.py", "lora_scratch.py",
+                     "speculative_decoding_demo.py"],
+}
+
+
+def _folder_title(track, name):
+    if track == "dsa" and name in FOLDER_TITLES:
+        return FOLDER_TITLES[name]
+    if name in ML_FOLDER_TITLES:
+        return ML_FOLDER_TITLES[name]
+    return re.sub(r"^\d+_", "", name).replace("_", " ").title()
+
+
+_meta_cache = {}  # str(path) -> (mtime, (title, blurb))
+
+
+def _script_meta(path):
+    """(title, blurb) for a .py script, derived from its module docstring and
+    cached on mtime. Title = the docstring's first sentence (wrapped lines
+    rejoined, any leading "filename.py -" prefix dropped, trailing period
+    stripped; fallback: humanized filename). Blurb = the next non-empty
+    docstring line's sentence, capped at 120 chars."""
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        mtime = 0
+    hit = _meta_cache.get(str(path))
+    if hit and hit[0] == mtime:
+        return hit[1]
+    doc = ""
+    try:
+        doc = ast.get_docstring(ast.parse(path.read_text())) or ""
+    except (SyntaxError, OSError, ValueError):
+        pass
+    lines = doc.split("\n")
+
+    def take_flat(i):  # rejoin wrapped lines until a sentence end / blank line
+        buf = []
+        while i < len(lines):
+            l = lines[i].strip()
+            if not l:
+                break
+            buf.append(l)
+            i += 1
+            if re.search(r"[.!?]$", l):
+                break
+        return " ".join(buf), i
+
+    def first_sentence(flat):
+        m = re.match(r"(.+?[.!?])(?:\s|$)", flat)
+        return (m.group(1) if m else flat).strip()
+
+    i = 0
+    while i < len(lines) and not lines[i].strip():
+        i += 1
+    flat, i = take_flat(i)
+    flat = re.sub(rf"^{re.escape(path.name)}\s*[-:]+\s*", "", flat)
+    title = first_sentence(flat).rstrip(".:").strip()
+    if not title:
+        title = path.stem.replace("_", " ")
+    title = title[:1].upper() + title[1:]
+    if len(title) > 120:  # a run-on first sentence: cut at its colon if any
+        cut = title.find(": ")
+        title = title[:cut] if cut >= 20 else title[:117].rstrip() + "..."
+    while True:  # blurb start: skip blanks, Run: lines, and label-only lines
+        while i < len(lines) and (not lines[i].strip()
+                                  or lines[i].strip().startswith("Run:")):
+            i += 1
+        l = lines[i].strip() if i < len(lines) else ""
+        if l.endswith(":") and len(l) <= 40:  # "What this script does:" etc
+            i += 1
+            continue
+        break
+    bflat = re.sub(r"^\d+[.)]\s+", "", take_flat(i)[0])  # drop "1. " markers
+    blurb = first_sentence(bflat).rstrip(":")
+    if len(blurb) > 120:
+        blurb = blurb[:117].rstrip() + "..."
+    meta = (title, blurb)
+    _meta_cache[str(path)] = (mtime, meta)
+    return meta
+
+
+_ipynb_meta_cache = {}  # str(path) -> (mtime, (title, blurb))
+
+
+def _ipynb_meta(path):
+    """(title, blurb) for a .ipynb notebook, cached on mtime like _script_meta.
+    Title = the first markdown cell's H1 line stripped of leading #'s
+    (fallback: humanized stem). Blurb = the first non-heading paragraph line
+    of that same cell, capped at 120 chars."""
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        mtime = 0
+    hit = _ipynb_meta_cache.get(str(path))
+    if hit and hit[0] == mtime:
+        return hit[1]
+    title, blurb = "", ""
+    try:
+        cell = next((s for k, s in _ipynb_cells(path) if k == "prose"), "")
+        for line in cell.splitlines():
+            l = line.strip()
+            if not l:
+                continue
+            if l.startswith("#"):
+                if not title:
+                    title = l.lstrip("#").strip()
+                continue
+            blurb = l
+            break
+    except (OSError, ValueError):
+        pass
+    if not title:
+        title = path.stem.replace("_", " ")
+        title = title[:1].upper() + title[1:]
+    if len(blurb) > 120:
+        blurb = blurb[:117].rstrip() + "..."
+    meta = (title, blurb)
+    _ipynb_meta_cache[str(path)] = (mtime, meta)
+    return meta
+
+
+def _file_meta(path):
+    """(title, blurb) for either notebook flavor."""
+    return _ipynb_meta(path) if path.suffix == ".ipynb" else _script_meta(path)
+
+
+def _notebook_files(d):
+    """The folder's notebook files (.py + .ipynb), with a .py hidden whenever
+    a same-stem .ipynb exists (the transition state while scripts convert)."""
+    files = list(d.glob("*.py")) + list(d.glob("*.ipynb"))
+    nb_stems = {f.stem for f in files if f.suffix == ".ipynb"}
+    return [f for f in files
+            if not (f.suffix == ".py" and f.stem in nb_stems)]
+
+
+def notebooks_index():
+    """Modules with notebooks (.py or .ipynb), in curriculum order (ml then
+    dsa, folders numbered), each with its notes file and its notebooks in
+    NB_ORDER (matched on stems, so either extension slots in)."""
+    out = []
+    for track in ("ml", "dsa"):
+        for d in sorted((ROOT / track).iterdir()):
+            if not d.is_dir():
+                continue
+            files = _notebook_files(d)
+            if not files:
+                continue
+            order = [Path(n).stem for n in NB_ORDER.get(d.name, [])]
+            files.sort(key=lambda p: (order.index(p.stem) if p.stem in order
+                                      else len(order), p.name))
+            notes = next((str((d / n).relative_to(ROOT))
+                          for n in ("notes.md", "README.md")
+                          if (d / n).is_file()), None)
+            nbs = [{"path": str(p.relative_to(ROOT)), "file": p.name,
+                    "title": _file_meta(p)[0], "blurb": _file_meta(p)[1]}
+                   for p in files]
+            out.append({"track": track, "folder": d.name,
+                        "folder_title": _folder_title(track, d.name),
+                        "notes_path": notes, "notebooks": nbs})
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -950,7 +1251,7 @@ def _reading_order(f):
         rank = 1
     elif n == "problems.py":
         rank = 5  # full reference solutions: below the drills they'd spoil
-    elif f.suffix == ".py":
+    elif f.suffix in (".py", ".ipynb"):
         rank = 2
     elif "solution" in n:
         rank = 5
@@ -970,10 +1271,11 @@ def notes_tree():
             folders.append({"name": "overview", "files": [_md_entry(readme)]})
         for d in sorted((ROOT / track).iterdir()):
             if d.is_dir():
-                paths = sorted(list(d.glob("*.md")) + list(d.glob("*.py")),
+                paths = sorted(list(d.glob("*.md")) + _notebook_files(d),
                                key=_reading_order)
                 files = [_md_entry(f) if f.suffix == ".md" else
-                         {"path": str(f.relative_to(ROOT)), "title": f.name,
+                         {"path": str(f.relative_to(ROOT)),
+                          "title": _file_meta(f)[0],
                           "name": f.name} for f in paths]
                 if files:
                     folders.append({"name": d.name, "files": files})
@@ -985,18 +1287,31 @@ def notes_tree():
 
 
 def read_md(raw_path):
-    """Resolve and serve a markdown or python file - must stay inside the repo
-    root. Python sources are wrapped in a fenced block so the client's existing
-    markdown renderer shows them as read-only highlighted code."""
+    """Resolve and serve a markdown, python, or ipynb file - must stay inside
+    the repo root. Python sources are wrapped in a fenced block so the client's
+    existing markdown renderer shows them as read-only highlighted code;
+    notebooks render as markdown with their code cells fenced."""
     p = (ROOT / raw_path).resolve()
-    ok = (p.is_relative_to(ROOT) and p.suffix in (".md", ".py")
+    ok = (p.is_relative_to(ROOT) and p.suffix in (".md", ".py", ".ipynb")
           and len(p.relative_to(ROOT).parts) >= 2
           and p.relative_to(ROOT).parts[0] in ("ml", "dsa", "practice"))
     if not ok:
-        return None, (400, "path must be a .md or .py file under "
+        return None, (400, "path must be a .md, .py or .ipynb file under "
                            "ml/, dsa/ or practice/")
     if not p.is_file():
         return None, (404, "no such file")
+    if p.suffix == ".ipynb":
+        rel = p.relative_to(ROOT)
+        parts = [f"*`{rel}` - read-only view. To work through it cell by "
+                 f"cell and run the code, use **Open as notebook** above - "
+                 f"or open `{rel}` in Jupyter.*"]
+        for kind, src in _ipynb_cells(p):
+            src = src.rstrip("\n")
+            if kind == "prose":
+                parts.append(src)
+            elif src:
+                parts.append("```python\n" + src.replace("```", "`​``") + "\n```")
+        return "\n\n".join(parts), None
     text = p.read_text()
     if p.suffix == ".py":
         rel = p.relative_to(ROOT)
@@ -1116,13 +1431,15 @@ class Handler(BaseHTTPRequestHandler):
                 raw = (qs.get("path") or [""])[0]
                 result, status = nb_cells(raw)
                 self._json(result, status)
+            elif u.path == "/api/notebooks":
+                self._json(notebooks_index())
             elif u.path == "/api/flashcards":
                 self._json(parse_flashcards())
             elif u.path == "/api/queue":
                 self._json(queue_snapshot())
             elif u.path == "/api/activity":
                 self._json(activity())
-            elif u.path.endswith((".md", ".py")):
+            elif u.path.endswith((".md", ".py", ".ipynb")):
                 # a repo file hit directly (hand-typed or stale link):
                 # bounce into the SPA's notes view instead of a JSON 404
                 rel = u.path.lstrip("/")
