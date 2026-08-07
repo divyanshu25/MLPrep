@@ -7,54 +7,80 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
 if (window.tailwind) tailwind.config = { theme: { extend: {
-  colors: { base:'#1a1a1a', panel:'#222222', panel2:'#2a2a2a', line:'#383838',
-            accent:'#ffa116', good:'#2cbb5d', warn:'#ffc01e', bad:'#ef4743',
-            mut:'#9ca3af' },
+  colors: { base:'var(--base)', panel:'var(--panel)', panel2:'var(--panel2)', line:'var(--line)',
+            accent:'#ffa116', good:'#2cbb5d', warn:'var(--warn)', bad:'#ef4743',
+            mut:'var(--mut)' },
   fontFamily: { mono:['ui-monospace','SFMono-Regular','Menlo','Consolas','monospace'] }
 }}};
+// apply saved theme before first paint to avoid a flash (default: light)
+document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-theme') === 'dark');
 </script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<style>.katex-display{overflow-x:auto;overflow-y:hidden;padding:0.25rem 0}</style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
 <style>
-  html { background:#1a1a1a; }
-  body { background:#1a1a1a; color:#e4e4e7; }
+  /* Theme palettes: light is the default; html.dark switches to the LC-dark look. */
+  :root {
+    --base:#f7f8fa; --panel:#ffffff; --panel2:#f1f3f5; --line:#e2e5e9;
+    --warn:#c98f0a; --mut:#6b7280; --text:#24292f; --text-strong:#111318;
+    --code-bg:#f3f4f6; --code-border:#e2e5e9; --code-text:#b45309;
+    --pre-bg:#f6f8fa; --pre-text:#24292f; --th-bg:#f1f3f5;
+    --quote:#57606a; --details-bg:#fafbfc; --scroll:#d1d5db; --dot-todo:#c8cdd4;
+  }
+  html.dark {
+    --base:#1a1a1a; --panel:#222222; --panel2:#2a2a2a; --line:#383838;
+    --warn:#ffc01e; --mut:#9ca3af; --text:#e4e4e7; --text-strong:#fafafa;
+    --code-bg:#2d2d2d; --code-border:#3a3a3a; --code-text:#fbbf24;
+    --pre-bg:#161616; --pre-text:#d4d4d8; --th-bg:#262626;
+    --quote:#a1a1aa; --details-bg:#232323; --scroll:#3f3f46; --dot-todo:#52525b;
+  }
+  html { background:var(--base); }
+  body { background:var(--base); color:var(--text); }
+  /* legacy fixed-shade classes → semantic theme colors */
+  .text-zinc-100, .text-zinc-200 { color:var(--text-strong) !important; }
+  .text-zinc-300 { color:var(--text) !important; }
+  .text-zinc-400 { color:var(--mut) !important; }
+  .bg-zinc-600 { background-color:var(--dot-todo) !important; }
   .CodeMirror { height:100%; font-size:14px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
   .cm-s-material-darker.CodeMirror { background:#1e1e1e; }
+  .cm-s-default.CodeMirror { background:#fff; border:1px solid var(--line); }
   /* markdown body */
   .md { line-height:1.65; font-size:.925rem; }
-  .md h1 { font-size:1.5rem; font-weight:700; margin:1.2rem 0 .8rem; color:#fafafa; }
-  .md h2 { font-size:1.2rem; font-weight:700; margin:1.6rem 0 .6rem; color:#fafafa;
-           border-bottom:1px solid #383838; padding-bottom:.3rem; }
-  .md h3 { font-size:1.05rem; font-weight:600; margin:1.2rem 0 .5rem; color:#f4f4f5; }
+  .md h1 { font-size:1.5rem; font-weight:700; margin:1.2rem 0 .8rem; color:var(--text-strong); }
+  .md h2 { font-size:1.2rem; font-weight:700; margin:1.6rem 0 .6rem; color:var(--text-strong);
+           border-bottom:1px solid var(--line); padding-bottom:.3rem; }
+  .md h3 { font-size:1.05rem; font-weight:600; margin:1.2rem 0 .5rem; color:var(--text-strong); }
   .md p { margin:.55rem 0; }
   .md ul, .md ol { margin:.55rem 0 .55rem 1.4rem; }
   .md ul { list-style:disc; } .md ol { list-style:decimal; }
   .md li { margin:.22rem 0; }
   .md a { color:#ffa116; text-decoration:underline; text-underline-offset:2px; }
-  .md code { background:#2d2d2d; border:1px solid #3a3a3a; border-radius:4px;
-             padding:.08rem .3rem; font-size:.85em; font-family:ui-monospace,Menlo,monospace; color:#fbbf24; }
-  .md pre { background:#161616; border:1px solid #333; border-radius:8px;
+  .md code { background:var(--code-bg); border:1px solid var(--code-border); border-radius:4px;
+             padding:.08rem .3rem; font-size:.85em; font-family:ui-monospace,Menlo,monospace; color:var(--code-text); }
+  .md pre { background:var(--pre-bg); border:1px solid var(--code-border); border-radius:8px;
             padding:.8rem 1rem; overflow-x:auto; margin:.7rem 0; }
-  .md pre code { background:none; border:none; padding:0; color:#d4d4d8; font-size:.83rem; }
+  .md pre code { background:none; border:none; padding:0; color:var(--pre-text); font-size:.83rem; }
   .md table { border-collapse:collapse; margin:.8rem 0; font-size:.86rem; display:block; overflow-x:auto; }
-  .md th, .md td { border:1px solid #3a3a3a; padding:.4rem .7rem; text-align:left; vertical-align:top; }
-  .md th { background:#262626; color:#fafafa; }
-  .md blockquote { border-left:3px solid #ffa116; padding-left:.9rem; color:#a1a1aa; margin:.7rem 0; }
-  .md details { background:#232323; border:1px solid #3a3a3a; border-radius:8px;
+  .md th, .md td { border:1px solid var(--code-border); padding:.4rem .7rem; text-align:left; vertical-align:top; }
+  .md th { background:var(--th-bg); color:var(--text-strong); }
+  .md blockquote { border-left:3px solid #ffa116; padding-left:.9rem; color:var(--quote); margin:.7rem 0; }
+  .md details { background:var(--details-bg); border:1px solid var(--code-border); border-radius:8px;
                 padding:.5rem .9rem; margin:.6rem 0; }
   .md summary { cursor:pointer; color:#ffa116; font-weight:600; }
-  .md hr { border-color:#383838; margin:1.4rem 0; }
+  .md hr { border-color:var(--line); margin:1.4rem 0; }
   .md input[type=checkbox] { accent-color:#ffa116; width:.95rem; height:.95rem; margin-right:.35rem; }
   .md img { max-width:100%; }
   ::-webkit-scrollbar { width:10px; height:10px; }
-  ::-webkit-scrollbar-thumb { background:#3f3f46; border-radius:6px; }
+  ::-webkit-scrollbar-thumb { background:var(--scroll); border-radius:6px; }
   ::-webkit-scrollbar-track { background:transparent; }
 </style>
 </head>
-<body class="bg-base text-zinc-200 antialiased">
+<body class="bg-base antialiased">
 
 <div id="offline-banner" style="display:none;background:#7c2d12;color:#fed7aa;padding:8px 16px;
      font:13px system-ui;border-bottom:1px solid #9a3412;"></div>
@@ -70,6 +96,8 @@ if (window.tailwind) tailwind.config = { theme: { extend: {
     <a href="#/review"   data-tab="review"   class="px-3 py-1.5 rounded-md hover:bg-panel2">Review</a>
   </div>
   <div class="ml-auto flex items-center gap-3 text-xs text-mut" id="nav-progress"></div>
+  <button id="theme-toggle" class="px-2.5 py-1.5 rounded-md border border-line hover:bg-panel2 text-sm"
+          title="Toggle light / dark theme"></button>
 </nav>
 
 <main id="app" class="h-[calc(100vh-3.5rem)] overflow-y-auto"></main>
@@ -81,7 +109,32 @@ const $  = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s ?? '').replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const md = t => window.marked ? marked.parse(t, {gfm:true}) : '<pre>'+esc(t)+'</pre>';
+/* Markdown + LaTeX. marked mangles math ($W_1$ -> italics, \\ eaten), so math
+   spans are stashed behind placeholder tokens before parsing, typeset with
+   KaTeX, and spliced back into the rendered HTML afterwards. Fenced code
+   blocks are exempt so `$` in shell/code snippets is never treated as math. */
+const md = t => {
+  if (!window.marked) return '<pre>'+esc(t)+'</pre>';
+  const stash = [];
+  const hold = (tex, display) => {
+    let html = null;
+    if (window.katex) {
+      try { html = katex.renderToString(tex, {displayMode: display, throwOnError: false}); }
+      catch (e) { html = null; }
+    }
+    if (html === null) html = '<code>'+esc(display ? '$$'+tex+'$$' : '$'+tex+'$')+'</code>';
+    stash.push(html);
+    const tok = '@@MATH'+(stash.length-1)+'@@';
+    return display ? '\n\n'+tok+'\n\n' : tok;
+  };
+  const guarded = t.split(/(```[\s\S]*?```)/g).map(seg => {
+    if (seg.startsWith('```')) return seg;
+    return seg
+      .replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => hold(tex.trim(), true))
+      .replace(/(?<!\\)\$(?!\s)((?:\\.|[^$\n])+?)\$(?!\d)/g, (_, tex) => hold(tex, false));
+  }).join('');
+  return marked.parse(guarded, {gfm:true}).replace(/@@MATH(\d+)@@/g, (_, i) => stash[+i]);
+};
 const DIFF_CLS = {easy:'text-good', medium:'text-warn', hard:'text-bad'};
 const STATUS_DOT = {solved:'bg-good', attempted:'bg-warn', todo:'bg-zinc-600'};
 const STATUS_TITLE = {solved:'Solved (last logged: pass)', attempted:'Attempted (last logged: fail)', todo:'Not attempted'};
@@ -129,11 +182,24 @@ function fmtClock(sec) { return Math.floor(sec / 60) + ':' + String(sec % 60).pa
 /* ---------------------------------------------------------------- router */
 let cleanup = null;
 window.addEventListener('hashchange', route);
+function syncTheme() {
+  const dark = document.documentElement.classList.contains('dark');
+  const btn = $('#theme-toggle');
+  if (btn) btn.textContent = dark ? '☀️' : '🌙';
+  if (window._cm) window._cm.setOption('theme', dark ? 'material-darker' : 'default');
+}
 window.addEventListener('load', () => {
+  $('#theme-toggle').onclick = () => {
+    const dark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('mlprep-theme', dark ? 'dark' : 'light');
+    syncTheme();
+  };
+  syncTheme();
   const missing = [];
   if (!window.tailwind) missing.push('Tailwind');
   if (!window.marked) missing.push('marked (markdown)');
   if (!window.CodeMirror) missing.push('CodeMirror (editor)');
+  if (!window.katex) missing.push('KaTeX (math will show as raw LaTeX)');
   if (missing.length) {
     const b = $('#offline-banner'); b.style.display = 'block';
     b.textContent = 'Offline? These CDN assets failed to load: ' + missing.join(', ') +
@@ -346,11 +412,13 @@ async function viewProblem(app, pid) {
   let cmEditor = null;
   if (window.CodeMirror) {
     cmEditor = CodeMirror($('#editor-wrap'), {
-      value: p.stub, mode: 'python', theme: 'material-darker', lineNumbers: true,
+      value: p.stub, mode: 'python', lineNumbers: true,
+      theme: document.documentElement.classList.contains('dark') ? 'material-darker' : 'default',
       indentUnit: 4, tabSize: 4, indentWithTabs: false, autofocus: true,
       extraKeys: { 'Cmd-Enter': () => run(), 'Ctrl-Enter': () => run(),
                    Tab: cm => cm.somethingSelected() ? cm.indentSelection('add') : cm.replaceSelection('    ') },
     });
+    window._cm = cmEditor;   // let the theme toggle re-theme a live editor
   } else {
     $('#editor-wrap').innerHTML = `<textarea id="code-ta" spellcheck="false"
       class="w-full h-full bg-[#1e1e1e] text-zinc-200 font-mono text-sm p-3 outline-none resize-none">${esc(p.stub)}</textarea>`;
@@ -565,9 +633,8 @@ async function viewCards(app, slug) {
         <button id="c-miss" class="px-4 py-2 rounded-md bg-bad/80 hover:bg-bad text-white text-sm font-semibold">✗ Missed (1)</button>
         <button id="c-got" class="px-4 py-2 rounded-md bg-good/80 hover:bg-good text-white text-sm font-semibold">✓ Got it (2)</button>
         <span class="text-xs text-mut">${esc(state.logNote)}</span>
+        <span class="ml-auto text-[11px] text-mut italic">grade before you flip back — recognition is not recall</span>
       </div>
-      <div class="absolute top-2 right-4 text-[11px] text-mut italic text-right">
-        grade before you flip back —<br>recognition is not recall</div>
     </div>`;
     $('#card').onclick = () => { state.flipped = !state.flipped; render(); };
     if (state.flipped) {
