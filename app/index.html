@@ -940,25 +940,28 @@ function docNav(tree, path) {
   const flat = [];
   (tree || []).forEach(g => g.folders.forEach(f => f.files.forEach(x =>
     flat.push({ path: x.path, title: x.title, folder: f.name,
-                folderTitle: folderTitle(f.name) }))));
+                folderTitle: f.title || folderTitle(f.name) }))));
   const i = flat.findIndex(e => e.path === path);
   return { entry: i >= 0 ? flat[i] : null,
            prev: i > 0 ? flat[i - 1] : null,
            next: i >= 0 && i < flat.length - 1 ? flat[i + 1] : null };
 }
-/* notebooks open as notebooks, everything else as read-only notes */
-const docHash = e => (/\.(py|ipynb)$/.test(e.path) ? '#/nb/' : '#/notes/') + encodeURIComponent(e.path);
+/* notebooks open as notebooks; problems.py opens the structured reference
+   page; everything else opens as read-only notes */
+const docHash = e => (/\.(py|ipynb)$/.test(e.path) && !e.path.endsWith('problems.py')
+  ? '#/nb/' : '#/notes/') + encodeURIComponent(e.path);
 /* quiet single-row breadcrumb: Notes / module / title, filename in mono,
    compact prev/next arrows (plus any view-specific text buttons) at right */
 function crumbRow(nav, path, title, extras) {
   const parts = path.split('/');
   const mod = nav.entry ? nav.entry.folderTitle
             : folderTitle(parts.length > 1 ? parts[parts.length - 2] : parts[0]);
-  const pager = [['Previous', nav.prev, '←', '['], ['Next', nav.next, '→', ']']]
-    .map(([dir, e, arrow, key]) => e
-      ? `<a href="${docHash(e)}" class="btn btn-text text-mut !px-2"
-           title="${esc(dir + ': ' + e.title)} (${key})">${arrow}</a>`
-      : `<span class="btn btn-text !px-2 opacity-30 select-none" aria-hidden="true">${arrow}</span>`)
+  const short = t => t.length > 26 ? t.slice(0, 24).trimEnd() + '…' : t;
+  const pager = [['Previous', nav.prev, '[', t => '← ' + t], ['Next', nav.next, ']', t => t + ' →']]
+    .map(([dir, e, key, fmt]) => e
+      ? `<a href="${docHash(e)}" class="btn btn-text text-mut !px-2 text-xs whitespace-nowrap"
+           title="${esc(dir + ': ' + e.title)} (${key})">${esc(fmt(short(e.title)))}</a>`
+      : '')
     .join('');
   return `
   <div class="flex items-center gap-x-2 gap-y-1 flex-wrap text-[13px] mb-6">
@@ -1120,9 +1123,11 @@ async function viewNotes(app, encodedPath) {
 
   const nav = docNav(tree, current);
   const title = (nav.entry && nav.entry.title) || current.split('/').pop();
-  /* .ipynb gets only the notebook button - the whole-file Playground run is
-     a .py-only concept */
-  const extras = current.endsWith('.ipynb')
+  /* .ipynb gets only the notebook button (Playground is a .py-only concept);
+     problems.py reference pages get neither - they are for reading after an
+     attempt, and the page itself points at the Problems tab for drilling */
+  const extras = current.endsWith('problems.py') ? ''
+    : current.endsWith('.ipynb')
     ? `<a href="#/nb/${encodeURIComponent(current)}" class="btn btn-text text-accent">Open as notebook</a>`
     : current.endsWith('.py')
     ? `<a href="#/nb/${encodeURIComponent(current)}" class="btn btn-text text-accent">Open as notebook</a>

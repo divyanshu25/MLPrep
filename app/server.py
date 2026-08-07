@@ -1268,21 +1268,27 @@ def notes_tree():
         folders = []
         readme = ROOT / track / "README.md"
         if readme.exists():
-            folders.append({"name": "overview", "files": [_md_entry(readme)]})
+            folders.append({"name": "overview", "title": "Overview",
+                            "files": [_md_entry(readme)]})
         for d in sorted((ROOT / track).iterdir()):
             if d.is_dir():
                 paths = sorted(list(d.glob("*.md")) + _notebook_files(d),
                                key=_reading_order)
                 files = [_md_entry(f) if f.suffix == ".md" else
                          {"path": str(f.relative_to(ROOT)),
-                          "title": _file_meta(f)[0],
+                          "title": ("Reference solutions"
+                                    if f.name == "problems.py"
+                                    else _file_meta(f)[0]),
                           "name": f.name} for f in paths]
                 if files:
-                    folders.append({"name": d.name, "files": files})
+                    folders.append({"name": d.name,
+                                    "title": _folder_title(track, d.name),
+                                    "files": files})
         groups.append({"group": track, "folders": folders})
     pfiles = [_md_entry(f) for f in sorted((ROOT / "practice").glob("*.md"))]
     groups.append({"group": "practice",
-                   "folders": [{"name": "practice", "files": pfiles}]})
+                   "folders": [{"name": "practice", "title": "Practice system",
+                                "files": pfiles}]})
     return groups
 
 
