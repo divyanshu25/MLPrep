@@ -980,18 +980,22 @@ function crumbRow(nav, path, title, extras, modHref) {
 }
 /* end-of-document pager: full-title prev/next, keyboard hint in between;
    crossing a folder boundary labels next with the module it enters */
+/* end-of-document pager: two quiet cards, label above a single truncated
+   title line; keyboard hints live in the tooltips */
 function docFooter(nav) {
-  const prev = nav.prev
-    ? `<a href="${docHash(nav.prev)}" class="btn btn-text text-sm text-left">← ${esc(nav.prev.title)}</a>`
-    : '<span></span>';
+  const card = (label, e, right, key, text) => e
+    ? `<a href="${docHash(e)}" title="${esc(e.title)} (${key})"
+         class="card flex-1 min-w-0 px-4 py-3 hover:border-accent ${right ? 'text-right' : ''}">
+        <div class="microlabel text-mut mb-0.5">${label}</div>
+        <div class="text-sm font-medium text-zinc-100 truncate">${esc(text || e.title)}</div>
+      </a>`
+    : '<span class="flex-1"></span>';
   const crosses = nav.next && nav.entry && nav.next.folder !== nav.entry.folder;
-  const next = nav.next
-    ? `<a href="${docHash(nav.next)}" class="btn btn-text text-sm text-right">${esc(crosses ? 'Next module: ' + nav.next.folderTitle : nav.next.title)} →</a>`
-    : '<span></span>';
-  return `<div class="mt-10 pt-4 border-t border-line flex items-center justify-between gap-3">
-    ${prev}
-    <span class="text-[11px] text-mut shrink-0" title="keyboard shortcuts">[ prev · ] next</span>
-    ${next}</div>`;
+  return `<div class="mt-10 flex gap-3">
+    ${card('← Previous', nav.prev, false, '[')}
+    ${card(crosses ? 'Next module →' : 'Next →', nav.next, true, ']',
+           crosses ? nav.next.folderTitle : null)}
+  </div>`;
 }
 /* [ / ] navigate prev/next; ignored while typing in an editor or field */
 function docNavKeys(nav) {
