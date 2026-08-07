@@ -1,4 +1,8 @@
-.PHONY: install sync run clean test lint format
+.PHONY: install sync run clean test lint format study
+
+# Launch the LeetCode-style study app (http://localhost:8888)
+study:
+	uv run python app/server.py
 
 # Install dependencies and create virtual environment
 install:
