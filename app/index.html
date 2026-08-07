@@ -1132,10 +1132,10 @@ async function viewNotes(app, encodedPath) {
      attempt, and the page itself points at the Problems tab for drilling */
   const extras = current.endsWith('problems.py') ? ''
     : current.endsWith('.ipynb')
-    ? `<a href="#/nb/${encodeURIComponent(current)}" class="btn btn-text text-accent">Open as notebook</a>`
+    ? `<a href="#/nb/${encodeURIComponent(current)}" class="btn btn-primary !py-1">Open as notebook</a>`
     : current.endsWith('.py')
-    ? `<a href="#/nb/${encodeURIComponent(current)}" class="btn btn-text text-accent">Open as notebook</a>
-       <a href="#/lab/${encodeURIComponent(current)}" class="btn btn-text text-mut">Playground</a>` : '';
+    ? `<a href="#/nb/${encodeURIComponent(current)}" class="btn btn-primary !py-1">Open as notebook</a>
+       <a href="#/lab/${encodeURIComponent(current)}" class="btn btn-secondary !py-1">Playground</a>` : '';
   app.innerHTML = `
   <div id="doc-wrap" class="doc-wrap">
     <div class="max-w-[90ch] mx-auto px-6 py-8">
@@ -1365,10 +1365,10 @@ async function viewNb(app, path) {
         <span id="nb-dot" class="inline-block w-2 h-2 rounded-full bg-good"></span>
         <span id="nb-status" class="tnum">idle</span>
       </span>
-      <div class="ml-auto flex items-center gap-1">
-        <button id="nb-runall" class="btn btn-text text-accent">Run all</button>
-        <button id="nb-restart" class="btn btn-text text-mut">Restart</button>
-        <a class="btn btn-text text-mut" href="#/notes/${encodeURIComponent(path)}"
+      <div class="ml-auto flex items-center gap-2">
+        <button id="nb-runall" class="btn btn-primary !py-1">Run all</button>
+        <button id="nb-restart" class="btn btn-secondary !py-1">Restart</button>
+        <a class="btn btn-secondary !py-1" href="#/notes/${encodeURIComponent(path)}"
            title="Read-only view">Source</a>
       </div>
     </div>
@@ -1429,16 +1429,19 @@ async function viewNb(app, path) {
       return cell;
     }
     const el = document.createElement('div');
-    el.className = 'card mb-3 overflow-hidden';
+    /* gutter OUTSIDE the card so every box on the page (cards, prose, fenced
+       blocks in markdown) shares one left edge; run numbers hang in the
+       reserved left rail like a classic notebook */
+    el.className = 'flex items-stretch mb-3';
     el.innerHTML = `
-      <div class="flex items-stretch">
-        <div class="nb-gut w-14 shrink-0 pt-2.5 pr-2 text-right text-[11px] font-mono tnum text-mut select-none">[&nbsp;]</div>
-        <div class="nb-ed flex-1 min-w-0 py-1.5 pr-2"></div>
-      </div>
-      <div class="nb-out hidden border-t border-line">
-        <pre class="nb-stdout hidden px-4 py-3 text-xs font-mono whitespace-pre-wrap overflow-x-auto text-[var(--pre-text)]"></pre>
-        <pre class="nb-stderr hidden mx-3 my-2.5 p-3 rounded-lg soft-bad text-bad text-xs font-mono whitespace-pre-wrap overflow-x-auto"></pre>
-        <div class="nb-ms microlabel text-mut px-4 pb-2 pt-0.5 tnum"></div>
+      <div class="nb-gut w-14 shrink-0 pt-3 pr-3 text-right text-[11px] font-mono tnum text-mut select-none">[&nbsp;]</div>
+      <div class="card flex-1 min-w-0 overflow-hidden">
+        <div class="nb-ed py-1.5 pr-2"></div>
+        <div class="nb-out hidden border-t border-line">
+          <pre class="nb-stdout hidden px-4 py-3 text-xs font-mono whitespace-pre-wrap overflow-x-auto text-[var(--pre-text)]"></pre>
+          <pre class="nb-stderr hidden mx-3 my-2.5 p-3 rounded-lg soft-bad text-bad text-xs font-mono whitespace-pre-wrap overflow-x-auto"></pre>
+          <div class="nb-ms microlabel text-mut px-4 pb-2 pt-0.5 tnum"></div>
+        </div>
       </div>`;
     cellsEl.appendChild(el);
     const cell = {
