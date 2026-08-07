@@ -1,4 +1,4 @@
-# Trees and Heaps — From First Principles
+# Trees and Heaps - From First Principles
 
 Trees are the first data structure where recursion stops being a technique and
 becomes the *definition*. A binary tree is either empty, or a node with two
@@ -22,7 +22,7 @@ def solve(node):
     return combine(left, right, node.val)
 ```
 
-This is not "one pattern among many" — it is THE pattern. The design questions
+This is not "one pattern among many" - it is THE pattern. The design questions
 for a new problem are only:
 
 1. **What does the empty tree answer look like?** (base case)
@@ -44,8 +44,8 @@ def depth(node):
 ```
 
 **Diameter** (longest path between any two nodes, in edges). The longest path
-either passes through the root — in which case it's `depth(left) +
-depth(right)` — or it lives entirely inside one subtree. So the answer isn't
+either passes through the root - in which case it's `depth(left) +
+depth(right)` - or it lives entirely inside one subtree. So the answer isn't
 necessarily at the root: this is design question 3. The recursion returns depth
 (what parents need), while a nonlocal `best` tracks the through-this-node path
 at every node:
@@ -67,8 +67,7 @@ This "return one thing, track another" split is the single most reusable trick
 in tree interviews (diameter, max path sum, longest univalue path all use it).
 
 **Balance check.** A tree is balanced iff both subtrees are balanced *and*
-their depths differ by at most 1. So combine needs both a boolean and a depth
-— return both, or use the classic trick of returning depth normally and `-1`
+their depths differ by at most 1. So combine needs both a boolean and a depth - return both, or use the classic trick of returning depth normally and `-1`
 as a poison value meaning "unbalanced below me":
 
 ```python
@@ -85,7 +84,7 @@ def is_balanced(root):
 ```
 
 All three are O(n) time (each node visited once, O(1) work each) and O(h) space
-for the recursion stack, where h is the height — O(log n) for balanced trees,
+for the recursion stack, where h is the height - O(log n) for balanced trees,
 O(n) worst case for a degenerate chain. Say this in interviews; the stack space
 is the part people forget.
 
@@ -100,14 +99,14 @@ left, recurse right. The three orders are just the three places you can put
 | Order | Sequence | Natural use |
 |---|---|---|
 | **Preorder** | node, left, right | Copying/serializing a tree (you must know the root before you can attach children); prefix notation |
-| **Inorder** | left, node, right | BSTs — visits keys in sorted order (proof below); anything "in sorted order" on a BST |
-| **Postorder** | left, right, node | Computing bottom-up values (depth, size, delete-a-tree) — you need children's answers before the node's |
+| **Inorder** | left, node, right | BSTs - visits keys in sorted order (proof below); anything "in sorted order" on a BST |
+| **Postorder** | left, right, node | Computing bottom-up values (depth, size, delete-a-tree) - you need children's answers before the node's |
 
 Notice the template in section 1 *is* postorder: children first, combine at the
-node. That's why postorder is the default shape of tree problems — most
+node. That's why postorder is the default shape of tree problems - most
 questions ask for a bottom-up quantity.
 
-Iterative preorder with an explicit stack (know this cold — interviewers ask
+Iterative preorder with an explicit stack (know this cold - interviewers ask
 for it when they want to check you understand what recursion is doing):
 
 ```python
@@ -124,7 +123,7 @@ def preorder(root):
 The recursion-to-stack translation: the call stack *is* a stack; making it
 explicit trades O(h) implicit space for O(h) explicit space, but frees you from
 Python's ~1000-frame recursion limit (relevant for trees with 10^4+ nodes in a
-chain — `sys.setrecursionlimit` is the quick fix, an explicit stack is the
+chain - `sys.setrecursionlimit` is the quick fix, an explicit stack is the
 robust one).
 
 ---
@@ -133,7 +132,7 @@ robust one).
 
 DFS goes deep; BFS goes wide. Use a queue: process a node, enqueue its
 children. Since children are exactly one level deeper than their parent, the
-queue always holds nodes from at most two adjacent levels, in level order —
+queue always holds nodes from at most two adjacent levels, in level order  - 
 so nodes come off the queue level by level.
 
 The interview-standard version processes one *whole level* per outer iteration
@@ -159,11 +158,11 @@ def level_order(root):
 **Why the `for _ in range(len(q))` works:** at the top of the outer loop the
 queue contains exactly the current level (invariant: true initially with just
 the root; the inner loop removes exactly those nodes and adds exactly the next
-level). Freezing `len(q)` before the inner loop is what separates levels —
+level). Freezing `len(q)` before the inner loop is what separates levels  - 
 forgetting to freeze it (iterating while appending) is the classic bug.
 
 BFS is the answer whenever the problem says "level", "nearest", "minimum
-depth", or "zigzag". O(n) time, O(w) space where w is max width — up to n/2
+depth", or "zigzag". O(n) time, O(w) space where w is max width - up to n/2
 for a complete tree, so BFS can use more memory than DFS on bushy trees.
 
 ---
@@ -172,7 +171,7 @@ for a complete tree, so BFS can use more memory than DFS on bushy trees.
 
 **The invariant** (get this exactly right): for *every* node, ALL keys in its
 left subtree are `< node.val`, and ALL keys in its right subtree are
-`> node.val`. Not just the children — the entire subtrees.
+`> node.val`. Not just the children - the entire subtrees.
 
 **Why inorder traversal of a BST is sorted:** proof by induction on tree size.
 Empty tree: trivially sorted. Otherwise, inorder emits (inorder of left), then
@@ -183,7 +182,7 @@ the right part is > node.val, so the concatenation is sorted. ∎
 This gives you free algorithms: kth smallest = stop inorder after k nodes;
 validate BST = check inorder is strictly increasing.
 
-**Validate BST — the bounds method, and the classic bug.** The tempting local
+**Validate BST - the bounds method, and the classic bug.** The tempting local
 check is:
 
 ```python
@@ -220,13 +219,13 @@ def is_valid_bst(root):
 ```
 
 **Why bounds are correct:** the interval (lo, hi) at a node is by construction
-exactly the set of values the BST invariant permits there — each left turn
+exactly the set of values the BST invariant permits there - each left turn
 records "everything below here must be less than this ancestor", each right
 turn the mirror. A tree satisfies the invariant iff every node's value lies in
 its interval.
 
 BST search/insert are O(h): each comparison discards one entire subtree.
-That's O(log n) only if the tree is balanced — a sorted-order insertion
+That's O(log n) only if the tree is balanced - a sorted-order insertion
 sequence produces a linked list and O(n) operations. (Self-balancing trees fix
 this; for interviews you name AVL/red-black and move on, you don't implement
 them.)
@@ -259,13 +258,13 @@ def lca(root, p, q):
 ```
 
 The subtle line is the base case `root is p or root is q`: if you hit p, you
-can return p immediately without searching below it — if q is inside p's
+can return p immediately without searching below it - if q is inside p's
 subtree, then p itself is the LCA, and returning p is still correct because
 the other side will return None and p propagates up. Both cases are covered by
 the same return. O(n) time, O(h) space.
 
 (For a *BST* there's a cheaper walk: start at root; if both p, q < node go
-left, if both > go right, otherwise you're standing on the LCA — the first
+left, if both > go right, otherwise you're standing on the LCA - the first
 node where the paths split. O(h) with no recursion.)
 
 ---
@@ -273,10 +272,10 @@ node where the paths split. O(h) with no recursion.)
 ## 6. Serialization
 
 To turn a tree into a string and back, you need a traversal that determines
-the tree uniquely. Preorder alone doesn't (many trees share a preorder) —
+the tree uniquely. Preorder alone doesn't (many trees share a preorder)  - 
 *unless you record the Nones*. With null markers, preorder is unambiguous:
 the first token is the root, then the encoding of the left subtree (which is
-self-delimiting — it consumes exactly the tokens it needs), then the right.
+self-delimiting - it consumes exactly the tokens it needs), then the right.
 
 ```python
 def serialize(root):
@@ -301,7 +300,7 @@ def deserialize(s):
     return build()
 ```
 
-**Why decode works:** decode mirrors encode exactly — encode wrote root, left
+**Why decode works:** decode mirrors encode exactly - encode wrote root, left
 encoding, right encoding; decode reads the root token, then recursively
 consumes precisely the left encoding, then the right. Induction on subtree
 size makes this airtight. The `iter` + `next` sharing of one token stream is
@@ -309,7 +308,7 @@ the clean way to express "each recursive call consumes what it needs".
 
 Related classic: rebuild a tree from **preorder + inorder** (no null markers,
 but requires distinct values). Preorder's first element is the root; find it
-in inorder — everything left of it is the left subtree's inorder, everything
+in inorder - everything left of it is the left subtree's inorder, everything
 right is the right's, and the sizes tell you how to split the rest of
 preorder. Recurse. With a hashmap from value → inorder index, O(n) total.
 
@@ -317,15 +316,15 @@ preorder. Recurse. With a hashmap from value → inorder index, O(n) total.
 
 ## 7. Heaps from first principles
 
-A heap answers one question fast: "what's the minimum?" — with O(log n)
+A heap answers one question fast: "what's the minimum?" - with O(log n)
 insert and O(log n) extract-min. It does this with two ideas.
 
-**Idea 1 — the heap property:** every node ≤ its children (min-heap). This
-puts the minimum at the root, but says *nothing* about siblings' order — a
+**Idea 1 - the heap property:** every node ≤ its children (min-heap). This
+puts the minimum at the root, but says *nothing* about siblings' order - a
 heap is much weaker than sorted, which is exactly why it's cheaper to
 maintain.
 
-**Idea 2 — the complete-binary-tree array trick.** Keep the tree *complete*
+**Idea 2 - the complete-binary-tree array trick.** Keep the tree *complete*
 (every level full except possibly the last, filled left to right). A complete
 tree can be stored in a plain array with no pointers, reading level by level:
 
@@ -369,13 +368,13 @@ because half the nodes are leaves."
 
 ## 8. Heap patterns
 
-**Top-k with a min-heap of size k — and why min, not max.** To keep the k
+**Top-k with a min-heap of size k - and why min, not max.** To keep the k
 *largest* items of a stream, maintain a **min**-heap of size k. Counter-
 intuitive until you see the role of the root: the root of a min-heap of the
-current top-k is the *smallest of the keepers* — the gatekeeper. A new item
+current top-k is the *smallest of the keepers* - the gatekeeper. A new item
 either beats the gatekeeper (pop root, push item) or it can't be in the top k
 (ignore it). A max-heap's root is the *largest*, which tells you nothing about
-whether a newcomer makes the cut — you'd have to store everything. Cost:
+whether a newcomer makes the cut - you'd have to store everything. Cost:
 n operations on a heap of size k → O(n log k) time, O(k) space, versus
 O(n log n) for sorting. In Python: `heapq.nlargest(k, xs)` does exactly this.
 
@@ -393,8 +392,7 @@ or the average of the two roots (even). Insert: push onto `lo`, then move
 `lo`'s max over to `hi`, then if `hi` got bigger than `lo`, move `hi`'s min
 back. Why this maintains max(lo) ≤ min(hi): the element pushed to `hi` is the
 max of `lo`-including-the-newcomer, so it is ≥ everything remaining in `lo`;
-any element moved back is `hi`'s min, so it is ≤ everything remaining in `hi`
-— the halves never interleave, regardless of where the new value belonged.
+any element moved back is `hi`'s min, so it is ≤ everything remaining in `hi` - the halves never interleave, regardless of where the new value belonged.
 Each insert is O(log n), median read is O(1). This beats
 re-sorting (O(n log n) per query) and is the canonical "two heaps" cue:
 *any* problem asking for a running max-of-lower-half / min-of-upper-half.
@@ -410,22 +408,22 @@ re-sorting (O(n log n) per query) and is the canonical "two heaps" cue:
 - **Tuple keys:** heap elements compare with `<`, and tuples compare
   lexicographically, so `(priority, item)` orders by priority with `item` as
   tiebreak. If items aren't comparable (e.g. ListNode), insert a counter:
-  `(priority, count, item)` — the counter breaks all ties before Python ever
+  `(priority, count, item)` - the counter breaks all ties before Python ever
   compares the items. Forgetting this raises `TypeError` the first time two
   priorities collide.
 - `heapq.heappushpop(h, x)` (push then pop) is faster than the two calls and
   is exactly the top-k inner loop; `heapq.heapreplace(h, x)` is pop-then-push.
 - No delete-arbitrary or decrease-key. The standard workaround is **lazy
   deletion**: leave stale entries in the heap and skip them on pop (used in
-  Dijkstra — see the graphs notes).
+  Dijkstra - see the graphs notes).
 
 ---
 
-## 10. Tries — prefix trees from first principles
+## 10. Tries - prefix trees from first principles
 
 **Derive the structure from the query.** A hashset of N words answers "is `w` a
 word?" in O(L) (hash the L characters), but it is *helpless* on "is `w` a
-**prefix** of any word?" — hashing destroys prefix structure, so the only recourse
+**prefix** of any word?" - hashing destroys prefix structure, so the only recourse
 is scanning all N keys. The fix: store the words as **paths in a tree**. A node
 per prefix; an edge per character; words that share a prefix share the path.
 
@@ -437,26 +435,26 @@ class TrieNode:
 ```
 
 That's the whole structure: a node is a dict of children plus one flag. The flag
-is load-bearing — without it you can't distinguish "app is a word" from "app is
+is load-bearing - without it you can't distinguish "app is a word" from "app is
 merely a prefix of apple"; the node for `app` exists either way.
 
 - **insert(word):** walk from the root, creating missing children; mark the last
   node terminal. O(L).
 - **search(word):** walk; fail on a missing child; at the end, return the
   `terminal` flag. O(L).
-- **startsWith(prefix):** same walk; at the end return True unconditionally —
+- **startsWith(prefix):** same walk; at the end return True unconditionally  - 
   reaching the node at all means some word passes through it. O(L).
 
-**Why the trie wins.** Both lookups cost O(L) — *independent of N*, the number of
+**Why the trie wins.** Both lookups cost O(L) - *independent of N*, the number of
 words. The shared-prefix compression is also a space story: a million words
 starting with `pre` store those three nodes once. Against the alternative
 "hashset of every prefix of every word" (which does answer startsWith), the trie
-uses strictly less space and adds per-node structure you can traverse — which is
+uses strictly less space and adds per-node structure you can traverse - which is
 exactly what the next two problems exploit.
 
 **Wildcard search = DFS branching.** Add `.` matching any single character
 (WordDictionary, LC 211). A literal character follows one edge; a `.` must try
-**every** child — so search becomes a DFS over (node, position-in-pattern):
+**every** child - so search becomes a DFS over (node, position-in-pattern):
 
 ```
 match(node, i): if i == len(word): return node.terminal
@@ -467,19 +465,19 @@ match(node, i): if i == len(word): return node.terminal
 Worst case for a pattern of all dots is O(total nodes), and saying that honestly
 matters: wildcards buy expressiveness by giving back the O(L) guarantee.
 
-**Word Search II — why trie + backtracking beats per-word search.** Find which of
+**Word Search II - why trie + backtracking beats per-word search.** Find which of
 k dictionary words appear in an m×n letter grid (paths of adjacent cells). Per-word
-grid backtracking costs k full searches — the k words re-explore the same grid
+grid backtracking costs k full searches - the k words re-explore the same grid
 paths k times. Instead, build a trie of ALL the words and run ONE grid DFS that
 walks the trie in lockstep with the grid: from each cell, step only into children
-that exist in the trie. The trie *is* the pruning — a grid path is abandoned the
+that exist in the trie. The trie *is* the pruning - a grid path is abandoned the
 moment it stops being a prefix of any word, and all k words are matched
 simultaneously. Two refinements interviewers look for:
 
 1. **Report at terminal nodes, then unset the flag** (or collect into a set) so a
    word isn't reported once per occurrence.
 2. **Remove dead leaves:** after a word is found, its trie path may serve no other
-   word — delete childless nodes on the way back up (`if not child.children:
+   word - delete childless nodes on the way back up (`if not child.children:
    del children[ch]`). The trie shrinks as words are found, and the grid DFS
    prunes harder and harder; on adversarial inputs this is the difference between
    passing and timing out.
@@ -487,7 +485,7 @@ simultaneously. Two refinements interviewers look for:
 **Recognition cues:** "prefix", "autocomplete", "starts with", "add and search
 words" (with wildcards), "many words against one grid/stream", "longest common
 prefix over many strings". If the query is exact-membership only, a hashset is
-simpler — reach for the trie when *prefix structure* is queried or shared.
+simpler - reach for the trie when *prefix structure* is queried or shared.
 
 **Common bugs:** forgetting the terminal flag (search == startsWith); marking
 terminal on the wrong node (one short of the full word); in Word Search II,
@@ -518,12 +516,12 @@ trees (§2).
 
 ## Exit checklist
 
-- [ ] Cold, blank editor: write the universal tree-recursion template, then instantiate it for max depth and diameter — 4 min
-- [ ] State what each DFS order is for (pre/in/post) with one canonical use apiece — 2 min
-- [ ] Validate a BST correctly by passing bounds down — and say why the local parent-child check is wrong — 3 min
-- [ ] Derive the LCA recursion and state its return-value contract — 4 min
-- [ ] Explain heap sift-up/sift-down and why build-heap is O(n), not O(n log n) — 4 min
-- [ ] Top-k: which heap, the size-k invariant, and the O(n log k) complexity — 2 min
-- [ ] Recite the Python heapq quirks: min-heap only, negation for max, tuple tie-breaking — 2 min
+- [ ] Cold, blank editor: write the universal tree-recursion template, then instantiate it for max depth and diameter - 4 min
+- [ ] State what each DFS order is for (pre/in/post) with one canonical use apiece - 2 min
+- [ ] Validate a BST correctly by passing bounds down - and say why the local parent-child check is wrong - 3 min
+- [ ] Derive the LCA recursion and state its return-value contract - 4 min
+- [ ] Explain heap sift-up/sift-down and why build-heap is O(n), not O(n log n) - 4 min
+- [ ] Top-k: which heap, the size-k invariant, and the O(n log k) complexity - 2 min
+- [ ] Recite the Python heapq quirks: min-heap only, negation for max, tuple tie-breaking - 2 min
 
-All boxes cold before moving on — a miss goes into practice/queue.tsv.
+All boxes cold before moving on - a miss goes into practice/queue.tsv.

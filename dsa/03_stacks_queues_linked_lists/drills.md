@@ -1,7 +1,7 @@
-# Stacks / Queues / Linked Lists — Timed Drills
+# Stacks / Queues / Linked Lists - Timed Drills
 
 Protocol (from the [README](../README.md)): start a timer, attempt cold, no hints
-until the box expires. Then take hints one at a time — each is a smaller give-away
+until the box expires. Then take hints one at a time - each is a smaller give-away
 than the next. Unfold the solution only after a real attempt, and put any miss on
 your 2-day re-attempt list. For linked-list drills: draw the boxes and arrows
 BEFORE coding; for design drills: derive the structure from the requirements out
@@ -9,10 +9,10 @@ loud, LRU-style.
 
 ---
 
-## Drill 1 — Implement Queue Using Stacks · Easy · 15 min
+## Drill 1 - Implement Queue Using Stacks · Easy · 15 min
 
 Build a FIFO queue (`push`, `pop`, `peek`, `empty`) using only two stacks. Every
-operation must be **amortized** O(1) — and you must be able to defend that word.
+operation must be **amortized** O(1) - and you must be able to defend that word.
 
 <details><summary>Hint 1 (pattern)</summary>
 One stack receives pushes; the other serves pops. Two LIFO reversals compose into
@@ -25,7 +25,7 @@ from `out`, and only when `out` is EMPTY, pour all of `inb` into it.
 </details>
 <details><summary>Hint 3 (near-spoiler)</summary>
 The amortized argument is per-element accounting: each element is pushed onto inb
-once, moved to out at most once, and popped once — 3 stack operations over its
+once, moved to out at most once, and popped once - 3 stack operations over its
 lifetime, regardless of the interleaving. An O(n) pour is paid for by the n
 elements it moves.
 </details>
@@ -58,13 +58,13 @@ class MyQueue:
 
 Complexity: amortized O(1) per operation (each element: ≤ 3 pushes/pops total),
 O(n) worst case for a single pop that triggers a pour. The classic bug is pouring
-while `out` is non-empty — that interleaves old and new elements and breaks FIFO;
+while `out` is non-empty - that interleaves old and new elements and breaks FIFO;
 test push 1,2 / pop / push 3 / pop / pop → 1, 2, 3.
 </details>
 
 ---
 
-## Drill 2 — Basic Calculator II · Medium · 30 min
+## Drill 2 - Basic Calculator II · Medium · 30 min
 
 Evaluate a string like `" 3+5 / 2 "` containing non-negative integers, `+ - * /`
 (integer division truncating toward zero), and spaces. No parentheses, no `eval`.
@@ -82,7 +82,7 @@ product/quotient. The stack always holds fully-resolved additive terms.
 </details>
 <details><summary>Hint 3 (near-spoiler)</summary>
 Track `num` (current number being built digit by digit) and `op` (last operator
-seen, initialized '+'). Flush num when you hit a non-digit or the end of string —
+seen, initialized '+'). Flush num when you hit a non-digit or the end of string  - 
 the end-of-string flush is the classic miss. Python gotcha: -3 // 2 == -2
 (floors), so truncate with int(a / b).
 </details>
@@ -110,28 +110,28 @@ def calculate(s):
 
 Complexity: O(n) time, O(n) space. Test: `"3+2*2"` → 7, `" 3/2 "` → 1,
 `"14-3/2"` → 13, and a negative intermediate like `"1-2*3"` → -5 (the -6 term).
-Follow-up they often add: parentheses (Basic Calculator I) — recurse or push
+Follow-up they often add: parentheses (Basic Calculator I) - recurse or push
 (result, sign) frames on the stack at '('.
 </details>
 
 ---
 
-## Drill 3 — Resumable Multi-File Iterator (progressive) · Hard · 35 min
+## Drill 3 - Resumable Multi-File Iterator (progressive) · Hard · 35 min
 
 The Anthropic/OpenAI progressive-design shape (notes.md §6). Work the levels in
 order; each level's code should survive into the next.
 
-**Level 1:** `FileIterator(files)` where `files` is a list of lists of records —
+**Level 1:** `FileIterator(files)` where `files` is a list of lists of records  - 
 `next()` / `has_next()` yielding all records of file 0, then file 1, ... Skip
 empty files.
-**Level 2:** add `remove_file(i)` — subsequent iteration never yields records from
+**Level 2:** add `remove_file(i)` - subsequent iteration never yields records from
 file i (already-yielded records stay yielded).
 **Level 3:** add `get_state()` returning a serializable token, and
 `set_state(token)` so a NEW iterator resumes exactly where the old one stood.
 
 <details><summary>Hint 1 (pattern)</summary>
 Reify the cursor: (file index, offset within file), advanced by hand. A generator
-gives you next() for free but makes level 3 impossible — you can't serialize a
+gives you next() for free but makes level 3 impossible - you can't serialize a
 paused stack frame.
 </details>
 <details><summary>Hint 2 (invariant)</summary>
@@ -185,21 +185,20 @@ class FileIterator:
 ```
 
 Complexity: O(1) amortized per next (each file is skipped past once), O(#removed)
-state size. What the interviewer is probing: (1) the eager `_normalize` discipline
-— lazy versions make `has_next` mutate state or lie; (2) that the state token is
+state size. What the interviewer is probing: (1) the eager `_normalize` discipline - lazy versions make `has_next` mutate state or lie; (2) that the state token is
 *complete* (forgetting `removed` means a restored iterator resurrects deleted
 files); (3) saying explicitly why a generator-based level 1 dead-ends at level 3.
 </details>
 
 ---
 
-## Drill 4 — Remove Nth Node From End of List · Medium · 15 min
+## Drill 4 - Remove Nth Node From End of List · Medium · 15 min
 
 Delete the nth node from the END of a singly linked list in ONE pass, and return
 the head. Example: `1→2→3→4→5`, n=2 → `1→2→3→5`.
 
 <details><summary>Hint 1 (pattern)</summary>
-Two pointers with a fixed gap — the fast/slow family, offset flavor.
+Two pointers with a fixed gap - the fast/slow family, offset flavor.
 </details>
 <details><summary>Hint 2 (invariant)</summary>
 Send `lead` n nodes ahead, then advance `lag` and `lead` together; when lead falls
@@ -228,24 +227,24 @@ def remove_nth_from_end(head, n):
 
 Complexity: O(L) time, O(1) space, single pass. Invariant to state: lead is always
 exactly n nodes ahead of lag.next. Edge cases to name unprompted: n equals the
-list length (head removed — the dummy earns its keep), single-node list.
+list length (head removed - the dummy earns its keep), single-node list.
 </details>
 
 ---
 
-## Drill 5 — Palindrome Linked List · Medium · 20 min
+## Drill 5 - Palindrome Linked List · Medium · 20 min
 
 Is a singly linked list a palindrome? O(n) time, **O(1) space** (so no copying
-into an array — mention that O(n)-space version, then beat it).
+into an array - mention that O(n)-space version, then beat it).
 
 <details><summary>Hint 1 (pattern)</summary>
 Composition of the folder's primitives: find the middle, reverse in place, walk
-two fronts — the reorder-list toolkit pointed at a yes/no question.
+two fronts - the reorder-list toolkit pointed at a yes/no question.
 </details>
 <details><summary>Hint 2 (invariant)</summary>
 Fast/slow to the middle; reverse the SECOND half; compare first half vs reversed
 second half node by node. Odd length: the middle node belongs to neither half and
-compares against nothing — make sure your split leaves it out of the comparison.
+compares against nothing - make sure your split leaves it out of the comparison.
 </details>
 <details><summary>Hint 3 (near-spoiler)</summary>
 With `fast = head.next` at the start, slow stops at the END of the first half, so
@@ -272,14 +271,14 @@ def is_palindrome(head):
 ```
 
 Complexity: O(n) time, O(1) space. Interview polish: offer to restore the list
-(re-reverse the second half and re-attach) — mutating the input is worth flagging
+(re-reverse the second half and re-attach) - mutating the input is worth flagging
 even when accepted. Test odd (`1,2,1`), even (`1,2,2,1`), failing (`1,2`), and
 single-node lists.
 </details>
 
 ---
 
-## Drill 6 — Copy List with Random Pointer · Medium · 25 min
+## Drill 6 - Copy List with Random Pointer · Medium · 25 min
 
 Each node has `next` and a `random` pointer to an arbitrary node (or None). Return
 a deep copy. Then the follow-up: do it without the hashmap, O(1) extra space.
@@ -290,12 +289,12 @@ map old → new that's complete before any random pointer is wired.
 </details>
 <details><summary>Hint 2 (invariant)</summary>
 Two passes: pass 1 creates all clones and records old → clone; pass 2 wires
-clone.next = map[old.next], clone.random = map[old.random] (None maps to None —
+clone.next = map[old.next], clone.random = map[old.random] (None maps to None  - 
 `dict.get` handles it).
 </details>
 <details><summary>Hint 3 (near-spoiler)</summary>
 O(1)-space version: make the LIST ITSELF the map. Interleave clones
-(A→A'→B→B'→...); then old.random's clone is old.random.next — an O(1) lookup by
+(A→A'→B→B'→...); then old.random's clone is old.random.next - an O(1) lookup by
 position; finally unzip the two lists. Three passes, no dict.
 </details>
 <details><summary>Solution</summary>
@@ -317,8 +316,8 @@ def copy_random_list(head):
 
 Complexity: O(n) time, O(n) space. The interleaving version trades the dict for
 pointer discipline: (1) insert A' after each A, (2) set
-`A.next.random = A.random.next` when A.random exists, (3) unzip — restoring the
+`A.next.random = A.random.next` when A.random exists, (3) unzip - restoring the
 original list exactly (interviewers check). Same O(n) time, O(1) extra space.
-The seeded `{None: None}` entry is the trick that removes every null check —
+The seeded `{None: None}` entry is the trick that removes every null check  - 
 worth stating.
 </details>

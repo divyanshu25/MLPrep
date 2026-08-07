@@ -1,7 +1,7 @@
-# Foundations: Linear Algebra, Calculus, Probability — from first principles
+# Foundations: Linear Algebra, Calculus, Probability - from first principles
 
 The goal of this note: you should be able to *re-derive* everything here on a whiteboard,
-not just recite it. Every ML system — a linear model, a transformer, a diffusion model —
+not just recite it. Every ML system - a linear model, a transformer, a diffusion model  - 
 is built out of exactly three ingredients:
 
 1. **Linear algebra**: how we *represent* data and transform it (matrices).
@@ -18,7 +18,7 @@ and becomes bookkeeping.
 ### 1.1 Vectors are data points
 
 Forget arrows in space for a second. In ML, a vector is just **a list of measurements
-about one thing**. A house might be $x = [1400, 3, 1985]$ — square feet, bedrooms,
+about one thing**. A house might be $x = [1400, 3, 1985]$ - square feet, bedrooms,
 year built. A word in a transformer is a vector of 768 learned numbers. That's it.
 
 The "arrow" picture is still useful for one reason: it gives us geometry. Once data
@@ -42,9 +42,9 @@ $$a \cdot b = \|a\| \, \|b\| \cos\theta$$
 where $\theta$ is the angle between them. If the vectors point the same way,
 $\cos\theta = 1$ and the dot product is large and positive. Orthogonal → 0.
 Opposite → negative. So the dot product is an (unnormalized) **agreement score**.
-Divide out the lengths and you get **cosine similarity** — the thing every embedding
+Divide out the lengths and you get **cosine similarity** - the thing every embedding
 search engine computes. Attention scores in a transformer are literally
-$q \cdot k$ — "how much does this query agree with this key?"
+$q \cdot k$ - "how much does this query agree with this key?"
 
 **View 2: projection.** $\frac{a \cdot b}{\|b\|}$ is the length of the shadow $a$ casts
 onto the direction of $b$. So a dot product asks: *how much of $a$ lives along $b$'s
@@ -55,7 +55,7 @@ what every neuron in a network's linear layer is doing.
 
 Check with numbers: $\|a\| = \sqrt{5} \approx 2.24$, $\|b\| = \sqrt{10} \approx 3.16$,
 so $\cos\theta = 5 / (2.24 \cdot 3.16) \approx 0.707$, i.e. $\theta = 45°$. Draw the two
-arrows — it's visibly 45°. The formula isn't abstract; it just works.
+arrows - it's visibly 45°. The formula isn't abstract; it just works.
 
 ### 1.3 Matrix multiply, view 1: a batch of dot products
 
@@ -79,14 +79,14 @@ $$Wx = 5 \,(W e_1) + 6 \,(W e_2) = 5 \begin{bmatrix}1\\3\end{bmatrix} + 6\begin{
 
 $W e_1$ is just **column 1 of $W$**. So: *a matrix is fully specified by where it sends
 the basis vectors; the output is the same combination of columns that the input was of
-basis vectors.* $W$ is a machine that warps all of space — rotating, stretching,
-shearing — and the columns are the warped images of the unit axes.
+basis vectors.* $W$ is a machine that warps all of space - rotating, stretching,
+shearing - and the columns are the warped images of the unit axes.
 
 Why hold both views? View 1 (rows = detectors) explains what a layer *computes*.
 View 2 (columns = where basis goes) explains *composition*: $ABx$ means "warp by $B$,
 then warp by $A$", which is why matrix multiplication is associative and why a stack
 of linear layers **without nonlinearities collapses to a single linear layer**
-($W_2 W_1$ is just another matrix — a classic interview question).
+($W_2 W_1$ is just another matrix - a classic interview question).
 
 ### 1.5 Eigenvectors and eigenvalues: the directions a matrix doesn't rotate
 
@@ -100,9 +100,9 @@ $\lambda$. Concrete: $A = \begin{bmatrix} 2 & 1 \\ 1 & 2\end{bmatrix}$.
 Try $v = [1, 1]$: $Av = [3, 3] = 3v$. Eigenvalue 3. Try $v = [1, -1]$:
 $Av = [1, -1] = 1 \cdot v$. Eigenvalue 1. Along the diagonal direction this matrix
 stretches 3×; along the anti-diagonal it does nothing. Those two directions are
-orthogonal — not an accident: **symmetric matrices always have a full set of
+orthogonal - not an accident: **symmetric matrices always have a full set of
 orthogonal eigenvectors with real eigenvalues** (the spectral theorem). In the
-eigenbasis, $A$ is just a diagonal matrix — the map decomposes into independent
+eigenbasis, $A$ is just a diagonal matrix - the map decomposes into independent
 per-axis stretches.
 
 Why care in ML:
@@ -155,8 +155,8 @@ A norm is a formalized notion of length. The ones that matter:
 - **L1**: $\|x\|_1 = \sum_i |x_i|$. Its unit ball is a diamond with corners *on the
   axes*, so optimization constrained by it lands on corners → exact zeros → **sparsity**
   (lasso). L2's ball is round, no corners, so it shrinks but rarely zeros.
-- **L∞**: $\max_i |x_i|$ — worst-case coordinate; the norm of adversarial-example fame.
-- **Frobenius** (matrices): $\|A\|_F = \sqrt{\sum_{ij} a_{ij}^2}$ — L2 with the matrix
+- **L∞**: $\max_i |x_i|$ - worst-case coordinate; the norm of adversarial-example fame.
+- **Frobenius** (matrices): $\|A\|_F = \sqrt{\sum_{ij} a_{ij}^2}$ - L2 with the matrix
   flattened.
 
 Norms also define distance ($\|a - b\|$) and normalization ($x / \|x\|$, as in
@@ -186,7 +186,7 @@ $\times \epsilon$." Gradient descent just nudges every weight in whichever direc
 lowers the loss, proportional to its sensitivity.
 
 Numerics aside: in code, prefer the **centered** difference
-$\frac{f(x+h) - f(x-h)}{2h}$ — its error is $O(h^2)$ instead of $O(h)$ (the even-order
+$\frac{f(x+h) - f(x-h)}{2h}$ - its error is $O(h^2)$ instead of $O(h)$ (the even-order
 error terms cancel; Taylor-expand both sides to see it). This is the standard gradient
 checker, implemented in `gradients_from_scratch.py`.
 
@@ -208,10 +208,10 @@ Backprop is *nothing but* this, applied to a graph and organized efficiently:
 2. **Backward pass**: walk the graph in reverse, and at each node multiply the
    incoming "wiggle rate of the loss w.r.t. my output" (the upstream gradient) by the
    node's **local derivative**, then pass it on. Where paths merge (a variable used
-   twice), **add** the contributions — because independent wiggle paths superpose.
+   twice), **add** the contributions - because independent wiggle paths superpose.
 
-There is no other math in backprop. Every exotic layer — attention, layernorm,
-convolutions — just needs its local derivative; the chain rule does the rest.
+There is no other math in backprop. Every exotic layer - attention, layernorm,
+convolutions - just needs its local derivative; the chain rule does the rest.
 Why backward and not forward? With many parameters ($n$ inputs, 1 scalar loss),
 reverse mode computes all $n$ sensitivities in one backward sweep at roughly the cost
 of one forward pass; forward mode would need $n$ sweeps. That asymmetry is the entire
@@ -222,12 +222,12 @@ reason deep learning is computationally feasible.
 When $f : \mathbb{R}^n \to \mathbb{R}$ (a loss!), the **gradient** $\nabla f$ collects
 all $n$ partial sensitivities into a vector. Key fact: $\nabla f$ points in the
 direction of **steepest ascent**. Why: the wiggle from stepping in unit direction $u$
-is $\nabla f \cdot u = \|\nabla f\| \cos\theta$ — maximized when $u$ aligns with
+is $\nabla f \cdot u = \|\nabla f\| \cos\theta$ - maximized when $u$ aligns with
 $\nabla f$ (dot product as projection, again!). Hence *descent* steps along
 $-\nabla f$.
 
 The three identities that cover 90% of ML derivations (all provable by writing out
-components — do it once by hand):
+components - do it once by hand):
 
 | Expression | Gradient | Sanity check (1-D) |
 |---|---|---|
@@ -236,7 +236,7 @@ components — do it once by hand):
 | $f(x) = \|x\|^2 = x^\top x$ | $\nabla f = 2x$ | $x^2 \to 2x$ |
 
 The 1-D sanity check column is the trick: matrix calculus identities are the scalar
-rules with transposes arranged so shapes work out. Worked example — linear regression,
+rules with transposes arranged so shapes work out. Worked example - linear regression,
 $L(w) = \|Xw - y\|^2$. Let $r = Xw - y$ (residuals). Chain rule:
 sensitivity of $L$ to $r$ is $2r$; sensitivity of $r$ to $w$ is $X$; combine
 (transposing to route the wiggle backward through the map):
@@ -245,31 +245,31 @@ $$\nabla_w L = 2 X^\top (Xw - y)$$
 
 Shape check: $X^\top$ is $d \times n$, $r$ is $n \times 1$, result $d \times 1$ = shape
 of $w$. ✓ **The gradient of a scalar loss always has the same shape as the thing you're
-differentiating with respect to** — the single most useful debugging rule in matrix
+differentiating with respect to** - the single most useful debugging rule in matrix
 calculus. Setting $\nabla_w L = 0$ gives the normal equations
 $X^\top X w = X^\top y$, i.e. the closed-form least-squares solution.
 
 ### 2.4 Jacobians: the full wiggle table
 
-When $f : \mathbb{R}^n \to \mathbb{R}^m$ (vector in, vector out — i.e., a layer), one
+When $f : \mathbb{R}^n \to \mathbb{R}^m$ (vector in, vector out - i.e., a layer), one
 number can't describe sensitivity. The **Jacobian** is the $m \times n$ table of all of
-them: $J_{ij} = \partial f_i / \partial x_j$ — "how much does output $i$ wiggle when I
+them: $J_{ij} = \partial f_i / \partial x_j$ - "how much does output $i$ wiggle when I
 wiggle input $j$?" To first order, $f(x + \delta) \approx f(x) + J\delta$: **the
-Jacobian is the local linear approximation of the layer** — the matrix that the
+Jacobian is the local linear approximation of the layer** - the matrix that the
 function locally *is*. (Full circle to Part 1: nonlinear functions are locally linear
 maps.)
 
 Chain rule for vectors: Jacobians **multiply**: $J_{f \circ g}(x) = J_f(g(x))\, J_g(x)$.
 Backprop propagates the row vector $\partial L / \partial \text{output}$ through each
-layer by multiplying by that layer's Jacobian (a *vector–Jacobian product* — the
+layer by multiplying by that layer's Jacobian (a *vector–Jacobian product* - the
 Jacobian itself is usually never materialized; for a hidden layer of width 4096 it
 would be 4096², per example). Examples worth knowing cold:
 
-- Elementwise ReLU: Jacobian is diagonal, entries $\mathbb{1}[x_i > 0]$ — backprop
+- Elementwise ReLU: Jacobian is diagonal, entries $\mathbb{1}[x_i > 0]$ - backprop
   just masks the upstream gradient.
 - Linear layer $f(x) = Wx$: Jacobian w.r.t. $x$ is exactly $W$; backprop multiplies
   the upstream gradient by $W^\top$.
-- Softmax: $J_{ij} = p_i(\delta_{ij} - p_j)$ — dense, which is why softmax is always
+- Softmax: $J_{ij} = p_i(\delta_{ij} - p_j)$ - dense, which is why softmax is always
   fused with cross-entropy (see exercises: the fused gradient collapses to $p - y$).
 
 Vanishing/exploding gradients, restated precisely: the backward signal is a product of
@@ -281,21 +281,21 @@ each layer's Jacobian $\approx I + \text{small}$, so products stay near $I$.
 
 ## Part 3: Probability & statistics
 
-### 3.1 Random variables, expectation, variance — from first principles
+### 3.1 Random variables, expectation, variance - from first principles
 
 A **random variable** is just a number attached to a random outcome: die roll $X \in
 \{1..6\}$, each with probability $1/6$. The **expectation** is the probability-weighted
-average — the long-run mean if you repeat forever:
+average - the long-run mean if you repeat forever:
 
 $$\mathbb{E}[X] = \sum_x x \, P(X = x) = \tfrac{1}{6}(1+2+3+4+5+6) = 3.5$$
 
 Two properties you use constantly: **linearity**,
 $\mathbb{E}[aX + bY] = a\mathbb{E}[X] + b\mathbb{E}[Y]$, which holds *even when $X, Y$
-are dependent* (it's just rearranging a weighted sum) — this is what makes so many ML
+are dependent* (it's just rearranging a weighted sum) - this is what makes so many ML
 proofs one-liners. And $\mathbb{E}[XY] = \mathbb{E}[X]\mathbb{E}[Y]$ only under
 independence.
 
-**Variance** is the expected squared distance from the mean — the natural "spread":
+**Variance** is the expected squared distance from the mean - the natural "spread":
 
 $$\mathrm{Var}(X) = \mathbb{E}[(X - \mu)^2] = \mathbb{E}[X^2] - \mu^2$$
 
@@ -308,7 +308,7 @@ of the CLT, of $1/\sqrt{n}$ error bars, and of every variance-scaling weight-ini
 scheme (Xavier/He: pick weight variance so activations keep unit variance layer to
 layer).
 
-### 3.2 Bayes rule — derived, not memorized
+### 3.2 Bayes rule - derived, not memorized
 
 Conditional probability is a *definition*: restrict attention to the world where $B$
 happened, and renormalize:
@@ -316,22 +316,22 @@ happened, and renormalize:
 $$P(A \mid B) = \frac{P(A \cap B)}{P(B)}$$
 
 Write it twice: $P(A \cap B) = P(A \mid B) P(B)$ and also $P(A \cap B) = P(B \mid A)
-P(A)$ — same quantity, two factorizations. Set them equal, divide by $P(B)$:
+P(A)$ - same quantity, two factorizations. Set them equal, divide by $P(B)$:
 
 $$P(A \mid B) = \frac{P(B \mid A)\, P(A)}{P(B)}$$
 
-That's the whole derivation — two lines from the definition. The point of Bayes rule is
+That's the whole derivation - two lines from the definition. The point of Bayes rule is
 that it converts **likelihood** ("probability of the evidence given the hypothesis",
 often easy to model) into the **posterior** ("probability of the hypothesis given the
 evidence", the thing you actually want), weighted by the **prior** $P(A)$.
 
 The classic trap (run it with raw counts, as in `probability_demos.py`): a disease has
-prevalence 1%, the test has 99% sensitivity and 95% specificity. You test positive —
+prevalence 1%, the test has 99% sensitivity and 95% specificity. You test positive  - 
 what's the chance you're sick? Take 10,000 people: 100 sick → 99 true positives;
 9,900 healthy → 5% false positive rate → 495 false positives. Positive tests: $99 +
 495 = 594$; sick among them: $99 / 594 \approx 16.7\%$. Not 99%. The prior (rarity of
 the disease) dominates because false positives come from a *huge* pool. In ML terms:
-this is precision under class imbalance — exactly why accuracy is a useless metric for
+this is precision under class imbalance - exactly why accuracy is a useless metric for
 rare-event detection and why a 99%-accurate fraud model can be garbage.
 
 ### 3.3 MLE, and why minimizing cross-entropy IS maximum likelihood
@@ -342,7 +342,7 @@ the $\theta$ that makes the observed data most probable:
 $$\hat\theta = \arg\max_\theta \prod_{i=1}^n p_\theta(y_i \mid x_i)
              = \arg\max_\theta \sum_{i=1}^n \log p_\theta(y_i \mid x_i)$$
 
-(Log is monotonic so the argmax is unchanged; it turns the product into a sum —
+(Log is monotonic so the argmax is unchanged; it turns the product into a sum  - 
 numerically stable and differentiable term by term.)
 
 Now the punchline. A classifier with softmax output assigns probabilities
@@ -350,7 +350,7 @@ $p_\theta(k \mid x_i)$ to each class. The negative log-likelihood of the data is
 
 $$-\sum_i \log p_\theta(y_i \mid x_i) = -\sum_i \sum_k y_{ik} \log p_\theta(k \mid x_i)$$
 
-where $y_{ik}$ is the one-hot label (the inner sum has one surviving term — the
+where $y_{ik}$ is the one-hot label (the inner sum has one surviving term - the
 correct class). The right-hand side is *literally the definition of the cross-entropy
 loss*. So: **minimizing cross-entropy = maximizing the log-probability the model
 assigns to the true labels.** Cross-entropy isn't an arbitrary "good loss"; it's MLE
@@ -362,11 +362,11 @@ is always "it's the negative log-likelihood under this noise/output model."
 Simplest concrete MLE (verified numerically in `probability_demos.py`): coin with
 unknown $p$, observe $h$ heads in $n$ flips. $\log L(p) = h \log p + (n - h)\log(1-p)$.
 Differentiate, set to zero: $h/p = (n-h)/(1-p) \Rightarrow \hat p = h/n$. The empirical
-frequency — MLE formalizes the obvious.
+frequency - MLE formalizes the obvious.
 
-### 3.4 Bernoulli and Gaussian — where they come from
+### 3.4 Bernoulli and Gaussian - where they come from
 
-**Bernoulli($p$)**: the atom of randomness — one binary event. $P(X=1) = p$,
+**Bernoulli($p$)**: the atom of randomness - one binary event. $P(X=1) = p$,
 $\mathbb{E}[X] = p$, $\mathrm{Var} = p(1-p)$ (maximal at $p = 1/2$: a fair coin is the
 most unpredictable coin). Sum $n$ independent Bernoullis → **Binomial**. Every
 binary-classification output and every dropout mask is a Bernoulli.
@@ -374,11 +374,11 @@ binary-classification output and every dropout mask is a Bernoulli.
 **Gaussian** $\mathcal{N}(\mu, \sigma^2)$, density $\frac{1}{\sqrt{2\pi\sigma^2}}
 e^{-\frac{(x-\mu)^2}{2\sigma^2}}$. It is not chosen for convenience alone; it *emerges*:
 
-1. **CLT** (next section): sums of many small independent effects are Gaussian —
+1. **CLT** (next section): sums of many small independent effects are Gaussian  - 
    which is why measurement noise so often is.
 2. **Maximum entropy**: among all distributions with a given mean and variance, the
-   Gaussian assumes the least extra structure — the honest default.
-3. Its $-\log$ density is quadratic — the bridge from "Gaussian noise" to
+   Gaussian assumes the least extra structure - the honest default.
+3. Its $-\log$ density is quadratic - the bridge from "Gaussian noise" to
    "least-squares loss" (§3.3).
 
 ### 3.5 Bias and variance of estimators
@@ -395,7 +395,7 @@ inside the square, cross term vanishes):
 
 $$\mathbb{E}[(\hat\theta - \theta)^2] = \mathrm{Bias}^2 + \mathrm{Var}$$
 
-Canonical example: sample variance with $\frac{1}{n}$ is biased low — the sample mean
+Canonical example: sample variance with $\frac{1}{n}$ is biased low - the sample mean
 $\bar x$ chases the data, so deviations from $\bar x$ are systematically smaller than
 deviations from the true $\mu$; the exact correction factor is $\frac{n-1}{n}$, fixed
 by **Bessel's correction** $\frac{1}{n-1}$. The ML version of the tradeoff: a linear
@@ -405,16 +405,16 @@ including this particular sample's noise). Regularization, more data, and ensemb
 (bagging averages away variance) are all moves on this dial. Test error decomposes as
 $\text{Bias}^2 + \text{Variance} + \text{irreducible noise}$.
 
-### 3.6 Central limit theorem — the $\sqrt{n}$ intuition
+### 3.6 Central limit theorem - the $\sqrt{n}$ intuition
 
 Average $n$ i.i.d. draws with mean $\mu$, variance $\sigma^2$:
 $\bar X_n = \frac1n \sum X_i$. Two facts, both from §3.1:
 
-- $\mathbb{E}[\bar X_n] = \mu$ (linearity) — unbiased.
+- $\mathbb{E}[\bar X_n] = \mu$ (linearity) - unbiased.
 - $\mathrm{Var}(\bar X_n) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$
   (independence → variances add; the $\frac1n$ comes out squared).
 
-So the spread of the mean shrinks like $\sigma/\sqrt{n}$ — the **law of large
+So the spread of the mean shrinks like $\sigma/\sqrt{n}$ - the **law of large
 numbers** with a rate. To halve your error bar you need 4× the data. The CLT adds the
 shape: not only does $\bar X_n$ concentrate, its distribution becomes **Gaussian**,
 *regardless of the original distribution*:
@@ -422,7 +422,7 @@ shape: not only does $\bar X_n$ concentrate, its distribution becomes **Gaussian
 $$\frac{\bar X_n - \mu}{\sigma / \sqrt{n}} \to \mathcal{N}(0, 1)$$
 
 Intuition for the shape: summing convolves distributions, and convolution repeatedly
-smooths — idiosyncratic features (skew, bumps) wash out, and the Gaussian is the fixed
+smooths - idiosyncratic features (skew, bumps) wash out, and the Gaussian is the fixed
 point of this smoothing (only skew/kurtosis die slowly; mean and variance are
 preserved by design of the normalization). Start with something as lopsided as an
 exponential distribution: means of 100 draws are already visibly symmetric and bell-
@@ -431,7 +431,7 @@ $\sigma/\sqrt{n}$ numerically).
 
 Why care in ML: minibatch gradients are sample means of per-example gradients (SGD
 noise is $\propto 1/\sqrt{\text{batch size}}$); test-set accuracy is a sample mean, so
-its error bar is $\sqrt{p(1-p)/n}$ — with $n = 1000$ test examples, accuracy has a
+its error bar is $\sqrt{p(1-p)/n}$ - with $n = 1000$ test examples, accuracy has a
 ±1.5% standard error, i.e. a "0.5% improvement" is pure noise; A/B tests and
 confidence intervals all lean on CLT normality.
 
@@ -443,10 +443,10 @@ confidence intervals all lean on CLT normality.
 Because $a \cdot b = \|a\|\|b\|\cos\theta$: for fixed lengths it's maximal when the
 vectors align, zero when orthogonal, negative when opposed. Normalized, it's cosine
 similarity; unnormalized, it's the projection of one vector on the other scaled by
-its length — "how much of $a$ points along $b$."
+its length - "how much of $a$ points along $b$."
 
 **Q2. What happens if you stack linear layers with no nonlinearity?**
-$W_2(W_1 x) = (W_2 W_1) x$ — the composition of linear maps is a single linear map, so
+$W_2(W_1 x) = (W_2 W_1) x$ - the composition of linear maps is a single linear map, so
 depth adds no expressive power. Nonlinearities are what break this collapse.
 
 **Q3. What do eigenvectors mean, in one sentence, and one ML place they appear?**
@@ -467,13 +467,13 @@ $\propto w$ fades near 0, shrinking weights without zeroing them.
 
 **Q6. Explain backprop in two sentences.**
 Forward pass computes and caches all intermediates; backward pass walks the graph in
-reverse applying the chain rule — multiply the upstream gradient by each node's local
+reverse applying the chain rule - multiply the upstream gradient by each node's local
 derivative, summing where paths merge. It's reverse-mode autodiff, chosen because one
 backward sweep gets the gradient w.r.t. *all* parameters at roughly the cost of one
 forward pass.
 
 **Q7. What is a Jacobian and what's its role in backprop?**
-The $m \times n$ matrix of all partials $\partial f_i / \partial x_j$ — the local
+The $m \times n$ matrix of all partials $\partial f_i / \partial x_j$ - the local
 linear approximation of a vector-valued function. Backprop propagates gradients via
 vector–Jacobian products; the full Jacobian is rarely materialized.
 
@@ -502,7 +502,7 @@ Gaussian noise, L1 = MLE under Laplace noise.
 Roughly what's the chance you're sick?**
 Around 17%, not 99% (with 95% specificity): per 10,000 people, 99 true positives vs
 495 false positives, so $99/594 \approx 0.167$. The false positives swamp the rare
-true positives — same reason accuracy misleads on imbalanced classes.
+true positives - same reason accuracy misleads on imbalanced classes.
 
 **Q13. Why divide by $n-1$ in the sample variance?**
 Deviations are measured from the sample mean, which itself chases the data, so
@@ -511,23 +511,23 @@ $\frac{n-1}{n}$; dividing by $n-1$ makes the estimator unbiased (Bessel's correc
 
 **Q14. Why does averaging reduce noise, and at what rate?**
 For i.i.d. terms, variances add while the $1/n$ prefactor comes out squared:
-$\mathrm{Var}(\bar X) = \sigma^2/n$, so the standard error shrinks as $1/\sqrt{n}$ —
+$\mathrm{Var}(\bar X) = \sigma^2/n$, so the standard error shrinks as $1/\sqrt{n}$  - 
 4× the data for half the error. CLT adds that the distribution of the mean is
 approximately Gaussian regardless of the source distribution.
 
 **Q15. Your model improved test accuracy from 91.0% to 91.5% on 1,000 examples. Real?**
 Standard error of accuracy is $\sqrt{p(1-p)/n} \approx \sqrt{0.09 \cdot 0.91/1000}
-\approx 0.9$–$1.5\%$ per model — the 0.5% gap is within noise. You'd need a bigger
+\approx 0.9$–$1.5\%$ per model - the 0.5% gap is within noise. You'd need a bigger
 test set, paired comparison (McNemar), or multiple seeds to claim a real improvement.
 
 ## Exit checklist
 
-- [ ] Cold, on paper: derive the projection of b onto a and explain dot product as similarity — 3 min
-- [ ] State SVD as rotate → stretch → rotate and give the geometric meaning of eigenvectors/eigenvalues — 3 min
-- [ ] Write the chain rule for a two-stage composition and give the Jacobian shape for f: R^n → R^m — 3 min
-- [ ] Derive Bayes rule from the definition of conditional probability, then apply it to a base-rate problem — 4 min
-- [ ] Show that minimizing cross-entropy is maximum likelihood for a Bernoulli model — 5 min
-- [ ] Define bias and variance of an estimator and explain why the 1/n variance estimator is biased — 4 min
-- [ ] Use standard error to decide whether a 0.5% accuracy gap between two models on n=1000 is real — 4 min
+- [ ] Cold, on paper: derive the projection of b onto a and explain dot product as similarity - 3 min
+- [ ] State SVD as rotate → stretch → rotate and give the geometric meaning of eigenvectors/eigenvalues - 3 min
+- [ ] Write the chain rule for a two-stage composition and give the Jacobian shape for f: R^n → R^m - 3 min
+- [ ] Derive Bayes rule from the definition of conditional probability, then apply it to a base-rate problem - 4 min
+- [ ] Show that minimizing cross-entropy is maximum likelihood for a Bernoulli model - 5 min
+- [ ] Define bias and variance of an estimator and explain why the 1/n variance estimator is biased - 4 min
+- [ ] Use standard error to decide whether a 0.5% accuracy gap between two models on n=1000 is real - 4 min
 
-All boxes cold before moving on — a miss goes into practice/queue.tsv.
+All boxes cold before moving on - a miss goes into practice/queue.tsv.

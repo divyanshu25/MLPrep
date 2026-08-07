@@ -1,4 +1,4 @@
-# Classical ML — Exercises
+# Classical ML - Exercises
 
 Ordered easy → hard. Attempt each on paper before opening the solution.
 Notation matches `notes.md`: $X \in \mathbb{R}^{n\times d}$, rows are
@@ -49,9 +49,9 @@ the unique global minimum (strictly convex).
 
 Existence of the inverse: $X^\top X$ is symmetric PSD, so it has eigenvalues
 $\mu_i \ge 0$. The eigenvalues of $X^\top X + \lambda I$ are
-$\mu_i + \lambda \ge \lambda > 0$ — all strictly positive, hence invertible,
+$\mu_i + \lambda \ge \lambda > 0$ - all strictly positive, hence invertible,
 *even when* columns of $X$ are collinear or $d > n$. Bonus insight: in the
-eigenbasis, ridge shrinks each component by $\mu_i / (\mu_i + \lambda)$ —
+eigenbasis, ridge shrinks each component by $\mu_i / (\mu_i + \lambda)$  - 
 low-variance directions (small $\mu_i$) are shrunk hardest, which is exactly
 where OLS variance blows up.
 </details>
@@ -107,7 +107,7 @@ $$\frac{\partial L}{\partial z} = \frac{p-y}{p(1-p)}\cdot p(1-p) = p - y, \qquad
 The $p(1-p)$ cancellation is the punchline: with the *matched* loss
 (cross-entropy for a sigmoid), the sigmoid's flat tails do not appear in the
 gradient. Had you used MSE, $\partial L/\partial z = (p - y)\,p(1-p)$, which
-$\to 0$ when the model is confidently wrong — learning stalls. Full-batch:
+$\to 0$ when the model is confidently wrong - learning stalls. Full-batch:
 $\nabla_w L = \frac{1}{n}X^\top(p - y)$.
 </details>
 
@@ -132,7 +132,7 @@ Together:
 $$w^* = \operatorname{sign}(a)\max(0, |a| - \lambda) \quad (\text{soft threshold}).$$
 
 Any coordinate whose "unregularized pull" $|a|$ is below $\lambda$ is set to
-**exactly zero** — possible only because $|w|$ has a kink at 0 with a whole
+**exactly zero** - possible only because $|w|$ has a kink at 0 with a whole
 interval of subgradients to absorb the data gradient. In $d$ dimensions the
 same kink exists along every coordinate axis (the corners/edges of the L1
 ball), so weakly-useful features are zeroed while L2's smooth penalty
@@ -157,7 +157,7 @@ There are $B$ variance terms ($\sigma^2$ each) and $B(B-1)$ covariance terms
 
 $$\operatorname{Var}(\bar f) = \frac{B\sigma^2 + B(B-1)\rho\sigma^2}{B^2} = \rho\sigma^2 + \frac{1-\rho}{B}\sigma^2.$$
 
-As $B \to \infty$ the second term vanishes but $\rho\sigma^2$ remains — an
+As $B \to \infty$ the second term vanishes but $\rho\sigma^2$ remains - an
 irreducible floor set by correlation.
 
 (a) **Bagging**: bootstrap resampling produces diverse trees, making
@@ -165,7 +165,7 @@ $\rho < 1$ so averaging genuinely reduces variance; since deep trees have
 huge $\sigma^2$ and low bias, averaging attacks exactly their weakness.
 (b) **Random forests**: bagged trees still correlate (they all love the same
 dominant features), keeping the floor high. Random feature subsets per split
-lower $\rho$ directly — a small per-tree quality sacrifice buys a lower
+lower $\rho$ directly - a small per-tree quality sacrifice buys a lower
 floor, which is the term that actually matters at large $B$.
 </details>
 
@@ -195,13 +195,13 @@ $J(z^{t+1}, \mu^{t+1}) \le J(z^{t+1}, \mu^t)$.
 
 Chaining: $J$ is non-increasing across iterations, and $J \ge 0$. Moreover
 $J$ after the update step is a function of the assignment alone, and there
-are at most $k^n$ assignments — finitely many. A strictly decreasing sequence
+are at most $k^n$ assignments - finitely many. A strictly decreasing sequence
 over a finite set of attainable values must stop changing in finite time;
 once the assignment repeats, the algorithm is at a fixed point and halts.
 
 Not global: the argument only shows we can never go uphill. The fixed point
 reached depends on initialization; e.g. two initial centers inside one true
-blob can converge to splitting that blob while merging two others — locally
+blob can converge to splitting that blob while merging two others - locally
 stable, globally bad. Hence k-means++ and random restarts.
 </details>
 
@@ -219,7 +219,7 @@ estimates* degrade before its *decisions* do.
 The Bayes-optimal classifier is $\arg\max_y p(y)p(x\mid y)$. NB computes
 $\arg\max_y p(y)\prod_j p(x_j \mid y)$. Therefore NB is optimal when its
 model is correct: **features conditionally independent given the class**
-(with correctly estimated marginals) — or more weakly, whenever the
+(with correctly estimated marginals) - or more weakly, whenever the
 independence-factored posterior happens to have the same argmax as the true
 posterior for (almost) all $x$.
 
@@ -237,7 +237,7 @@ the Bayes classifier gets right.
 Decisions vs. probabilities: the argmax only needs the *sign* of
 $\log\frac{p(y{=}1\mid x)}{p(y{=}0\mid x)}$, which survives monotone
 distortions; double counting typically *stretches* the log-odds (pushing
-posteriors toward 0/1 — overconfidence) while often preserving its sign. So
+posteriors toward 0/1 - overconfidence) while often preserving its sign. So
 calibration fails first, accuracy later.
 </details>
 
@@ -267,7 +267,7 @@ By induction from $w_0 = 0$: $\langle w_k, w^*\rangle \ge k\gamma$.
 
 $$\|w_k\|^2 = \|w_{k-1}\|^2 + 2 y_i \langle w_{k-1}, x_i\rangle + \|x_i\|^2 \le \|w_{k-1}\|^2 + R^2,$$
 
-because the middle term is $\le 0$ — we only update on a **mistake**, which
+because the middle term is $\le 0$ - we only update on a **mistake**, which
 means $y_i\langle w_{k-1}, x_i\rangle \le 0$. By induction:
 $\|w_k\|^2 \le kR^2$.
 
@@ -277,7 +277,7 @@ $$k\gamma \le \langle w_k, w^*\rangle \le \|w_k\| \le \sqrt{k}\,R \;\Rightarrow\
 
 Interpretation: every mistake forces $w$ to align a fixed amount $\gamma$
 with the true separator, while its length grows too slowly for that alignment
-to be an artifact — so mistakes must stop. Note the bound is independent of
+to be an artifact - so mistakes must stop. Note the bound is independent of
 $n$ and $d$; only the *geometric* quantities $R$ and $\gamma$ matter. This is
 the ancestral form of margin-based generalization arguments (SVMs maximize
 exactly this $\gamma$).
@@ -298,7 +298,7 @@ $$\mathbb E_{D,\varepsilon}\big[(y - \hat f(x))^2\big] = \underbrace{\big(f(x) -
 Write $\bar f = \mathbb E_D[\hat f(x)]$ (average prediction over training
 sets). Insert $\pm f(x)$ then $\pm \bar f$ and expand.
 
-**Step 1 — peel off the noise.**
+**Step 1 - peel off the noise.**
 
 $$\mathbb E[(y - \hat f)^2] = \mathbb E[(f + \varepsilon - \hat f)^2] = \mathbb E[(f - \hat f)^2] + 2\,\mathbb E[\varepsilon(f - \hat f)] + \mathbb E[\varepsilon^2].$$
 
@@ -306,7 +306,7 @@ The cross term vanishes because $\varepsilon$ (test noise) is independent of
 $\hat f$ (a function of the training set) and $\mathbb E[\varepsilon] = 0$.
 The last term is $\sigma^2$.
 
-**Step 2 — split model error around $\bar f$.**
+**Step 2 - split model error around $\bar f$.**
 
 $$\mathbb E_D[(f - \hat f)^2] = \mathbb E_D[(f - \bar f + \bar f - \hat f)^2] = (f - \bar f)^2 + 2(f - \bar f)\,\mathbb E_D[\bar f - \hat f] + \mathbb E_D[(\bar f - \hat f)^2].$$
 
@@ -318,7 +318,7 @@ Together: expected test MSE $= \text{bias}^2 + \text{variance} + \sigma^2$.
 Interpretation checklist: $\sigma^2$ is irreducible; regularization,
 pruning, and averaging trade the two model terms against each other
 (ridge: bias ↑ variance ↓; deeper tree: bias ↓ variance ↑; bagging: variance
-↓ at ~constant bias). Note the decomposition is for *squared* loss —
+↓ at ~constant bias). Note the decomposition is for *squared* loss  - 
 for 0-1 loss no such clean additive split exists.
 </details>
 
@@ -350,7 +350,7 @@ $$\|x - uu^\top x\|^2 = x^\top x - 2x^\top u u^\top x + x^\top u u^\top u u^\top
 Summing over (centered) data:
 $\sum_i \|x_i - uu^\top x_i\|^2 = \sum_i \|x_i\|^2 - \sum_i (u^\top x_i)^2 =
 \text{const} - (n-1)\, u^\top \Sigma u$. Minimizing the left side maximizes
-$u^\top \Sigma u$ — the identical problem as (a). Same eigenvector.
+$u^\top \Sigma u$ - the identical problem as (a). Same eigenvector.
 
 **(c)** Take orthonormal $U = [u_1 \cdots u_k]$ spanning the top-$k$
 eigenspace. Total energy in the eigenbasis:
@@ -379,7 +379,7 @@ $F$ is the model's raw score (log-odds).
 equals $y_i - p_i$ with $y \in \{0,1\}$, $p = \sigma(F)$.
 (b) Derive the optimal constant initial model $F_0$.
 (c) For a regression tree fit to the pseudo-residuals, derive the optimal
-leaf value under a second-order (Newton) approximation — the XGBoost leaf
+leaf value under a second-order (Newton) approximation - the XGBoost leaf
 formula with $\lambda = 0$.
 
 <details><summary>Solution</summary>
@@ -391,7 +391,7 @@ $$\frac{\partial \ell}{\partial F} = \frac{-\tilde y e^{-\tilde y F}}{1 + e^{-\t
 For $\tilde y = +1$ ($y = 1$): $\partial\ell/\partial F = -(1 - \sigma(F)) =
 -(1 - p)$, so $r = 1 - p = y - p$. For $\tilde y = -1$ ($y = 0$):
 $\partial\ell/\partial F = 1 - \sigma(-F) = \sigma(F) = p$, so
-$r = -p = y - p$. In both cases $r_i = y_i - p_i$ — the same "residual on the
+$r = -p = y - p$. In both cases $r_i = y_i - p_i$ - the same "residual on the
 probability scale" as logistic regression (notes §2.3), now serving as the
 regression target of the next tree.
 
@@ -422,7 +422,7 @@ the leaf's contribution to the split score
 $\frac{(\sum g)^2}{2\sum h}$, which XGBoost maximizes when choosing splits.
 Note the mechanism: the numerator is total residual (how wrong we are), the
 denominator is total confidence-weighted curvature (how much a unit of score
-actually moves probabilities) — leaves full of confident predictions
+actually moves probabilities) - leaves full of confident predictions
 ($p$ near 0/1, tiny $h$) legitimately take *larger* corrective steps per unit
 of residual.
 </details>
@@ -448,19 +448,19 @@ for symmetric $A$):
 
 $$\frac{\partial Q}{\partial \mu_j} = \sum_i \gamma_{ij}\, \Sigma_j^{-1}(x_i - \mu_j) = \Sigma_j^{-1} \sum_i \gamma_{ij}(x_i - \mu_j) = 0.$$
 
-$\Sigma_j^{-1}$ is invertible, so multiply it away — this is why the update
+$\Sigma_j^{-1}$ is invertible, so multiply it away - this is why the update
 is covariance-free:
 
 $$\sum_i \gamma_{ij} x_i = \Big(\sum_i \gamma_{ij}\Big)\mu_j \;\Rightarrow\; \boxed{\;\mu_j = \frac{\sum_i \gamma_{ij}\, x_i}{\sum_i \gamma_{ij}} = \frac{1}{N_j}\sum_i \gamma_{ij}\, x_i.\;}$$
 
 It's a weighted mean because each point contributes to component $j$ in
-proportion to the posterior probability that $j$ generated it — the
+proportion to the posterior probability that $j$ generated it - the
 soft-label analogue of "the cluster mean", and the Hessian
 $-\sum_i \gamma_{ij}\Sigma_j^{-1} \prec 0$ confirms a maximum. Sanity check
 the limits: if $\gamma_{ij} \in \{0,1\}$ (hard assignments) this is exactly
 the k-means center update (notes §8.1); if $\gamma_{ij} = 1/k$ for all
 points (totally uncertain), every component's mean collapses to the global
-mean — which is precisely what happens for the first EM iteration from a
+mean - which is precisely what happens for the first EM iteration from a
 symmetric initialization.
 </details>
 
@@ -483,9 +483,9 @@ $$\gamma_1(x) = \frac{e^{-(x-\mu_1)^2/2}}{e^{-(x-\mu_1)^2/2} + e^{-(x-\mu_2)^2/2
 
 Plug in $\mu_1 = 0$, $\mu_2 = 4$:
 $(x-0)^2 - (x-4)^2 = 8x - 16$, so
-$\gamma_1(x) = \sigma(8 - 4x)$ — the responsibility is a **sigmoid of a
+$\gamma_1(x) = \sigma(8 - 4x)$ - the responsibility is a **sigmoid of a
 linear function of $x$**, with decision boundary at the midpoint $x = 2$
-(same structure as logistic regression; not a coincidence — two equal-
+(same structure as logistic regression; not a coincidence - two equal-
 covariance Gaussians induce a logistic posterior).
 
 | $x$ | $\gamma_1(x) = \sigma(8-4x)$ | $\gamma_2(x)$ |
@@ -507,10 +507,10 @@ $$\mu_2 = \frac{0(0.00034) + 1(0.01799) + 3(0.98201) + 4(0.99966)}{2} = \frac{0.
 (Check: by the data's symmetry about 2, $\mu_2 = 4 - \mu_1$. ✓)
 
 Interpretation: each mean moves toward the *center of mass of its soft
-cluster* — $\mu_1$ is pulled up past $\tfrac{0+1}{2} = 0.5$ because it owns a
+cluster* - $\mu_1$ is pulled up past $\tfrac{0+1}{2} = 0.5$ because it owns a
 2% share of $x=3$ and a trace of $x=4$. Iterating converges toward
 $(\mu_1, \mu_2) \approx (0.5, 3.5)$, where the responsibilities and means are
-mutually consistent — the fixed point of notes §11.1's coupled equations.
+mutually consistent - the fixed point of notes §11.1's coupled equations.
 Had we run *hard* EM (k-means with these inits), the assignment would be
 $\{0,1\}$ vs. $\{3,4\}$ and the means would jump to exactly $(0.5, 3.5)$ in
 one step: hard assignment discards the 2% cross-talk that EM keeps.
@@ -530,7 +530,7 @@ $\lambda = 1$.
 
 <details><summary>Solution</summary>
 
-With $Q$ fixed, the objective splits across users — $p_u$ appears only in
+With $Q$ fixed, the objective splits across users - $p_u$ appears only in
 
 $$L(p_u) = \sum_{i \in \Omega_u} (r_{ui} - q_i^\top p_u)^2 + \lambda \|p_u\|^2.$$
 
@@ -539,8 +539,7 @@ $Q_u \in \mathbb{R}^{|\Omega_u| \times r}$ and the ratings as
 $r_u \in \mathbb{R}^{|\Omega_u|}$:
 
 $$L(p_u) = \|r_u - Q_u p_u\|^2 + \lambda \|p_u\|^2$$
-
-— *literally* ridge regression (Exercise 2) with design matrix $Q_u$,
+ - *literally* ridge regression (Exercise 2) with design matrix $Q_u$,
 targets $r_u$, weights $p_u$: the item factors act as the "features" of each
 rating. By the identical derivation ($\nabla L = -2Q_u^\top(r_u - Q_u p_u) +
 2\lambda p_u = 0$):
@@ -548,19 +547,19 @@ rating. By the identical derivation ($\nabla L = -2Q_u^\top(r_u - Q_u p_u) +
 $$\boxed{\; p_u = (Q_u^\top Q_u + \lambda I)^{-1} Q_u^\top r_u. \;}$$
 
 Invertibility: $Q_u^\top Q_u$ is PSD, so $Q_u^\top Q_u + \lambda I$ has
-eigenvalues $\ge \lambda > 0$ — solvable even for a user who rated fewer
+eigenvalues $\ge \lambda > 0$ - solvable even for a user who rated fewer
 items than $r$ (the common case; this is why ALS regularization is not
 optional). The item update $q_i = (P_i^\top P_i + \lambda I)^{-1} P_i^\top
 r_i$ is symmetric. Since each half-sweep exactly minimizes its block, the
-objective is monotonically non-increasing — the same alternating-minimization
+objective is monotonically non-increasing - the same alternating-minimization
 convergence argument as Lloyd's (Exercise 7).
 
 **Tiny case.** $Q_u = \binom{2}{1}$, $r_u = \binom{4}{2}$:
 $Q_u^\top Q_u = 4 + 1 = 5$, $Q_u^\top r_u = 8 + 2 = 10$, so
 $p_u = 10/(5+1) = 5/3 \approx 1.667$. Predictions: $(3.33, 1.67)$ vs.
-targets $(4, 2)$ — shrunk below the unregularized fit ($\lambda = 0$ gives
+targets $(4, 2)$ - shrunk below the unregularized fit ($\lambda = 0$ gives
 $p_u = 2$, which predicts perfectly), because ridge trades a little data fit
 for a smaller weight. Push $\lambda \to \infty$ and $p_u \to 0$: a user with
-little data falls back to the biases — exactly the behavior you want for
+little data falls back to the biases - exactly the behavior you want for
 near-cold-start users.
 </details>

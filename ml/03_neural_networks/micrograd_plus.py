@@ -1,4 +1,4 @@
-"""micrograd_plus.py — a scalar autograd engine from scratch, Karpathy-style.
+"""micrograd_plus.py - a scalar autograd engine from scratch, Karpathy-style.
 
 The whole idea in three sentences:
 
@@ -13,7 +13,7 @@ The whole idea in three sentences:
      The `+=` is load-bearing: if a value is used in two places, gradients from
      both paths must SUM (multivariate chain rule).
 
-Everything else — the MLP, the training loop, the gradient check — is built on
+Everything else - the MLP, the training loop, the gradient check - is built on
 top of that one mechanism.
 
 Run:  uv run python ml/03_neural_networks/micrograd_plus.py
@@ -72,7 +72,7 @@ class Value:
         def _backward():
             # c = a * b  =>  dc/da = b, dc/db = a  ("swap and multiply").
             # Nudging a by h changes c by b*h, so a's sensitivity is b's
-            # FORWARD value — this is why backward needs the forward pass
+            # FORWARD value - this is why backward needs the forward pass
             # cached: local gradients are functions of forward values.
             self.grad += other.data * out.grad
             other.grad += self.data * out.grad
@@ -100,7 +100,7 @@ class Value:
 
         def _backward():
             # d/dz tanh(z) = 1 - tanh(z)^2. Note we reuse the OUTPUT t rather
-            # than recomputing from the input — cheaper, and it is why
+            # than recomputing from the input - cheaper, and it is why
             # frameworks keep activations alive until backward completes.
             # Since t in (-1, 1), the factor 1 - t^2 is in (0, 1]: every tanh
             # SHRINKS the gradient, and near saturation (|t| ~ 1) it ~kills it.
@@ -115,7 +115,7 @@ class Value:
         def _backward():
             # ReLU is a gradient GATE: derivative is 1 where the unit was
             # active, 0 where it was off. Gradient passes through untouched or
-            # not at all — no shrinking, which is why deep ReLU nets train.
+            # not at all - no shrinking, which is why deep ReLU nets train.
             # (At exactly z=0 we choose subgradient 0; measure-zero event.)
             self.grad += (1.0 if out.data > 0 else 0.0) * out.grad
 
@@ -127,7 +127,7 @@ class Value:
         out = Value(e, (self,), "exp")
 
         def _backward():
-            # d/dz e^z = e^z — exp is its own derivative, so the local grad is
+            # d/dz e^z = e^z - exp is its own derivative, so the local grad is
             # simply the forward OUTPUT again.
             self.grad += e * out.grad
 
@@ -180,7 +180,7 @@ class Value:
         `out.grad`, so out.grad must ALREADY hold the full dLoss/dOut,
         i.e. every path from the loss down to `out` must have been processed
         first. Reverse topological order guarantees exactly that, and it also
-        means each node/edge is visited ONCE — this single-visit property is
+        means each node/edge is visited ONCE - this single-visit property is
         the dynamic-programming reuse that makes backprop O(graph) instead of
         O(paths) (paths can be exponential in depth).
         """
@@ -242,7 +242,7 @@ class Layer:
 
 
 class MLP:
-    """Multi-layer perceptron; last layer is linear (it emits a score/logit —
+    """Multi-layer perceptron; last layer is linear (it emits a score/logit  - 
     squashing belongs to the loss, not the architecture)."""
 
     def __init__(self, n_in, layer_sizes):
@@ -262,14 +262,14 @@ class MLP:
 
 
 # ----------------------------------------------------------------------------
-# Part 1: gradient check — trust nothing, verify against finite differences
+# Part 1: gradient check - trust nothing, verify against finite differences
 # ----------------------------------------------------------------------------
 def gradient_check():
     """Build a random gnarly scalar expression using EVERY op, backprop it,
     and compare each leaf's .grad to a centered finite difference
         (f(x+h) - f(x-h)) / (2h)
     Centered differences have O(h^2) truncation error (the odd terms of the
-    Taylor expansion cancel), vs O(h) for one-sided — that's why we use them.
+    Taylor expansion cancel), vs O(h) for one-sided - that's why we use them.
     If the relative error is ~1e-8-ish in float64, the engine is correct.
     """
     print("=" * 70)
@@ -317,7 +317,7 @@ def gradient_check():
 # Part 2: train an MLP on a tiny 2-class dataset
 # ----------------------------------------------------------------------------
 def make_moons_ish(n_per_class=30):
-    """Two interleaving arcs — linearly INSEPARABLE on purpose, so the tanh
+    """Two interleaving arcs - linearly INSEPARABLE on purpose, so the tanh
     hidden layers are actually doing something (a linear model cannot solve it).
     Labels are +1 / -1 to pair with the max-margin-style hinge-ish loss below."""
     t = np.random.uniform(0, math.pi, n_per_class)
@@ -345,7 +345,7 @@ def train_mlp():
         # ---- forward: build one big graph over the whole dataset ----
         scores = [model([Value(xi) for xi in xrow]) for xrow in X]
 
-        # Squared hinge loss: max(0, 1 - y*score)^2 via relu — pushes each
+        # Squared hinge loss: max(0, 1 - y*score)^2 via relu - pushes each
         # score to the correct side of the margin, smooth where active.
         losses = [(1.0 + (-yi) * si).relu() ** 2 for si, yi in zip(scores, y)]
         data_loss = sum(losses, Value(0.0)) * (1.0 / len(losses))

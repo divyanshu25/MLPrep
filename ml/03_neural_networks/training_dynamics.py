@@ -1,9 +1,9 @@
-"""training_dynamics.py — numeric experiments behind the folklore. No plots;
+"""training_dynamics.py - numeric experiments behind the folklore. No plots;
 every claim in notes.md that "X goes wrong" is reproduced here as printed
 numbers you can watch go wrong.
 
-  EXPT 1: activation variance across depth — bad init vs Xavier vs Kaiming
-  EXPT 2: per-layer gradient magnitude — sigmoid vs ReLU (vanishing gradients)
+  EXPT 1: activation variance across depth - bad init vs Xavier vs Kaiming
+  EXPT 2: per-layer gradient magnitude - sigmoid vs ReLU (vanishing gradients)
   EXPT 3: learning rate too low / right / too high (slow / converge / diverge)
 
 Run:  uv run python ml/03_neural_networks/training_dynamics.py
@@ -20,7 +20,7 @@ np.random.seed(42)
 # Theory (notes.md section e): for z = W x with iid mean-0 weights,
 #     Var(z) = n_in * Var(w) * Var(x)
 # so each layer MULTIPLIES the variance by g = n_in * Var(w). After d layers
-# the scale factor is g^d — geometric in depth. Only g ≈ 1 survives.
+# the scale factor is g^d - geometric in depth. Only g ≈ 1 survives.
 # Kaiming adds the factor 2 because ReLU zeroes half of a symmetric input,
 # halving the second moment.
 def expt1_activation_variance(depth=30, width=256, n_samples=512):
@@ -58,18 +58,18 @@ Reading it:
   * std=0.01: activations collapse to ~0 within a few layers (g << 1). The
     deep layers compute on numerical dust; gradients (which carry activation
     factors) die too.
-  * std=1.0 with tanh: pre-activations explode, so tanh SATURATES — std pins
+  * std=1.0 with tanh: pre-activations explode, so tanh SATURATES - std pins
     near 1.0 because outputs sit at +/-1. Saturated tanh has derivative ~0:
     exploding forward becomes vanishing backward.
   * Xavier keeps tanh healthy through all 30 layers (g ~ 1).
-  * Xavier with ReLU decays ~(1/sqrt(2))^d — ReLU halves the 2nd moment each
+  * Xavier with ReLU decays ~(1/sqrt(2))^d - ReLU halves the 2nd moment each
     layer and Xavier doesn't compensate. 30 layers -> ~180x shrink.
   * Kaiming's factor 2 fixes exactly that: ReLU std holds steady.
 """)
 
 
 # ============================================================================
-# EXPT 2: vanishing gradients — sigmoid vs ReLU, measured, not asserted
+# EXPT 2: vanishing gradients - sigmoid vs ReLU, measured, not asserted
 # ============================================================================
 # We build a deep net, run one forward/backward with the SAME upstream
 # gradient, and print ||dL/dh_k|| per layer. Backprop multiplies one Jacobian
@@ -120,12 +120,12 @@ def expt2_vanishing_gradients(depth=20, width=128, n_samples=256):
 
     print("""
 Reading it (layer 0 = closest to the input, i.e. gradient traveled 20 layers):
-  * sigmoid: gradient decays geometrically — each layer multiplies by
+  * sigmoid: gradient decays geometrically - each layer multiplies by
     E[s(1-s)] ~ 0.2 or less, so by layer 0 the signal is ~1e-13 of the top.
     The early layers of this network would effectively never train.
   * relu (same weights!): active units pass gradient with factor exactly 1,
-    so the decay is orders of magnitude milder. This difference — not any
-    exotic trick — is the main reason deep nets became trainable.
+    so the decay is orders of magnitude milder. This difference - not any
+    exotic trick - is the main reason deep nets became trainable.
 """)
 
 
@@ -206,12 +206,12 @@ def expt3_learning_rates(n_steps=200):
     print("""
 Reading it:
   * too low:  loss creeps down; after 200 steps it has barely moved and
-    accuracy is mediocre. Nothing is broken — you're just wasting compute
+    accuracy is mediocre. Nothing is broken - you're just wasting compute
     (and might wrongly conclude the model 'doesn't work').
   * healthy:  smooth, fast convergence to low loss and ~96% accuracy.
   * too high: each step overshoots the minimum by more than it approached it;
     the loss grows geometrically and finally overflows to nan, and accuracy
-    is chance (50%). This is the classic 'loss went to nan' failure — the
+    is chance (50%). This is the classic 'loss went to nan' failure - the
     first fix to try is always lr / 10.
 """)
 

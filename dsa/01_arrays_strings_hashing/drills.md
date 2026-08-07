@@ -1,13 +1,13 @@
-# Arrays / Strings / Hashing — Timed Drills
+# Arrays / Strings / Hashing - Timed Drills
 
 Protocol (from the [README](../README.md)): start a timer, attempt cold, no hints
-until the box expires. Then take hints one at a time — each is a smaller give-away
+until the box expires. Then take hints one at a time - each is a smaller give-away
 than the next. Unfold the solution only after a real attempt, and put any miss on
 your 2-day re-attempt list. Talk out loud; state complexity before you code.
 
 ---
 
-## Drill 1 — Valid Anagram of a Substring (a.k.a. Find All Anagrams) · Medium · 20 min
+## Drill 1 - Valid Anagram of a Substring (a.k.a. Find All Anagrams) · Medium · 20 min
 
 Given strings `s` and `p`, return the start indices of all substrings of `s` that
 are anagrams of `p`. Example: `s="cbaebabacd"`, `p="abc"` → `[0, 6]`.
@@ -17,7 +17,7 @@ Fixed-size sliding window with frequency counts.
 </details>
 <details><summary>Hint 2 (invariant)</summary>
 Maintain the character counts of the current length-|p| window; slide by add one
-char / remove one char — O(1) updates, never rebuild the count.
+char / remove one char - O(1) updates, never rebuild the count.
 </details>
 <details><summary>Hint 3 (near-spoiler)</summary>
 Compare the window Counter to p's Counter after each slide; delete keys when their
@@ -45,14 +45,14 @@ def find_anagrams(s, p):
     return out
 ```
 
-Complexity: O(|s| · 26) time in this form — the `==` compares at most 26 keys —
+Complexity: O(|s| · 26) time in this form - the `==` compares at most 26 keys  - 
 i.e. O(|s|) with a constant-size alphabet; O(1) space. The `matched`-counter variant
 makes the per-slide work strictly O(1).
 </details>
 
 ---
 
-## Drill 2 — Longest Repeating Character Replacement · Medium · 25 min
+## Drill 2 - Longest Repeating Character Replacement · Medium · 25 min
 
 Given a string `s` and integer `k`, you may replace at most `k` characters. Return
 the length of the longest substring you can make all-equal. Example: `s="AABABBA"`,
@@ -69,7 +69,7 @@ the window argument from notes.md applies.
 <details><summary>Hint 3 (near-spoiler)</summary>
 Track `max_freq` = max count seen in any window so far and never decrease it when l
 advances. A stale (too large) max_freq only makes the window look *more* valid than
-it is, letting it stay at the best length already achieved — the answer (a max over
+it is, letting it stay at the best length already achieved - the answer (a max over
 window lengths) is still correct because the window length never exceeds the best
 achievable. This is the subtle bit interviewers probe.
 </details>
@@ -92,13 +92,13 @@ def character_replacement(s, k):
 ```
 
 Complexity: O(n) time, O(26) space. Note the `if` instead of `while`: the window
-never shrinks below the best length found, it only slides — a legitimate variant
+never shrinks below the best length found, it only slides - a legitimate variant
 when you only need the maximum length, not each valid window.
 </details>
 
 ---
 
-## Drill 3 — Sort Colors (Dutch National Flag) · Medium · 20 min
+## Drill 3 - Sort Colors (Dutch National Flag) · Medium · 20 min
 
 Array of 0s, 1s, 2s. Sort it in place, one pass, O(1) space, without counting sort.
 
@@ -111,7 +111,7 @@ unexamined. Every step either advances i or shrinks hi.
 </details>
 <details><summary>Hint 3 (near-spoiler)</summary>
 On a[i]==0 swap with lo, advance both; on 1 just advance i; on 2 swap with hi and
-decrement hi but do NOT advance i — the swapped-in element is unexamined.
+decrement hi but do NOT advance i - the swapped-in element is unexamined.
 </details>
 <details><summary>Solution</summary>
 
@@ -131,12 +131,12 @@ def sort_colors(a):
 ```
 
 Complexity: O(n) time (each step moves i or hi toward each other), O(1) space.
-The classic bug is advancing `i` after the 2-swap — the failing case is `[2,0,1]`.
+The classic bug is advancing `i` after the 2-swap - the failing case is `[2,0,1]`.
 </details>
 
 ---
 
-## Drill 4 — First Missing Positive · Hard · 30 min
+## Drill 4 - First Missing Positive · Hard · 30 min
 
 Unsorted integer array (any values, any sign). Return the smallest positive integer
 not present. O(n) time, O(1) extra space. Example: `[3,4,-1,1]` → 2.
@@ -168,19 +168,19 @@ def first_missing_positive(a):
     return n + 1
 ```
 
-Complexity: O(n) time — the nested while executes at most n times *total* because
-every iteration homes one element permanently — and O(1) space.
+Complexity: O(n) time - the nested while executes at most n times *total* because
+every iteration homes one element permanently - and O(1) space.
 </details>
 
 ---
 
-## Drill 5 — Continuous Subarray Sum (multiple of k) · Medium · 25 min
+## Drill 5 - Continuous Subarray Sum (multiple of k) · Medium · 25 min
 
 Given an integer array and k, return True iff some subarray of length ≥ 2 has a sum
 that is a multiple of k. Example: `[23,2,4,6,7]`, k=6 → True (`[2,4]`).
 
 <details><summary>Hint 1 (pattern)</summary>
-Prefix sums + hashmap — the "divisible by" cue from notes.md pattern 4.
+Prefix sums + hashmap - the "divisible by" cue from notes.md pattern 4.
 </details>
 <details><summary>Hint 2 (invariant)</summary>
 sum(i..j) ≡ 0 (mod k) ⟺ pre[j+1] ≡ pre[i] (mod k). Store the FIRST index where
@@ -212,14 +212,14 @@ subarrays from index 0) and overwriting the residue's first index (shrinks lengt
 
 ---
 
-## Drill 6 — Encode and Decode Strings · Medium · 20 min
+## Drill 6 - Encode and Decode Strings · Medium · 20 min
 
 Design `encode(list[str]) -> str` and `decode(str) -> list[str]` so any list of
 strings (which may contain ANY characters, including your delimiter) round-trips.
-This is a reported practical-round question — graded on robustness, not cleverness.
+This is a reported practical-round question - graded on robustness, not cleverness.
 
 <details><summary>Hint 1 (pattern)</summary>
-No delimiter can be safe by itself — think length-prefix framing, like network
+No delimiter can be safe by itself - think length-prefix framing, like network
 protocols.
 </details>
 <details><summary>Hint 2 (invariant)</summary>
@@ -254,7 +254,7 @@ and digits (e.g. `["5#hello"]`).
 
 ---
 
-## Drill 7 — Longest Palindromic Substring · Medium · 30 min
+## Drill 7 - Longest Palindromic Substring · Medium · 30 min
 
 Return the longest palindromic substring of `s`. Example: `"babad"` → `"bab"` (or
 `"aba"`).
@@ -265,7 +265,7 @@ Two pointers, expanding OUTWARD from a center instead of inward from the ends.
 <details><summary>Hint 2 (invariant)</summary>
 Every palindrome has a center: one of n single characters or n−1 gaps between
 characters (even length). Expanding while s[l]==s[r] finds the maximal palindrome
-at that center — 2n−1 centers, each expansion O(n).
+at that center - 2n−1 centers, each expansion O(n).
 </details>
 <details><summary>Hint 3 (near-spoiler)</summary>
 Write one helper `expand(l, r)` returning the widest palindrome bounds from that
@@ -289,19 +289,19 @@ def longest_palindrome(s):
 ```
 
 Complexity: O(n²) time worst case (e.g. `"aaaa..."`), O(1) space. Manacher's
-algorithm achieves O(n) but is not expected in interviews — *saying it exists* and
+algorithm achieves O(n) but is not expected in interviews - *saying it exists* and
 coding expand-around-center is the right move.
 </details>
 
 ---
 
-## Drill 8 — Subarrays With K Different Integers · Hard · 35 min
+## Drill 8 - Subarrays With K Different Integers · Hard · 35 min
 
 Given an integer array and k, count subarrays with EXACTLY k distinct values.
 Example: `[1,2,1,2,3]`, k=2 → 7.
 
 <details><summary>Hint 1 (pattern)</summary>
-Sliding window — but "exactly k" is not a monotone predicate, so not directly.
+Sliding window - but "exactly k" is not a monotone predicate, so not directly.
 Reduce it to two monotone problems.
 </details>
 <details><summary>Hint 2 (invariant)</summary>
@@ -336,6 +336,6 @@ def subarrays_with_k_distinct(nums, k):
 ```
 
 Complexity: O(n) time (two window passes), O(k) space. The exactly = atMost(k) −
-atMost(k−1) reduction is a reusable trick — it converts any non-monotone "exactly"
+atMost(k−1) reduction is a reusable trick - it converts any non-monotone "exactly"
 constraint on windows into two monotone ones.
 </details>

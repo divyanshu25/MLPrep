@@ -1,4 +1,4 @@
-# Trees and Heaps — Timed Drills
+# Trees and Heaps - Timed Drills
 
 Nine problems, each with a time box calibrated to a real interview pace. Work
 the problem cold; use the hint ladder only when stuck (each hint gives away
@@ -7,7 +7,7 @@ any drill you needed hint 3 for, a day later, from scratch.
 
 ---
 
-## Drill 1 — Binary Tree Right Side View
+## Drill 1 - Binary Tree Right Side View
 **Time box: 15 min · Medium**
 
 Standing to the right of a binary tree, return the values of the nodes you can
@@ -15,7 +15,7 @@ see, top to bottom. Example: `[1,2,3,None,5,None,4]` → `[1, 3, 4]`.
 
 **Hint ladder**
 
-1. "Top to bottom, one value per level" — which traversal naturally groups
+1. "Top to bottom, one value per level" - which traversal naturally groups
    nodes by level?
 2. Within one level of a BFS, which position in the level is visible from the
    right?
@@ -55,7 +55,7 @@ at each depth is the answer for that level (`if depth == len(out): out.append`).
 
 ---
 
-## Drill 2 — Count Good Nodes in Binary Tree
+## Drill 2 - Count Good Nodes in Binary Tree
 **Time box: 15 min · Medium**
 
 A node is *good* if no node on the path from the root to it has a value
@@ -90,13 +90,13 @@ node depends only on that maximum, so the local comparison is exactly the
 definition.
 
 **Complexity:** O(n) time, O(h) space. Recognize the shape: information flows
-*down* (parameters), counts flow *up* (return values) — many tree problems
+*down* (parameters), counts flow *up* (return values) - many tree problems
 combine both directions.
 </details>
 
 ---
 
-## Drill 3 — Path Sum III
+## Drill 3 - Path Sum III
 **Time box: 25 min · Medium (hard to make O(n))**
 
 Count downward paths (start anywhere, go only parent→child) whose values sum
@@ -104,7 +104,7 @@ to `target`. Example: tree `[10,5,-3,3,2,None,11,3,-2,None,1]`, target 8 → 3.
 
 **Hint ladder**
 
-1. Brute force: from every node, DFS summing downward — O(n²). To beat it,
+1. Brute force: from every node, DFS summing downward - O(n²). To beat it,
    think about *prefix sums along the root path*, like subarray-sum-equals-k
    but on a tree.
 2. If `prefix[node]` is the sum from root to node, then a path ending at
@@ -112,7 +112,7 @@ to `target`. Example: tree `[10,5,-3,3,2,None,11,3,-2,None,1]`, target 8 → 3.
    `prefix[a] = prefix[node] − target`. Count ancestors with a hashmap.
 3. DFS carrying a dict `count[prefix_value]`. At each node: add
    `count[cur − target]` to the answer, increment `count[cur]`, recurse, then
-   **decrement `count[cur]` on the way out** (backtrack — the map must only
+   **decrement `count[cur]` on the way out** (backtrack - the map must only
    contain the current root path).
 
 <details>
@@ -153,7 +153,7 @@ sibling subtrees.
 
 ---
 
-## Drill 4 — Top K Frequent Elements
+## Drill 4 - Top K Frequent Elements
 **Time box: 15 min · Medium**
 
 Given an integer array and k, return the k most frequent elements (any order).
@@ -161,7 +161,7 @@ Example: `[1,1,1,2,2,3]`, k=2 → `[1, 2]`.
 
 **Hint ladder**
 
-1. First count frequencies (hashmap). Now it's "k largest by frequency" —
+1. First count frequencies (hashmap). Now it's "k largest by frequency"  - 
    which heap pattern, and which polarity of heap?
 2. A *min*-heap of size k keyed on frequency: the root is the weakest keeper;
    a new candidate either beats it or is discarded. O(n log k).
@@ -188,17 +188,17 @@ def top_k_frequent(nums, k):
 ```
 
 Why min-heap: with the k best kept, only the *smallest* of them is ever at
-risk from a newcomer — a min-heap's root is exactly that element, checkable
+risk from a newcomer - a min-heap's root is exactly that element, checkable
 in O(1) and replaceable in O(log k).
 
 **Complexity:** O(n log k) time, O(n) space for the counter. The bucket-sort
-alternative (index buckets by frequency, 1..n) achieves O(n) — worth
+alternative (index buckets by frequency, 1..n) achieves O(n) - worth
 mentioning, rarely required to code.
 </details>
 
 ---
 
-## Drill 5 — Task Scheduler
+## Drill 5 - Task Scheduler
 **Time box: 25 min · Medium**
 
 Given tasks `['A','A','A','B','B','B']` and cooldown `n` (same task must be
@@ -208,7 +208,7 @@ Example above with n=2 → 8 (`A B _ A B _ A B`).
 **Hint ladder**
 
 1. Greedy intuition: always schedule the *most frequent remaining* task that's
-   off cooldown — burning down the biggest pile first minimizes forced idles.
+   off cooldown - burning down the biggest pile first minimizes forced idles.
    What structure gives "most frequent remaining" fast?
 2. Max-heap of counts (negate for Python). Simulate in rounds of `n+1` slots:
    pop up to `n+1` distinct tasks, run each once, push back decremented counts.
@@ -259,7 +259,7 @@ O(1) after. Space O(1) (26 letters).
 
 ---
 
-## Drill 6 — Smallest Range Covering Elements from K Lists
+## Drill 6 - Smallest Range Covering Elements from K Lists
 **Time box: 35 min · Hard**
 
 Given k sorted lists, find the smallest range `[a, b]` that contains at least
@@ -271,12 +271,12 @@ one number from each list. Example: `[[4,10,15,24,26],[0,9,12,20],[5,18,22,30]]`
 1. Any candidate range is `[min of chosen elements, max of chosen]`, one per
    list. Fix the current minimum: the only way to shrink the range is to
    *advance the list holding the minimum*. Why? Advancing any other list can
-   only raise the max or leave it — never lowers the span.
+   only raise the max or leave it - never lowers the span.
 2. This is k-way merge in disguise: heap of (value, list index, element
    index), plus a running max of the current heads.
 3. Pop the min; the range (heap-min, running-max) is a candidate; advance
    that list and push its next element, updating the running max. Stop when
-   any list is exhausted — the range can no longer cover it.
+   any list is exhausted - the range can no longer cover it.
 
 <details>
 <summary>Solution</summary>
@@ -306,7 +306,7 @@ Correctness: the heap always holds one "current" element per list, so
 element as its minimum; the algorithm enumerates, in increasing order, *every*
 possible minimum (each element of each list gets its turn as heap-min before
 being advanced past), and for each records the tightest max achievable with
-that minimum — which is forced: it's the smallest current element ≥ heap-min
+that minimum - which is forced: it's the smallest current element ≥ heap-min
 from every other list, exactly what the running heads maintain. So the
 optimum is among the candidates checked.
 
@@ -317,7 +317,7 @@ lists" ⇒ heap of heads.
 
 ---
 
-## Drill 7 — Kth Smallest Element in a BST
+## Drill 7 - Kth Smallest Element in a BST
 **Time box: 15 min · Medium**
 
 Return the kth smallest value (1-indexed) in a BST. Example:
@@ -328,7 +328,7 @@ Return the kth smallest value (1-indexed) in a BST. Example:
 
 1. Which traversal visits a BST's keys in sorted order (notes §4)? The kth
    smallest is just the kth node that traversal touches.
-2. Don't traverse everything and index — *stop* at the kth visit. A counter in
+2. Don't traverse everything and index - *stop* at the kth visit. A counter in
    the recursion works; an explicit stack gives finer control.
 3. Controlled inorder: push the left spine onto a stack; pop = the next smallest;
    after a pop, push the popped node's right child's left spine. Repeat k times.
@@ -352,23 +352,23 @@ def kth_smallest(root, k):
 ```
 
 Why the pop order is sorted: the stack holds the path of "ancestors whose left
-side is being visited" — exactly the pending nodes of an inorder traversal; the
+side is being visited" - exactly the pending nodes of an inorder traversal; the
 top is always the smallest unvisited key (its left subtree is exhausted by
 construction).
 
-**Complexity:** O(h + k) time — the spine costs O(h), then each of the k pops
-does amortized O(1) work (every node is pushed once) — and O(h) space.
+**Complexity:** O(h + k) time - the spine costs O(h), then each of the k pops
+does amortized O(1) work (every node is pushed once) - and O(h) space.
 
 The follow-up is the *BST Iterator* (LC 173): the loop body above, split into
 `has_next` (stack non-empty) and `next` (pop + push right spine). This is the
 same "reify the traversal state into an explicit structure" move as the
-resumable iterators in folder 03's design-problems notes — the call stack
+resumable iterators in folder 03's design-problems notes - the call stack
 becomes a data structure you can pause, resume, and (if asked) checkpoint.
 </details>
 
 ---
 
-## Drill 8 — Binary Tree Maximum Path Sum
+## Drill 8 - Binary Tree Maximum Path Sum
 **Time box: 25 min · Hard**
 
 A path is any sequence of nodes connected by edges (no node twice); it need not
@@ -384,7 +384,7 @@ Example: `[-10,9,20,None,None,15,7]` → 42 (path 15→20→7).
    so the recursion returns the best *single downward arm*. The global best at a
    node may join BOTH arms through the node.
 3. The negative-clamp decision: an arm with a negative best sum is worse than not
-   taking that arm at all — clamp each child's contribution to
+   taking that arm at all - clamp each child's contribution to
    `max(arm, 0)`, which is exactly the "extend or drop" choice made per child.
 
 <details>
@@ -406,9 +406,9 @@ def max_path_sum(root):
     return best
 ```
 
-The two quantities are genuinely different — `node.val + left + right` (a
+The two quantities are genuinely different - `node.val + left + right` (a
 complete path peaking at this node) versus `node.val + max(left, right)` (an
-extendable arm) — and conflating them is *the* classic failure. The clamp
+extendable arm) - and conflating them is *the* classic failure. The clamp
 `max(arm, 0)` handles all-negative subtrees; the all-negative *tree* still works
 because `best` is seeded at −inf and every node's own value (with both arms
 clamped to 0) is considered.
@@ -419,7 +419,7 @@ all-negative tree, and the example above.
 
 ---
 
-## Drill 9 — K Closest Points to Origin
+## Drill 9 - K Closest Points to Origin
 **Time box: 15 min · Medium**
 
 Given points `[[x, y], ...]` and k, return the k points closest to the origin
@@ -427,12 +427,12 @@ Given points `[[x, y], ...]` and k, return the k points closest to the origin
 
 **Hint ladder**
 
-1. This is top-k from notes §8 — but top-k *smallest*, so which heap polarity
+1. This is top-k from notes §8 - but top-k *smallest*, so which heap polarity
    keeps the gatekeeper at the root?
 2. Mirror image of the min-heap-for-k-largest derivation: keep a MAX-heap of the
-   k closest so far; its root is the *farthest keeper* — the only one a newcomer
+   k closest so far; its root is the *farthest keeper* - the only one a newcomer
    could displace. Python: negate the distance.
-3. Compare squared distances (`x*x + y*y`) — monotone in true distance, no
+3. Compare squared distances (`x*x + y*y`) - monotone in true distance, no
    `sqrt`, no floats. Push `(-d, x, y)`; use `heappushpop` once size hits k.
 
 <details>
@@ -453,13 +453,13 @@ def k_closest(points, k):
 ```
 
 The polarity argument, said aloud: for k *largest* you keep a min-heap (root =
-weakest keeper); for k *smallest* you keep a max-heap — either way the root is
+weakest keeper); for k *smallest* you keep a max-heap - either way the root is
 the element on the bubble, the only comparison a newcomer needs. Distances can
-tie, and the tuple falls back to comparing x then y — plain ints, so no
+tie, and the tuple falls back to comparing x then y - plain ints, so no
 `TypeError` (the notes §9 tie-breaking quirk, dodged by construction).
 
 **Complexity:** O(n log k) time, O(k) space. Mention the alternatives and when
 they win: `heapq.nsmallest(k, points, key=...)` (same bound, one line),
-quickselect (average O(n), order not guaranteed), full sort (O(n log n) —
+quickselect (average O(n), order not guaranteed), full sort (O(n log n)  - 
 simplest when n is small or k ≈ n).
 </details>

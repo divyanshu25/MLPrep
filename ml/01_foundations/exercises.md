@@ -1,7 +1,7 @@
 # Foundations: exercises (easy → hard)
 
 Do each one on paper before opening the solution. Every derivation should be
-complete — if a step feels like hand-waving, that's the step to slow down on.
+complete - if a step feels like hand-waving, that's the step to slow down on.
 
 ---
 
@@ -21,7 +21,7 @@ Orthogonal to $a = [3,4]$: swap and negate one component, $[4, -3]$ (check:
 $3\cdot4 + 4\cdot(-3) = 0$). Normalize by its length 5: $[0.8, -0.6]$.
 
 Interview relevance: this is the entire mechanical core of cosine similarity and
-attention scores — you should be able to do it in your head for small vectors.
+attention scores - you should be able to do it in your head for small vectors.
 </details>
 
 ---
@@ -42,7 +42,7 @@ $$W = W_2 W_1 = \begin{bmatrix} 2 & 0 \\ 0 & 3\end{bmatrix}
 
 (Row $i$ of $W_2$ dotted with column $j$ of $W_1$.) Composition of linear maps is a
 linear map, so any depth-$k$ stack of linear layers computes some single matrix
-$W_k \cdots W_1$ — exactly the hypothesis class of a 1-layer linear model. The
+$W_k \cdots W_1$ - exactly the hypothesis class of a 1-layer linear model. The
 nonlinearity between layers is what prevents this collapse and gives depth its
 expressive power.
 </details>
@@ -67,7 +67,7 @@ By linearity of expectation: $\mathbb{E}[3X+2] = 3(2.3) + 2 = 8.9$.
 Shifts don't change spread and scaling enters squared:
 $\mathrm{Var}(3X+2) = 9 \cdot 15.01 = 135.09$.
 
-Note how the rare large value ($10$ w.p. $0.2$) dominates the variance — the same
+Note how the rare large value ($10$ w.p. $0.2$) dominates the variance - the same
 reason outliers dominate MSE.
 </details>
 
@@ -89,7 +89,7 @@ Systematic route: solve $\det(A - \lambda I) = (3-\lambda)^2 - 1 = 0$, so
 $3 - \lambda = \pm 1$, $\lambda \in \{4, 2\}$. Plug back to get the eigenvectors.
 
 Geometrically: $A$ stretches the plane by 4× along the $45°$ diagonal and by 2×
-along the $-45°$ diagonal — no rotation in the eigenbasis. Note the eigenvectors are
+along the $-45°$ diagonal - no rotation in the eigenbasis. Note the eigenvectors are
 orthogonal, as guaranteed for any symmetric matrix (spectral theorem). This is the
 picture behind PCA: a covariance matrix stretches space most along its top
 eigenvector.
@@ -154,9 +154,9 @@ Set to zero → normal equations $X^\top X \, w^* = X^\top y$, so
 $w^* = (X^\top X)^{-1} X^\top y$ when $X^\top X$ is invertible.
 
 It fails when $X^\top X$ is singular (or nearly so): fewer samples than features
-($n < d$), or collinear/duplicated features. Fixes: ridge regularization —
+($n < d$), or collinear/duplicated features. Fixes: ridge regularization  - 
 minimize $\|Xw - y\|^2 + \lambda \|w\|^2$, giving
-$w^* = (X^\top X + \lambda I)^{-1} X^\top y$, always invertible for $\lambda > 0$ —
+$w^* = (X^\top X + \lambda I)^{-1} X^\top y$, always invertible for $\lambda > 0$  - 
 or the pseudo-inverse via SVD, or just gradient descent (which is also the only
 practical option when $d$ is large, since inversion costs $O(d^3)$).
 </details>
@@ -177,7 +177,7 @@ Mean, by linearity of expectation (needs **no** independence):
 $$\mathbb{E}[\bar X] = \frac1n \sum_{i=1}^n \mathbb{E}[X_i] = \frac1n \cdot n\mu = \mu$$
 
 Variance: pull out the constant (squared!), then use that variances of
-**independent** variables add — this is the only step needing independence
+**independent** variables add - this is the only step needing independence
 (uncorrelatedness suffices; the cross-covariance terms vanish):
 
 $$\mathrm{Var}(\bar X) = \frac{1}{n^2} \mathrm{Var}\Big(\sum_i X_i\Big)
@@ -202,7 +202,7 @@ conclude why we divide by $n - 1$.
 
 <details><summary>Solution</summary>
 
-Key algebraic step — add and subtract $\mu$ inside each square:
+Key algebraic step - add and subtract $\mu$ inside each square:
 
 $$\sum_i (X_i - \bar X)^2 = \sum_i \big((X_i - \mu) - (\bar X - \mu)\big)^2
 = \sum_i (X_i - \mu)^2 - 2(\bar X - \mu)\sum_i (X_i - \mu) + n(\bar X - \mu)^2$$
@@ -222,7 +222,7 @@ $$\mathbb{E}\Big[\sum_i (X_i - \bar X)^2\Big] = n\sigma^2 - n \cdot \frac{\sigma
 
 Intuition for the bias: $\bar X$ is chosen by the data to sit in its middle, so
 deviations from $\bar X$ are systematically smaller than deviations from the true
-$\mu$ — we "spent" one degree of freedom estimating the mean. Dividing by $n-1$
+$\mu$ - we "spent" one degree of freedom estimating the mean. Dividing by $n-1$
 instead of $n$ exactly cancels the factor, giving the unbiased sample variance.
 </details>
 
@@ -267,8 +267,8 @@ $p \approx [0.881, 0.119]$, gradient $\approx [-0.119, 0.119]$: push the correct
 logit up, the wrong one down, in proportion to how wrong we are. When $p = y$ the
 gradient is exactly 0.
 
-Why it matters: this is the cleanest gradient in deep learning — "prediction minus
-target" — and it is *why* frameworks fuse softmax with cross-entropy: the dense
+Why it matters: this is the cleanest gradient in deep learning - "prediction minus
+target" - and it is *why* frameworks fuse softmax with cross-entropy: the dense
 softmax Jacobian and the $1/p_i$ (numerically explosive as $p_i \to 0$) cancel
 analytically, leaving something simple and stable. Logistic regression's
 $(\sigma(z) - y)$ is the $K = 2$ special case.
@@ -319,7 +319,7 @@ Consequences:
    you need learned embeddings that put semantic structure back into the geometry
    (this is what metric learning / contrastive training does).
 2. **Intuition from 2-D/3-D fails**: e.g. random high-dimensional vectors are
-   nearly orthogonal ($\cos\theta \approx 0$ with high probability — same
+   nearly orthogonal ($\cos\theta \approx 0$ with high probability - same
    concentration argument applied to the dot product $\sum_i x_i y_i$, mean 0,
    std $\sqrt d$, vs lengths $\approx \sqrt d$), volume concentrates in thin shells,
    and Gaussian samples live near a sphere of radius $\sqrt d$, not near the mode.

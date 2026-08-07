@@ -1,4 +1,4 @@
-# Graphs — Timed Drills
+# Graphs - Timed Drills
 
 Six problems at interview pace. Attempt cold; take hints one at a time only
 when stuck; unfold the solution when done or when the clock runs out. If you
@@ -6,7 +6,7 @@ needed hint 3, redo the drill from scratch the next day.
 
 ---
 
-## Drill 1 — Surrounded Regions
+## Drill 1 - Surrounded Regions
 **Time box: 20 min · Medium**
 
 Given a grid of `'X'` and `'O'`, flip every region of `'O'`s that is fully
@@ -14,7 +14,7 @@ surrounded by `'X'` (a region touching the border is *not* surrounded).
 
 **Hint ladder**
 
-1. Deciding "is this region surrounded?" while flood-filling it is awkward —
+1. Deciding "is this region surrounded?" while flood-filling it is awkward  - 
    you discover a border cell mid-fill and must undo. Invert the question:
    which `'O'`s are definitely *safe*?
 2. Safe = connected to a border `'O'`. Where should the traversal start?
@@ -49,7 +49,7 @@ def solve(board):
 ```
 
 Correctness: a region is unsurrounded iff it contains a border `'O'` iff every
-cell of it is reachable from some border `'O'` (regions are connected) — and
+cell of it is reachable from some border `'O'` (regions are connected) - and
 the multi-source flood fill marks exactly the cells reachable from border
 `'O'`s. The complement is exactly the surrounded cells.
 
@@ -60,7 +60,7 @@ when "surrounded/enclosed" is hard to test directly, traverse from the
 
 ---
 
-## Drill 2 — Graph Valid Tree
+## Drill 2 - Graph Valid Tree
 **Time box: 15 min · Medium**
 
 Given `n` nodes (0..n−1) and a list of undirected edges, return whether they
@@ -69,9 +69,9 @@ form a valid tree.
 **Hint ladder**
 
 1. A tree = connected + acyclic. There's also a pure counting fact about
-   trees relating edges to nodes — what is it?
+   trees relating edges to nodes - what is it?
 2. A tree on n nodes has exactly n−1 edges. Given exactly n−1 edges, connected
-   ⟺ acyclic (either one implies the other) — so check the count plus just
+   ⟺ acyclic (either one implies the other) - so check the count plus just
    one property.
 3. Union-find: if any edge's union returns "already connected", there's a
    cycle. With len(edges) == n−1 checked first, no-cycle ⟹ valid tree.
@@ -106,12 +106,12 @@ unions leave exactly one component. If all n−1 edges union successfully
 with only n−1 edges connectivity would fail.
 
 **Complexity:** O(n α(n)) ≈ O(n) time, O(n) space. (BFS/DFS from node 0
-checking `visited == n` also works — same complexity, either is acceptable.)
+checking `visited == n` also works - same complexity, either is acceptable.)
 </details>
 
 ---
 
-## Drill 3 — Walls and Gates
+## Drill 3 - Walls and Gates
 **Time box: 20 min · Medium**
 
 Grid of `-1` (wall), `0` (gate), `INF = 2**31 − 1` (empty room). Fill each
@@ -119,7 +119,7 @@ empty room with the distance to its nearest gate (leave INF if unreachable).
 
 **Hint ladder**
 
-1. "Distance to nearest gate for *every* cell" — one BFS per gate is
+1. "Distance to nearest gate for *every* cell" - one BFS per gate is
    O(gates · rows · cols). What pattern from rotting oranges collapses this
    to one pass?
 2. Multi-source BFS: seed the queue with all gates at distance 0. The §2
@@ -152,7 +152,7 @@ def walls_and_gates(rooms):
 Correctness is exactly multi-source BFS: imagine a super-source wired to all
 gates; BFS layers from it are "distance to nearest gate". Walls are never
 INF so never entered; writing the distance on enqueue doubles as the visited
-mark (a cell is written once, with its first — hence smallest — distance).
+mark (a cell is written once, with its first - hence smallest - distance).
 
 **Complexity:** O(rows·cols) time and queue space. Signature to remember:
 "nearest X for every cell" ⇒ seed all X's at once.
@@ -160,7 +160,7 @@ mark (a cell is written once, with its first — hence smallest — distance).
 
 ---
 
-## Drill 4 — Cheapest Flights Within K Stops
+## Drill 4 - Cheapest Flights Within K Stops
 **Time box: 30 min · Medium-Hard**
 
 `n` cities, directed flights `(u, v, price)`, source, destination, and `k`
@@ -169,7 +169,7 @@ max stops (so ≤ k+1 edges). Return the cheapest such route's price, or −1.
 **Hint ladder**
 
 1. Why can't vanilla Dijkstra be used as-is? Because a *pricier* partial
-   route with *fewer stops used* may still win later — settling a node by
+   route with *fewer stops used* may still win later - settling a node by
    price alone discards routes that are better under the hop budget.
 2. Bellman–Ford insight: one relaxation round over all edges extends best
    costs by at most one edge. What does running exactly k+1 rounds give you?
@@ -197,19 +197,19 @@ def find_cheapest_price(n, flights, src, dst, k):
 Invariant (induction on rounds): after round i, `cost[v]` is the cheapest
 route to v using ≤ i edges. Base: 0 edges reaches only src at cost 0. Step:
 the cheapest (≤ i+1)-edge route to v is either a (≤ i)-edge route (already in
-`cost`) or a (≤ i)-edge route to some u plus edge (u,v) — exactly what
+`cost`) or a (≤ i)-edge route to some u plus edge (u,v) - exactly what
 relaxing from the *snapshot* `prev` considers. Without the snapshot, an
 in-round update to `cost[u]` could be reused for (u,v) in the same round,
-sneaking in i+2 edges — the classic bug here.
+sneaking in i+2 edges - the classic bug here.
 
 **Complexity:** O(k · E) time, O(n) space. This *is* Bellman–Ford with the
-round count capped at k+1 instead of n−1 — which is also why Bellman–Ford
+round count capped at k+1 instead of n−1 - which is also why Bellman–Ford
 tolerates negative edges: it never greedily commits, it just re-relaxes.
 </details>
 
 ---
 
-## Drill 5 — Alien Dictionary
+## Drill 5 - Alien Dictionary
 **Time box: 35 min · Hard**
 
 A list of words is sorted by an unknown alphabet. Recover a possible letter
@@ -224,7 +224,7 @@ order, or return `""` if the list is inconsistent. Example:
    difference).
 2. Facts "x before y" are directed edges. "Find an order consistent with all
    edges" is topological sort; "inconsistent" = cycle. Use Kahn's.
-3. Edge case that fails silently: `["abc", "ab"]` — a word followed by its
+3. Edge case that fails silently: `["abc", "ab"]` - a word followed by its
    own proper prefix is invalid (no mismatch found, but the order is
    impossible). Check for it explicitly.
 
@@ -261,7 +261,7 @@ def alien_order(words):
     return "".join(order) if len(order) == len(indeg) else ""
 ```
 
-Correctness: adjacent-pair constraints are sufficient — sortedness of the
+Correctness: adjacent-pair constraints are sufficient - sortedness of the
 whole list is equivalent to every adjacent pair being ordered (transitivity),
 so the edge set captures all information. Kahn's then yields an order
 respecting every edge, and its cycle detection (emitted < total letters)
@@ -278,7 +278,7 @@ letters), O(1)-ish space.
 
 ---
 
-## Drill 6 — Swim in Rising Water
+## Drill 6 - Swim in Rising Water
 **Time box: 35 min · Hard**
 
 `grid[r][c]` is the elevation. At time t you can occupy any cell with
@@ -289,7 +289,7 @@ at which you can travel from (0,0) to (n−1,n−1).
 
 1. Reframe: a path's cost is the *maximum* elevation on it (you must wait
    for the water to reach the path's highest cell). You want the path
-   minimizing that maximum — a bottleneck ("minimax") shortest path, not a
+   minimizing that maximum - a bottleneck ("minimax") shortest path, not a
    sum.
 2. Dijkstra still works if you swap the relaxation: instead of
    `dist[u] + w`, a path through u to v costs `max(dist[u], elev[v])`. The
@@ -322,14 +322,14 @@ def swim_in_water(grid):
 
 Why Dijkstra's argument transfers: the proof in the notes needs only that
 extending a path never decreases its cost. For bottleneck cost,
-`max(cost, elev) ≥ cost` always — so the first time a cell is popped, its
+`max(cost, elev) ≥ cost` always - so the first time a cell is popped, its
 cost is optimal, and the first pop of the target is the answer. Marking seen
 on push is safe in this variant because every later push of the same cell
 carries a ≥ cost (heap pops in nondecreasing order, and `max` can't shrink);
 in sum-cost Dijkstra you'd instead use lazy deletion.
 
 **Complexity:** O(n² log n) time, O(n²) space. The binary-search alternative
-is O(n² log(max elevation)) — mention it; the minimax-Dijkstra is the
+is O(n² log(max elevation)) - mention it; the minimax-Dijkstra is the
 sharper tool. Recognition cue: "minimize the maximum along a path" ⇒
 bottleneck Dijkstra or binary search + reachability.
 </details>

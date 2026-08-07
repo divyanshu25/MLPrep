@@ -9,11 +9,11 @@ Numbering matches the round-mapping table in [README.md](README.md).
 
 ---
 
-## Drill 1 — Multi-head causal self-attention in numpy
+## Drill 1 - Multi-head causal self-attention in numpy
 
 **Time box: 25 min · Simulates: OpenAI / Anthropic "attention from scratch" · Reference: module 4, `attention_scratch.py`**
 
-Isolates: the single most-asked implementation — can you produce
+Isolates: the single most-asked implementation - can you produce
 `softmax(QKᵀ/√d_h + mask)V` with correct head reshapes, from a blank buffer.
 
 Spec: `mha_causal(x, Wq, Wk, Wv, Wo, n_head)` with `x: (T, d)` and all weights
@@ -65,12 +65,12 @@ assert not np.allclose(y1[-1], y2[-1])
 The `-np.inf` before max-subtraction is safe: each row keeps at least the
 diagonal, so no all-`-inf` row exists and no NaN appears. The head split
 `reshape(T, h, hd).transpose(1, 0, 2)` is correct; `reshape(h, T, hd)` is the
-silent killer — it shuffles channels across heads and still "runs fine".
+silent killer - it shuffles channels across heads and still "runs fine".
 </details>
 
 ---
 
-## Drill 2 — BPE tokenizer: train + encode + decode
+## Drill 2 - BPE tokenizer: train + encode + decode
 
 **Time box: 40 min · Simulates: Anthropic from-scratch build · Reference: module 4 notes (tokenization)**
 
@@ -85,7 +85,7 @@ must be exact, including on text with characters never seen in training
 What good looks like: round-trip test on training text AND unseen text AND
 non-ASCII, plus a compression print (bytes → tokens). The classic bug:
 encoding by "most frequent pair in this text" instead of "earliest-learned
-merge" — states the difference out loud.
+merge" - states the difference out loud.
 
 <details><summary>Reference solution</summary>
 
@@ -153,12 +153,12 @@ tokens like `est` only exist because `es` was learned first. Applying a later
 merge first can strand the text in a state the training sequence never saw.
 Decode works in one pass because `merges` insertion order guarantees children
 of every merge are already in `vocab`. Complexity is O(merges · len); fine for
-an interview — mention (don't build) the priority-queue version.
+an interview - mention (don't build) the priority-queue version.
 </details>
 
 ---
 
-## Drill 3 — Temperature / top-k / top-p sampling
+## Drill 3 - Temperature / top-k / top-p sampling
 
 **Time box: 20 min · Simulates: Anthropic sampling-from-scratch · Reference: module 4 notes (decoding)**
 
@@ -214,26 +214,26 @@ assert (counts > 0).all()                      # high T reaches the tail
 Order matters and interviewers probe it: temperature reshapes the distribution
 *before* truncation decides what survives; top-k operates on logits (a value
 threshold), top-p on the cumulative probability mass. `searchsorted(csum, p)+1`
-implements "include the token that crosses p" — dropping the `+1` silently
+implements "include the token that crosses p" - dropping the `+1` silently
 turns `top_p=0.9` into a harsher filter than specified.
 </details>
 
 ---
 
-## Drill 4 — Logistic regression with a manual backward pass
+## Drill 4 - Logistic regression with a manual backward pass
 
 **Time box: 25 min · Simulates: general ML screen, "no autograd" · Reference: modules 1–2, `linear_models_scratch.py`**
 
-Isolates: the derivation you must own cold — `∂L/∂z = (p − y)/N` for
-sigmoid + BCE — and turning it into two matrix products.
+Isolates: the derivation you must own cold - `∂L/∂z = (p − y)/N` for
+sigmoid + BCE - and turning it into two matrix products.
 
 Spec: torch tensors, but **no** `requires_grad`, no `.backward()`, no
 `torch.optim`. Generate separable-ish data, train full-batch gradient descent
 to >90% accuracy, and verify your manual gradient against autograd at the end
-(that check is allowed — it's the test, not the method).
+(that check is allowed - it's the test, not the method).
 
-What good looks like: you *derive* the gradient on paper-in-comments — say
-"sigmoid+BCE collapses to p−y, same as softmax+CE" — rather than pattern-match
+What good looks like: you *derive* the gradient on paper-in-comments - say
+"sigmoid+BCE collapses to p−y, same as softmax+CE" - rather than pattern-match
 it, and you know why the `1e-12` clamps live in the loss print but nowhere in
 the gradient (the p−y form is already stable).
 
@@ -274,7 +274,7 @@ assert torch.allclose(w_a.grad, X.T @ ((torch.sigmoid(X @ w + b) - y) / N),
                       atol=1e-5)
 ```
 
-The p(1−p) factors cancel between dL/dp and dp/dz — that cancellation is the
+The p(1−p) factors cancel between dL/dp and dp/dz - that cancellation is the
 whole reason the pairing "sigmoid + BCE" (and "softmax + CE") is standard: the
 gradient never divides by a probability, so saturation doesn't destroy it.
 Module 1 derives this in full; module 3 does the softmax version.
@@ -282,18 +282,18 @@ Module 1 derives this in full; module 3 does the softmax version.
 
 ---
 
-## Drill 5 — Numerically stable softmax + cross-entropy, with tests
+## Drill 5 - Numerically stable softmax + cross-entropy, with tests
 
 **Time box: 15 min · Simulates: DeepMind "code must run" numerics screen · Reference: module 1 notes (log-sum-exp), module 3**
 
-Isolates: the max-subtraction trick and log-sum-exp — writing `log(softmax)`
+Isolates: the max-subtraction trick and log-sum-exp - writing `log(softmax)`
 without ever materializing a probability.
 
 Spec: numpy. `log_softmax(z)` for `(N, V)`, `cross_entropy(logits, targets)`
 returning mean NLL. Must survive logits of ±1e4 with no inf/nan, and match
 `torch.nn.functional.cross_entropy` to 1e-9.
 
-What good looks like: 15 minutes is generous — spend the surplus writing the
+What good looks like: 15 minutes is generous - spend the surplus writing the
 three tests below. Saying "softmax is shift-invariant, so I subtract the row
 max; then log-softmax is `z − max − log Σ exp`" is the whole interview.
 
@@ -331,12 +331,12 @@ Same identity powers the `ln V` init check in the debugging playbook.
 
 ---
 
-## Drill 6 — k-means in numpy
+## Drill 6 - k-means in numpy
 
 **Time box: 20 min · Simulates: classical-ML screen · Reference: module 2, `kmeans_pca_scratch.py`**
 
 Isolates: vectorized pairwise distances via broadcasting, and knowing the two
-gotchas — empty clusters and local optima — before being asked.
+gotchas - empty clusters and local optima - before being asked.
 
 Spec: `kmeans(X, k)` → centers, assignments, inertia. Assignment step must be
 loop-free (broadcast `(N,1,D)` vs `(1,k,D)`). Handle empty clusters. Add
@@ -344,7 +344,7 @@ restarts keeping best inertia.
 
 What good looks like: you name the objective (within-cluster sum of squares),
 note each step monotonically decreases it (hence convergence), and volunteer
-"random init can split one blob and merge two — that's why restarts /
+"random init can split one blob and merge two - that's why restarts /
 k-means++". If you finish early: mention the O(NkD) per-iteration cost.
 
 <details><summary>Reference solution</summary>
@@ -384,21 +384,21 @@ for s in range(3):
     assert len(set(z[s * 50:(s + 1) * 50])) == 1   # each blob -> one cluster
 ```
 
-Honest detail: with a single seed-0 init this test *fails* — two centers land
+Honest detail: with a single seed-0 init this test *fails* - two centers land
 in one blob and k-means happily converges there. That's not a bug, it's the
 algorithm; the restarts wrapper is part of a correct answer, not a flourish.
 Assignment step decreases inertia (nearest center), update step decreases it
-(mean minimizes squared distance), so it converges — to a local optimum only.
+(mean minimizes squared distance), so it converges - to a local optimum only.
 </details>
 
 ---
 
-## Drill 7 — AUC from scores, pure Python
+## Drill 7 - AUC from scores, pure Python
 
 **Time box: 15 min · Simulates: metrics screen · Reference: module 5, `metrics_scratch.py` and notes**
 
-Isolates: knowing AUC's rank-statistic identity — P(random positive scores
-above random negative) — and handling ties with average ranks, no curve built.
+Isolates: knowing AUC's rank-statistic identity - P(random positive scores
+above random negative) - and handling ties with average ranks, no curve built.
 
 Spec: `auc(scores, labels)` in pure Python. Must match
 `sklearn.roc_auc_score` exactly, including tied scores. Formula:
@@ -407,7 +407,7 @@ Spec: `auc(scores, labels)` in pure Python. Must match
 What good looks like: you state the probabilistic meaning first, derive why
 the formula works (Σ ranks of positives counts, for each positive, how many
 items sit at-or-below it), and treat ties by giving the whole tied group the
-mean of its rank range — which makes each tied pos/neg pair contribute ½.
+mean of its rank range - which makes each tied pos/neg pair contribute ½.
 
 <details><summary>Reference solution</summary>
 
@@ -440,16 +440,16 @@ Why it works: rank of a positive = 1 + (#items strictly below it). Summing
 over positives counts positive-below-positive pairs too; subtracting
 `n₊(n₊+1)/2` (the ranks the positives would have if they only counted each
 other) leaves exactly #(pos above neg) pairs, ties counting ½ via average
-ranks. Divide by total pairs `n₊n₋`. This is the Mann–Whitney U statistic —
+ranks. Divide by total pairs `n₊n₋`. This is the Mann–Whitney U statistic  - 
 module 5 builds the same number from the ROC curve and shows they agree.
 Verified against sklearn on random tied data to 1e-12.
 </details>
 
 ---
 
-## Drill 8 — LRU cache
+## Drill 8 - LRU cache
 
-**Time box: 20 min · Simulates: OpenAI SWE-style staple · Reference: none needed — this is pure data-structure fluency**
+**Time box: 20 min · Simulates: OpenAI SWE-style staple · Reference: none needed - this is pure data-structure fluency**
 
 Isolates: O(1) `get`/`put` via hashmap + doubly linked list, with sentinels so
 there are zero edge cases on empty/full.
@@ -460,7 +460,7 @@ eviction of the least-recently-used on overflow. Both O(1). `get` and
 
 What good looks like: sentinels head/tail declared immediately ("so I never
 branch on None"), two private helpers (`_unlink`, `_push_front`), and the
-eviction detail said aloud: delete from the map by `lru.key` — the node
+eviction detail said aloud: delete from the map by `lru.key` - the node
 remembers its key precisely so eviction can find its map entry. Mention
 `OrderedDict.move_to_end` exists, then build it manually anyway (that's the
 point of the question).
@@ -531,26 +531,26 @@ recency order *is* the list order).
 
 ---
 
-## Drill 9 — Progressive in-memory KV store (3 levels)
+## Drill 9 - Progressive in-memory KV store (3 levels)
 
 **Time box: 45 min total (10 / 10 / 25) · Simulates: Anthropic CodeSignal-style progressive build**
 
-Isolates: the real skill this format tests — writing level 1 so levels 2–3
+Isolates: the real skill this format tests - writing level 1 so levels 2–3
 drop in without a rewrite. The interviewers reveal levels one at a time; you
 should *ask* "will requirements grow?" and design for it.
 
 Spec, revealed progressively:
 - **Level 1:** `set(key, value)`, `get(key)`, `delete(key)`.
-- **Level 2:** `set(..., now, ttl)` — key expires at `now + ttl`; `get(key,
+- **Level 2:** `set(..., now, ttl)` - key expires at `now + ttl`; `get(key,
   now)` returns `None` for expired keys. Time is a passed-in parameter
-  (testability — say this out loud), expiry is lazy.
+  (testability - say this out loud), expiry is lazy.
 - **Level 3:** `begin()`, `commit()`, `rollback()` with **nesting**: rollback
   undoes the innermost transaction; commit folds it into its parent.
 
 What good looks like: level 1 stores `(value, expiry)` tuples from the start
 *or* refactors calmly when level 2 lands; level 3 uses an **undo log** (record
 each key's prior state on first write per transaction) rather than snapshotting
-the whole dict — and you name the tradeoff: snapshot is O(size) per `begin`,
+the whole dict - and you name the tradeoff: snapshot is O(size) per `begin`,
 undo log is O(writes).
 
 <details><summary>Reference solution</summary>
@@ -636,20 +636,20 @@ kv.rollback(); assert kv.get("k") == 2            # delete undone
 
 The two subtle points, both about `commit` of a nested transaction: (1) the
 parent's undo entry must keep the value from *before the parent's own first
-write* — hence "only if `key not in parent`"; (2) reads go straight to
+write* - hence "only if `key not in parent`"; (2) reads go straight to
 `self.data` because writes are applied immediately and the undo log is the
-rollback path — this makes `get` O(1) regardless of nesting depth, unlike
+rollback path - this makes `get` O(1) regardless of nesting depth, unlike
 layered-overlay designs where `get` walks the stack.
 </details>
 
 ---
 
-## Drill 10 — Batched inference queue simulation
+## Drill 10 - Batched inference queue simulation
 
-**Time box: 30 min · Simulates: Anthropic systems-flavored coding — the serving-stack version of "concurrency without threads"**
+**Time box: 30 min · Simulates: Anthropic systems-flavored coding - the serving-stack version of "concurrency without threads"**
 
 Isolates: dynamic batching, the policy at the heart of every LLM serving
-system — dispatch when B requests are queued *or* the oldest has waited T ms —
+system - dispatch when B requests are queued *or* the oldest has waited T ms  - 
 simulated deterministically with event logic, no threads, no sleep.
 
 Spec: pure Python. `simulate(arrivals, B, max_wait, base_ms, per_item_ms)`
@@ -658,11 +658,11 @@ size`; the worker must be free to dispatch. Return per-request latencies
 (completion − arrival). Then report mean/p95 for B=1 vs B=8 on Poisson
 arrivals and explain the difference.
 
-What good looks like: you resist threads entirely — state that the next
+What good looks like: you resist threads entirely - state that the next
 dispatch time is computable: `t = max(worker_free, min(oldest + max_wait,
 arrival_of_Bth))`, then take everything that has arrived by `t`, up to B.
 You interpret the numbers: with `base_ms` dominating, B=1 means 6 ms of
-service per 2 ms inter-arrival — an overloaded queue whose latency grows
+service per 2 ms inter-arrival - an overloaded queue whose latency grows
 without bound; batching amortizes `base_ms` across 8 requests and the system
 becomes stable. That's the actual reason GPU serving batches.
 
@@ -712,7 +712,7 @@ req/ms. At B=1, service is 6 ms/req → capacity 0.167 req/ms < 0.5: utilization
 951 ms measured is just "half the run's backlog"). At B=8, service is 13 ms
 per 8 → 0.615 req/ms capacity, ρ ≈ 0.81 < 1: stable, latency = a little
 queueing + ≤10 ms batching delay + 13 ms service. Batching trades a bounded
-per-request wait for amortizing the fixed cost — module 6's latency notes do
+per-request wait for amortizing the fixed cost - module 6's latency notes do
 this same arithmetic for GPUs, where `base_ms` is kernel-launch + weight-read
 cost and `per_item_ms` shrinks until memory bandwidth saturates.
 </details>

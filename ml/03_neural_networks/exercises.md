@@ -1,12 +1,12 @@
-# Neural Networks — Exercises
+# Neural Networks - Exercises
 
 Twelve exercises, easy → hard. Do them on paper first; where code is asked for,
-extend the files in this directory. Solutions are collapsed below each problem —
+extend the files in this directory. Solutions are collapsed below each problem  - 
 genuinely try before opening them.
 
 ---
 
-## Exercise 1 (easy) — Linear collapse, concretely
+## Exercise 1 (easy) - Linear collapse, concretely
 
 Let $W_1 = \begin{pmatrix} 1 & 2 \\ 0 & 1 \end{pmatrix}$, $b_1 = \begin{pmatrix} 1 \\ 0 \end{pmatrix}$,
 $W_2 = \begin{pmatrix} 1 & -1 \\ 2 & 0 \end{pmatrix}$, $b_2 = \begin{pmatrix} 0 \\ 3 \end{pmatrix}$.
@@ -27,7 +27,7 @@ activations are not optional.
 
 ---
 
-## Exercise 2 (easy) — Hand-backprop a tiny graph
+## Exercise 2 (easy) - Hand-backprop a tiny graph
 
 For $a = 2$, $b = -3$, $c = 10$: let $d = a \cdot b$, $e = d + c$, $L = e^2$.
 Compute the forward values and then $\partial L/\partial a$, $\partial L/\partial b$,
@@ -47,7 +47,7 @@ Sanity check on $a$: $L = (ab + c)^2$, so $\partial L/\partial a = 2(ab+c)\,b = 
 
 ---
 
-## Exercise 3 (easy) — The `+=` bug
+## Exercise 3 (easy) - The `+=` bug
 
 A student writes an autograd engine but uses `child.grad = local * out.grad`
 (assignment) instead of `+=`. Construct the *smallest* expression where this
@@ -55,21 +55,21 @@ gives a wrong gradient, and compute both the wrong and correct answers.
 
 <details><summary>Solution</summary>
 
-Take $L = a \cdot a$ (or $a + a$) — any expression where one Value is used twice.
+Take $L = a \cdot a$ (or $a + a$) - any expression where one Value is used twice.
 With $a = 3$: correct is $\partial L/\partial a = 2a = 6$. The multiply node runs
 its backward for the left operand (`a.grad = a.data * 1 = 3`) and then for the
-right operand — with `=` it *overwrites*: `a.grad = 3`. Wrong by a factor 2.
+right operand - with `=` it *overwrites*: `a.grad = 3`. Wrong by a factor 2.
 
 With `+=`, the two path contributions $3 + 3 = 6$ accumulate. The multivariate
 chain rule says gradients over multiple paths **sum**:
 $\frac{dL}{da} = \frac{\partial L}{\partial u}\frac{\partial u}{\partial a} + \frac{\partial L}{\partial v}\frac{\partial v}{\partial a}$
 where $u, v$ are the two uses of $a$. This is also why every training loop must
-**zero gradients** each step — accumulation is by design.
+**zero gradients** each step - accumulation is by design.
 </details>
 
 ---
 
-## Exercise 4 (easy-medium) — Sigmoid's max derivative, and depth
+## Exercise 4 (easy-medium) - Sigmoid's max derivative, and depth
 
 (i) Prove $\max_z \sigma'(z) = 1/4$. (ii) A 15-layer network uses sigmoid
 activations everywhere; give an upper bound on the factor the activation
@@ -92,7 +92,7 @@ effectively don't train. This is the vanishing gradient problem;
 
 ---
 
-## Exercise 5 (medium) — Softmax shift invariance and log-sum-exp
+## Exercise 5 (medium) - Softmax shift invariance and log-sum-exp
 
 (i) Prove $\mathrm{softmax}(z + c\mathbb{1}) = \mathrm{softmax}(z)$ for any scalar $c$.
 (ii) For $z = (1000, 1001, 1002)$, naive softmax overflows in float64. Compute
@@ -100,7 +100,7 @@ the actual probabilities with the log-sum-exp trick, by hand.
 
 <details><summary>Solution</summary>
 
-(i) $\frac{e^{z_i + c}}{\sum_j e^{z_j + c}} = \frac{e^c e^{z_i}}{e^c \sum_j e^{z_j}} = p_i$ — the $e^c$ cancels.
+(i) $\frac{e^{z_i + c}}{\sum_j e^{z_j + c}} = \frac{e^c e^{z_i}}{e^c \sum_j e^{z_j}} = p_i$ - the $e^c$ cancels.
 
 (ii) Subtract $m = 1002$: shifted logits $(-2, -1, 0)$, exponentials
 $(e^{-2}, e^{-1}, 1) \approx (0.1353, 0.3679, 1)$, sum $\approx 1.5032$, so
@@ -113,7 +113,7 @@ underflow to 0 would give `-inf`.
 
 ---
 
-## Exercise 6 (medium) — Why dropout scaling preserves expectation (and what it does to variance)
+## Exercise 6 (medium) - Why dropout scaling preserves expectation (and what it does to variance)
 
 Inverted dropout keeps a unit with probability $q = 1 - p$ and scales survivors
 by $1/q$: $\tilde a = \frac{m}{q} a$ with $m \sim \mathrm{Bernoulli}(q)$.
@@ -127,20 +127,20 @@ fixed). (iii) Why do we want the expectation preserved?
 (ii) $E[\tilde a^2] = \frac{a^2}{q^2}E[m^2] = \frac{a^2}{q^2} \cdot q = \frac{a^2}{q}$
 (since $m^2 = m$ for Bernoulli). So
 $\mathrm{Var}(\tilde a) = \frac{a^2}{q} - a^2 = a^2 \frac{1-q}{q} = a^2\frac{p}{1-p}$.
-Dropout preserves the mean but **injects variance** — that injected noise *is*
+Dropout preserves the mean but **injects variance** - that injected noise *is*
 the regularizer.
 
 (iii) At test time dropout is turned off, so each downstream unit sees exactly
 $a$. If training-time expectation weren't also $a$, every downstream layer would
 be calibrated to inputs $\frac{1}{q}\times$ different from what it receives at
-inference — a systematic train/test mismatch in activation scale at every layer.
+inference - a systematic train/test mismatch in activation scale at every layer.
 Matching in expectation makes test-time "identity" a sensible approximation of
 the $2^n$-subnetwork ensemble average.
 </details>
 
 ---
 
-## Exercise 7 (medium) — Derive Adam's bias correction
+## Exercise 7 (medium) - Derive Adam's bias correction
 
 Adam's first moment is $m_t = \beta m_{t-1} + (1-\beta) g_t$ with $m_0 = 0$.
 (i) Unroll to a closed form. (ii) Assuming $E[g_i] = g$ for all $i$, show
@@ -160,8 +160,7 @@ $(1-\beta^t)$ makes it unbiased. As $t \to \infty$ the correction $\to 1$ (no-op
 
 (iii) At $t=1$: $v_1 = (1-\beta_2)g_1^2 = 0.001\,g_1^2$, so
 $\sqrt{v_1} \approx 0.0316\,|g_1|$. The uncorrected update
-$\eta\,m_1/\sqrt{v_1} \approx \eta \cdot 0.1|g_1| / (0.0316|g_1|) \approx 3.2\,\eta$
-— and with corrected $m$ but uncorrected $v$ it would be $\approx 31.6\,\eta$,
+$\eta\,m_1/\sqrt{v_1} \approx \eta \cdot 0.1|g_1| / (0.0316|g_1|) \approx 3.2\,\eta$ - and with corrected $m$ but uncorrected $v$ it would be $\approx 31.6\,\eta$,
 i.e. ~30× the intended step, on the very first update when parameters are most
 fragile. Bias-correcting both gives $\hat m_1/\sqrt{\hat v_1} = g_1/|g_1| = \pm 1$,
 a well-scaled step.
@@ -169,7 +168,7 @@ a well-scaled step.
 
 ---
 
-## Exercise 8 (medium) — Kaiming's factor of 2
+## Exercise 8 (medium) - Kaiming's factor of 2
 
 Let $z \sim$ symmetric around 0 with variance $\sigma^2$, and $a = \max(0, z)$.
 (i) Show $E[a^2] = \sigma^2/2$. (ii) Use this to derive He initialization
@@ -185,20 +184,20 @@ $E[z^2\mathbb{1}[z>0]] = E[z^2\mathbb{1}[z<0]]$ and they sum to $E[z^2] = \sigma
 
 (ii) For the next layer, $z' = \sum_{j=1}^{n_{in}} w_j a_j$ with independent
 mean-0 weights: $\mathrm{Var}(z') = n_{in}\,\mathrm{Var}(w)\,E[a^2] = n_{in}\,\mathrm{Var}(w)\,\sigma^2/2$.
-(Note we use $E[a^2]$, not $\mathrm{Var}(a)$ — with mean-0 weights it's the
+(Note we use $E[a^2]$, not $\mathrm{Var}(a)$ - with mean-0 weights it's the
 second moment of the input that propagates.) Requiring
 $\mathrm{Var}(z') = \sigma^2$: $n_{in}\mathrm{Var}(w)/2 = 1 \Rightarrow \mathrm{Var}(w) = 2/n_{in}$.
 
 (iii) Xavier leaves a per-layer factor of $1/2$ on the second moment, i.e. the
 std shrinks by $1/\sqrt{2}$ per layer: after 30 layers,
-$(1/\sqrt 2)^{30} = 2^{-15} \approx 3 \times 10^{-5}$ — activations effectively
+$(1/\sqrt 2)^{30} = 2^{-15} \approx 3 \times 10^{-5}$ - activations effectively
 vanish. EXPT 1 shows exactly this (L30 std ≈ 0.0000 for relu+Xavier, healthy
 for relu+Kaiming).
 </details>
 
 ---
 
-## Exercise 9 (medium-hard) — Momentum's effective learning rate
+## Exercise 9 (medium-hard) - Momentum's effective learning rate
 
 With update $v_t = \beta v_{t-1} + g$, $\theta_t = \theta_{t-1} - \eta v_t$, and
 a *constant* gradient $g$: (i) find $\lim_{t\to\infty} v_t$; (ii) conclude the
@@ -211,7 +210,7 @@ this mean geometrically in a ravine-shaped loss?
 (i) Unrolling: $v_t = g(1 + \beta + \dots + \beta^{t-1}) \to \frac{g}{1-\beta}$
 (geometric series).
 
-(ii) Steady-state step: $\eta v_\infty = \frac{\eta}{1-\beta} g$ — momentum
+(ii) Steady-state step: $\eta v_\infty = \frac{\eta}{1-\beta} g$ - momentum
 multiplies the effective LR by $\frac{1}{1-\beta}$ ($10\times$ at $\beta = 0.9$)
 along *persistent* gradient directions.
 
@@ -222,13 +221,13 @@ So oscillating components are *attenuated* to $\frac{1}{1+\beta} \approx 0.53\ti
 (at $\beta = 0.9$) while persistent components are amplified $10\times$: an
 $\sim 19\times$ ratio. Geometrically: in a ravine, the across-the-valley gradient
 alternates sign (damped), the along-the-valley gradient is consistent
-(amplified) — momentum converts a zig-zag crawl into fast travel along the
+(amplified) - momentum converts a zig-zag crawl into fast travel along the
 valley floor.
 </details>
 
 ---
 
-## Exercise 10 (hard) — Derive the BatchNorm backward pass
+## Exercise 10 (hard) - Derive the BatchNorm backward pass
 
 Forward, per feature, over a batch of size $B$:
 $\mu = \frac{1}{B}\sum_i x_i$, $\sigma^2 = \frac{1}{B}\sum_i (x_i - \mu)^2$,
@@ -268,12 +267,12 @@ subtract the batch-mean of gradients (because shifting all $x$ doesn't change
 $\hat x$), and subtract the component correlated with $\hat x$ (because
 rescaling doesn't change $\hat x$ either). BN's backward *centers and
 decorrelates the gradient*, which is part of why it stabilizes training.
-Verify numerically with a finite-difference check — highly recommended.
+Verify numerically with a finite-difference check - highly recommended.
 </details>
 
 ---
 
-## Exercise 11 (hard) — Residual gradient highway, quantitatively
+## Exercise 11 (hard) - Residual gradient highway, quantitatively
 
 Consider a deep chain $h_{k+1} = h_k + F_k(h_k)$ where each block's Jacobian is
 $J_k^F = \partial F_k/\partial h_k$ with $\|J_k^F\| \le \delta < 1$.
@@ -289,14 +288,13 @@ compare the guaranteed gradient scale in both architectures.
 Expanding the product: $I + \sum_k J_k^F + \sum_{k<l} J_l^F J_k^F + \cdots = I + E$.
 Bounding: $\|\prod (I + J_k^F)\| \le (1+\delta)^d$, and $E$ is everything except
 $I$, so $\|E\| \le (1+\delta)^d - 1$; for small $\delta$, $E \approx \sum_k J_k^F$.
-The point: the **identity term survives no matter how small $\delta$ is** — the
+The point: the **identity term survives no matter how small $\delta$ is** - the
 skip path transmits gradient with factor exactly 1.
 
 (ii) Plain chain: $\frac{\partial h_d}{\partial h_0} = \prod_k J_k^F$, and
 submultiplicativity gives $\|\prod_k J_k^F\| \le \delta^d$.
 
-(iii) $\delta = 0.9$, $d = 50$: plain chain gradient $\le 0.9^{50} \approx 5.2\times 10^{-3}$
-— and with $\delta = 0.5$ it's $0.5^{50} \approx 10^{-15}$: dead. The residual
+(iii) $\delta = 0.9$, $d = 50$: plain chain gradient $\le 0.9^{50} \approx 5.2\times 10^{-3}$ - and with $\delta = 0.5$ it's $0.5^{50} \approx 10^{-15}$: dead. The residual
 chain *always* delivers the $I$ component: gradient of order 1 reaches layer 0
 regardless of $\delta$. That "+1 in the Jacobian" is the entire reason 50-1000
 layer networks train, and why every transformer block is
@@ -305,7 +303,7 @@ layer networks train, and why every transformer block is
 
 ---
 
-## Exercise 12 (hard) — Implement a new op in the Value engine
+## Exercise 12 (hard) - Implement a new op in the Value engine
 
 Add a `sigmoid()` op to the `Value` class in `micrograd_plus.py`:
 (i) derive the backward rule, expressing it in terms of the forward **output**;
@@ -317,7 +315,7 @@ check.
 <details><summary>Solution</summary>
 
 (i) $\sigma'(z) = \sigma(z)(1 - \sigma(z))$ (derived in notes.md, section d).
-Expressed via the output $s = \sigma(z)$: local gradient is simply $s(1-s)$ — no
+Expressed via the output $s = \sigma(z)$: local gradient is simply $s(1-s)$ - no
 need to keep the input or recompute any `exp`.
 
 (ii)
@@ -344,7 +342,7 @@ def sigmoid(self):
 `exp(-x)`, which overflows for large negative `x` (e.g. $x = -800$), while the
 two-branch primitive never exponentiates a positive number. **Graph size**: the
 composition creates 4 nodes (neg, exp, add, reciprocal) with 4 closures and 4
-stored values; the primitive creates 1 — fused ops are exactly this idea in real
+stored values; the primitive creates 1 - fused ops are exactly this idea in real
 frameworks (as is fused softmax-cross-entropy). **Cheaper backward**: one
 multiply using the cached output vs. chaining four local gradients.
 
@@ -359,6 +357,6 @@ assert abs(x.grad - num) / (abs(x.grad) + abs(num)) < 1e-8
 ```
 
 Analytically: $\sigma(0.7) \approx 0.66819$, so
-$x.\text{grad} = 3\,\sigma'(0.7) = 3 \cdot 0.66819 \cdot 0.33181 \approx 0.66514$ —
+$x.\text{grad} = 3\,\sigma'(0.7) = 3 \cdot 0.66819 \cdot 0.33181 \approx 0.66514$  - 
 the finite difference should agree to ~8 digits.
 </details>
