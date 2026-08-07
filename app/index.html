@@ -952,7 +952,10 @@ const docHash = e => (/\.(py|ipynb)$/.test(e.path) && !e.path.endsWith('problems
   ? '#/nb/' : '#/notes/') + encodeURIComponent(e.path);
 /* quiet single-row breadcrumb: Notes / module / title, filename in mono,
    compact prev/next arrows (plus any view-specific text buttons) at right */
-function crumbRow(nav, path, title, extras) {
+/* One compact location row: Notes / module / filename. The document's own H1
+   is the only title on the page; the full title lives in the leaf's tooltip.
+   modHref (optional) links the module segment, e.g. to the module's notes. */
+function crumbRow(nav, path, title, extras, modHref) {
   const parts = path.split('/');
   const mod = nav.entry ? nav.entry.folderTitle
             : folderTitle(parts.length > 1 ? parts[parts.length - 2] : parts[0]);
@@ -967,10 +970,11 @@ function crumbRow(nav, path, title, extras) {
   <div class="flex items-center gap-x-2 gap-y-1 flex-wrap text-[13px] mb-6">
     <a href="#/notes" class="text-mut hover:text-accent">Notes</a>
     <span class="text-mut opacity-50" aria-hidden="true">/</span>
-    <span class="text-mut">${esc(mod)}</span>
+    ${modHref
+      ? `<a href="${modHref}" class="text-mut hover:text-accent" title="Module notes">${esc(mod)}</a>`
+      : `<span class="text-mut">${esc(mod)}</span>`}
     <span class="text-mut opacity-50" aria-hidden="true">/</span>
-    <span class="font-medium text-zinc-100" title="${esc(title)}">${esc(title.length > 48 ? title.slice(0, 46).trimEnd() + '…' : title)}</span>
-    <span class="font-mono text-[11px] text-mut">${esc(parts[parts.length - 1])}</span>
+    <span class="font-mono text-[12px] text-zinc-100" title="${esc(title)}">${esc(parts[parts.length - 1])}</span>
     <div class="ml-auto flex items-center gap-1 shrink-0">${extras || ''}${pager}</div>
   </div>`;
 }
@@ -1354,19 +1358,16 @@ async function viewNb(app, path) {
   app.innerHTML = `
   <div class="max-w-4xl mx-auto p-6">
     ${crumbRow(nav, path, doc.title || (nav.entry && nav.entry.title) || path,
-      `<a class="btn btn-text text-mut" href="#/notes/${encodeURIComponent(path)}">Read-only view</a>`)}
-    <div class="flex items-center gap-3 flex-wrap">
-      <span class="flex items-center gap-1.5 text-xs text-mut">
-        <span id="nb-dot" class="inline-block w-2 h-2 rounded-full bg-good"></span>
-        <span id="nb-status" class="tnum">idle</span>
-      </span>
-      <div class="ml-auto flex items-center gap-2">
-        <button id="nb-runall" class="btn btn-secondary">Run all</button>
-        <button id="nb-restart" class="btn btn-secondary">Restart kernel</button>
-        ${doc.notes ? `<a class="btn btn-text text-mut" href="#/notes/${encodeURIComponent(doc.notes)}">notes</a>` : ''}
-      </div>
-    </div>
-    <div class="microlabel text-mut mt-1.5 mb-5">edits are session-only, the file on disk is untouched</div>
+      `<span class="flex items-center gap-1.5 text-xs text-mut !px-1"
+             title="Kernel state. Edits are session-only; the file on disk is untouched.">
+         <span id="nb-dot" class="inline-block w-2 h-2 rounded-full bg-good"></span>
+         <span id="nb-status" class="tnum">idle</span>
+       </span>
+       <button id="nb-runall" class="btn btn-text text-accent">Run all</button>
+       <button id="nb-restart" class="btn btn-text text-mut">Restart</button>
+       <a class="btn btn-text text-mut" href="#/notes/${encodeURIComponent(path)}"
+          title="Read-only view">Source</a>`,
+      doc.notes ? '#/notes/' + encodeURIComponent(doc.notes) : null)}
     <div id="nb-cells"></div>
     <div class="mt-1">
       <button id="nb-add" class="btn btn-text text-mut text-sm" title="Append an empty scratch cell (this session only)">+ add cell</button>
