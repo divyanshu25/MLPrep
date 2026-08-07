@@ -1047,33 +1047,63 @@ async function viewNotes(app, encodedPath) {
   const current = encodedPath ? decodeURIComponent(encodedPath) : null;
 
   if (!current) {
-    /* landing: the curriculum-ordered notebooks index */
-    app.innerHTML = spinner('Loading notebook index…');
-    let mods;
-    try { mods = await getNotebooks(); }
+    /* landing: each module as a guided path in reading order:
+       read the notes, run the notebooks, then practice the exercises */
+    app.innerHTML = spinner('Loading curriculum…');
+    let tree, mods;
+    try { [tree, mods] = await Promise.all([getTree(), getNotebooks().catch(() => [])]); }
     catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
     if (epoch !== routeEpoch) return;
+
+    const blurbs = {}, folderTitles = {};
+    mods.forEach(m => {
+      folderTitles[m.folder] = m.folder_title;
+      m.notebooks.forEach(nb => { blurbs[nb.path] = nb.blurb || ''; });
+    });
+    const humanize = name => name.replace(/^\d+_/, '').replace(/_/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase());
+    const rowMeta = f => {
+      const n = f.name.toLowerCase();
+      if (n.endsWith('.ipynb'))
+        return { tag: 'Run', cls: 'text-good', href: '#/nb/' + encodeURIComponent(f.path) };
+      if (n.includes('solution'))
+        return { tag: 'Solutions', cls: 'text-mut', href: '#/notes/' + encodeURIComponent(f.path), quiet: true };
+      if (n === 'problems.py')
+        return { tag: 'Reference', cls: 'text-mut', href: '#/notes/' + encodeURIComponent(f.path),
+                 quiet: true, hint: 'Full solutions. Drill these from the Problems tab instead.' };
+      if (n === 'exercises.md' || n === 'drills.md')
+        return { tag: 'Practice', cls: 'text-warn', href: '#/notes/' + encodeURIComponent(f.path) };
+      return { tag: 'Read', cls: 'text-accent', href: '#/notes/' + encodeURIComponent(f.path),
+               anchor: n === 'notes.md' || n === 'readme.md' };
+    };
     app.innerHTML = `
     <div class="max-w-3xl mx-auto p-8">
-      <h1 class="page-title mb-1">Notebooks</h1>
-      <div class="microlabel text-mut mb-6">curriculum order · checklist ticks in notes save locally in this browser, never to the repo</div>
-      ${mods.map(m => `
+      <h1 class="page-title mb-1">Notes</h1>
+      <div class="text-[13px] text-mut mb-1">Each module in reading order: read the notes, run the notebooks, then practice the exercises.</div>
+      <div class="microlabel text-mut mb-6">checklist ticks in notes save locally in this browser, never to the repo</div>
+      ${tree.map(g => g.folders.map(fo => `
         <div class="card p-4 mb-4">
-          <div class="flex items-baseline gap-2.5 mb-1.5">
-            <span class="microlabel text-mut">${esc(m.track)}</span>
-            <span class="font-semibold text-zinc-100">${esc(m.folder_title)}</span>
-            ${m.notes_path ? `<a class="btn btn-text text-mut text-xs ml-auto shrink-0"
-               href="#/notes/${encodeURIComponent(m.notes_path)}">notes</a>` : ''}
+          <div class="flex items-baseline gap-2.5 mb-2">
+            <span class="microlabel text-mut">${esc(g.group)}</span>
+            <span class="font-semibold text-zinc-100">${esc(folderTitles[fo.name] || humanize(fo.name))}</span>
           </div>
-          ${m.notebooks.map(nb => `
-            <a href="#/nb/${encodeURIComponent(nb.path)}" class="block px-2.5 py-2 -mx-1 rounded-lg hover:bg-panel2">
-              <div class="flex items-baseline gap-2 flex-wrap">
-                <span class="font-medium text-zinc-100">${esc(nb.title)}</span>
-                <span class="font-mono text-[11px] text-mut">${esc(nb.file)}</span>
-              </div>
-              ${nb.blurb ? `<div class="text-[13px] text-mut mt-0.5 truncate">${esc(nb.blurb)}</div>` : ''}
-            </a>`).join('')}
-        </div>`).join('')}
+          ${fo.files.map((f, i) => {
+            const m = rowMeta(f);
+            return `
+            <a href="${m.href}" ${m.hint ? `title="${esc(m.hint)}"` : ''}
+               class="flex items-baseline gap-2.5 px-2.5 py-1.5 -mx-1 rounded-lg hover:bg-panel2 ${m.quiet ? 'opacity-60' : ''}">
+              <span class="microlabel text-mut tnum w-4 shrink-0 text-right">${i + 1}.</span>
+              <span class="microlabel ${m.cls} w-16 shrink-0">${m.tag}</span>
+              <span class="min-w-0">
+                <span class="flex items-baseline gap-2 flex-wrap">
+                  <span class="${m.anchor ? 'font-semibold' : 'font-medium'} text-zinc-100">${esc(f.title)}</span>
+                  ${f.title === f.name ? '' : `<span class="font-mono text-[11px] text-mut">${esc(f.name)}</span>`}
+                </span>
+                ${blurbs[f.path] ? `<span class="block text-[13px] text-mut mt-0.5 truncate">${esc(blurbs[f.path])}</span>` : ''}
+              </span>
+            </a>`;
+          }).join('')}
+        </div>`).join('')).join('')}
     </div>`;
     return;
   }
