@@ -299,11 +299,15 @@ Why care in ML:
   each component gets multiplied by its own $\lambda_i$ at every step, so after
   $k$ steps a component has grown (or shrunk) by $\lambda_i^k$. Whatever has
   $|\lambda| > 1$ explodes exponentially and whatever has $|\lambda| < 1$ dies -
-  so $A^k v$ ends up pointing along the largest-$|\lambda|$ eigenvector. This
-  one mechanism is why RNN gradients explode or vanish over long sequences (the
-  same Jacobian applied at every timestep), why power iteration finds the top
-  eigenvector (just keep multiplying and normalizing), and roughly how PageRank
-  works.
+  so $A^k v$ ends up pointing along the largest-$|\lambda|$ eigenvector. Where
+  you meet this in ML: an RNN applies the *same* update rule at every timestep,
+  so backprop through $T$ timesteps multiplies the gradient by roughly the same
+  matrix $T$ times - literally the $A^k$ story, which is why RNN gradients
+  explode or vanish over long sequences. (The per-step matrix is that update's
+  *Jacobian* - properly defined in §2.4; for now, "the matrix the update locally
+  acts like.") Same mechanism: power iteration finds the top eigenvector by just
+  multiplying and normalizing repeatedly, and PageRank is roughly that applied
+  to the web's link matrix.
 - **Optimization.** Near a minimum the loss surface is a bowl, described by the
   Hessian; its eigenvalues are the curvatures along its eigen-directions - big
   $\lambda$ is a steep wall, small $\lambda$ a nearly flat floor. Their ratio
