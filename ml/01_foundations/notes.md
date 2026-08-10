@@ -171,10 +171,12 @@ Two consequences worth internalizing:
 </svg>
 </div>
 
-*The dashed unit square rides along with the map: $e_1$ lands on column 1,
-$e_2$ on column 2, and the square becomes the shaded parallelogram. Every other
-vector follows by linearity. (The sliver is honest: the columns nearly align, and
-the parallelogram's area is $|\det W| = |1 \cdot 4 - 2 \cdot 3| = 2$.)*
+*The dashed square is the "before" picture: its sides are $e_1$ and $e_2$. Apply
+$W$ and each corner moves to its output: $e_1$ ends up at column 1 $= [1,3]$,
+$e_2$ at column 2 $= [2,4]$, and the square comes out as the shaded
+parallelogram. The squashed, near-flat shape is not a drawing mistake - it is
+what this $W$ really does to space, because its two columns point in nearly the
+same direction.*
 
 Why hold both views? View 1 (rows = detectors) explains what a layer *computes*.
 View 2 (columns = where basis goes) explains *composition*: $ABx$ means "warp by $B$,
