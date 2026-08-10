@@ -285,10 +285,16 @@ just a number.*
 
 Why care in ML:
 
-- **PCA.** The covariance matrix of a dataset is symmetric, so it has orthogonal
-  eigenvectors, and the ones with the biggest eigenvalues are the directions
-  along which the data varies most. PCA is literally "rotate into the
-  eigenbasis, keep only the axes with big $\lambda$."
+- **PCA.** Center your data (subtract each feature's mean) and build the
+  **covariance matrix** $C$: entry $C_{ij}$ measures how features $i$ and $j$
+  move together across the dataset - the average of
+  $(\text{feature } i\text{'s deviation}) \times (\text{feature } j\text{'s deviation})$,
+  with each feature's variance on the diagonal. It's symmetric for a trivial
+  reason: $C_{ij} = C_{ji}$ because the two deviations multiply in either order.
+  Symmetric means the spectral theorem applies: $C$ has orthogonal eigenvectors,
+  and the ones with the biggest eigenvalues are the directions along which the
+  data varies most. PCA is literally "rotate into the eigenbasis, keep only the
+  axes with big $\lambda$."
 - **Repeated application.** Work in the eigenbasis and apply $A$ over and over:
   each component gets multiplied by its own $\lambda_i$ at every step, so after
   $k$ steps a component has grown (or shrunk) by $\lambda_i^k$. Whatever has
