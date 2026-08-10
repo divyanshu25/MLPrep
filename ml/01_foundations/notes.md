@@ -305,9 +305,19 @@ Why care in ML:
   matrix $T$ times - literally the $A^k$ story, which is why RNN gradients
   explode or vanish over long sequences. (The per-step matrix is that update's
   *Jacobian* - properly defined in §2.4; for now, "the matrix the update locally
-  acts like.") Same mechanism: power iteration finds the top eigenvector by just
-  multiplying and normalizing repeatedly, and PageRank is roughly that applied
-  to the web's link matrix.
+  acts like.")
+- **Power iteration and PageRank.** The blow-up above is also an *algorithm*.
+  Want the top eigenvector of some matrix $A$? Start from a random vector and
+  repeat: multiply by $A$, rescale back to unit length. Every multiply grows the
+  component along the biggest-$|\lambda|$ eigenvector faster than all the
+  others, so after enough rounds those others are negligible and the vector has
+  swung onto the top eigenvector; the rescaling only keeps the numbers from
+  overflowing. That loop is **power iteration**. **PageRank** is this idea
+  pointed at the web: model a random surfer, where entry $(j, i)$ of the matrix
+  is the chance of hopping from page $i$ to page $j$, and define a page's
+  importance self-consistently as "the importance flowing into it" - in symbols,
+  an importance vector $p$ with $Ap = p$, i.e. an eigenvector. Google's original
+  ranking computed $p$ by exactly this keep-multiplying loop.
 - **Optimization.** Near a minimum the loss surface is a bowl, described by the
   Hessian; its eigenvalues are the curvatures along its eigen-directions - big
   $\lambda$ is a steep wall, small $\lambda$ a nearly flat floor. Their ratio
