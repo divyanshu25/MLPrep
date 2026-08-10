@@ -203,8 +203,10 @@ written in numbers.** Two facts now come for free:
 ### 1.5 Eigenvectors and eigenvalues: the directions a matrix doesn't rotate
 
 A matrix warps space: a typical vector comes out rotated *and* stretched. Natural
-question: does the matrix have a "grain" - special directions where it does
-something simpler? A vector $v \ne 0$ with
+question: are there special directions the matrix treats more simply - directions
+it stretches but does *not* rotate? Think of the grain in a piece of wood: the
+material has built-in directions it prefers, and along them it behaves simply.
+A vector $v \ne 0$ with
 
 $$A v = \lambda v$$
 
