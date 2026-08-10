@@ -1,7 +1,7 @@
 # Foundations: Linear Algebra, Calculus, Probability - from first principles
 
 The goal of this note: you should be able to *re-derive* everything here on a whiteboard,
-not just recite it. Every ML system - a linear model, a transformer, a diffusion model  - 
+not just recite it. Every ML system - a linear model, a transformer, a diffusion model -
 is built out of exactly three ingredients:
 
 1. **Linear algebra**: how we *represent* data and transform it (matrices).
@@ -39,12 +39,15 @@ meaningful? Two views, both essential:
 
 $$a \cdot b = \|a\| \, \|b\| \cos\theta$$
 
-where $\theta$ is the angle between them. If the vectors point the same way,
-$\cos\theta = 1$ and the dot product is large and positive. Orthogonal → 0.
-Opposite → negative. So the dot product is an (unnormalized) **agreement score**.
-Divide out the lengths and you get **cosine similarity** - the thing every embedding
-search engine computes. Attention scores in a transformer are literally
-$q \cdot k$ - "how much does this query agree with this key?"
+where $\theta$ is the angle between them. Hold the lengths fixed and read off the
+three regimes: vectors pointing the same way have $\cos\theta = 1$, so the dot
+product is as large and positive as it can be; perpendicular vectors have
+$\cos\theta = 0$, so the dot product is exactly zero, no agreement at all;
+opposite vectors make it negative. So the dot product is an (unnormalized)
+**agreement score**. Divide out the lengths and you get **cosine similarity** -
+the thing every embedding search engine computes. Attention scores in a
+transformer are literally $q \cdot k$: "how much does this query agree with this
+key?"
 
 **View 2: projection.** $\frac{a \cdot b}{\|b\|}$ is the length of the shadow $a$ casts
 onto the direction of $b$. So a dot product asks: *how much of $a$ lives along $b$'s
@@ -199,20 +202,32 @@ written in numbers.** Two facts now come for free:
 
 ### 1.5 Eigenvectors and eigenvalues: the directions a matrix doesn't rotate
 
-A matrix warps space. Are there directions it merely *stretches*? A vector $v \ne 0$
-with
+A matrix warps space: a typical vector comes out rotated *and* stretched. Natural
+question: does the matrix have a "grain" - special directions where it does
+something simpler? A vector $v \ne 0$ with
 
 $$A v = \lambda v$$
 
-is an **eigenvector**: the map doesn't rotate it, just scales it by the **eigenvalue**
-$\lambda$. Concrete: $A = \begin{bmatrix} 2 & 1 \\ 1 & 2\end{bmatrix}$.
-Try $v = [1, 1]$: $Av = [3, 3] = 3v$. Eigenvalue 3. Try $v = [1, -1]$:
-$Av = [1, -1] = 1 \cdot v$. Eigenvalue 1. Along the diagonal direction this matrix
-stretches 3×; along the anti-diagonal it does nothing. Those two directions are
-orthogonal - not an accident: **symmetric matrices always have a full set of
-orthogonal eigenvectors with real eigenvalues** (the spectral theorem). In the
-eigenbasis, $A$ is just a diagonal matrix - the map decomposes into independent
-per-axis stretches.
+is such a direction, called an **eigenvector**: feed it in and out comes the
+*same direction*, merely scaled by the number $\lambda$ (its **eigenvalue**).
+Along an eigenvector, the whole matrix acts like multiplication by one number.
+
+Make it concrete with $A = \begin{bmatrix} 2 & 1 \\ 1 & 2\end{bmatrix}$:
+
+- Try $v = [1, 1]$: $Av = [2 + 1,\ 1 + 2] = [3, 3] = 3v$. Same direction, three
+  times longer: eigenvalue $\lambda = 3$.
+- Try $v = [1, -1]$: $Av = [2 - 1,\ 1 - 2] = [1, -1] = v$. Completely untouched:
+  eigenvalue $\lambda = 1$.
+- Try a non-eigenvector, $u = [1, 0]$: $Au = [2, 1]$, which points somewhere
+  new. Most vectors are like $u$; eigenvectors are the exceptions.
+
+So this $A$ has a grain: stretch 3× along the diagonal, do nothing along the
+anti-diagonal. Notice the two eigen-directions are orthogonal. That's not luck:
+**a symmetric matrix always has a full set of orthogonal eigenvectors with real
+eigenvalues** (the spectral theorem). The payoff: rotate your coordinate axes to
+line up with those eigenvectors (the "eigenbasis") and $A$ becomes a diagonal
+matrix - a coupled-looking map decomposes into independent per-axis stretches,
+one $\lambda_i$ per axis.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 220" role="img" aria-label="For A = [[2,1],[1,2]] the eigenvector [1,1] is stretched by 3 without rotating, [1,-1] is unchanged, while a generic vector is rotated" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -245,15 +260,25 @@ just a number.*
 
 Why care in ML:
 
-- **PCA**: the covariance matrix is symmetric; its top eigenvectors are the directions
-  of maximum variance in your data. PCA = "rotate into the eigenbasis, keep the axes
-  with big $\lambda$."
-- **Repeated application**: $A^k v$ blows up along the largest-$|\lambda|$ eigenvector.
-  This is why RNNs explode/vanish (Jacobian eigenvalues $>1$ or $<1$ compounded over
-  time), why power iteration finds the top eigenvector, and roughly how PageRank works.
-- **Optimization**: the eigenvalues of the loss's Hessian are the curvatures along its
-  eigen-directions; the ratio $\lambda_{max}/\lambda_{min}$ (condition number) governs
-  how miserable gradient descent will be (zig-zagging across a narrow valley).
+- **PCA.** The covariance matrix of a dataset is symmetric, so it has orthogonal
+  eigenvectors, and the ones with the biggest eigenvalues are the directions
+  along which the data varies most. PCA is literally "rotate into the
+  eigenbasis, keep only the axes with big $\lambda$."
+- **Repeated application.** Work in the eigenbasis and apply $A$ over and over:
+  each component gets multiplied by its own $\lambda_i$ at every step, so after
+  $k$ steps a component has grown (or shrunk) by $\lambda_i^k$. Whatever has
+  $|\lambda| > 1$ explodes exponentially and whatever has $|\lambda| < 1$ dies -
+  so $A^k v$ ends up pointing along the largest-$|\lambda|$ eigenvector. This
+  one mechanism is why RNN gradients explode or vanish over long sequences (the
+  same Jacobian applied at every timestep), why power iteration finds the top
+  eigenvector (just keep multiplying and normalizing), and roughly how PageRank
+  works.
+- **Optimization.** Near a minimum the loss surface is a bowl, described by the
+  Hessian; its eigenvalues are the curvatures along its eigen-directions - big
+  $\lambda$ is a steep wall, small $\lambda$ a nearly flat floor. Their ratio
+  $\lambda_{max}/\lambda_{min}$ (the **condition number**) says how elongated
+  the bowl is, and elongated bowls make gradient descent miserable: the gradient
+  points across the narrow valley rather than along it, so the iterates zig-zag.
 
 ### 1.6 SVD: every matrix is rotate → stretch → rotate
 
@@ -296,17 +321,34 @@ ellipse's radii.
 $v_1, v_2$ (right singular vectors) land on the ellipse's axes $\sigma_1 u_1,
 \sigma_2 u_2$. The $\sigma_i$ are how much each direction gets stretched.*
 
-The killer application: truncate. Keep only the top $k$ singular values:
+The killer application: throw most of it away. First rewrite the SVD as a sum:
+
+$$A = \sum_{i} \sigma_i \, u_i v_i^\top$$
+
+Each term $u_i v_i^\top$ is an **outer product**: a whole matrix built from a
+single column $u_i$ and a single row $v_i^\top$, so every one of its rows is a
+multiple of the same row. That is the simplest possible matrix - one pattern,
+repeated at different strengths - and it's called **rank-1**. So the SVD says:
+any matrix is a sum of rank-1 patterns, with $\sigma_i$ measuring how much of
+$A$ pattern $i$ explains. Since the $\sigma_i$ come sorted, cutting the sum off
+after $k$ terms
 
 $$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top$$
 
-This is the **best rank-$k$ approximation** of $A$ (Eckart–Young theorem). Each term
-$u_i v_i^\top$ is a rank-1 "pattern"; $\sigma_i$ says how much of $A$ that pattern
-explains. This one idea powers: PCA (SVD of the centered data matrix), classic
-recommender systems (user × item matrix ≈ low rank), model compression, and **LoRA**
-(fine-tuning updates $\Delta W$ are assumed low-rank: $\Delta W = BA$ with tiny inner
-dimension). Connection to eigen: $V$ holds eigenvectors of $A^\top A$, and
-$\sigma_i^2$ are its eigenvalues.
+keeps the $k$ most important patterns, and the Eckart–Young theorem says this is
+the **best possible rank-$k$ approximation** of $A$. One idea, many hits:
+
+- **PCA** is the SVD of the centered data matrix.
+- **Classic recommenders**: the user × item ratings matrix is approximately
+  low-rank - people's tastes are combinations of a few archetypes.
+- **Model compression**: replace a weight matrix with its truncated SVD.
+- **LoRA**: assume the *fine-tuning update* $\Delta W$ is low-rank and learn it
+  directly as $\Delta W = BA$ with a tiny inner dimension - a few patterns'
+  worth of change instead of a whole new matrix.
+
+Connection back to eigenvectors: $A^\top A$ is symmetric, its eigenvectors are
+the columns of $V$, and its eigenvalues are $\sigma_i^2$. SVD is what the
+spectral theorem becomes when the matrix isn't square.
 
 ### 1.7 Norms: what "big" means
 
@@ -316,9 +358,11 @@ A norm is a formalized notion of length. The ones that matter:
   up everywhere because it's smooth and its gradient is linear:
   $\nabla \|x\|_2^2 = 2x$. Weight decay penalizes $\|w\|_2^2$, shrinking all weights
   smoothly toward 0.
-- **L1**: $\|x\|_1 = \sum_i |x_i|$. Its unit ball is a diamond with corners *on the
-  axes*, so optimization constrained by it lands on corners → exact zeros → **sparsity**
-  (lasso). L2's ball is round, no corners, so it shrinks but rarely zeros.
+- **L1**: $\|x\|_1 = \sum_i |x_i|$. Its unit ball is a diamond whose corners sit
+  *on the axes* - and a point on an axis is a point where the other coordinates
+  are exactly zero. Constrained optima tend to land on those corners, which is
+  why L1 regularization produces **sparsity** (lasso). L2's ball is round: no
+  corners, so it shrinks weights smoothly but rarely zeros one out.
 - **L∞**: $\max_i |x_i|$ - worst-case coordinate; the norm of adversarial-example fame.
 - **Frobenius** (matrices): $\|A\|_F = \sqrt{\sum_{ij} a_{ij}^2}$ - L2 with the matrix
   flattened.
@@ -456,12 +500,17 @@ reason deep learning is computationally feasible.
 
 ### 2.3 Gradients of vector/matrix expressions
 
-When $f : \mathbb{R}^n \to \mathbb{R}$ (a loss!), the **gradient** $\nabla f$ collects
-all $n$ partial sensitivities into a vector. Key fact: $\nabla f$ points in the
-direction of **steepest ascent**. Why: the wiggle from stepping in unit direction $u$
-is $\nabla f \cdot u = \|\nabla f\| \cos\theta$ - maximized when $u$ aligns with
-$\nabla f$ (dot product as projection, again!). Hence *descent* steps along
-$-\nabla f$.
+When $f : \mathbb{R}^n \to \mathbb{R}$ (a loss!), there are $n$ inputs you could
+wiggle, so there are $n$ sensitivities. The **gradient** just collects them into
+a vector: $\nabla f = [\partial f / \partial x_1, \dots, \partial f / \partial x_n]$.
+
+Key fact: $\nabla f$ points in the direction of **steepest ascent**, and the
+argument is two lines. Step a tiny unit distance in some direction $u$; by the
+wiggle view, $f$ changes by about $\nabla f \cdot u$. Which $u$ makes that change
+biggest? $\nabla f \cdot u = \|\nabla f\| \cos\theta$, maximized at $\theta = 0$:
+when $u$ points along $\nabla f$ itself (the dot product as agreement score,
+again). So the gradient is the locally-uphill direction, and gradient *descent*
+steps along $-\nabla f$, straight downhill.
 
 The three identities that cover 90% of ML derivations (all provable by writing out
 components - do it once by hand):
@@ -474,11 +523,15 @@ components - do it once by hand):
 
 The 1-D sanity check column is the trick: matrix calculus identities are the scalar
 rules with transposes arranged so shapes work out. Worked example - linear regression,
-$L(w) = \|Xw - y\|^2$. Let $r = Xw - y$ (residuals). Chain rule:
-sensitivity of $L$ to $r$ is $2r$; sensitivity of $r$ to $w$ is $X$; combine
-(transposing to route the wiggle backward through the map):
+$L(w) = \|Xw - y\|^2$. Let $r = Xw - y$ (the residuals). Chain rule in two hops:
+the sensitivity of $L$ to $r$ is $2r$, and $r$ depends on $w$ through the linear
+map $X$. Why does a transpose appear when we combine them? Going *forward*, a
+wiggle $\delta$ in $w$ becomes the wiggle $X\delta$ in $r$. Going *backward*,
+sensitivity has to ride the same connections in reverse - each entry of $w$
+collects contributions from every residual it touched - and summing over the
+opposite index of $X$ is exactly what $X^\top$ does. So:
 
-$$\nabla_w L = 2 X^\top (Xw - y)$$
+$$\nabla_w L = X^\top \cdot 2r = 2 X^\top (Xw - y)$$
 
 Shape check: $X^\top$ is $d \times n$, $r$ is $n \times 1$, result $d \times 1$ = shape
 of $w$. ✓ **The gradient of a scalar loss always has the same shape as the thing you're
@@ -563,7 +616,7 @@ often easy to model) into the **posterior** ("probability of the hypothesis give
 evidence", the thing you actually want), weighted by the **prior** $P(A)$.
 
 The classic trap (run it with raw counts, as in `probability_demos.ipynb`): a disease has
-prevalence 1%, the test has 99% sensitivity and 95% specificity. You test positive  - 
+prevalence 1%, the test has 99% sensitivity and 95% specificity. You test positive -
 what's the chance you're sick? Take 10,000 people: 100 sick → 99 true positives;
 9,900 healthy → 5% false positive rate → 495 false positives. Positive tests: $99 +
 495 = 594$; sick among them: $99 / 594 \approx 16.7\%$. Not 99%. The prior (rarity of
@@ -595,7 +648,7 @@ the $\theta$ that makes the observed data most probable:
 $$\hat\theta = \arg\max_\theta \prod_{i=1}^n p_\theta(y_i \mid x_i)
              = \arg\max_\theta \sum_{i=1}^n \log p_\theta(y_i \mid x_i)$$
 
-(Log is monotonic so the argmax is unchanged; it turns the product into a sum  - 
+(Log is monotonic so the argmax is unchanged; it turns the product into a sum -
 numerically stable and differentiable term by term.)
 
 Now the punchline. A classifier with softmax output assigns probabilities
@@ -627,7 +680,7 @@ binary-classification output and every dropout mask is a Bernoulli.
 **Gaussian** $\mathcal{N}(\mu, \sigma^2)$, density $\frac{1}{\sqrt{2\pi\sigma^2}}
 e^{-\frac{(x-\mu)^2}{2\sigma^2}}$. It is not chosen for convenience alone; it *emerges*:
 
-1. **CLT** (next section): sums of many small independent effects are Gaussian  - 
+1. **CLT** (next section): sums of many small independent effects are Gaussian -
    which is why measurement noise so often is.
 2. **Maximum entropy**: among all distributions with a given mean and variance, the
    Gaussian assumes the least extra structure - the honest default.
@@ -642,9 +695,11 @@ variable itself. Two failure modes:
 $$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
   \mathrm{Var} = \mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big]$$
 
-Bias: wrong *on average* (systematic). Variance: right on average but *jumpy* across
-samples. They combine exactly (derivation: add and subtract $\mathbb{E}[\hat\theta]$
-inside the square, cross term vanishes):
+Bias: wrong *on average*, a systematic miss. Variance: right on average but
+*jumpy* from sample to sample. They combine exactly. The derivation is one move:
+inside $\mathbb{E}[(\hat\theta - \theta)^2]$, add and subtract
+$\mathbb{E}[\hat\theta]$, expand the square, and the cross term dies because it
+contains the factor $\mathbb{E}\big[\hat\theta - \mathbb{E}[\hat\theta]\big] = 0$:
 
 $$\mathbb{E}[(\hat\theta - \theta)^2] = \mathrm{Bias}^2 + \mathrm{Var}$$
 
@@ -789,7 +844,7 @@ $\frac{n-1}{n}$; dividing by $n-1$ makes the estimator unbiased (Bessel's correc
 
 **Q14. Why does averaging reduce noise, and at what rate?**
 For i.i.d. terms, variances add while the $1/n$ prefactor comes out squared:
-$\mathrm{Var}(\bar X) = \sigma^2/n$, so the standard error shrinks as $1/\sqrt{n}$  - 
+$\mathrm{Var}(\bar X) = \sigma^2/n$, so the standard error shrinks as $1/\sqrt{n}$ -
 4× the data for half the error. CLT adds that the distribution of the mean is
 approximately Gaussian regardless of the source distribution.
 
