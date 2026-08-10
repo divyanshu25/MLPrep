@@ -57,6 +57,36 @@ Check with numbers: $\|a\| = \sqrt{5} \approx 2.24$, $\|b\| = \sqrt{10} \approx 
 so $\cos\theta = 5 / (2.24 \cdot 3.16) \approx 0.707$, i.e. $\theta = 45°$. Draw the two
 arrows - it's visibly 45°. The formula isn't abstract; it just works.
 
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 320 240" role="img" aria-label="Vectors a=[1,2] and b=[3,1] drawn from the origin with a 45 degree angle between them" style="max-width:340px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/></marker>
+    <marker id="arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker>
+  </defs>
+  <g stroke="currentColor" stroke-opacity="0.12">
+    <line x1="110" y1="40" x2="110" y2="200"/><line x1="180" y1="40" x2="180" y2="200"/><line x1="250" y1="40" x2="250" y2="200"/>
+    <line x1="20" y1="130" x2="300" y2="130"/><line x1="20" y1="60" x2="300" y2="60"/>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.45">
+    <line x1="20" y1="200" x2="300" y2="200"/>
+    <line x1="40" y1="220" x2="40" y2="40"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.55">
+    <text x="110" y="214" text-anchor="middle">1</text>
+    <text x="180" y="214" text-anchor="middle">2</text>
+    <text x="250" y="214" text-anchor="middle">3</text>
+    <text x="30" y="134" text-anchor="end">1</text>
+    <text x="30" y="64" text-anchor="end">2</text>
+  </g>
+  <path d="M 85.5 184.8 A 48 48 0 0 0 61.5 157.1" fill="none" stroke="currentColor" stroke-opacity="0.7"/>
+  <text x="90" y="163" fill="currentColor">45&#176;</text>
+  <line x1="40" y1="200" x2="106" y2="68" stroke="#6366f1" stroke-width="2.5" marker-end="url(#arr-a)"/>
+  <line x1="40" y1="200" x2="244" y2="132" stroke="#10b981" stroke-width="2.5" marker-end="url(#arr-b)"/>
+  <text x="112" y="52" fill="#6366f1" font-weight="600">a = [1, 2]</text>
+  <text x="252" y="126" fill="#10b981" font-weight="600">b = [3, 1]</text>
+</svg>
+</div>
+
 ### 1.3 Matrix multiply, view 1: a batch of dot products
 
 Take $W = \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}$ and $x = \begin{bmatrix} 5 \\ 6 \end{bmatrix}$.
