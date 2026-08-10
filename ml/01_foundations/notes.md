@@ -48,7 +48,11 @@ $q \cdot k$ - "how much does this query agree with this key?"
 
 **View 2: projection.** $\frac{a \cdot b}{\|b\|}$ is the length of the shadow $a$ casts
 onto the direction of $b$. So a dot product asks: *how much of $a$ lives along $b$'s
-direction?* A linear model's prediction $w \cdot x$ is exactly this: project the data
+direction?* Why not the other way? Both are true: $a \cdot b = b \cdot a$, so the same
+number is also "$b$'s shadow on $a$" - just normalized differently
+($a \cdot b / \|a\|$ instead of $a \cdot b / \|b\|$). Which reading you pick depends on
+which vector you're treating as the *direction* and which as the *data*.
+A linear model's prediction $w \cdot x$ is exactly this: project the data
 point onto the learned direction $w$; points far along $w$ get big scores.
 **One learned direction = one feature detector.** That single sentence explains
 what every neuron in a network's linear layer is doing.
@@ -58,7 +62,7 @@ so $\cos\theta = 5 / (2.24 \cdot 3.16) \approx 0.707$, i.e. $\theta = 45°$. Dra
 arrows - it's visibly 45°. The formula isn't abstract; it just works.
 
 <div style="margin:1.25rem 0">
-<svg viewBox="0 0 320 240" role="img" aria-label="Vectors a=[1,2] and b=[3,1] drawn from the origin with a 45 degree angle between them" style="max-width:340px;width:100%;height:auto;font-size:12px;font-family:inherit">
+<svg viewBox="0 0 320 240" role="img" aria-label="Vectors a=[1,2] and b=[3,1] drawn from the origin with a 45 degree angle between them and the shadow a casts on b" style="max-width:340px;width:100%;height:auto;font-size:12px;font-family:inherit">
   <defs>
     <marker id="arr-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/></marker>
     <marker id="arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker>
@@ -80,12 +84,20 @@ arrows - it's visibly 45°. The formula isn't abstract; it just works.
   </g>
   <path d="M 85.5 184.8 A 48 48 0 0 0 61.5 157.1" fill="none" stroke="currentColor" stroke-opacity="0.7"/>
   <text x="90" y="163" fill="currentColor">45&#176;</text>
+  <line x1="40" y1="200" x2="145" y2="165" stroke="#f59e0b" stroke-width="5" stroke-opacity="0.85"/>
+  <line x1="110" y1="60" x2="145" y2="165" stroke="currentColor" stroke-opacity="0.45" stroke-dasharray="4 4"/>
+  <path d="M 152.6 162.5 L 150.1 154.9 L 142.5 157.4" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+  <text x="150" y="186" fill="#f59e0b">shadow &#8776; 1.58</text>
   <line x1="40" y1="200" x2="106" y2="68" stroke="#6366f1" stroke-width="2.5" marker-end="url(#arr-a)"/>
   <line x1="40" y1="200" x2="244" y2="132" stroke="#10b981" stroke-width="2.5" marker-end="url(#arr-b)"/>
   <text x="112" y="52" fill="#6366f1" font-weight="600">a = [1, 2]</text>
   <text x="252" y="126" fill="#10b981" font-weight="600">b = [3, 1]</text>
 </svg>
 </div>
+
+*Both views in one picture: the arc is the 45° angle (View 1), and the amber
+segment is the shadow $a$ casts on $b$'s direction (View 2), with length
+$\frac{a \cdot b}{\|b\|} = 5/\sqrt{10} \approx 1.58$.*
 
 ### 1.3 Matrix multiply, view 1: a batch of dot products
 
@@ -136,6 +148,32 @@ Two consequences worth internalizing:
    columns are literally the warped images of the unit axes: the square spanned by
    $e_1, e_2$ gets mapped to the parallelogram spanned by $[1,3]$ and $[2,4]$.
 
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 340 240" role="img" aria-label="The unit square spanned by e1 and e2 is mapped by W to the parallelogram spanned by the columns [1,3] and [2,4]" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="p2-c1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/></marker>
+    <marker id="p2-c2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker>
+  </defs>
+  <g stroke="currentColor" stroke-opacity="0.45">
+    <line x1="45" y1="210" x2="210" y2="210"/>
+    <line x1="60" y1="225" x2="60" y2="20"/>
+  </g>
+  <path d="M 60 210 L 86 210 L 86 184 L 60 184 Z" fill="currentColor" fill-opacity="0.06" stroke="currentColor" stroke-opacity="0.55" stroke-dasharray="3 3"/>
+  <path d="M 60 210 L 86 132 L 138 28 L 112 106 Z" fill="#6366f1" fill-opacity="0.07" stroke="#6366f1" stroke-opacity="0.35"/>
+  <line x1="60" y1="210" x2="84" y2="139" stroke="#6366f1" stroke-width="2.5" marker-end="url(#p2-c1)"/>
+  <line x1="60" y1="210" x2="109" y2="112" stroke="#10b981" stroke-width="2.5" marker-end="url(#p2-c2)"/>
+  <text x="90" y="224" fill="currentColor" fill-opacity="0.7">e&#8321;</text>
+  <text x="42" y="186" fill="currentColor" fill-opacity="0.7">e&#8322;</text>
+  <text x="78" y="128" text-anchor="end" fill="#6366f1" font-weight="600">We&#8321; = [1,3]</text>
+  <text x="120" y="100" fill="#10b981" font-weight="600">We&#8322; = [2,4]</text>
+</svg>
+</div>
+
+*The dashed unit square rides along with the map: $e_1$ lands on column 1,
+$e_2$ on column 2, and the square becomes the shaded parallelogram. Every other
+vector follows by linearity. (The sliver is honest: the columns nearly align, and
+the parallelogram's area is $|\det W| = |1 \cdot 4 - 2 \cdot 3| = 2$.)*
+
 Why hold both views? View 1 (rows = detectors) explains what a layer *computes*.
 View 2 (columns = where basis goes) explains *composition*: $ABx$ means "warp by $B$,
 then warp by $A$", which is why matrix multiplication is associative and why a stack
@@ -158,6 +196,35 @@ orthogonal - not an accident: **symmetric matrices always have a full set of
 orthogonal eigenvectors with real eigenvalues** (the spectral theorem). In the
 eigenbasis, $A$ is just a diagonal matrix - the map decomposes into independent
 per-axis stretches.
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 340 220" role="img" aria-label="For A = [[2,1],[1,2]] the eigenvector [1,1] is stretched by 3 without rotating, [1,-1] is unchanged, while a generic vector is rotated" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="p3-a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1" fill-opacity="0.5"/></marker>
+    <marker id="p3-v1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/></marker>
+    <marker id="p3-v2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker>
+    <marker id="p3-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9ca3af"/></marker>
+  </defs>
+  <g stroke="currentColor" stroke-opacity="0.35">
+    <line x1="25" y1="150" x2="260" y2="150"/>
+    <line x1="70" y1="205" x2="70" y2="25"/>
+  </g>
+  <line x1="70" y1="150" x2="154" y2="66" stroke="#6366f1" stroke-width="3" stroke-opacity="0.5" marker-end="url(#p3-a1)"/>
+  <line x1="70" y1="150" x2="96" y2="124" stroke="#6366f1" stroke-width="2.5" marker-end="url(#p3-v1)"/>
+  <line x1="70" y1="150" x2="96" y2="176" stroke="#10b981" stroke-width="2.5" marker-end="url(#p3-v2)"/>
+  <line x1="70" y1="150" x2="94" y2="150" stroke="#9ca3af" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#p3-g)"/>
+  <line x1="70" y1="150" x2="125" y2="123" stroke="#9ca3af" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#p3-g)"/>
+  <text x="94" y="112" text-anchor="end" fill="#6366f1">v = [1,1]</text>
+  <text x="162" y="58" fill="#6366f1">Av = [3,3] = 3v &#160;(&#955; = 3)</text>
+  <text x="104" y="192" fill="#10b981">Av = v &#160;(&#955; = 1)</text>
+  <text x="98" y="166" fill="#9ca3af">u</text>
+  <text x="132" y="118" fill="#9ca3af">Au (rotated)</text>
+</svg>
+</div>
+
+*A generic vector $u$ comes out rotated. The eigenvectors don't: $[1,1]$ triples
+in place, $[1,-1]$ is untouched. Eigen-directions are the axes along which $A$ is
+just a number.*
 
 Why care in ML:
 
@@ -186,6 +253,32 @@ rotate into output space ($U$). **Every linear map, no matter how gnarly, is jus
 rotate–stretch–rotate.** The unit circle always maps to an ellipse; $\sigma_i$ are the
 ellipse's radii.
 
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 340 190" role="img" aria-label="A maps the unit circle with directions v1 and v2 to an ellipse with radii sigma1 u1 and sigma2 u2" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="p4-1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/></marker>
+    <marker id="p4-2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker>
+    <marker id="p4-m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
+  </defs>
+  <circle cx="75" cy="120" r="45" fill="#6366f1" fill-opacity="0.05" stroke="currentColor" stroke-opacity="0.55"/>
+  <line x1="75" y1="120" x2="109" y2="101" stroke="#6366f1" stroke-width="2.5" marker-end="url(#p4-1)"/>
+  <line x1="75" y1="120" x2="56" y2="86" stroke="#10b981" stroke-width="2.5" marker-end="url(#p4-2)"/>
+  <text x="115" y="95" fill="#6366f1">v&#8321;</text>
+  <text x="40" y="78" fill="#10b981">v&#8322;</text>
+  <text x="156" y="106" text-anchor="middle" fill="currentColor" font-weight="600">A = U&#931;V&#7488;</text>
+  <line x1="138" y1="120" x2="170" y2="120" stroke="currentColor" stroke-opacity="0.7" marker-end="url(#p4-m)"/>
+  <ellipse cx="245" cy="120" rx="58" ry="26" transform="rotate(-20 245 120)" fill="#6366f1" fill-opacity="0.05" stroke="currentColor" stroke-opacity="0.55"/>
+  <line x1="245" y1="120" x2="294" y2="102" stroke="#6366f1" stroke-width="2.5" marker-end="url(#p4-1)"/>
+  <line x1="245" y1="120" x2="238" y2="101" stroke="#10b981" stroke-width="2.5" marker-end="url(#p4-2)"/>
+  <text x="298" y="92" fill="#6366f1">&#963;&#8321;u&#8321;</text>
+  <text x="228" y="88" text-anchor="end" fill="#10b981">&#963;&#8322;u&#8322;</text>
+</svg>
+</div>
+
+*Feed $A$ the unit circle and an ellipse always comes out: the input directions
+$v_1, v_2$ (right singular vectors) land on the ellipse's axes $\sigma_1 u_1,
+\sigma_2 u_2$. The $\sigma_i$ are how much each direction gets stretched.*
+
 The killer application: truncate. Keep only the top $k$ singular values:
 
 $$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top$$
@@ -213,6 +306,27 @@ A norm is a formalized notion of length. The ones that matter:
 - **Frobenius** (matrices): $\|A\|_F = \sqrt{\sum_{ij} a_{ij}^2}$ - L2 with the matrix
   flattened.
 
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 340 170" role="img" aria-label="Unit balls of the L1 norm (a diamond), L2 norm (a circle), and L-infinity norm (a square)" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <g stroke="currentColor" stroke-opacity="0.25">
+    <line x1="15" y1="95" x2="105" y2="95"/><line x1="60" y1="50" x2="60" y2="140"/>
+    <line x1="125" y1="95" x2="215" y2="95"/><line x1="170" y1="50" x2="170" y2="140"/>
+    <line x1="235" y1="95" x2="325" y2="95"/><line x1="280" y1="50" x2="280" y2="140"/>
+  </g>
+  <polygon points="60,57 98,95 60,133 22,95" fill="#6366f1" fill-opacity="0.07" stroke="#6366f1" stroke-width="2"/>
+  <circle cx="60" cy="57" r="3" fill="#6366f1"/><circle cx="98" cy="95" r="3" fill="#6366f1"/><circle cx="60" cy="133" r="3" fill="#6366f1"/><circle cx="22" cy="95" r="3" fill="#6366f1"/>
+  <circle cx="170" cy="95" r="38" fill="#10b981" fill-opacity="0.07" stroke="#10b981" stroke-width="2"/>
+  <rect x="242" y="57" width="76" height="76" fill="#f59e0b" fill-opacity="0.07" stroke="#f59e0b" stroke-width="2"/>
+  <text x="60" y="158" text-anchor="middle" fill="currentColor" font-weight="600">L1</text>
+  <text x="170" y="158" text-anchor="middle" fill="currentColor" font-weight="600">L2</text>
+  <text x="280" y="158" text-anchor="middle" fill="currentColor" font-weight="600">L&#8734;</text>
+</svg>
+</div>
+
+*Unit balls: every point with $\|x\| = 1$. L1's corners (dots) sit exactly on the
+axes - constrained optima land there, zeroing the other coordinate. That corner
+picture is the geometric reason "L1 selects" while round L2 only shrinks.*
+
 Norms also define distance ($\|a - b\|$) and normalization ($x / \|x\|$, as in
 LayerNorm's core idea and cosine similarity). Interview-relevant contrast in one line:
 *L2 shrinks, L1 selects.*
@@ -233,6 +347,30 @@ $0.006001$ for an input wiggle of $0.001$ → sensitivity $\approx 6.001 \approx
 The derivative is the **exchange rate between input wiggles and output wiggles**.
 Equivalently: zoom in far enough and every smooth function is a straight line;
 $f'$ is that line's slope: $f(x + h) \approx f(x) + f'(x) h$.
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 340 230" role="img" aria-label="The parabola f(x) = x squared with its tangent line at a point: an input step h moves the output by about f prime of x times h" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <g stroke="currentColor" stroke-opacity="0.45">
+    <line x1="30" y1="200" x2="260" y2="200"/>
+    <line x1="50" y1="215" x2="50" y2="25"/>
+  </g>
+  <path d="M 41 199.6 Q 137.7 208.2 234.5 31.9" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <line x1="95" y1="200" x2="225" y2="84.4" stroke="#f59e0b" stroke-width="2"/>
+  <line x1="140" y1="160" x2="140" y2="200" stroke="currentColor" stroke-opacity="0.4" stroke-dasharray="4 4"/>
+  <line x1="140" y1="160" x2="176" y2="160" stroke="currentColor" stroke-opacity="0.5" stroke-dasharray="4 4"/>
+  <line x1="176" y1="160" x2="176" y2="128" stroke="#f59e0b" stroke-dasharray="4 4"/>
+  <circle cx="140" cy="160" r="4" fill="#6366f1"/>
+  <text x="140" y="214" text-anchor="middle" fill="currentColor" fill-opacity="0.7">x</text>
+  <text x="158" y="175" text-anchor="middle" fill="currentColor" fill-opacity="0.8">h</text>
+  <text x="181" y="146" fill="#f59e0b">f&#8242;(x)&#183;h</text>
+  <text x="216" y="40" text-anchor="end" fill="#6366f1" font-weight="600">f(x) = x&#178;</text>
+  <text x="196" y="126" fill="#f59e0b">slope f&#8242;(x) = 2x</text>
+</svg>
+</div>
+
+*The tangent is what the curve looks like up close. Step $h$ to the right and the
+output rises by about $f'(x)\,h$; the tiny gap between tangent and curve is the
+$O(h^2)$ error that vanishes as you zoom in.*
 
 This wiggle view is *the* mental model for training: the gradient of the loss w.r.t. a
 weight says "if I nudge this weight up by $\epsilon$, the loss changes by (gradient)
@@ -255,6 +393,34 @@ $$\frac{dy}{dx} = \frac{dy}{dz} \cdot \frac{dz}{dx}$$
 **Wiggle rates multiply through a pipeline.** That's the whole theorem. Concrete:
 $y = (3x)^2$ at $x = 2$: inner rate 3, outer rate $2z = 12$, total $36$. Check
 directly: $y = 9x^2$, $y' = 18x = 36$. ✓
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 340 170" role="img" aria-label="Pipeline x to z to y: forward pass computes values left to right, backward pass multiplies local wiggle rates right to left giving dy/dx = 12 times 3 = 36" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="p7-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
+    <marker id="p7-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f43f5e"/></marker>
+  </defs>
+  <text x="117" y="50" text-anchor="middle" fill="currentColor" fill-opacity="0.8">z = 3x</text>
+  <text x="222" y="50" text-anchor="middle" fill="currentColor" fill-opacity="0.8">y = z&#178;</text>
+  <rect x="30" y="60" width="70" height="34" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+  <rect x="135" y="60" width="70" height="34" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+  <rect x="240" y="60" width="70" height="34" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+  <text x="65" y="82" text-anchor="middle" fill="currentColor">x = 2</text>
+  <text x="170" y="82" text-anchor="middle" fill="currentColor">z = 6</text>
+  <text x="275" y="82" text-anchor="middle" fill="currentColor">y = 36</text>
+  <line x1="100" y1="77" x2="128" y2="77" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#p7-f)"/>
+  <line x1="205" y1="77" x2="233" y2="77" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#p7-f)"/>
+  <line x1="240" y1="112" x2="212" y2="112" stroke="#f43f5e" marker-end="url(#p7-b)"/>
+  <line x1="135" y1="112" x2="107" y2="112" stroke="#f43f5e" marker-end="url(#p7-b)"/>
+  <text x="226" y="132" text-anchor="middle" fill="#f43f5e">dy/dz = 2z = 12</text>
+  <text x="120" y="132" text-anchor="middle" fill="#f43f5e">dz/dx = 3</text>
+  <text x="170" y="158" text-anchor="middle" fill="#f43f5e" font-weight="600">dy/dx = 12 &#183; 3 = 36</text>
+</svg>
+</div>
+
+*Forward (top): compute values left to right. Backward (red): multiply local
+rates right to left. That right-to-left sweep, applied to a whole graph, is
+backprop.*
 
 Backprop is *nothing but* this, applied to a graph and organized efficiently:
 
@@ -388,6 +554,22 @@ the disease) dominates because false positives come from a *huge* pool. In ML te
 this is precision under class imbalance - exactly why accuracy is a useless metric for
 rare-event detection and why a 99%-accurate fraud model can be garbage.
 
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 400 130" role="img" aria-label="Among 10,000 people the positive tests split into 99 true positives from the sick group and 495 false positives from the healthy group, so a positive test means only about 17 percent chance of being sick" style="max-width:430px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <text x="150" y="42" text-anchor="end" fill="currentColor" fill-opacity="0.8">sick &amp; test +</text>
+  <rect x="160" y="28" width="35" height="20" fill="#10b981" fill-opacity="0.85"/>
+  <text x="201" y="42" fill="currentColor">99</text>
+  <text x="150" y="76" text-anchor="end" fill="currentColor" fill-opacity="0.8">healthy &amp; test +</text>
+  <rect x="160" y="62" width="173" height="20" fill="#f43f5e" fill-opacity="0.8"/>
+  <text x="339" y="76" fill="currentColor">495</text>
+  <text x="160" y="112" fill="currentColor" font-weight="600">P(sick | +) = 99 / 594 &#8776; 17%</text>
+</svg>
+</div>
+
+*The two bars are everyone who tests positive, drawn to scale. The sick pool is
+tiny (100 people), so even a 5% false-positive rate on the 9,900 healthy people
+buries the 99 true positives.*
+
 ### 3.3 MLE, and why minimizing cross-entropy IS maximum likelihood
 
 **Maximum likelihood estimation**: given data and a model family $p_\theta$, choose
@@ -448,6 +630,31 @@ samples. They combine exactly (derivation: add and subtract $\mathbb{E}[\hat\the
 inside the square, cross term vanishes):
 
 $$\mathbb{E}[(\hat\theta - \theta)^2] = \mathrm{Bias}^2 + \mathrm{Var}$$
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 320 220" role="img" aria-label="Four dartboards showing the combinations of low and high bias with low and high variance" style="max-width:340px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <text x="90" y="28" text-anchor="middle" fill="currentColor" fill-opacity="0.7">low variance</text>
+  <text x="230" y="28" text-anchor="middle" fill="currentColor" fill-opacity="0.7">high variance</text>
+  <text x="30" y="74" text-anchor="middle" fill="currentColor" fill-opacity="0.7">low bias</text>
+  <text x="30" y="174" text-anchor="middle" fill="currentColor" fill-opacity="0.7">high bias</text>
+  <g fill="none" stroke="currentColor">
+    <circle cx="90" cy="70" r="26" stroke-opacity="0.2"/><circle cx="90" cy="70" r="17" stroke-opacity="0.35"/><circle cx="90" cy="70" r="8" stroke-opacity="0.5"/>
+    <circle cx="230" cy="70" r="26" stroke-opacity="0.2"/><circle cx="230" cy="70" r="17" stroke-opacity="0.35"/><circle cx="230" cy="70" r="8" stroke-opacity="0.5"/>
+    <circle cx="90" cy="170" r="26" stroke-opacity="0.2"/><circle cx="90" cy="170" r="17" stroke-opacity="0.35"/><circle cx="90" cy="170" r="8" stroke-opacity="0.5"/>
+    <circle cx="230" cy="170" r="26" stroke-opacity="0.2"/><circle cx="230" cy="170" r="17" stroke-opacity="0.35"/><circle cx="230" cy="170" r="8" stroke-opacity="0.5"/>
+  </g>
+  <g fill="#6366f1">
+    <circle cx="92" cy="67" r="2.5"/><circle cx="86" cy="72" r="2.5"/><circle cx="93" cy="74" r="2.5"/><circle cx="88" cy="66" r="2.5"/><circle cx="90" cy="71" r="2.5"/>
+    <circle cx="240" cy="58" r="2.5"/><circle cx="216" cy="76" r="2.5"/><circle cx="236" cy="84" r="2.5"/><circle cx="222" cy="60" r="2.5"/><circle cx="244" cy="74" r="2.5"/>
+    <circle cx="105" cy="154" r="2.5"/><circle cx="99" cy="159" r="2.5"/><circle cx="106" cy="161" r="2.5"/><circle cx="101" cy="153" r="2.5"/><circle cx="103" cy="158" r="2.5"/>
+    <circle cx="251" cy="146" r="2.5"/><circle cx="230" cy="164" r="2.5"/><circle cx="248" cy="170" r="2.5"/><circle cx="234" cy="148" r="2.5"/><circle cx="254" cy="160" r="2.5"/>
+  </g>
+</svg>
+</div>
+
+*Each dot is the estimate you'd get from one resampled dataset. Bias is how far
+the cloud's center sits from the bullseye; variance is how scattered the cloud
+is. The decomposition above says total error is exactly those two plus noise.*
 
 Canonical example: sample variance with $\frac{1}{n}$ is biased low - the sample mean
 $\bar x$ chases the data, so deviations from $\bar x$ are systematically smaller than
