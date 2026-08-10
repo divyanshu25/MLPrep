@@ -178,11 +178,24 @@ parallelogram. The squashed, near-flat shape is not a drawing mistake - it is
 what this $W$ really does to space, because its two columns point in nearly the
 same direction.*
 
-Why hold both views? View 1 (rows = detectors) explains what a layer *computes*.
-View 2 (columns = where basis goes) explains *composition*: $ABx$ means "warp by $B$,
-then warp by $A$", which is why matrix multiplication is associative and why a stack
-of linear layers **without nonlinearities collapses to a single linear layer**
-($W_2 W_1$ is just another matrix - a classic interview question).
+Why hold both views? View 1 (rows = feature detectors) tells you what a single
+layer *computes*. View 2 earns its keep when layers *stack*.
+
+Remember: a matrix is a function. So $A(Bx)$ reads inside-out like any nested
+function call: first $B$ warps space, then $A$ warps the result - it's $f(g(x))$
+with matrices. And the matrix product $AB$ is *defined* to be the single matrix
+that does that two-step warp in one go: $(AB)\,x = A(Bx)$. Matrix multiplication
+is not an arbitrary rule about rows and columns; **it is function composition,
+written in numbers.** Two facts now come for free:
+
+- **Associativity.** $(AB)C = A(BC)$, because both sides mean the same thing:
+  "apply $C$, then $B$, then $A$." Grouping the steps differently doesn't change
+  the steps. No index gymnastics required.
+- **The collapse.** Stack two linear layers with no nonlinearity between them:
+  $W_2(W_1 x) = (W_2 W_1)\,x$. But $W_2 W_1$ is just *one* matrix - so the
+  two-layer stack computes nothing a single linear layer couldn't. Depth without
+  nonlinearities adds zero expressive power; the nonlinearity between layers is
+  what blocks this collapse (a classic interview question).
 
 ### 1.5 Eigenvectors and eigenvalues: the directions a matrix doesn't rotate
 
