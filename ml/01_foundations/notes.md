@@ -72,15 +72,39 @@ matmuls = deep learning: the whole field runs on "many dot products at once."
 
 ### 1.4 Matrix multiply, view 2: a linear map (columns tell you everything)
 
-Same numbers, different lens. Write $x = 5 e_1 + 6 e_2$ where $e_1 = [1,0]$, $e_2 = [0,1]$.
-Because matrix multiplication is linear:
+Same numbers, different lens. Forget the rows for a moment and ask a simpler
+question: what does $W$ do to the two easiest possible inputs, the unit axis
+vectors $e_1 = \begin{bmatrix}1\\0\end{bmatrix}$ and $e_2 = \begin{bmatrix}0\\1\end{bmatrix}$?
 
-$$Wx = 5 \,(W e_1) + 6 \,(W e_2) = 5 \begin{bmatrix}1\\3\end{bmatrix} + 6\begin{bmatrix}2\\4\end{bmatrix} = \begin{bmatrix}17\\39\end{bmatrix}$$
+$$W e_1 = \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}\begin{bmatrix}1\\0\end{bmatrix} = \begin{bmatrix}1\\3\end{bmatrix} \qquad W e_2 = \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}\begin{bmatrix}0\\1\end{bmatrix} = \begin{bmatrix}2\\4\end{bmatrix}$$
 
-$W e_1$ is just **column 1 of $W$**. So: *a matrix is fully specified by where it sends
-the basis vectors; the output is the same combination of columns that the input was of
-basis vectors.* $W$ is a machine that warps all of space - rotating, stretching,
-shearing - and the columns are the warped images of the unit axes.
+Do the arithmetic and you'll see the pattern: a one-hot input zeroes out every
+column except one. **Feeding in $e_1$ reads off column 1 of $W$; feeding in $e_2$
+reads off column 2.** That's step one.
+
+Step two: any input is just a recipe built from those two ingredients.
+
+$$x = \begin{bmatrix}5\\6\end{bmatrix} = 5\,e_1 + 6\,e_2$$
+
+Read it as "5 parts $e_1$, 6 parts $e_2$."
+
+Step three: matrix multiplication is **linear**, meaning $W$ processes a recipe
+ingredient by ingredient: $W(5\,e_1 + 6\,e_2) = 5\,(W e_1) + 6\,(W e_2)$. We already
+know what $W$ does to each ingredient (it hands back a column), so substitute:
+
+$$Wx = 5 \begin{bmatrix}1\\3\end{bmatrix} + 6\begin{bmatrix}2\\4\end{bmatrix} = \begin{bmatrix}17\\39\end{bmatrix}$$
+
+Same $[17, 39]$ as the row picture, but now it says something different:
+**$Wx$ is a blend of $W$'s columns, and the entries of $x$ are the blend weights.**
+
+Two consequences worth internalizing:
+
+1. **The columns tell you everything.** Once you know where $W$ sends $e_1$ and
+   $e_2$, linearity pins down where it sends *every* vector. A matrix is nothing
+   more than a lookup table of "where do the axes land."
+2. **Geometry.** $W$ warps all of space - rotating, stretching, shearing - and the
+   columns are literally the warped images of the unit axes: the square spanned by
+   $e_1, e_2$ gets mapped to the parallelogram spanned by $[1,3]$ and $[2,4]$.
 
 Why hold both views? View 1 (rows = detectors) explains what a layer *computes*.
 View 2 (columns = where basis goes) explains *composition*: $ABx$ means "warp by $B$,
