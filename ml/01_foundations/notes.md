@@ -318,12 +318,19 @@ Why care in ML:
   importance self-consistently as "the importance flowing into it" - in symbols,
   an importance vector $p$ with $Ap = p$, i.e. an eigenvector. Google's original
   ranking computed $p$ by exactly this keep-multiplying loop.
-- **Optimization.** Near a minimum the loss surface is a bowl, described by the
-  Hessian; its eigenvalues are the curvatures along its eigen-directions - big
-  $\lambda$ is a steep wall, small $\lambda$ a nearly flat floor. Their ratio
-  $\lambda_{max}/\lambda_{min}$ (the **condition number**) says how elongated
-  the bowl is, and elongated bowls make gradient descent miserable: the gradient
-  points across the narrow valley rather than along it, so the iterates zig-zag.
+- **Optimization.** In 1-D, the second derivative is curvature: how fast the
+  slope changes as you move. With $n$ weights, curvature depends on which
+  direction you move in, and the **Hessian** is the matrix that stores all of
+  it: $H_{ij} = \partial^2 L / \partial w_i \partial w_j$. At a minimum the
+  slope is zero, so curvature is the whole local story - the loss surface is a
+  bowl whose shape $H$ describes. $H$ is symmetric (wiggling $w_i$ then $w_j$
+  is the same as the reverse), so the spectral theorem applies yet again: it
+  has orthogonal eigen-directions, and each eigenvalue is the curvature along
+  its direction - big $\lambda$ is a steep wall, small $\lambda$ a nearly flat
+  floor. The ratio $\lambda_{max}/\lambda_{min}$ (the **condition number**)
+  says how elongated the bowl is, and elongated bowls make gradient descent
+  miserable: the gradient points across the narrow valley rather than along it,
+  so the iterates zig-zag.
 
 ### 1.6 SVD: every matrix is rotate → stretch → rotate
 
