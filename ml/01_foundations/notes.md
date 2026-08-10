@@ -226,10 +226,33 @@ Make it concrete with $A = \begin{bmatrix} 2 & 1 \\ 1 & 2\end{bmatrix}$:
 So this $A$ has a grain: stretch 3× along the diagonal, do nothing along the
 anti-diagonal. Notice the two eigen-directions are orthogonal. That's not luck:
 **a symmetric matrix always has a full set of orthogonal eigenvectors with real
-eigenvalues** (the spectral theorem). The payoff: rotate your coordinate axes to
-line up with those eigenvectors (the "eigenbasis") and $A$ becomes a diagonal
-matrix - a coupled-looking map decomposes into independent per-axis stretches,
-one $\lambda_i$ per axis.
+eigenvalues** (the spectral theorem).
+
+Why eigenvectors are a *payoff*, not just a curiosity. In ordinary coordinates
+$A$ mixes its inputs: writing $v = [x, y]$,
+
+$$Av = \begin{bmatrix} 2x + y \\ x + 2y \end{bmatrix}$$
+
+so each output entry needs *both* input entries - the coordinates are coupled,
+and it's hard to see what repeated applications of $A$ will do. Now play the
+recipe game from §1.4, but use the eigenvectors as the ingredients instead of
+$e_1, e_2$. Any vector is some amount of $v_1 = [1,1]$ plus some amount of
+$v_2 = [1,-1]$:
+
+$$x = c_1 v_1 + c_2 v_2$$
+
+and linearity lets $A$ process each ingredient separately - but eigen-ingredients
+are the ones $A$ merely scales:
+
+$$Ax = c_1 (A v_1) + c_2 (A v_2) = 3 c_1 v_1 + 1 \cdot c_2 v_2$$
+
+Read that off: in eigen-coordinates the map is just $(c_1, c_2) \to (3c_1, c_2)$.
+Multiply the first coordinate by 3, leave the second alone, done - no mixing
+between coordinates at all. *That* is what "$A$ becomes a diagonal matrix in the
+eigenbasis" means: same machine, better axes. Along those axes the map is
+nothing but an independent stretch $\lambda_i$ per axis, which is why questions
+like "what does $A^{100}$ do?" become trivial ($c_1$ gets $3^{100}$, $c_2$ stays
+put).
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 220" role="img" aria-label="For A = [[2,1],[1,2]] the eigenvector [1,1] is stretched by 3 without rotating, [1,-1] is unchanged, while a generic vector is rotated" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
