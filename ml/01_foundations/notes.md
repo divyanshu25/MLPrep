@@ -389,9 +389,12 @@ by its $\lambda_i$, then add the scaled ingredients back up. The observation:
 *each of those three steps is itself a matrix.*
 
 - **Adding ingredients back up is $Q$**, the matrix whose columns are the
-  eigenvectors. That's the blend-of-columns rule of equation (1.4c) read in
-  reverse: multiplying $Q$ by a vector of amounts blends $Q$'s columns,
-  $Qc = c_1 v_1 + c_2 v_2$. So $Q$ turns "amounts" into an ordinary vector.
+  eigenvectors. Recall the punchline of §1.4, equation (1.4c): *matrix times
+  vector = blend of the matrix's columns, weighted by the vector's entries.*
+  There we used that fact to interpret a product we already had. Here we use it
+  to *build* one: the thing we want is the blend $c_1 v_1 + c_2 v_2$, so put
+  $v_1, v_2$ into a matrix $Q$ as its columns and the blend is exactly the
+  product $Qc$. So $Q$ turns "amounts" into an ordinary vector.
 - **Finding the amounts is $Q^{-1}$**, simply because it's the exact undo of the
   step above: ordinary vector in, amounts out.
 - **Scaling amount $i$ by $\lambda_i$ is $\Lambda$**, the diagonal matrix of the
