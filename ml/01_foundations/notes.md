@@ -391,16 +391,23 @@ approximation**).
 
 In §1.5, computing $Ax$ took three steps (equations 1.5c and 1.5d): find the
 amounts of each eigenvector inside $x$, scale each amount by its $\lambda_i$,
-add the scaled ingredients back up. Each step is itself a matrix:
+add the scaled ingredients back up. The observation: *each of those steps can
+be carried out by multiplying with some matrix.* Which matrices?
 
-- **"Add the ingredients up" is $Q$**, the matrix with the eigenvectors as its
-  columns. Equation (1.4c) said: matrix × vector = blend of the matrix's
-  columns, weighted by the vector's entries. So $Qc$ *is* the blend
-  $c_1 v_1 + c_2 v_2$. Amounts in, ordinary vector out.
-- **"Find the amounts" is $Q^{-1}$**: the exact undo of $Q$. Ordinary vector
+- **Step "add the scaled ingredients up" is done by multiplying with $Q$**, the
+  matrix you get by standing the eigenvectors side by side as columns:
+  $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$ (column 1 is $v_1$,
+  column 2 is $v_2$). Check it: feed $Q$ the amounts $c = \begin{bmatrix} c_1 \\ c_2 \end{bmatrix}$
+  and use the blend-of-columns rule (1.4c):
+  $Qc = c_1 \begin{bmatrix} 1 \\ 1 \end{bmatrix} + c_2 \begin{bmatrix} 1 \\ -1 \end{bmatrix} = c_1 v_1 + c_2 v_2$.
+  That output is literally "the ingredients, added up with their amounts."
+  Amounts in, ordinary vector out.
+- **Step "find the amounts" is done by multiplying with $Q^{-1}$**, because
+  finding amounts is the exact undo of adding ingredients up. Ordinary vector
   in, amounts out.
-- **"Scale each amount" is $\Lambda$**: the diagonal matrix of the eigenvalues.
-  Diagonal because each amount is scaled on its own, no mixing.
+- **Step "scale each amount" is done by multiplying with $\Lambda$**, the
+  diagonal matrix of the eigenvalues: diagonal because each amount is scaled on
+  its own, no mixing.
 
 Chain the three, remembering the input meets the *rightmost* factor first
 (amounts, then scale, then rebuild):
