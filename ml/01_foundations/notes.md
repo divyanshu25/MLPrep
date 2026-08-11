@@ -496,20 +496,29 @@ neither.
 
 #### Part B: the SVD - drop both requirements
 
-The **singular value decomposition** exists for *every* matrix, square or not:
+The **singular value decomposition** is a claim about *every* matrix, square
+or not. The claim: multiplying by $A$ produces the same effect as doing three
+simple operations in a row -
+
+1. rotate the space,
+2. stretch it along the coordinate axes, each axis by its own factor,
+3. rotate again.
+
+Read the slogan "every matrix *is* rotate → stretch → rotate" exactly that way.
+It does not say $A$ looks like a rotation; it says $A$'s total effect can
+always be produced by that three-step sequence. (A shear looks like none of the
+three - the check below shows even a shear factors this way.) As a formula:
 
 $$A = U \Sigma V^\top \tag{1.6b}$$
 
-Three factors, one job each, read right to left:
-
-1. **$V^\top$ rotates the input** onto a special set of perpendicular axes
-   $v_1, v_2, \dots$
-2. **$\Sigma$ stretches** axis $i$ by $\sigma_i \ge 0$ - the **singular
-   values**, sorted biggest first. (For rectangular $A$ this step also moves
-   between dimensions, padding with zeros.)
-3. **$U$ rotates the result** into its final position in the output space.
-
-**Every linear map is rotate → stretch → rotate. No exceptions.**
+- **$V^\top$ does rotation 1.** It turns a special set of perpendicular
+  directions $v_1, v_2, \dots$ onto the coordinate axes - the same
+  trip-inward job $Q^{-1}$ did in Part A's four-frame picture.
+- **$\Sigma$ does the stretches.** Axis $i$ is scaled by $\sigma_i \ge 0$:
+  the **singular values**, sorted biggest first. (For a rectangular $A$ this
+  step also moves between input and output dimensions, padding with zeros.)
+- **$U$ does rotation 2.** It turns the coordinate axes onto the output
+  directions $u_1, u_2, \dots$ - the trip back out.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 190" role="img" aria-label="A maps the unit circle with directions v1 and v2 to an ellipse with radii sigma1 u1 and sigma2 u2" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
