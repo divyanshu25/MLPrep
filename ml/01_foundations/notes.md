@@ -382,10 +382,17 @@ creeping along the flat direction. This picture is why momentum and Adam exist.*
 
 ### 1.6 SVD: every matrix is rotate → stretch → rotate
 
-This section does three things, in order: package §1.5's insight as a formula
-(the **eigendecomposition**), upgrade it so it works for every matrix (the
-**SVD**), then use it for the trick ML actually cares about (**low-rank
-approximation**).
+This section builds to the SVD in three parts.
+
+- **Part A** takes §1.5's punchline - in the right axes, our matrix is just
+  per-axis stretches - and writes it as a formula: $A = Q \Lambda Q^{-1}$, the
+  **eigendecomposition**.
+- **Part B** fixes that formula's weakness: it only exists for square
+  (comfortably, symmetric) matrices. The fix is $A = U \Sigma V^\top$, the
+  **SVD**, which exists for every matrix.
+- **Part C** is the payoff for ML: cut the SVD short to compress a matrix down
+  to its few biggest patterns - **low-rank approximation**, the idea inside
+  PCA, recommenders, and LoRA.
 
 #### Part A: the eigendecomposition - §1.5 as a formula
 
