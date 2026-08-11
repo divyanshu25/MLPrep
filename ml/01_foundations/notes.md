@@ -359,12 +359,44 @@ $n \times d$ matrix of $n$ houses × $d$ features isn't even square. The
 
 $$A = U \Sigma V^\top$$
 
-where $U, V$ have orthonormal columns (rotations/reflections) and $\Sigma$ is diagonal
-with non-negative **singular values** $\sigma_1 \ge \sigma_2 \ge \dots$ Read right to
-left: rotate the input ($V^\top$), stretch each new axis by $\sigma_i$ ($\Sigma$),
-rotate into output space ($U$). **Every linear map, no matter how gnarly, is just
-rotate–stretch–rotate.** The unit circle always maps to an ellipse; $\sigma_i$ are the
-ellipse's radii.
+Three factors, each with one job:
+
+- **$V^\top$: a rotation of the input space.** $V$'s columns $v_1, v_2, \dots$
+  are a new set of perpendicular axes for inputs.
+- **$\Sigma$: the stretches.** Diagonal, with non-negative **singular values**
+  $\sigma_1 \ge \sigma_2 \ge \dots \ge 0$: stretch axis $i$ by $\sigma_i$. (For
+  a rectangular $A$, $\Sigma$ is rectangular too - it stretches the input axes
+  and drops them into the output space's dimension, padding with zeros.)
+- **$U$: a rotation of the output space.** Where the stretched axes finally
+  point.
+
+Read right to left, "apply $A$" becomes: rotate the input onto the $v$-axes,
+stretch each axis by its $\sigma_i$, rotate the result into place. **Every
+linear map, no matter how gnarly, is rotate → stretch → rotate.**
+
+Compare with the eigendecomposition $Q \Lambda Q^{-1}$: the same
+rotate–stretch–rotate shape, but there one matrix $Q$ is forced to do both
+rotations, and that demand is exactly what fails for most matrices. The SVD
+makes one concession - allow a *different* rotation on each side, $V$ for
+inputs, $U$ for outputs - and that concession is what makes it exist for every
+matrix, square or not.
+
+Where do the factors come from? Ask the most natural question you can ask of a
+map: *which input direction gets stretched the most?* The unit vector $v_1$
+that maximizes $\|A v_1\|$ is the first column of $V$; the stretch factor
+$\sigma_1 = \|A v_1\|$ is the top singular value; and the output direction
+$u_1 = A v_1 / \sigma_1$ is the first column of $U$. Then repeat the question
+among the directions perpendicular to $v_1$ to get $(v_2, \sigma_2, u_2)$, and
+so on. The SVD is nothing but this ranking of directions by stretch, written as
+matrices.
+
+Two sanity checks. The symmetric $A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$
+from §1.5: its most-stretched direction is the eigenvector $[1,1]$ (3×) and the
+least is $[1,-1]$ (1×), so its SVD *is* its eigendecomposition - $U = V$ and
+$\sigma = 3, 1$. And the shear $\begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$,
+which looks nothing like rotations and stretches, still factors:
+$\sigma_1 \approx 1.62$, $\sigma_2 \approx 0.62$. Slant a deck of cards and you
+have secretly rotated, stretched, and rotated it.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 190" role="img" aria-label="A maps the unit circle with directions v1 and v2 to an ellipse with radii sigma1 u1 and sigma2 u2" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -388,9 +420,11 @@ ellipse's radii.
 </svg>
 </div>
 
-*Feed $A$ the unit circle and an ellipse always comes out: the input directions
-$v_1, v_2$ (right singular vectors) land on the ellipse's axes $\sigma_1 u_1,
-\sigma_2 u_2$. The $\sigma_i$ are how much each direction gets stretched.*
+*Feed $A$ the unit circle and an ellipse always comes out - and now you can see
+why: the first rotation leaves the circle a circle, the stretch step pulls it
+into an ellipse with radii $\sigma_1, \sigma_2$, and the last rotation just
+turns that ellipse into place. The input directions $v_1, v_2$ land on the
+ellipse's axes $\sigma_1 u_1, \sigma_2 u_2$.*
 
 The killer application: throw most of it away. First rewrite the SVD as a sum:
 
@@ -417,9 +451,17 @@ the **best possible rank-$k$ approximation** of $A$. One idea, many hits:
   directly as $\Delta W = BA$ with a tiny inner dimension - a few patterns'
   worth of change instead of a whole new matrix.
 
-Connection back to eigenvectors: $A^\top A$ is symmetric, its eigenvectors are
-the columns of $V$, and its eigenvalues are $\sigma_i^2$. SVD is what the
-spectral theorem becomes when the matrix isn't square.
+Connection back to eigenvectors - and this one you can prove in a line. Plug the
+SVD into $A^\top A$ and use $U^\top U = I$ (rotations don't change anything when
+undone):
+
+$$A^\top A = (U \Sigma V^\top)^\top (U \Sigma V^\top)
+           = V \Sigma^\top U^\top U \Sigma V^\top = V \Sigma^2 V^\top$$
+
+That last expression is an eigendecomposition: $A^\top A$ (always square and
+symmetric, even when $A$ is neither) has eigenvectors $V$ and eigenvalues
+$\sigma_i^2$. This is both how you'd compute an SVD by hand and the closing of
+the loop: SVD is what the spectral theorem becomes when the matrix isn't square.
 
 ### 1.7 Norms: what "big" means
 
