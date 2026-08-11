@@ -382,85 +382,61 @@ creeping along the flat direction. This picture is why momentum and Adam exist.*
 
 ### 1.6 SVD: every matrix is rotate → stretch → rotate
 
-Before meeting SVD, let's package the previous section's insight as a formula.
-In §1.5 we computed $Ax$ by a three-step recipe - equations (1.5c) and (1.5d):
-find the amounts $c_1, c_2$ of the eigenvectors inside $x$, scale each amount
-by its $\lambda_i$, then add the scaled ingredients back up. The observation:
-*each of those three steps is itself a matrix.*
+This section does three things, in order: package §1.5's insight as a formula
+(the **eigendecomposition**), upgrade it so it works for every matrix (the
+**SVD**), then use it for the trick ML actually cares about (**low-rank
+approximation**).
 
-- **Adding ingredients back up is $Q$**, the matrix whose columns are the
-  eigenvectors. Recall the punchline of §1.4, equation (1.4c): *matrix times
-  vector = blend of the matrix's columns, weighted by the vector's entries.*
-  There we used that fact to interpret a product we already had. Here we use it
-  to *build* one: the thing we want is the blend $c_1 v_1 + c_2 v_2$, so put
-  $v_1, v_2$ into a matrix $Q$ as its columns and the blend is exactly the
-  product $Qc$. So $Q$ turns "amounts" into an ordinary vector.
-- **Finding the amounts is $Q^{-1}$**, simply because it's the exact undo of the
-  step above: ordinary vector in, amounts out.
-- **Scaling amount $i$ by $\lambda_i$ is $\Lambda$**, the diagonal matrix of the
-  eigenvalues - diagonal precisely because each amount is scaled on its own,
-  with no mixing.
+#### Part A: the eigendecomposition - §1.5 as a formula
 
-Now chain the three steps, remembering that in a product the input meets the
-*rightmost* factor first: amounts, then scale, then rebuild:
+In §1.5, computing $Ax$ took three steps (equations 1.5c and 1.5d): find the
+amounts of each eigenvector inside $x$, scale each amount by its $\lambda_i$,
+add the scaled ingredients back up. Each step is itself a matrix:
+
+- **"Add the ingredients up" is $Q$**, the matrix with the eigenvectors as its
+  columns. Equation (1.4c) said: matrix × vector = blend of the matrix's
+  columns, weighted by the vector's entries. So $Qc$ *is* the blend
+  $c_1 v_1 + c_2 v_2$. Amounts in, ordinary vector out.
+- **"Find the amounts" is $Q^{-1}$**: the exact undo of $Q$. Ordinary vector
+  in, amounts out.
+- **"Scale each amount" is $\Lambda$**: the diagonal matrix of the eigenvalues.
+  Diagonal because each amount is scaled on its own, no mixing.
+
+Chain the three, remembering the input meets the *rightmost* factor first
+(amounts, then scale, then rebuild):
 
 $$A = Q \Lambda Q^{-1} \tag{1.6a}$$
 
-This factorization is called the **eigendecomposition** of $A$. Don't take it on
-faith - check it on §1.5's matrix. $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$
-(eigenvectors as columns), $\Lambda = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$,
-$Q^{-1} = \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$; multiply
-the three out and you get back exactly $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$.
-For symmetric $A$ the factorization is especially clean: the eigenvectors are
-orthogonal, so $Q$ is a pure rotation and $Q^{-1} = Q^\top$.
+This is the **eigendecomposition**. Don't take it on faith - multiply it out
+for §1.5's matrix: $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$,
+$\Lambda = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$,
+$Q^{-1} = \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$, and
+the product is exactly $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ again.
+(Symmetric $A$ is the nicest case: orthogonal eigenvectors make $Q$ a pure
+rotation, so $Q^{-1} = Q^\top$.)
 
-But it has requirements. $A$ must be square - the question "does the output
-point in the same direction as the input?" only makes sense when inputs and
-outputs live in the same space - and only symmetric matrices are guaranteed the
-full orthogonal set of eigenvectors. Real data matrices are neither: an
-$n \times d$ matrix of $n$ houses × $d$ features isn't even square. The
-**singular value decomposition** works for *any* matrix:
+Two limitations. It needs $A$ **square**: "does the output point the same
+direction as the input?" can't even be asked when inputs and outputs live in
+spaces of different sizes. And it only comes with clean orthogonal axes when
+$A$ is **symmetric**. A real data matrix ($n$ houses × $d$ features) is
+neither.
+
+#### Part B: the SVD - drop both requirements
+
+The **singular value decomposition** exists for *every* matrix, square or not:
 
 $$A = U \Sigma V^\top \tag{1.6b}$$
 
-Three factors, each with one job:
+Three factors, one job each, read right to left:
 
-- **$V^\top$: a rotation of the input space.** $V$'s columns $v_1, v_2, \dots$
-  are a new set of perpendicular axes for inputs.
-- **$\Sigma$: the stretches.** Diagonal, with non-negative **singular values**
-  $\sigma_1 \ge \sigma_2 \ge \dots \ge 0$: stretch axis $i$ by $\sigma_i$. (For
-  a rectangular $A$, $\Sigma$ is rectangular too - it stretches the input axes
-  and drops them into the output space's dimension, padding with zeros.)
-- **$U$: a rotation of the output space.** Where the stretched axes finally
-  point.
+1. **$V^\top$ rotates the input** onto a special set of perpendicular axes
+   $v_1, v_2, \dots$
+2. **$\Sigma$ stretches** axis $i$ by $\sigma_i \ge 0$ - the **singular
+   values**, sorted biggest first. (For rectangular $A$ this step also moves
+   between dimensions, padding with zeros.)
+3. **$U$ rotates the result** into its final position in the output space.
 
-Read right to left, "apply $A$" becomes: rotate the input onto the $v$-axes,
-stretch each axis by its $\sigma_i$, rotate the result into place. **Every
-linear map, no matter how gnarly, is rotate → stretch → rotate.**
-
-Compare (1.6b) with the eigendecomposition (1.6a): the same
-rotate–stretch–rotate shape, but there one matrix $Q$ is forced to do both
-rotations, and that demand is exactly what fails for most matrices. The SVD
-makes one concession - allow a *different* rotation on each side, $V$ for
-inputs, $U$ for outputs - and that concession is what makes it exist for every
-matrix, square or not.
-
-Where do the factors come from? Ask the most natural question you can ask of a
-map: *which input direction gets stretched the most?* The unit vector $v_1$
-that maximizes $\|A v_1\|$ is the first column of $V$; the stretch factor
-$\sigma_1 = \|A v_1\|$ is the top singular value; and the output direction
-$u_1 = A v_1 / \sigma_1$ is the first column of $U$. Then repeat the question
-among the directions perpendicular to $v_1$ to get $(v_2, \sigma_2, u_2)$, and
-so on. The SVD is nothing but this ranking of directions by stretch, written as
-matrices.
-
-Two sanity checks. The symmetric $A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$
-from §1.5: its most-stretched direction is the eigenvector $[1,1]$ (3×) and the
-least is $[1,-1]$ (1×), so its SVD *is* its eigendecomposition - $U = V$ and
-$\sigma = 3, 1$. And the shear $\begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$,
-which looks nothing like rotations and stretches, still factors:
-$\sigma_1 \approx 1.62$, $\sigma_2 \approx 0.62$. Slant a deck of cards and you
-have secretly rotated, stretched, and rotated it.
+**Every linear map is rotate → stretch → rotate. No exceptions.**
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 190" role="img" aria-label="A maps the unit circle with directions v1 and v2 to an ellipse with radii sigma1 u1 and sigma2 u2" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -484,28 +460,56 @@ have secretly rotated, stretched, and rotated it.
 </svg>
 </div>
 
-*Feed $A$ the unit circle and an ellipse always comes out - and now you can see
-why: the first rotation leaves the circle a circle, the stretch step pulls it
-into an ellipse with radii $\sigma_1, \sigma_2$, and the last rotation just
-turns that ellipse into place. The input directions $v_1, v_2$ land on the
-ellipse's axes $\sigma_1 u_1, \sigma_2 u_2$.*
+*Feed $A$ the unit circle and an ellipse always comes out - and you can see
+why: a rotation keeps the circle a circle, the stretch pulls it into an
+ellipse with radii $\sigma_1, \sigma_2$, and the last rotation just turns the
+ellipse into place. The input axes $v_1, v_2$ land on the ellipse's axes
+$\sigma_1 u_1, \sigma_2 u_2$.*
 
-The killer application: throw most of it away. First rewrite the SVD as a sum:
+How is (1.6b) different from (1.6a)? In the eigendecomposition, one matrix $Q$
+must do both rotations - and that demand is the only thing that fails for most
+matrices. The SVD allows the input rotation ($V$) and the output rotation ($U$)
+to be *different*, and with that one concession every matrix factors.
+
+Where do the factors come from? A single question generates them all: *which
+input direction does $A$ stretch the most?* That direction is $v_1$, the
+stretch factor is $\sigma_1$, and the direction it lands on is $u_1$. Ask the
+same question again among the directions perpendicular to $v_1$: that gives
+$v_2, \sigma_2, u_2$. And so on. The SVD is a ranking of input directions by
+how much $A$ stretches them.
+
+Two quick checks:
+
+- The symmetric $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ from §1.5
+  stretches $[1,1]$ by 3 and $[1,-1]$ by 1 - so those are its $v$'s, they land
+  on themselves ($U = V$), and its SVD is just its eigendecomposition.
+- The shear $\begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$ looks nothing
+  like rotations and stretches, yet it factors too: $\sigma_1 \approx 1.62$,
+  $\sigma_2 \approx 0.62$. Slant a deck of cards and you have secretly
+  rotated, stretched, and rotated it.
+
+#### Part C: keep only the big patterns - why ML cares
+
+Rewrite the SVD as a sum, one term per singular value:
 
 $$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6c}$$
 
-Each term $u_i v_i^\top$ is an **outer product**: a whole matrix built from a
-single column $u_i$ and a single row $v_i^\top$, so every one of its rows is a
-multiple of the same row. That is the simplest possible matrix - one pattern,
-repeated at different strengths - and it's called **rank-1**. So the SVD says:
-any matrix is a sum of rank-1 patterns, with $\sigma_i$ measuring how much of
-$A$ pattern $i$ explains. Since the $\sigma_i$ come sorted, cutting the sum off
-after $k$ terms
+What is one term $u_i v_i^\top$? Try a tiny one: $u = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$
+and $v^\top = [3, 1]$ give
+
+$$u v^\top = \begin{bmatrix} 3 & 1 \\ 6 & 2 \end{bmatrix}$$
+
+Row 2 is exactly 2× row 1: the whole matrix is *one row pattern repeated at
+different strengths*. A matrix like that is called **rank-1** - the simplest
+matrix there is. So equation (1.6c) says any matrix is a stack of rank-1
+patterns, with $\sigma_i$ measuring how much of $A$ pattern $i$ carries. Keep
+only the $k$ biggest:
 
 $$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
-keeps the $k$ most important patterns, and the Eckart–Young theorem says this is
-the **best possible rank-$k$ approximation** of $A$. One idea, many hits:
+The Eckart–Young theorem says this is the **best possible rank-$k$
+approximation** of $A$ - nothing else with $k$ patterns comes closer. One idea,
+many hits:
 
 - **PCA** is the SVD of the centered data matrix.
 - **Classic recommenders**: the user × item ratings matrix is approximately
@@ -515,17 +519,16 @@ the **best possible rank-$k$ approximation** of $A$. One idea, many hits:
   directly as $\Delta W = BA$ with a tiny inner dimension - a few patterns'
   worth of change instead of a whole new matrix.
 
-Connection back to eigenvectors - and this one you can prove in a line. Plug the
-SVD into $A^\top A$ and use $U^\top U = I$ (rotations don't change anything when
-undone):
+One last link back to eigenvectors, provable in a line. Plug (1.6b) into
+$A^\top A$ and use $U^\top U = I$ (a rotation undone):
 
 $$A^\top A = (U \Sigma V^\top)^\top (U \Sigma V^\top)
            = V \Sigma^\top U^\top U \Sigma V^\top = V \Sigma^2 V^\top \tag{1.6e}$$
 
-That last expression is an eigendecomposition: $A^\top A$ (always square and
-symmetric, even when $A$ is neither) has eigenvectors $V$ and eigenvalues
-$\sigma_i^2$. This is both how you'd compute an SVD by hand and the closing of
-the loop: SVD is what the spectral theorem becomes when the matrix isn't square.
+The right side has exactly the shape of (1.6a): $A^\top A$ - always square and
+symmetric, even when $A$ is neither - has eigenvectors $V$ and eigenvalues
+$\sigma_i^2$. That's how you'd compute an SVD by hand, and it closes the loop:
+SVD is what the spectral theorem becomes when the matrix isn't square.
 
 ### 1.7 Norms: what "big" means
 
