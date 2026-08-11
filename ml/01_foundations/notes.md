@@ -121,7 +121,7 @@ Same numbers, different lens. Forget the rows for a moment and ask a simpler
 question: what does $W$ do to the two easiest possible inputs, the unit axis
 vectors $e_1 = \begin{bmatrix}1\\0\end{bmatrix}$ and $e_2 = \begin{bmatrix}0\\1\end{bmatrix}$?
 
-$$W e_1 = \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}\begin{bmatrix}1\\0\end{bmatrix} = \begin{bmatrix}1\\3\end{bmatrix} \qquad W e_2 = \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}\begin{bmatrix}0\\1\end{bmatrix} = \begin{bmatrix}2\\4\end{bmatrix}$$
+$$W e_1 = \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}\begin{bmatrix}1\\0\end{bmatrix} = \begin{bmatrix}1\\3\end{bmatrix} \qquad W e_2 = \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}\begin{bmatrix}0\\1\end{bmatrix} = \begin{bmatrix}2\\4\end{bmatrix} \tag{1.4a}$$
 
 Do the arithmetic and you'll see the pattern: a one-hot input zeroes out every
 column except one. **Feeding in $e_1$ reads off column 1 of $W$; feeding in $e_2$
@@ -129,7 +129,7 @@ reads off column 2.** That's step one.
 
 Step two: any input is just a recipe built from those two ingredients.
 
-$$x = \begin{bmatrix}5\\6\end{bmatrix} = 5\,e_1 + 6\,e_2$$
+$$x = \begin{bmatrix}5\\6\end{bmatrix} = 5\,e_1 + 6\,e_2 \tag{1.4b}$$
 
 Read it as "5 parts $e_1$, 6 parts $e_2$."
 
@@ -137,7 +137,7 @@ Step three: matrix multiplication is **linear**, meaning $W$ processes a recipe
 ingredient by ingredient: $W(5\,e_1 + 6\,e_2) = 5\,(W e_1) + 6\,(W e_2)$. We already
 know what $W$ does to each ingredient (it hands back a column), so substitute:
 
-$$Wx = 5 \begin{bmatrix}1\\3\end{bmatrix} + 6\begin{bmatrix}2\\4\end{bmatrix} = \begin{bmatrix}17\\39\end{bmatrix}$$
+$$Wx = 5 \begin{bmatrix}1\\3\end{bmatrix} + 6\begin{bmatrix}2\\4\end{bmatrix} = \begin{bmatrix}17\\39\end{bmatrix} \tag{1.4c}$$
 
 Same $[17, 39]$ as the row picture, but now it says something different:
 **$Wx$ is a blend of $W$'s columns, and the entries of $x$ are the blend weights.**
@@ -208,7 +208,7 @@ it stretches but does *not* rotate? Think of the grain in a piece of wood: the
 material has built-in directions it prefers, and along them it behaves simply.
 A vector $v \ne 0$ with
 
-$$A v = \lambda v$$
+$$A v = \lambda v \tag{1.5a}$$
 
 is such a direction, called an **eigenvector**: feed it in and out comes the
 *same direction*, merely scaled by the number $\lambda$ (its **eigenvalue**).
@@ -231,20 +231,20 @@ eigenvalues** (the spectral theorem).
 Why eigenvectors are a *payoff*, not just a curiosity. In ordinary coordinates
 $A$ mixes its inputs: writing $v = [x, y]$,
 
-$$Av = \begin{bmatrix} 2x + y \\ x + 2y \end{bmatrix}$$
+$$Av = \begin{bmatrix} 2x + y \\ x + 2y \end{bmatrix} \tag{1.5b}$$
 
 so each output entry needs *both* input entries - the coordinates are coupled,
 and it's hard to see what repeated applications of $A$ will do. Now play the
-recipe game from §1.4, but use the eigenvectors as the ingredients instead of
-$e_1, e_2$. Any vector is some amount of $v_1 = [1,1]$ plus some amount of
-$v_2 = [1,-1]$:
+recipe game from §1.4 (equations 1.4b and 1.4c), but use the eigenvectors as
+the ingredients instead of $e_1, e_2$. Any vector is some amount of
+$v_1 = [1,1]$ plus some amount of $v_2 = [1,-1]$:
 
-$$x = c_1 v_1 + c_2 v_2$$
+$$x = c_1 v_1 + c_2 v_2 \tag{1.5c}$$
 
 and linearity lets $A$ process each ingredient separately - but eigen-ingredients
 are the ones $A$ merely scales:
 
-$$Ax = c_1 (A v_1) + c_2 (A v_2) = 3 c_1 v_1 + 1 \cdot c_2 v_2$$
+$$Ax = c_1 (A v_1) + c_2 (A v_2) = 3 c_1 v_1 + 1 \cdot c_2 v_2 \tag{1.5d}$$
 
 Read that off: in eigen-coordinates the map is just $(c_1, c_2) \to (3c_1, c_2)$.
 Multiply the first coordinate by 3, leave the second alone, done - no mixing
@@ -257,10 +257,12 @@ put).
 Notice the *shape* of what we just did, because the next section reuses it.
 Computing $Ax$ was a three-step procedure:
 
-1. **Find the amounts** $c_1, c_2$: re-describe $x$ in the eigenbasis.
-2. **Scale each amount** by its eigenvalue: $c_1 \to 3c_1$, $c_2 \to c_2$.
-3. **Add the scaled ingredients back up**: the final answer
-   $3c_1 v_1 + c_2 v_2$ is exactly that - scaled amounts times their
+1. **Find the amounts** $c_1, c_2$: re-describe $x$ in the eigenbasis - the
+   split in equation (1.5c).
+2. **Scale each amount** by its eigenvalue: $c_1 \to 3c_1$, $c_2 \to c_2$ - the
+   middle step of equation (1.5d).
+3. **Add the scaled ingredients back up**: the right-hand side of (1.5d),
+   $3c_1 v_1 + c_2 v_2$, is exactly that - scaled amounts times their
    eigenvectors, summed back into an ordinary vector.
 
 <div style="margin:1.25rem 0">
@@ -381,15 +383,15 @@ creeping along the flat direction. This picture is why momentum and Adam exist.*
 ### 1.6 SVD: every matrix is rotate → stretch → rotate
 
 Before meeting SVD, let's package the previous section's insight as a formula.
-In §1.5 we computed $Ax$ by a three-step recipe: find the amounts $c_1, c_2$ of
-the eigenvectors inside $x$, scale each amount by its $\lambda_i$, then add the
-scaled ingredients back up. The observation: *each of those three steps is
-itself a matrix.*
+In §1.5 we computed $Ax$ by a three-step recipe - equations (1.5c) and (1.5d):
+find the amounts $c_1, c_2$ of the eigenvectors inside $x$, scale each amount
+by its $\lambda_i$, then add the scaled ingredients back up. The observation:
+*each of those three steps is itself a matrix.*
 
 - **Adding ingredients back up is $Q$**, the matrix whose columns are the
-  eigenvectors. That's §1.4's blend-of-columns rule read in reverse: multiplying
-  $Q$ by a vector of amounts blends $Q$'s columns, $Qc = c_1 v_1 + c_2 v_2$. So
-  $Q$ turns "amounts" into an ordinary vector.
+  eigenvectors. That's the blend-of-columns rule of equation (1.4c) read in
+  reverse: multiplying $Q$ by a vector of amounts blends $Q$'s columns,
+  $Qc = c_1 v_1 + c_2 v_2$. So $Q$ turns "amounts" into an ordinary vector.
 - **Finding the amounts is $Q^{-1}$**, simply because it's the exact undo of the
   step above: ordinary vector in, amounts out.
 - **Scaling amount $i$ by $\lambda_i$ is $\Lambda$**, the diagonal matrix of the
@@ -399,7 +401,7 @@ itself a matrix.*
 Now chain the three steps, remembering that in a product the input meets the
 *rightmost* factor first: amounts, then scale, then rebuild:
 
-$$A = Q \Lambda Q^{-1}$$
+$$A = Q \Lambda Q^{-1} \tag{1.6a}$$
 
 This factorization is called the **eigendecomposition** of $A$. Don't take it on
 faith - check it on §1.5's matrix. $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$
@@ -416,7 +418,7 @@ full orthogonal set of eigenvectors. Real data matrices are neither: an
 $n \times d$ matrix of $n$ houses × $d$ features isn't even square. The
 **singular value decomposition** works for *any* matrix:
 
-$$A = U \Sigma V^\top$$
+$$A = U \Sigma V^\top \tag{1.6b}$$
 
 Three factors, each with one job:
 
@@ -433,7 +435,7 @@ Read right to left, "apply $A$" becomes: rotate the input onto the $v$-axes,
 stretch each axis by its $\sigma_i$, rotate the result into place. **Every
 linear map, no matter how gnarly, is rotate → stretch → rotate.**
 
-Compare with the eigendecomposition $Q \Lambda Q^{-1}$: the same
+Compare (1.6b) with the eigendecomposition (1.6a): the same
 rotate–stretch–rotate shape, but there one matrix $Q$ is forced to do both
 rotations, and that demand is exactly what fails for most matrices. The SVD
 makes one concession - allow a *different* rotation on each side, $V$ for
@@ -487,7 +489,7 @@ ellipse's axes $\sigma_1 u_1, \sigma_2 u_2$.*
 
 The killer application: throw most of it away. First rewrite the SVD as a sum:
 
-$$A = \sum_{i} \sigma_i \, u_i v_i^\top$$
+$$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6c}$$
 
 Each term $u_i v_i^\top$ is an **outer product**: a whole matrix built from a
 single column $u_i$ and a single row $v_i^\top$, so every one of its rows is a
@@ -497,7 +499,7 @@ any matrix is a sum of rank-1 patterns, with $\sigma_i$ measuring how much of
 $A$ pattern $i$ explains. Since the $\sigma_i$ come sorted, cutting the sum off
 after $k$ terms
 
-$$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top$$
+$$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
 keeps the $k$ most important patterns, and the Eckart–Young theorem says this is
 the **best possible rank-$k$ approximation** of $A$. One idea, many hits:
@@ -515,7 +517,7 @@ SVD into $A^\top A$ and use $U^\top U = I$ (rotations don't change anything when
 undone):
 
 $$A^\top A = (U \Sigma V^\top)^\top (U \Sigma V^\top)
-           = V \Sigma^\top U^\top U \Sigma V^\top = V \Sigma^2 V^\top$$
+           = V \Sigma^\top U^\top U \Sigma V^\top = V \Sigma^2 V^\top \tag{1.6e}$$
 
 That last expression is an eigendecomposition: $A^\top A$ (always square and
 symmetric, even when $A$ is neither) has eigenvectors $V$ and eigenvalues
