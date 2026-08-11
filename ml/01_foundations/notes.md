@@ -339,9 +339,23 @@ Why care in ML:
 
 ### 1.6 SVD: every matrix is rotate → stretch → rotate
 
-Eigendecomposition needs square (and, to be nice, symmetric) matrices. Real data
-matrices are $n \times d$, rectangular. The **singular value decomposition** works for
-*any* matrix:
+First, a name for what §1.5 was doing. "Switch to the eigenbasis, stretch each
+axis by its $\lambda_i$, switch back" rewrites the matrix as a product,
+
+$$A = Q \Lambda Q^{-1}$$
+
+where $Q$'s columns are the eigenvectors (the change of axes) and $\Lambda$ is
+diagonal with the eigenvalues (the per-axis stretches). That factorization is
+called the **eigendecomposition** of $A$. For symmetric $A$ it's especially
+clean: the eigenvectors are orthogonal, so $Q$ is a pure rotation and
+$Q^{-1} = Q^\top$.
+
+But it has requirements. $A$ must be square - the question "does the output
+point in the same direction as the input?" only makes sense when inputs and
+outputs live in the same space - and only symmetric matrices are guaranteed the
+full orthogonal set of eigenvectors. Real data matrices are neither: an
+$n \times d$ matrix of $n$ houses × $d$ features isn't even square. The
+**singular value decomposition** works for *any* matrix:
 
 $$A = U \Sigma V^\top$$
 
