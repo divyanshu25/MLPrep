@@ -397,38 +397,44 @@ This section builds to the SVD in three parts.
 
 #### Part A: the eigendecomposition - §1.5 as a formula
 
-In §1.5, computing $Ax$ took three steps (equations 1.5c and 1.5d): find the
-amounts of each eigenvector inside $x$, scale each amount by its $\lambda_i$,
-add the scaled ingredients back up. The observation: *each of those steps can
-be carried out by multiplying with some matrix.* Which matrices?
+Take the §1.5 matrix $A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ and a
+test vector $x = \begin{bmatrix} 3 \\ 1 \end{bmatrix}$.
 
-- **Step "add the scaled ingredients up" is done by multiplying with $Q$**, the
-  matrix you get by standing the eigenvectors side by side as columns:
-  $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$ (column 1 is $v_1$,
-  column 2 is $v_2$). Check it: feed $Q$ the amounts $c = \begin{bmatrix} c_1 \\ c_2 \end{bmatrix}$
-  and use the blend-of-columns rule (1.4c):
-  $Qc = c_1 \begin{bmatrix} 1 \\ 1 \end{bmatrix} + c_2 \begin{bmatrix} 1 \\ -1 \end{bmatrix} = c_1 v_1 + c_2 v_2$.
-  That output is literally "the ingredients, added up with their amounts."
-  Amounts in, ordinary vector out.
-- **Step "find the amounts" is done by multiplying with $Q^{-1}$**, because
-  finding amounts is the exact undo of adding ingredients up. Ordinary vector
-  in, amounts out.
-- **Step "scale each amount" is done by multiplying with $\Lambda$**, the
-  diagonal matrix of the eigenvalues: diagonal because each amount is scaled on
-  its own, no mixing.
+§1.5 computed $Ax$ in three steps:
 
-Chain the three. In a product, the rightmost factor is applied first, so the
-order amounts → scale → rebuild is written right to left:
+1. **Split $x$ into eigenvectors.** $[3,1] = 2\,[1,1] + 1\,[1,-1]$. The
+   amounts: 2 and 1.
+2. **Multiply each amount by its eigenvalue.** $2 \to 6$ (times
+   $\lambda_1 = 3$), and $1 \to 1$ (times $\lambda_2 = 1$).
+3. **Rebuild the vector.** $6\,[1,1] + 1\,[1,-1] = [7,5]$.
+
+Direct check: $Ax = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}\begin{bmatrix} 3 \\ 1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$.
+Same answer.
+
+Each of the three steps is a matrix multiplication. Let
+$Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$: the eigenvectors,
+standing side by side as columns. Then:
+
+- **Step 3 is "multiply by $Q$".** Rule (1.4c) says $Qc = c_1 v_1 + c_2 v_2$:
+  amounts in, rebuilt vector out. Check: $Q \begin{bmatrix} 6 \\ 1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$. ✓
+- **Step 1 is "multiply by $Q^{-1}$".** Splitting is the reverse of
+  rebuilding. Here $Q^{-1} = \tfrac{1}{2}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
+  Check: $Q^{-1} \begin{bmatrix} 3 \\ 1 \end{bmatrix} = \begin{bmatrix} 2 \\ 1 \end{bmatrix}$. ✓
+- **Step 2 is "multiply by $\Lambda = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$".**
+  A diagonal matrix multiplies coordinate $i$ by $\lambda_i$, nothing else.
+  Check: $\Lambda \begin{bmatrix} 2 \\ 1 \end{bmatrix} = \begin{bmatrix} 6 \\ 1 \end{bmatrix}$. ✓
+
+So the whole procedure is: multiply by $Q^{-1}$, then $\Lambda$, then $Q$.
+Written as one product (rightmost acts first):
 
 $$A = Q \Lambda Q^{-1} \tag{1.6a}$$
 
-This is the **eigendecomposition**. Don't take it on faith - multiply it out
-for §1.5's matrix: $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$,
-$\Lambda = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$,
-$Q^{-1} = \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$, and
-the product is exactly $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ again.
-(Symmetric $A$ is the nicest case: orthogonal eigenvectors make $Q$ a pure
-rotation, so $Q^{-1} = Q^\top$.)
+This formula is the **eigendecomposition** of $A$. Multiply the three matrices
+out and you get $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ back. It
+checks.
+
+(When $A$ is symmetric, the eigenvectors are orthogonal, $Q$ is a pure
+rotation, and $Q^{-1} = Q^\top$.)
 
 Two limitations. It needs $A$ **square**: "does the output point the same
 direction as the input?" can't even be asked when inputs and outputs live in
