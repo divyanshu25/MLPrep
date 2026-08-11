@@ -417,7 +417,8 @@ $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$: the eigenvectors,
 standing side by side as columns. Then:
 
 - **Step 3 is "multiply by $Q$".** Rule (1.4c) says $Qc = c_1 v_1 + c_2 v_2$:
-  amounts in, rebuilt vector out. Check: $Q \begin{bmatrix} 6 \\ 1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$. ✓
+  give $Q$ the two amounts, and it returns the vector those amounts build.
+  Check: $Q \begin{bmatrix} 6 \\ 1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$. ✓
 - **Step 1 is "multiply by $Q^{-1}$".** Splitting is the reverse of
   rebuilding. Here $Q^{-1} = \tfrac{1}{2}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
   Check: $Q^{-1} \begin{bmatrix} 3 \\ 1 \end{bmatrix} = \begin{bmatrix} 2 \\ 1 \end{bmatrix}$. ✓
