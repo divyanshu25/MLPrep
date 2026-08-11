@@ -371,10 +371,11 @@ creeping along the flat direction. This picture is why momentum and Adam exist.*
 
 ### 1.6 SVD: every matrix is rotate → stretch → rotate
 
-First, a name for what §1.5 was doing. There, applying $A$ took three steps:
-find the vector's recipe amounts $c_1, c_2$ in eigen-ingredients, scale each
-amount by its $\lambda_i$, add the scaled ingredients back up. The observation:
-*each of those steps is itself a matrix.*
+Before meeting SVD, let's package the previous section's insight as a formula.
+In §1.5 we computed $Ax$ by a three-step recipe: find the amounts $c_1, c_2$ of
+the eigenvectors inside $x$, scale each amount by its $\lambda_i$, then add the
+scaled ingredients back up. The observation: *each of those three steps is
+itself a matrix.*
 
 - **Adding ingredients back up is $Q$**, the matrix whose columns are the
   eigenvectors. That's §1.4's blend-of-columns rule read in reverse: multiplying
