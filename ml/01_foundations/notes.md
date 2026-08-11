@@ -504,10 +504,11 @@ simple operations in a row -
 2. stretch it along the coordinate axes, each axis by its own factor,
 3. rotate again.
 
-Read the slogan "every matrix *is* rotate → stretch → rotate" exactly that way.
-It does not say $A$ looks like a rotation; it says $A$'s total effect can
-always be produced by that three-step sequence. (A shear looks like none of the
-three - the check below shows even a shear factors this way.) As a formula:
+That is all the section title means: "every matrix is rotate → stretch →
+rotate" says the *effect* of $A$ can always be produced by that three-step
+sequence. It does not say $A$ itself looks like a rotation. (A shear looks like
+none of the three steps, and the check below shows even a shear factors this
+way.) As a formula:
 
 $$A = U \Sigma V^\top \tag{1.6b}$$
 
