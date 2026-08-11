@@ -384,9 +384,10 @@ creeping along the flat direction. This picture is why momentum and Adam exist.*
 
 This section builds to the SVD in three parts.
 
-- **Part A** takes §1.5's punchline - in the right axes, our matrix is just
-  per-axis stretches - and writes it as a formula: $A = Q \Lambda Q^{-1}$, the
-  **eigendecomposition**.
+- **Part A** takes what §1.5 showed - describe vectors by their eigenvector
+  amounts $(c_1, c_2)$, and applying $A$ collapses to multiplying each amount
+  by a number, $(c_1, c_2) \to (3c_1, c_2)$ - and writes it as a formula:
+  $A = Q \Lambda Q^{-1}$, the **eigendecomposition**.
 - **Part B** fixes that formula's weakness: it only exists for square
   (comfortably, symmetric) matrices. The fix is $A = U \Sigma V^\top$, the
   **SVD**, which exists for every matrix.
