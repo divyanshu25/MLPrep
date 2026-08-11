@@ -337,6 +337,38 @@ Why care in ML:
   miserable: the gradient points across the narrow valley rather than along it,
   so the iterates zig-zag.
 
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 480 205" role="img" aria-label="Contour plots of two loss bowls: a round bowl where gradient descent goes straight to the minimum, and an elongated bowl where it zig-zags across the narrow valley" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="hz-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker>
+    <marker id="hz-z" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f43f5e"/></marker>
+    <marker id="hz-e" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/></marker>
+  </defs>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.25">
+    <circle cx="110" cy="105" r="20"/><circle cx="110" cy="105" r="40"/><circle cx="110" cy="105" r="60"/>
+    <ellipse cx="350" cy="105" rx="36" ry="9"/><ellipse cx="350" cy="105" rx="73" ry="18"/><ellipse cx="350" cy="105" rx="110" ry="27"/>
+  </g>
+  <circle cx="110" cy="105" r="2.5" fill="currentColor" fill-opacity="0.7"/>
+  <circle cx="350" cy="105" r="2.5" fill="currentColor" fill-opacity="0.7"/>
+  <line x1="152" y1="63" x2="117" y2="98" stroke="#10b981" stroke-width="2" marker-end="url(#hz-g)"/>
+  <circle cx="143" cy="72" r="2" fill="#10b981"/><circle cx="133" cy="82" r="2" fill="#10b981"/><circle cx="124" cy="91" r="2" fill="#10b981"/>
+  <line x1="350" y1="105" x2="350" y2="74" stroke="#6366f1" stroke-width="1.5" marker-end="url(#hz-e)"/>
+  <line x1="350" y1="105" x2="276" y2="105" stroke="#6366f1" stroke-width="1.5" marker-end="url(#hz-e)"/>
+  <text x="350" y="62" text-anchor="middle" fill="#6366f1">big &#955;: steep</text>
+  <text x="290" y="145" text-anchor="middle" fill="#6366f1">small &#955;: flat</text>
+  <polyline points="438,92 400,118 372,95 356,112 348,101" fill="none" stroke="#f43f5e" stroke-width="2" marker-end="url(#hz-z)"/>
+  <circle cx="438" cy="92" r="2" fill="#f43f5e"/><circle cx="400" cy="118" r="2" fill="#f43f5e"/><circle cx="372" cy="95" r="2" fill="#f43f5e"/><circle cx="356" cy="112" r="2" fill="#f43f5e"/>
+  <text x="110" y="195" text-anchor="middle" fill="currentColor" fill-opacity="0.7">condition number &#8776; 1</text>
+  <text x="350" y="195" text-anchor="middle" fill="currentColor" fill-opacity="0.7">condition number &#8811; 1</text>
+</svg>
+</div>
+
+*Contour lines of two loss bowls, seen from above; the dot is the minimum. In
+the round bowl the gradient (always perpendicular to the contour you stand on)
+points straight at the minimum. In the elongated bowl it points across the
+narrow valley almost everywhere, so gradient descent bounces wall to wall while
+creeping along the flat direction. This picture is why momentum and Adam exist.*
+
 ### 1.6 SVD: every matrix is rotate → stretch → rotate
 
 First, a name for what §1.5 was doing. There, applying $A$ took three steps:
