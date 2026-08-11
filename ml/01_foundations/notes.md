@@ -135,7 +135,7 @@ Read it as "5 parts $e_1$, 6 parts $e_2$."
 
 Step three: matrix multiplication is **linear**, meaning $W$ processes a recipe
 ingredient by ingredient: $W(5\,e_1 + 6\,e_2) = 5\,(W e_1) + 6\,(W e_2)$. We already
-know what $W$ does to each ingredient (it hands back a column), so substitute:
+know what $W$ does to each ingredient (it returns a column), so substitute:
 
 $$Wx = 5 \begin{bmatrix}1\\3\end{bmatrix} + 6\begin{bmatrix}2\\4\end{bmatrix} = \begin{bmatrix}17\\39\end{bmatrix} \tag{1.4c}$$
 
@@ -182,7 +182,7 @@ what this $W$ really does to space, because its two columns point in nearly the
 same direction.*
 
 Why hold both views? View 1 (rows = feature detectors) tells you what a single
-layer *computes*. View 2 earns its keep when layers *stack*.
+layer *computes*. View 2 is the one that explains what happens when layers *stack*.
 
 Remember: a matrix is a function. So $A(Bx)$ reads inside-out like any nested
 function call: first $B$ warps space, then $A$ warps the result - it's $f(g(x))$
@@ -234,9 +234,9 @@ $A$ mixes its inputs: writing $v = [x, y]$,
 $$Av = \begin{bmatrix} 2x + y \\ x + 2y \end{bmatrix} \tag{1.5b}$$
 
 so each output entry needs *both* input entries - the coordinates are coupled,
-and it's hard to see what repeated applications of $A$ will do. Now play the
-recipe game from §1.4 (equations 1.4b and 1.4c), but use the eigenvectors as
-the ingredients instead of $e_1, e_2$. Any vector is some amount of
+and it's hard to see what repeated applications of $A$ will do. Now reuse the
+recipe argument from §1.4 (equations 1.4b and 1.4c), but with the eigenvectors
+as the ingredients instead of $e_1, e_2$. Any vector is some amount of
 $v_1 = [1,1]$ plus some amount of $v_2 = [1,-1]$:
 
 $$x = c_1 v_1 + c_2 v_2 \tag{1.5c}$$
@@ -311,7 +311,7 @@ Why care in ML:
   $k$ steps a component has grown (or shrunk) by $\lambda_i^k$. Whatever has
   $|\lambda| > 1$ explodes exponentially and whatever has $|\lambda| < 1$ dies -
   so $A^k v$ ends up pointing along the largest-$|\lambda|$ eigenvector. Where
-  you meet this in ML: an RNN applies the *same* update rule at every timestep,
+  this appears in ML: an RNN applies the *same* update rule at every timestep,
   so backprop through $T$ timesteps multiplies the gradient by roughly the same
   matrix $T$ times - literally the $A^k$ story, which is why RNN gradients
   explode or vanish over long sequences. (The per-step matrix is that update's
@@ -389,7 +389,7 @@ This section builds to the SVD in three parts.
   by a number, $(c_1, c_2) \to (3c_1, c_2)$ - and writes it as a formula:
   $A = Q \Lambda Q^{-1}$, the **eigendecomposition**.
 - **Part B** fixes that formula's weakness: it only exists for square
-  (comfortably, symmetric) matrices. The fix is $A = U \Sigma V^\top$, the
+  (and, for orthogonal axes, symmetric) matrices. The fix is $A = U \Sigma V^\top$, the
   **SVD**, which exists for every matrix.
 - **Part C** is the payoff for ML: cut the SVD short to compress a matrix down
   to its few biggest patterns - **low-rank approximation**, the idea inside
@@ -417,8 +417,8 @@ be carried out by multiplying with some matrix.* Which matrices?
   diagonal matrix of the eigenvalues: diagonal because each amount is scaled on
   its own, no mixing.
 
-Chain the three, remembering the input meets the *rightmost* factor first
-(amounts, then scale, then rebuild):
+Chain the three. In a product, the rightmost factor is applied first, so the
+order amounts → scale → rebuild is written right to left:
 
 $$A = Q \Lambda Q^{-1} \tag{1.6a}$$
 
@@ -523,8 +523,8 @@ only the $k$ biggest:
 $$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
 The Eckart–Young theorem says this is the **best possible rank-$k$
-approximation** of $A$ - nothing else with $k$ patterns comes closer. One idea,
-many hits:
+approximation** of $A$ - nothing else with $k$ patterns comes closer. The same
+idea appears all over ML:
 
 - **PCA** is the SVD of the centered data matrix.
 - **Classic recommenders**: the user × item ratings matrix is approximately
@@ -846,7 +846,7 @@ $$\hat\theta = \arg\max_\theta \prod_{i=1}^n p_\theta(y_i \mid x_i)
 (Log is monotonic so the argmax is unchanged; it turns the product into a sum -
 numerically stable and differentiable term by term.)
 
-Now the punchline. A classifier with softmax output assigns probabilities
+Now the key step. A classifier with softmax output assigns probabilities
 $p_\theta(k \mid x_i)$ to each class. The negative log-likelihood of the data is:
 
 $$-\sum_i \log p_\theta(y_i \mid x_i) = -\sum_i \sum_k y_{ik} \log p_\theta(k \mid x_i)$$
