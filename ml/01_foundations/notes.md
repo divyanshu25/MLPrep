@@ -505,10 +505,12 @@ simple operations in a row -
 3. rotate again.
 
 That is all the section title means: "every matrix is rotate → stretch →
-rotate" says the *effect* of $A$ can always be produced by that three-step
-sequence. It does not say $A$ itself looks like a rotation. (A shear looks like
-none of the three steps, and the check below shows even a shear factors this
-way.) As a formula:
+rotate" says the *effect* of multiplying by $A$ can always be produced by that
+three-step sequence. $A$ by itself is usually none of the three - not a
+rotation, not an axis-aligned stretch. The claim is only that running the three
+steps in order gives the same result as multiplying by $A$. (The shear checked
+below is the clean example: it is none of the three, yet it factors into
+exactly such a sequence.) As a formula:
 
 $$A = U \Sigma V^\top \tag{1.6b}$$
 
