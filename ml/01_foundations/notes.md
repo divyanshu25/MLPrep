@@ -590,9 +590,19 @@ The matrix that performs this one pipeline is $\sigma_i \, u_i v_i^\top$,
 because $(v_i \cdot x)\, u_i = u_i (v_i^\top x) = (u_i v_i^\top)\, x$. So
 (1.6c) says: $A$ is the one-direction pipelines, added up.
 
-Check it on the symmetric matrix from Part A. There $u_i = v_i$, the unit
-eigenvectors are $v_1 = [1,1]/\sqrt{2}$ and $v_2 = [1,-1]/\sqrt{2}$, and
-$\sigma = 3, 1$:
+Check it on the symmetric matrix from Part A. Three ingredients first:
+
+- **The $v_i$ must have length 1.** They are columns of the rotation matrix
+  $V$, and a rotation's columns are unit vectors. $[1,1]$ has length
+  $\sqrt{1^2 + 1^2} = \sqrt{2}$, so divide it out: $v_1 = [1,1]/\sqrt{2}$
+  and $v_2 = [1,-1]/\sqrt{2}$.
+- **$u_1 = v_1$ and $u_2 = v_2$.** For this symmetric matrix each
+  eigen-direction lands on itself (the first check in Part B), so the input
+  and output directions coincide.
+- **$\sigma_1 = 3$ and $\sigma_2 = 1$**: the stretch factors, which here are
+  the eigenvalues.
+
+Put those into the sum (1.6c):
 
 $$3 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
 + 1 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & -1 \\ -1 & 1 \end{bmatrix}
