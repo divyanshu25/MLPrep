@@ -254,6 +254,15 @@ nothing but an independent stretch $\lambda_i$ per axis, which is why questions
 like "what does $A^{100}$ do?" become trivial ($c_1$ gets $3^{100}$, $c_2$ stays
 put).
 
+Notice the *shape* of what we just did, because the next section reuses it.
+Computing $Ax$ was a three-step procedure:
+
+1. **Find the amounts** $c_1, c_2$: re-describe $x$ in the eigenbasis.
+2. **Scale each amount** by its eigenvalue: $c_1 \to 3c_1$, $c_2 \to c_2$.
+3. **Add the scaled ingredients back up**: the final answer
+   $3c_1 v_1 + c_2 v_2$ is exactly that - scaled amounts times their
+   eigenvectors, summed back into an ordinary vector.
+
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 220" role="img" aria-label="For A = [[2,1],[1,2]] the eigenvector [1,1] is stretched by 3 without rotating, [1,-1] is unchanged, while a generic vector is rotated" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
   <defs>
