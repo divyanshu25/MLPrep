@@ -504,13 +504,10 @@ simple operations in a row -
 2. stretch it along the coordinate axes, each axis by its own factor,
 3. rotate again.
 
-That is all the section title means: "every matrix is rotate → stretch →
-rotate" says the *effect* of multiplying by $A$ can always be produced by that
-three-step sequence. $A$ by itself is usually none of the three - not a
-rotation, not an axis-aligned stretch. The claim is only that running the three
-steps in order gives the same result as multiplying by $A$. (The shear checked
-below is the clean example: it is none of the three, yet it factors into
-exactly such a sequence.) As a formula:
+$A$ itself is usually none of these three operations. The claim is a
+factorization, the way $12 = 2 \cdot 2 \cdot 3$: 12 is not a prime, but it is a
+product of primes. $A$ is not a rotation or a stretch, but it is a product of
+two rotations and one stretch. As a formula:
 
 $$A = U \Sigma V^\top \tag{1.6b}$$
 
