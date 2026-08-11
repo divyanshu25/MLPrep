@@ -425,6 +425,56 @@ standing side by side as columns. Then:
   A diagonal matrix multiplies coordinate $i$ by $\lambda_i$, nothing else.
   Check: $\Lambda \begin{bmatrix} 2 \\ 1 \end{bmatrix} = \begin{bmatrix} 6 \\ 1 \end{bmatrix}$. ✓
 
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 520 178" role="img" aria-label="Four frames following x=[3,1] through Q inverse, Lambda, and Q: eigen-directions map onto the axes, the stretch happens along the axes, then everything maps back" style="max-width:540px;width:100%;height:auto;font-size:11px;font-family:inherit">
+  <defs>
+    <marker id="pa-v" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/></marker>
+    <marker id="pa-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
+  </defs>
+  <g stroke="currentColor" stroke-opacity="0.3">
+    <line x1="12" y1="120" x2="105" y2="120"/><line x1="18" y1="62" x2="18" y2="158"/>
+    <line x1="145" y1="120" x2="238" y2="120"/><line x1="151" y1="62" x2="151" y2="158"/>
+    <line x1="278" y1="120" x2="371" y2="120"/><line x1="284" y1="62" x2="284" y2="158"/>
+    <line x1="411" y1="120" x2="504" y2="120"/><line x1="417" y1="62" x2="417" y2="158"/>
+  </g>
+  <g stroke="#10b981" stroke-opacity="0.65" stroke-dasharray="4 3">
+    <line x1="18" y1="120" x2="56" y2="82"/><line x1="18" y1="120" x2="56" y2="158"/>
+    <line x1="151" y1="120" x2="206" y2="120"/><line x1="151" y1="120" x2="151" y2="65"/>
+    <line x1="284" y1="120" x2="339" y2="120"/><line x1="284" y1="120" x2="284" y2="65"/>
+    <line x1="417" y1="120" x2="455" y2="82"/><line x1="417" y1="120" x2="455" y2="158"/>
+  </g>
+  <line x1="18" y1="120" x2="51" y2="109" stroke="#6366f1" stroke-width="2.2" marker-end="url(#pa-v)"/>
+  <text x="54" y="103" fill="#6366f1" font-weight="600">x = [3,1]</text>
+  <line x1="151" y1="120" x2="173" y2="109" stroke="#6366f1" stroke-width="2.2" marker-end="url(#pa-v)"/>
+  <text x="177" y="104" fill="#6366f1" font-weight="600">(2, 1)</text>
+  <line x1="284" y1="120" x2="306" y2="109" stroke="#6366f1" stroke-width="2" stroke-opacity="0.3"/>
+  <line x1="284" y1="120" x2="350" y2="109" stroke="#6366f1" stroke-width="2.2" marker-end="url(#pa-v)"/>
+  <text x="342" y="99" fill="#6366f1" font-weight="600">(6, 1)</text>
+  <line x1="417" y1="120" x2="494" y2="65" stroke="#6366f1" stroke-width="2.2" marker-end="url(#pa-v)"/>
+  <text x="500" y="57" text-anchor="end" fill="#6366f1" font-weight="600">Ax = [7,5]</text>
+  <line x1="109" y1="120" x2="140" y2="120" stroke="currentColor" stroke-opacity="0.7" marker-end="url(#pa-f)"/>
+  <text x="124" y="110" text-anchor="middle" fill="currentColor">Q&#8315;&#185;</text>
+  <line x1="242" y1="120" x2="273" y2="120" stroke="currentColor" stroke-opacity="0.7" marker-end="url(#pa-f)"/>
+  <text x="257" y="110" text-anchor="middle" fill="currentColor">&#923;</text>
+  <line x1="375" y1="120" x2="406" y2="120" stroke="currentColor" stroke-opacity="0.7" marker-end="url(#pa-f)"/>
+  <text x="390" y="110" text-anchor="middle" fill="currentColor">Q</text>
+  <g fill="currentColor" fill-opacity="0.6">
+    <text x="58" y="172" text-anchor="middle">1. start</text>
+    <text x="191" y="172" text-anchor="middle">2. after Q&#8315;&#185;</text>
+    <text x="324" y="172" text-anchor="middle">3. after &#923;</text>
+    <text x="457" y="172" text-anchor="middle">4. after Q</text>
+  </g>
+</svg>
+</div>
+
+*The same $x = [3,1]$ walking through equation (1.6a). The dashed green lines
+are the eigen-directions. $Q^{-1}$ sends them onto the coordinate axes, and in
+that frame $x$'s coordinates are its amounts, $(2,1)$. $\Lambda$ stretches
+along the axes: $(2,1) \to (6,1)$, with the old arrow left faint. $Q$ sends
+the axes back to the eigen-directions, and the result lands on $Ax = [7,5]$.
+Frames 2 and 3 are where the matrix is simple; $Q^{-1}$ and $Q$ are only the
+trip in and the trip back.*
+
 So the whole procedure is: multiply by $Q^{-1}$, then $\Lambda$, then $Q$.
 Written as one product (rightmost acts first):
 
