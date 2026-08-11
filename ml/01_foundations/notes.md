@@ -124,8 +124,8 @@ vectors $e_1 = \begin{bmatrix}1\\0\end{bmatrix}$ and $e_2 = \begin{bmatrix}0\\1\
 $$W e_1 = \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}\begin{bmatrix}1\\0\end{bmatrix} = \begin{bmatrix}1\\3\end{bmatrix} \qquad W e_2 = \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}\begin{bmatrix}0\\1\end{bmatrix} = \begin{bmatrix}2\\4\end{bmatrix} \tag{1.4a}$$
 
 Do the arithmetic and you'll see the pattern: a one-hot input zeroes out every
-column except one. **Feeding in $e_1$ reads off column 1 of $W$; feeding in $e_2$
-reads off column 2.** That's step one.
+column except one. **Multiplying $W$ by $e_1$ returns column 1 of $W$;
+multiplying by $e_2$ returns column 2.** That's step one.
 
 Step two: any input is just a recipe built from those two ingredients.
 
@@ -210,8 +210,8 @@ A vector $v \ne 0$ with
 
 $$A v = \lambda v \tag{1.5a}$$
 
-is such a direction, called an **eigenvector**: feed it in and out comes the
-*same direction*, merely scaled by the number $\lambda$ (its **eigenvalue**).
+is such a direction, called an **eigenvector**: multiply it by $A$ and the
+result points in the *same direction*, merely scaled by the number $\lambda$ (its **eigenvalue**).
 Along an eigenvector, the whole matrix acts like multiplication by one number.
 
 Make it concrete with $A = \begin{bmatrix} 2 & 1 \\ 1 & 2\end{bmatrix}$:
@@ -542,10 +542,10 @@ $$A = U \Sigma V^\top \tag{1.6b}$$
 </svg>
 </div>
 
-*Feed $A$ the unit circle and an ellipse always comes out - and you can see
-why: a rotation keeps the circle a circle, the stretch pulls it into an
-ellipse with radii $\sigma_1, \sigma_2$, and the last rotation just turns the
-ellipse into place. The input axes $v_1, v_2$ land on the ellipse's axes
+*Multiply every point of the unit circle by $A$ and the result is always an
+ellipse - and you can see why: a rotation keeps the circle a circle, the
+stretch pulls it into an ellipse with radii $\sigma_1, \sigma_2$, and the last
+rotation just turns the ellipse into place. The input axes $v_1, v_2$ land on the ellipse's axes
 $\sigma_1 u_1, \sigma_2 u_2$.*
 
 How is (1.6b) different from (1.6a)? In the eigendecomposition, one matrix $Q$
