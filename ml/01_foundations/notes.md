@@ -339,16 +339,33 @@ Why care in ML:
 
 ### 1.6 SVD: every matrix is rotate → stretch → rotate
 
-First, a name for what §1.5 was doing. "Switch to the eigenbasis, stretch each
-axis by its $\lambda_i$, switch back" rewrites the matrix as a product,
+First, a name for what §1.5 was doing. There, applying $A$ took three steps:
+find the vector's recipe amounts $c_1, c_2$ in eigen-ingredients, scale each
+amount by its $\lambda_i$, add the scaled ingredients back up. The observation:
+*each of those steps is itself a matrix.*
+
+- **Adding ingredients back up is $Q$**, the matrix whose columns are the
+  eigenvectors. That's §1.4's blend-of-columns rule read in reverse: multiplying
+  $Q$ by a vector of amounts blends $Q$'s columns, $Qc = c_1 v_1 + c_2 v_2$. So
+  $Q$ turns "amounts" into an ordinary vector.
+- **Finding the amounts is $Q^{-1}$**, simply because it's the exact undo of the
+  step above: ordinary vector in, amounts out.
+- **Scaling amount $i$ by $\lambda_i$ is $\Lambda$**, the diagonal matrix of the
+  eigenvalues - diagonal precisely because each amount is scaled on its own,
+  with no mixing.
+
+Now chain the three steps, remembering that in a product the input meets the
+*rightmost* factor first: amounts, then scale, then rebuild:
 
 $$A = Q \Lambda Q^{-1}$$
 
-where $Q$'s columns are the eigenvectors (the change of axes) and $\Lambda$ is
-diagonal with the eigenvalues (the per-axis stretches). That factorization is
-called the **eigendecomposition** of $A$. For symmetric $A$ it's especially
-clean: the eigenvectors are orthogonal, so $Q$ is a pure rotation and
-$Q^{-1} = Q^\top$.
+This factorization is called the **eigendecomposition** of $A$. Don't take it on
+faith - check it on §1.5's matrix. $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$
+(eigenvectors as columns), $\Lambda = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$,
+$Q^{-1} = \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$; multiply
+the three out and you get back exactly $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$.
+For symmetric $A$ the factorization is especially clean: the eigenvectors are
+orthogonal, so $Q$ is a pure rotation and $Q^{-1} = Q^\top$.
 
 But it has requirements. $A$ must be square - the question "does the output
 point in the same direction as the input?" only makes sense when inputs and
