@@ -572,18 +572,50 @@ Two quick checks:
 
 #### Part C: keep only the big patterns - why ML cares
 
-Rewrite the SVD as a sum, one term per singular value:
+The product $U \Sigma V^\top$ can also be written as a sum, one term per
+singular value:
 
 $$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6c}$$
 
-What is one term $u_i v_i^\top$? Try a tiny one: $u = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$
-and $v^\top = [3, 1]$ give
+Where does the sum come from? Multiply any $x$ through the three steps of
+(1.6b). Step 1 measures the amounts: entry $i$ of $V^\top x$ is $v_i \cdot x$.
+Step 2 scales amount $i$ by $\sigma_i$. Step 3 points each scaled amount along
+its output direction $u_i$ and adds:
 
-$$u v^\top = \begin{bmatrix} 3 & 1 \\ 6 & 2 \end{bmatrix}$$
+$$Ax = \sum_i \sigma_i \, (v_i \cdot x) \, u_i$$
 
-Row 2 is exactly 2× row 1: the whole matrix is *one row pattern repeated at
-different strengths*. A matrix like that is called **rank-1** - the simplest
-matrix there is. So equation (1.6c) says any matrix is a stack of rank-1
+Term $i$ is a complete one-direction pipeline: measure how much of $x$ lies
+along $v_i$, scale that number by $\sigma_i$, point the result along $u_i$.
+The matrix that performs this one pipeline is $\sigma_i \, u_i v_i^\top$,
+because $(v_i \cdot x)\, u_i = u_i (v_i^\top x) = (u_i v_i^\top)\, x$. So
+(1.6c) says: $A$ is the one-direction pipelines, added up.
+
+Check it on the symmetric matrix from Part A. There $u_i = v_i$, the unit
+eigenvectors are $v_1 = [1,1]/\sqrt{2}$ and $v_2 = [1,-1]/\sqrt{2}$, and
+$\sigma = 3, 1$:
+
+$$3 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
++ 1 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & -1 \\ -1 & 1 \end{bmatrix}
+= \begin{bmatrix} 1.5 & 1.5 \\ 1.5 & 1.5 \end{bmatrix}
++ \begin{bmatrix} 0.5 & -0.5 \\ -0.5 & 0.5 \end{bmatrix}
+= \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$$
+
+It checks.
+
+One more fact about the terms. $u_i v_i^\top$ is a column multiplied by a
+row: the shapes are $(2 \times 1)(1 \times 2)$, so the result is a full
+$2 \times 2$ matrix, by the ordinary matrix multiplication rule. Compute a
+tiny one, with $u = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$ as the column and
+$v^\top = \begin{bmatrix} 3 & 1 \end{bmatrix}$ as the row:
+
+$$u v^\top = \begin{bmatrix} 1 \\ 2 \end{bmatrix} \begin{bmatrix} 3 & 1 \end{bmatrix}
+= \begin{bmatrix} 1 \cdot 3 & 1 \cdot 1 \\ 2 \cdot 3 & 2 \cdot 1 \end{bmatrix}
+= \begin{bmatrix} 3 & 1 \\ 6 & 2 \end{bmatrix}$$
+
+This is called an **outer product**. Look at its rows: row 1 is
+$1 \times [3, 1]$ and row 2 is $2 \times [3, 1]$ - the same row $v^\top$,
+scaled by the entries of $u$. One pattern, repeated at different strengths. A
+matrix like that is called **rank-1** - the simplest matrix there is. So equation (1.6c) says any matrix is a stack of rank-1
 patterns, with $\sigma_i$ measuring how much of $A$ pattern $i$ carries. Keep
 only the $k$ biggest:
 
