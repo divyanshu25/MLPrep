@@ -1251,14 +1251,14 @@ def _reading_order(f):
         rank = 1
     elif n == "problems.py":
         rank = 5  # full reference solutions: below the drills they'd spoil
-    elif f.suffix in (".py", ".ipynb"):
-        rank = 2
     elif "solution" in n:
         rank = 5
     elif n in ("exercises.md", "drills.md"):
         rank = 4
+    elif f.suffix == ".md":
+        rank = 2  # topic notes read before the code they prepare for
     else:
-        rank = 3
+        rank = 3  # .py / .ipynb after the reading
     return (rank, n)
 
 
