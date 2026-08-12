@@ -611,8 +611,16 @@ Keep the few important pieces, drop the rest. This part shows what the pieces
 are, why each one is cheap to store, and why keeping the top $k$ is the best
 possible choice.
 
-**The pieces.** The product $U \Sigma V^\top$ can be written as a sum, one
-term per singular value:
+**The pieces.** Part B produced one triple per singular value: the input
+direction $v_i$, its stretch $\sigma_i$, and its output direction $u_i$. The
+claim of this part: the product $U \Sigma V^\top$ can be split into separate
+summands, one built from each triple. Our $2 \times 2$ example has two
+singular values, $\sigma_1 = 3$ and $\sigma_2 = 1$, so its sum has exactly
+two summands:
+
+$$A = \sigma_1\, u_1 v_1^\top + \sigma_2\, u_2 v_2^\top$$
+
+In general, with one summand for each singular value:
 
 $$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
