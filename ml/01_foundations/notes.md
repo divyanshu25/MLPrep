@@ -676,9 +676,12 @@ $k$ terms:
 
 $$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6e}$$
 
-Do the arithmetic for the ratings matrix with $k = 20$: storage drops from
-$5{,}000{,}000$ numbers to $20 \times (10{,}000 + 500 + 1) = 210{,}020$ -
-about 4% - and the **Eckart–Young theorem** says (1.6e) is the *best possible*
+Do the arithmetic for the ratings matrix ($n = 10{,}000$ users, $d = 500$
+movies) with $k = 20$. One piece costs $n + d + 1$ numbers, as computed above:
+the $10{,}000$ entries of its $u_i$, the $500$ entries of its $v_i$, and its
+$\sigma_i$, so $10{,}501$ numbers per piece. Twenty pieces cost
+$20 \times 10{,}501 = 210{,}020$ numbers, replacing the original
+$5{,}000{,}000$ - about 4% - and the **Eckart–Young theorem** says (1.6e) is the *best possible*
 rank-$k$ approximation: no other 20 patterns come closer to $A$. Losing little
 while storing 4% is not luck; it works whenever the $\sigma_i$ decay fast,
 which real-world matrices usually oblige - people's tastes really are
