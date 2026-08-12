@@ -601,10 +601,18 @@ Two quick checks:
   $\sigma_2 \approx 0.62$. Slant a deck of cards and you have secretly
   rotated, stretched, and rotated it.
 
-#### Part C: keep only the big patterns - why ML cares
+#### Part C: compressing a matrix - why ML cares
 
-The product $U \Sigma V^\top$ can also be written as a sum, one term per
-singular value:
+A ratings matrix with $n = 10{,}000$ users and $d = 500$ movies holds
+$n \times d = 5{,}000{,}000$ numbers. The question of Part C: can we replace
+it with something far smaller that is almost the same matrix? The SVD is the
+answer, because it splits $A$ into pieces that come *sorted by importance*.
+Keep the few important pieces, drop the rest. This part shows what the pieces
+are, why each one is cheap to store, and why keeping the top $k$ is the best
+possible choice.
+
+**The pieces.** The product $U \Sigma V^\top$ can be written as a sum, one
+term per singular value:
 
 $$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
@@ -621,7 +629,7 @@ The matrix that performs this one pipeline is $\sigma_i \, u_i v_i^\top$,
 because $(v_i \cdot x)\, u_i = u_i (v_i^\top x) = (u_i v_i^\top)\, x$. So
 (1.6d) says: $A$ is the one-direction pipelines, added up.
 
-Check it on the symmetric matrix from Part A. Three ingredients first:
+Check (1.6d) on the symmetric matrix from Part A. Three ingredients first:
 
 - **The $v_i$ must have length 1.** They are columns of the rotation matrix
   $V$, and a rotation's columns are unit vectors. $[1,1]$ has length
@@ -643,8 +651,8 @@ $$3 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
 
 It checks.
 
-One more fact about the terms. $u_i v_i^\top$ is a column multiplied by a
-row: the shapes are $(2 \times 1)(1 \times 2)$, so the result is a full
+**Why one piece is cheap.** $u_i v_i^\top$ is a column multiplied by a row:
+the shapes are $(2 \times 1)(1 \times 2)$, so the result is a full
 $2 \times 2$ matrix, by the ordinary matrix multiplication rule. Compute a
 tiny one, with $u = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$ as the column and
 $v^\top = \begin{bmatrix} 3 & 1 \end{bmatrix}$ as the row:
@@ -656,29 +664,37 @@ $$u v^\top = \begin{bmatrix} 1 \\ 2 \end{bmatrix} \begin{bmatrix} 3 & 1 \end{bma
 This is called an **outer product**. Look at its rows: row 1 is
 $1 \times [3, 1]$ and row 2 is $2 \times [3, 1]$ - the same row $v^\top$,
 scaled by the entries of $u$. One pattern, repeated at different strengths. A
-matrix like that is called **rank-1** - the simplest matrix there is.
+matrix like that is called **rank-1**, and it is the reason compression works:
+to store the term $\sigma_i u_i v_i^\top$ of an $n \times d$ matrix you do
+not need $n \times d$ numbers - only the $n$ entries of $u_i$, the $d$ entries
+of $v_i$, and $\sigma_i$. That is $n + d + 1$ numbers standing in for a full
+$n \times d$ grid.
 
-So equation (1.6d) says: any matrix is a stack of rank-1 patterns. The word
-"any" is inherited from Part B: the SVD (1.6b) exists for every matrix, and
-(1.6d) is that same SVD, only written as a sum. Rectangular matrices are
-included - for an $n \times d$ matrix, each $u_i$ has $n$ entries and each
-$v_i$ has $d$ entries, so each pattern $u_i v_i^\top$ is a full $n \times d$
-matrix, and there are at most $\min(n, d)$ patterns in the stack. $\sigma_i$
-measures how much of $A$ pattern $i$ carries. Keep only the $k$ biggest:
+**Which pieces to keep.** The $\sigma_i$ come sorted, biggest first, and
+$\sigma_i$ is exactly how much pattern $i$ contributes. So cut the sum after
+$k$ terms:
 
 $$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6e}$$
 
-The Eckart–Young theorem says this is the **best possible rank-$k$
-approximation** of $A$ - nothing else with $k$ patterns comes closer. The same
-idea appears all over ML:
+Do the arithmetic for the ratings matrix with $k = 20$: storage drops from
+$5{,}000{,}000$ numbers to $20 \times (10{,}000 + 500 + 1) = 210{,}020$ -
+about 4% - and the **Eckart–Young theorem** says (1.6e) is the *best possible*
+rank-$k$ approximation: no other 20 patterns come closer to $A$. Losing little
+while storing 4% is not luck; it works whenever the $\sigma_i$ decay fast,
+which real-world matrices usually oblige - people's tastes really are
+combinations of a few archetypes.
+
+**Where ML uses exactly this:**
 
 - **PCA** is the SVD of the centered data matrix.
-- **Classic recommenders**: the user × item ratings matrix is approximately
-  low-rank - people's tastes are combinations of a few archetypes.
-- **Model compression**: replace a weight matrix with its truncated SVD.
-- **LoRA**: assume the *fine-tuning update* $\Delta W$ is low-rank and learn it
-  directly as $\Delta W = BA$ with a tiny inner dimension - a few patterns'
-  worth of change instead of a whole new matrix.
+- **Classic recommenders**: approximate the user × item ratings matrix as
+  (1.6e) with small $k$; each $v_i$ is a taste archetype over items, each
+  $u_i$ says how much every user has of that taste.
+- **Model compression**: replace a trained weight matrix with its truncated
+  SVD.
+- **LoRA**: assume the *fine-tuning update* $\Delta W$ is low-rank and learn
+  it directly as $\Delta W = BA$ with a tiny inner dimension - a few
+  patterns' worth of change instead of a whole new matrix.
 
 ### 1.7 Norms: what "big" means
 
