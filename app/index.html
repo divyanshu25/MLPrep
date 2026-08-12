@@ -161,6 +161,12 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .md hr { border-color:var(--line); margin:1.4rem 0; }
   .md input[type=checkbox] { accent-color:#ffa116; width:.95rem; height:.95rem; margin-right:.35rem; }
   .md img { max-width:100%; }
+  /* inline SVG diagrams read as figures: centered, with a compact muted caption below */
+  .md div:has(> svg) { text-align:center; margin:1.6rem auto .4rem; }
+  .md div:has(> svg) > svg { margin:0 auto; }
+  .md div:has(> svg) + p { text-align:center; font-size:.83rem; line-height:1.55; color:var(--mut);
+                           max-width:62ch; margin:0 auto 1.6rem; }
+  .md div:has(> svg) + p em { font-style:normal; }
   /* reading view: centered ~90ch column; on wide viewports an "On this page"
      rail sits fixed on the right and the column re-centers in the remaining
      space (padding-right on the wrap). Below 1280px the rail collapses into
