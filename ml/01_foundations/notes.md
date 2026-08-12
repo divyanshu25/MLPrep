@@ -625,9 +625,15 @@ $$u v^\top = \begin{bmatrix} 1 \\ 2 \end{bmatrix} \begin{bmatrix} 3 & 1 \end{bma
 This is called an **outer product**. Look at its rows: row 1 is
 $1 \times [3, 1]$ and row 2 is $2 \times [3, 1]$ - the same row $v^\top$,
 scaled by the entries of $u$. One pattern, repeated at different strengths. A
-matrix like that is called **rank-1** - the simplest matrix there is. So equation (1.6c) says any matrix is a stack of rank-1
-patterns, with $\sigma_i$ measuring how much of $A$ pattern $i$ carries. Keep
-only the $k$ biggest:
+matrix like that is called **rank-1** - the simplest matrix there is.
+
+So equation (1.6c) says: any matrix is a stack of rank-1 patterns. The word
+"any" is inherited from Part B: the SVD (1.6b) exists for every matrix, and
+(1.6c) is that same SVD, only written as a sum. Rectangular matrices are
+included - for an $n \times d$ matrix, each $u_i$ has $n$ entries and each
+$v_i$ has $d$ entries, so each pattern $u_i v_i^\top$ is a full $n \times d$
+matrix, and there are at most $\min(n, d)$ patterns in the stack. $\sigma_i$
+measures how much of $A$ pattern $i$ carries. Keep only the $k$ biggest:
 
 $$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
