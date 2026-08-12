@@ -159,12 +159,9 @@ Two consequences worth internalizing:
 </svg>
 </div>
 
-*The dashed square is the "before" picture: its sides are $e_1$ and $e_2$. Apply
-$W$ and each corner moves to its output: $e_1$ ends up at column 1 $= [1,3]$,
-$e_2$ at column 2 $= [2,4]$, and the square comes out as the shaded
-parallelogram. The squashed, near-flat shape is not a drawing mistake - it is
-what this $W$ really does to space, because its two columns point in nearly the
-same direction.*
+*The unit square (dashed) after $W$: $e_1$ lands on column 1 $= [1,3]$,
+$e_2$ on column 2 $= [2,4]$. The near-flat shape is not a mistake - $W$'s
+columns really do point in nearly the same direction.*
 
 Why hold both views? View 1 (rows = feature detectors) tells you what a single
 layer *computes*. View 2 is the one that explains what happens when layers *stack*.
@@ -359,11 +356,10 @@ Why care in ML:
 </svg>
 </div>
 
-*Contour lines of two loss bowls, seen from above; the dot is the minimum. In
-the round bowl the gradient (always perpendicular to the contour you stand on)
-points straight at the minimum. In the elongated bowl it points across the
-narrow valley almost everywhere, so gradient descent bounces wall to wall while
-creeping along the flat direction. This picture is why momentum and Adam exist.*
+*Loss contours from above; the dot is the minimum. The gradient is
+perpendicular to the contour underfoot: in the round bowl that points at the
+minimum, in the elongated bowl it points across the valley, so descent
+zig-zags. This picture is why momentum and Adam exist.*
 
 ## 1.6 SVD: every matrix is rotate → stretch → rotate
 
@@ -453,13 +449,9 @@ standing side by side as columns. Then:
 </svg>
 </div>
 
-*The same $x = [3,1]$ walking through equation (1.6a). The dashed green lines
-are the eigen-directions. $Q^{-1}$ sends them onto the coordinate axes, and in
-that frame $x$'s coordinates are its amounts, $(2,1)$. $\Lambda$ stretches
-along the axes: $(2,1) \to (6,1)$, with the old arrow left faint. $Q$ sends
-the axes back to the eigen-directions, and the result lands on $Ax = [7,5]$.
-Frames 2 and 3 are where the matrix is simple; $Q^{-1}$ only moves the vector
-into that frame, and $Q$ moves the result back out.*
+*$x = [3,1]$ through (1.6a): $Q^{-1}$ turns the eigen-directions (dashed)
+onto the axes, so the coordinates become the amounts $(2,1)$; $\Lambda$
+stretches to $(6,1)$; $Q$ maps back, landing on $Ax = [7,5]$.*
 
 So the whole procedure is: multiply by $Q^{-1}$, then $\Lambda$, then $Q$.
 Written as one product (rightmost acts first):
@@ -532,11 +524,10 @@ two rotations and one stretch.
 </svg>
 </div>
 
-*Multiply every point of the unit circle by $A$ and the result is always an
-ellipse - and you can see why: a rotation keeps the circle a circle, the
-stretch pulls it into an ellipse with radii $\sigma_1, \sigma_2$, and the
-last rotation just turns the ellipse into place. The input axes $v_1, v_2$
-land on the ellipse's axes $\sigma_1 u_1, \sigma_2 u_2$.*
+*The unit circle always maps to an ellipse: rotations keep circles round,
+the stretch makes the ellipse (radii $\sigma_1, \sigma_2$), the last
+rotation turns it into place. The inputs $v_1, v_2$ land on
+$\sigma_1 u_1, \sigma_2 u_2$.*
 
 So far (1.6b) is a proposal. Now find the three factors - which will also show
 the decomposition exists for every matrix. The obstacle is that $A$ is
@@ -749,16 +740,10 @@ truncating the SVD is optimal, not merely convenient.
 </svg>
 </div>
 
-  *A rectangular ratings matrix - 5 users × 3 movies - built from two
-  patterns. The shapes follow Part B: each $u$ has one entry per user (5 of
-  them, marked A through E), each $v^\top$ one entry per movie (3, marked DH,
-  MM, Ti). $v_1^\top = [5, 4, 0]$ is the action taste's content; $u_1$ is
-  each user's amount of it. Read off Cara:
-  $0.6 \cdot [5,4,0] + 0.8 \cdot [0,0,5] = [3, 2.4, 4]$ - exactly her row.
-  (No saving at toy size: two pieces cost $2 \times (5+3+1) = 18$ numbers for
-  15 ratings. At scale it inverts: the same two-pattern structure on
-  $10{,}000 \times 500$ stores 5 million ratings in
-  $2 \times 10{,}501 = 21{,}002$ numbers.)*
+  *5 users × 3 movies, built from two patterns. Each $v^\top$ is indexed
+  by movies (DH, MM, Ti): the taste's content. Each $u$ is indexed by users
+  (A through E): every user's amount of that taste. Read off Cara:
+  $0.6 \cdot [5,4,0] + 0.8 \cdot [0,0,5] = [3, 2.4, 4]$, her exact row.*
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 450 205" role="img" aria-label="Pipeline: the 5 by 3 ratings matrix goes through the SVD giving importances sigma1 8.8, sigma2 6.0, sigma3 0, and keeping only the top archetype gives a blurry rank-1 prediction matrix" style="max-width:470px;width:100%;height:auto;font-size:11px;font-family:inherit">
 <rect x="40" y="45" width="24" height="24" fill="currentColor" fill-opacity="0.45" stroke="currentColor" stroke-opacity="0.25"/><text x="52" y="61" text-anchor="middle" fill="currentColor" font-size="10px">5</text><rect x="64" y="45" width="24" height="24" fill="currentColor" fill-opacity="0.36" stroke="currentColor" stroke-opacity="0.25"/><text x="76" y="61" text-anchor="middle" fill="currentColor" font-size="10px">4</text><rect x="88" y="45" width="24" height="24" fill="currentColor" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="100" y="61" text-anchor="middle" fill="currentColor" font-size="10px">0</text><rect x="40" y="69" width="24" height="24" fill="currentColor" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="52" y="85" text-anchor="middle" fill="currentColor" font-size="10px">0</text><rect x="64" y="69" width="24" height="24" fill="currentColor" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="76" y="85" text-anchor="middle" fill="currentColor" font-size="10px">0</text><rect x="88" y="69" width="24" height="24" fill="currentColor" fill-opacity="0.45" stroke="currentColor" stroke-opacity="0.25"/><text x="100" y="85" text-anchor="middle" fill="currentColor" font-size="10px">5</text><rect x="40" y="93" width="24" height="24" fill="currentColor" fill-opacity="0.27" stroke="currentColor" stroke-opacity="0.25"/><text x="52" y="109" text-anchor="middle" fill="currentColor" font-size="10px">3</text><rect x="64" y="93" width="24" height="24" fill="currentColor" fill-opacity="0.22" stroke="currentColor" stroke-opacity="0.25"/><text x="76" y="109" text-anchor="middle" fill="currentColor" font-size="10px">2.4</text><rect x="88" y="93" width="24" height="24" fill="currentColor" fill-opacity="0.36" stroke="currentColor" stroke-opacity="0.25"/><text x="100" y="109" text-anchor="middle" fill="currentColor" font-size="10px">4</text><rect x="40" y="117" width="24" height="24" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.25"/><text x="52" y="133" text-anchor="middle" fill="currentColor" font-size="10px">2</text><rect x="64" y="117" width="24" height="24" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-opacity="0.25"/><text x="76" y="133" text-anchor="middle" fill="currentColor" font-size="10px">1.6</text><rect x="88" y="117" width="24" height="24" fill="currentColor" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="100" y="133" text-anchor="middle" fill="currentColor" font-size="10px">0</text><rect x="40" y="141" width="24" height="24" fill="currentColor" fill-opacity="0.09" stroke="currentColor" stroke-opacity="0.25"/><text x="52" y="157" text-anchor="middle" fill="currentColor" font-size="10px">1</text><rect x="64" y="141" width="24" height="24" fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-opacity="0.25"/><text x="76" y="157" text-anchor="middle" fill="currentColor" font-size="10px">0.8</text><rect x="88" y="141" width="24" height="24" fill="currentColor" fill-opacity="0.27" stroke="currentColor" stroke-opacity="0.25"/><text x="100" y="157" text-anchor="middle" fill="currentColor" font-size="10px">3</text>
@@ -781,17 +766,11 @@ truncating the SVD is optimal, not merely convenient.
 </svg>
 </div>
 
-  *The same data, through the whole pipeline. Part B's recipe returns three
-  archetypes with importances $\sigma_1 = 8.8$, $\sigma_2 = 6.0$,
-  $\sigma_3 = 0$ (zero because the data really contains only two tastes).
-  The true top archetype is not "action": it is
-  $v_1 \approx [0.64, 0.51, 0.57]$, an everyone-likes-movies blend that best
-  summarizes all ratings at once. Keeping it alone (right) reproduces rough
-  magnitudes but smears the two tastes together - Ben, a pure romance fan,
-  gets a predicted 1.8 for Die Hard. That is the fast-decay condition doing
-  real work: $k = 1$ is only a good summary when $\sigma_1$ dominates, and
-  here $\sigma_2$ is nearly as large. Keep both archetypes ($k = 2$) and the
-  reconstruction is exact.*
+  *The pipeline on the same data: the SVD returns importances
+  $\sigma = 8.8,\ 6.0,\ 0$, and keeping only $\sigma_1$ gives the blurry
+  prediction on the right - Ben, a pure romance fan, gets 1.8 for Die Hard.
+  $k = 1$ summarizes well only when $\sigma_1$ dominates; here $\sigma_2$ is
+  close behind, and $k = 2$ is exact.*
 
 - **Model compression**: replace a trained weight matrix with its truncated
   SVD.
