@@ -605,13 +605,27 @@ the same direction as input" cannot even be asked). The recipe does not care:
    not even meaningful now - they are different lengths. Orthogonality still
    holds where it should: $u_1 \cdot u_2 = (0 - 1 + 1)/\sqrt{12} = 0$. ✓
 
+Assemble the results into the three matrices: the $u_i$ stand side by side as
+the columns of $U$, the $\sigma_i$ sit on $\Sigma$'s diagonal, and the
+$v_i^\top$ stack as the rows of $V^\top$:
+
+$$B = U \Sigma V^\top =
+\begin{bmatrix} \tfrac{2}{\sqrt{6}} & 0 \\ \tfrac{1}{\sqrt{6}} & -\tfrac{1}{\sqrt{2}} \\ \tfrac{1}{\sqrt{6}} & \tfrac{1}{\sqrt{2}} \end{bmatrix}
+\begin{bmatrix} \sqrt{3} & 0 \\ 0 & 1 \end{bmatrix}
+\begin{bmatrix} \tfrac{1}{\sqrt{2}} & \tfrac{1}{\sqrt{2}} \\ \tfrac{1}{\sqrt{2}} & -\tfrac{1}{\sqrt{2}} \end{bmatrix}$$
+
+Multiply the three out and $B = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}$
+comes back exactly. (This is the *compact* form: $U$ keeps only the columns
+with nonzero $\sigma$, so the shapes are $(3 \times 2)(2 \times 2)(2 \times 2)$.
+The "full" convention pads $U$ to $3 \times 3$ with a third orthogonal column
+and $\Sigma$ to $3 \times 2$ with a zero row - the between-dimensions padding
+mentioned earlier; the product is the same either way.)
+
 Why do these factors really rebuild $B$? By construction, $B v_1 = \sigma_1
 u_1$ and $B v_2 = \sigma_2 u_2$: the factorization does the right thing to
 $v_1$ and $v_2$. And $v_1, v_2$ span the whole input space, so by the recipe
 argument of §1.4, knowing what happens to them pins down what happens to
-*every* input. (The $\Sigma$ here is $3 \times 2$,
-$\begin{bmatrix} \sqrt{3} & 0 \\ 0 & 1 \\ 0 & 0 \end{bmatrix}$ - its
-zero third row is the padding between dimensions mentioned above.)
+*every* input.
 
 Each step works for any matrix, so every matrix has an SVD. **Every linear map
 is rotate → stretch → rotate. No exceptions.**
