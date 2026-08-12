@@ -749,8 +749,11 @@ truncating the SVD is optimal, not merely convenient.
 </div>
 
   *The 5 × 3 ratings matrix split into its two SVD pieces, real numbers
-  throughout. Piece 1 (weight 8.8): $v_1^\top = [.64, .51, .57]$ is an
-  overall-appetite archetype, and $u_1$ is each user's amount of it. Piece 2
+  throughout. Piece 1 (weight 8.8): $v_1^\top = [.64, .51, .57]$ has all-positive,
+  roughly equal entries - it scores every movie about the same - so a user's
+  $u_1$ amount can only mean overall enthusiasm; that reading of the numbers
+  is the label "overall appetite" (the SVD outputs vectors, naming them is on
+  us). Piece 2
   (weight 6.0): $v_2^\top = [-.45, -.36, .82]$ contrasts Titanic against the
   action films - romance fans score positive (Ben $.68$), action fans negative
   (Ana $-.61$). Cara's row: $8.8(.62)\,v_1^\top + 6.0(.18)\,v_2^\top =
