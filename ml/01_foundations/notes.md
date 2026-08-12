@@ -582,6 +582,25 @@ recipe:
    square roots to get the $\sigma_i$.
 3. Recover each output direction from $A$ itself: $u_i = A v_i / \sigma_i$.
 
+Run the recipe on the §1.5 matrix, so every symbol gets a number:
+
+1. $A^\top A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} = \begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix}$
+   (here $A^\top = A$ because $A$ is symmetric).
+2. Eigendecompose $\begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix}$. Multiply
+   it by $[1,1]$: the result is $[9, 9] = 9 \cdot [1,1]$. Multiply it by
+   $[1,-1]$: the result is $[1,-1] = 1 \cdot [1,-1]$. So its eigenvectors are
+   $[1,1]$ and $[1,-1]$, with eigenvalues $9$ and $1$. Normalize the
+   eigenvectors to unit length: $v_1 = [1,1]/\sqrt{2}$,
+   $v_2 = [1,-1]/\sqrt{2}$. Square-root the eigenvalues:
+   $\sigma_1 = \sqrt{9} = 3$, $\sigma_2 = \sqrt{1} = 1$.
+3. Output directions:
+   $u_1 = A v_1 / \sigma_1 = \left([3,3]/\sqrt{2}\right) / 3 = [1,1]/\sqrt{2} = v_1$,
+   and $u_2 = A v_2 / \sigma_2 = \left([1,-1]/\sqrt{2}\right) / 1 = v_2$.
+
+For this symmetric $A$, the recipe returns $u_i = v_i$: each direction lands
+on itself. For a non-symmetric matrix, step 3 is exactly where $U$ and $V$
+come apart.
+
 Each step works for any matrix, so every matrix has an SVD. **Every linear map
 is rotate → stretch → rotate. No exceptions.**
 
@@ -632,7 +651,8 @@ In general, one piece per singular value:
 
 $$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
-**Check the claim on the $2 \times 2$ example.** Three ingredients:
+**Check the claim on the $2 \times 2$ example.** Three ingredients, all
+computed by Part B's recipe run:
 
 - The $v_i$ must have length 1 (they are columns of the rotation $V$, and a
   rotation's columns are unit vectors). $[1,1]$ has length
