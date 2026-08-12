@@ -604,52 +604,55 @@ Two quick checks:
 #### Part C: compressing a matrix - why ML cares
 
 A ratings matrix with $n = 10{,}000$ users and $d = 500$ movies holds
-$n \times d = 5{,}000{,}000$ numbers. The question of Part C: can we replace
-it with something far smaller that is almost the same matrix? The SVD is the
-answer, because it splits $A$ into pieces that come *sorted by importance*.
-Keep the few important pieces, drop the rest. This part shows what the pieces
-are, why each one is cheap to store, and why keeping the top $k$ is the best
-possible choice.
+$n \times d = 5{,}000{,}000$ numbers. The question of Part C: can far fewer
+numbers stand in for almost the same matrix?
 
-**The pieces.** Part B produced one triple per singular value: the input
-direction $v_i$, its stretch $\sigma_i$, and its output direction $u_i$. The
-claim of this part: the product $U \Sigma V^\top$ can be split into separate
-summands, one built from each triple. Our $2 \times 2$ example has two
-singular values, $\sigma_1 = 3$ and $\sigma_2 = 1$, so its sum has exactly
-two summands:
+**The claim.** Part B produced one triple per singular value: input direction
+$v_i$, stretch $\sigma_i$, output direction $u_i$. Build one matrix from each
+triple: $\sigma_i \, u_i v_i^\top$. The claim - proved at the end of this
+part - is that these matrices add up to $A$ itself. Our $2 \times 2$ example
+has two singular values, so it splits into two pieces:
 
-$$A = \sigma_1\, u_1 v_1^\top + \sigma_2\, u_2 v_2^\top$$
+$$A = \sigma_1 \, u_1 v_1^\top + \sigma_2 \, u_2 v_2^\top$$
 
-In general, with one summand for each singular value:
+In general, one piece per singular value:
 
 $$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
-Where does the sum come from? Multiply any $x$ through the three steps of
-(1.6b). Step 1 measures the amounts: entry $i$ of $V^\top x$ is $v_i \cdot x$.
-Step 2 scales amount $i$ by $\sigma_i$. Step 3 points each scaled amount along
-its output direction $u_i$ and adds:
+**What one piece is.** $u_i v_i^\top$ multiplies a column by a row: the
+shapes are $(2 \times 1)(1 \times 2)$, so the result is a full $2 \times 2$
+matrix, by the ordinary multiplication rule. Compute a tiny one, with
+$u = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$ as the column and
+$v^\top = \begin{bmatrix} 3 & 1 \end{bmatrix}$ as the row:
 
-$$Ax = \sum_i \sigma_i \, (v_i \cdot x) \, u_i$$
+$$u v^\top = \begin{bmatrix} 1 \\ 2 \end{bmatrix} \begin{bmatrix} 3 & 1 \end{bmatrix}
+= \begin{bmatrix} 1 \cdot 3 & 1 \cdot 1 \\ 2 \cdot 3 & 2 \cdot 1 \end{bmatrix}
+= \begin{bmatrix} 3 & 1 \\ 6 & 2 \end{bmatrix}$$
 
-Term $i$ is a complete one-direction pipeline: measure how much of $x$ lies
-along $v_i$, scale that number by $\sigma_i$, point the result along $u_i$.
-The matrix that performs this one pipeline is $\sigma_i \, u_i v_i^\top$,
-because $(v_i \cdot x)\, u_i = u_i (v_i^\top x) = (u_i v_i^\top)\, x$. So
-(1.6d) says: $A$ is the one-direction pipelines, added up.
+This is called an **outer product**. Row 1 is $1 \times [3, 1]$ and row 2 is
+$2 \times [3, 1]$: the same row, scaled by the entries of $u$. One pattern,
+repeated at different strengths. A matrix like that is called **rank-1**. Two
+properties make such pieces ideal for compression:
 
-Check (1.6d) on the symmetric matrix from Part A. Three ingredients first:
+- **Each piece is cheap.** Storing $u_i$, $v_i$, and $\sigma_i$ takes
+  $n + d + 1$ numbers. The full $n \times d$ grid it produces is never stored.
+- **The pieces come ranked.** $u_i$ and $v_i$ are unit vectors, so every entry
+  of $u_i v_i^\top$ has size at most 1 - the overall size of piece $i$ is set
+  by its $\sigma_i$ alone. And Part B sorted the $\sigma_i$ biggest first, so
+  the pieces arrive ordered from biggest contribution to smallest.
 
-- **The $v_i$ must have length 1.** They are columns of the rotation matrix
-  $V$, and a rotation's columns are unit vectors. $[1,1]$ has length
-  $\sqrt{1^2 + 1^2} = \sqrt{2}$, so divide it out: $v_1 = [1,1]/\sqrt{2}$
-  and $v_2 = [1,-1]/\sqrt{2}$.
-- **$u_1 = v_1$ and $u_2 = v_2$.** For this symmetric matrix each
-  eigen-direction lands on itself (the first check in Part B), so the input
-  and output directions coincide.
-- **$\sigma_1 = 3$ and $\sigma_2 = 1$**: the stretch factors, which here are
-  the eigenvalues.
+**Check the claim on the $2 \times 2$ example.** Three ingredients:
 
-Put those into the sum (1.6d):
+- The $v_i$ must have length 1 (they are columns of the rotation $V$, and a
+  rotation's columns are unit vectors). $[1,1]$ has length
+  $\sqrt{1^2 + 1^2} = \sqrt{2}$, so $v_1 = [1,1]/\sqrt{2}$ and
+  $v_2 = [1,-1]/\sqrt{2}$.
+- $u_1 = v_1$ and $u_2 = v_2$, because for this symmetric matrix each
+  eigen-direction lands on itself (Part B's first check).
+- $\sigma_1 = 3$ and $\sigma_2 = 1$: the stretch factors, here the
+  eigenvalues.
+
+Add the two pieces:
 
 $$3 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
 + 1 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & -1 \\ -1 & 1 \end{bmatrix}
@@ -657,43 +660,20 @@ $$3 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
 + \begin{bmatrix} 0.5 & -0.5 \\ -0.5 & 0.5 \end{bmatrix}
 = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$$
 
-It checks.
+The pieces add up to $A$. It checks.
 
-**Why one piece is cheap.** $u_i v_i^\top$ is a column multiplied by a row:
-the shapes are $(2 \times 1)(1 \times 2)$, so the result is a full
-$2 \times 2$ matrix, by the ordinary matrix multiplication rule. Compute a
-tiny one, with $u = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$ as the column and
-$v^\top = \begin{bmatrix} 3 & 1 \end{bmatrix}$ as the row:
-
-$$u v^\top = \begin{bmatrix} 1 \\ 2 \end{bmatrix} \begin{bmatrix} 3 & 1 \end{bmatrix}
-= \begin{bmatrix} 1 \cdot 3 & 1 \cdot 1 \\ 2 \cdot 3 & 2 \cdot 1 \end{bmatrix}
-= \begin{bmatrix} 3 & 1 \\ 6 & 2 \end{bmatrix}$$
-
-This is called an **outer product**. Look at its rows: row 1 is
-$1 \times [3, 1]$ and row 2 is $2 \times [3, 1]$ - the same row $v^\top$,
-scaled by the entries of $u$. One pattern, repeated at different strengths. A
-matrix like that is called **rank-1**, and it is the reason compression works:
-to store the term $\sigma_i u_i v_i^\top$ of an $n \times d$ matrix you do
-not need $n \times d$ numbers - only the $n$ entries of $u_i$, the $d$ entries
-of $v_i$, and $\sigma_i$. That is $n + d + 1$ numbers standing in for a full
-$n \times d$ grid.
-
-**Which pieces to keep.** The $\sigma_i$ come sorted, biggest first, and
-$\sigma_i$ is exactly how much pattern $i$ contributes. So cut the sum after
-$k$ terms:
+**Compression: drop the small pieces.** Keep only the $k$ biggest:
 
 $$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6e}$$
 
-Do the arithmetic for the ratings matrix ($n = 10{,}000$ users, $d = 500$
-movies) with $k = 20$. One piece costs $n + d + 1$ numbers, as computed above:
-the $10{,}000$ entries of its $u_i$, the $500$ entries of its $v_i$, and its
-$\sigma_i$, so $10{,}501$ numbers per piece. Twenty pieces cost
+The **Eckart–Young theorem** says (1.6e) is the *best possible* rank-$k$
+approximation of $A$: no other $k$ patterns come closer. Now the arithmetic
+for the ratings matrix, with $k = 20$. One piece costs
+$n + d + 1 = 10{,}000 + 500 + 1 = 10{,}501$ numbers. Twenty pieces cost
 $20 \times 10{,}501 = 210{,}020$ numbers, replacing the original
-$5{,}000{,}000$ - about 4% - and the **Eckart–Young theorem** says (1.6e) is the *best possible*
-rank-$k$ approximation: no other 20 patterns come closer to $A$. Losing little
-while storing 4% is not luck; it works whenever the $\sigma_i$ decay fast,
-which real-world matrices usually oblige - people's tastes really are
-combinations of a few archetypes.
+$5{,}000{,}000$: about 4%. The approximation loses little whenever the
+$\sigma_i$ decay fast, and for real-world matrices they usually do - people's
+tastes really are combinations of a few archetypes.
 
 **Where ML uses exactly this:**
 
@@ -746,6 +726,19 @@ combinations of a few archetypes.
 - **LoRA**: assume the *fine-tuning update* $\Delta W$ is low-rank and learn
   it directly as $\Delta W = BA$ with a tiny inner dimension - a few
   patterns' worth of change instead of a whole new matrix.
+
+**Why the pieces add up to $A$ (the promised proof).** Multiply any $x$
+through the three steps of (1.6b). Step 1 measures the amounts: entry $i$ of
+$V^\top x$ is $v_i \cdot x$. Step 2 scales amount $i$ by $\sigma_i$. Step 3
+points each scaled amount along its output direction and adds:
+
+$$Ax = \sum_i \sigma_i \, (v_i \cdot x) \, u_i$$
+
+Now look at term $i$: since
+$(v_i \cdot x)\, u_i = u_i (v_i^\top x) = (u_i v_i^\top)\, x$, term $i$ is
+exactly the piece $\sigma_i u_i v_i^\top$ applied to $x$. So for every input,
+$A$ and the sum of pieces produce the same output - which means they are the
+same matrix. That is (1.6d).
 
 ### 1.7 Norms: what "big" means
 
