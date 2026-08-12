@@ -626,44 +626,52 @@ A ratings matrix with $n = 10{,}000$ users and $d = 500$ movies holds
 $n \times d = 5{,}000{,}000$ numbers. The question of Part C: can far fewer
 numbers stand in for almost the same matrix?
 
-**What one piece is.** $u_i v_i^\top$ multiplies a column by a row. For
-example, $u = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$ and
+**The recipe: keep the top $k$ of the SVD.** Run Part B's recipe, then keep
+only the first $k$ columns of $U$, the first $k$ singular values, and the
+first $k$ columns of $V$. That stores $k$ columns of length $n$, plus $k$
+columns of length $d$, plus $k$ numbers: $k(n + d + 1)$ in total. For the
+ratings matrix with $k = 20$: $20 \times (10{,}000 + 500 + 1) = 210{,}020$
+numbers in place of $5{,}000{,}000$, about 4%. To use the matrix, multiply the
+three shrunken factors back together; the result approximates $A$.
+
+Two questions decide whether this is a good idea. How much does the
+approximation lose? And could some other $k$-sized summary lose less?
+
+**What the approximation loses.** Multiplying $U \Sigma V^\top$ out splits
+it into one summand per singular value (the algebra is at the end of this
+part):
+
+$$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
+
+Summand $i$ uses only triple $i$, and it is a simple object: a column times a
+row. For example, $u = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$ and
 $v^\top = \begin{bmatrix} 3 & 1 \end{bmatrix}$:
 
 $$u v^\top = \begin{bmatrix} 1 \\ 2 \end{bmatrix} \begin{bmatrix} 3 & 1 \end{bmatrix}
 = \begin{bmatrix} 1 \cdot 3 & 1 \cdot 1 \\ 2 \cdot 3 & 2 \cdot 1 \end{bmatrix}
 = \begin{bmatrix} 3 & 1 \\ 6 & 2 \end{bmatrix}$$
 
-Row 1 is $1 \times [3, 1]$ and row 2 is $2 \times [3, 1]$: the same row,
-scaled by the entries of $u$. One pattern, repeated at different strengths. A
-matrix like that is called **rank-1**.
+The same row at different strengths: one pattern per summand. (A one-pattern
+matrix is called **rank-1**, a sum of $k$ of them **rank-$k$** - when ML
+says "low-rank", it means exactly this.) Since $u_i$ and $v_i$ are unit
+vectors, every entry of $u_i v_i^\top$ has size at most 1, so summand $i$'s
+magnitude is set by its $\sigma_i$ alone.
 
-**The claim.** Part B produced one triple per singular value: input direction
-$v_i$, stretch $\sigma_i$, output direction $u_i$. From each triple, build one
-rank-1 matrix like the one above, scaled by its stretch:
-$\sigma_i \, u_i v_i^\top$. The claim - proved at the end of this part - is
-that adding these matrices, entry by entry, gives back $A$ exactly. Our
-$2 \times 2$ example has two singular values, so two pieces:
+Now number the triples so that $\sigma_1 \ge \sigma_2 \ge \dots$ (the
+numbering is free to choose; this is the standard convention). Keeping the
+first $k$ columns of $U$, $\Sigma$, and $V$ and multiplying gives exactly the
+first $k$ summands:
 
-$$A = \sigma_1 \, u_1 v_1^\top + \sigma_2 \, u_2 v_2^\top$$
+$$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6e}$$
 
-In general, one piece per singular value:
+So the recipe throws away precisely the tail
+$\sigma_{k+1} u_{k+1} v_{k+1}^\top + \dots$, and every tail summand is
+small because its $\sigma$ is small. The approximation loses little whenever
+the $\sigma_i$ decay fast, and for real-world matrices they usually do.
 
-$$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
-
-**Check the claim on the $2 \times 2$ example.** Three ingredients, all
-computed by Part B's recipe run:
-
-- The $v_i$ must have length 1 (they are columns of the rotation $V$, and a
-  rotation's columns are unit vectors). $[1,1]$ has length
-  $\sqrt{1^2 + 1^2} = \sqrt{2}$, so $v_1 = [1,1]/\sqrt{2}$ and
-  $v_2 = [1,-1]/\sqrt{2}$.
-- $u_1 = v_1$ and $u_2 = v_2$, because for this symmetric matrix each
-  eigen-direction lands on itself (Part B's first check).
-- $\sigma_1 = 3$ and $\sigma_2 = 1$: the stretch factors, here the
-  eigenvalues.
-
-Add the two pieces:
+Check (1.6d) on the $2 \times 2$ example, with the numbers from Part B's
+recipe run ($v_1 = [1,1]/\sqrt{2}$, $v_2 = [1,-1]/\sqrt{2}$, $u_i = v_i$,
+$\sigma_1 = 3$, $\sigma_2 = 1$):
 
 $$3 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
 + 1 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & -1 \\ -1 & 1 \end{bmatrix}
@@ -671,41 +679,11 @@ $$3 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
 + \begin{bmatrix} 0.5 & -0.5 \\ -0.5 & 0.5 \end{bmatrix}
 = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$$
 
-The pieces add up to $A$. It checks.
+The summands add back to $A$. It checks.
 
-**Why such pieces suit compression.**
-
-- **Each piece is cheap.** Storing $u_i$, $v_i$, and $\sigma_i$ takes
-  $n + d + 1$ numbers. The full $n \times d$ grid it produces is never stored.
-- **The pieces can be ranked.** $u_i$ and $v_i$ are unit vectors, so every
-  entry of $u_i v_i^\top$ has size at most 1 - the overall size of piece $i$
-  is set by its $\sigma_i$ alone. Nothing in Part B's construction fixes an
-  order for the triples; the numbering is ours to choose. So choose it by
-  size: label the triples so that $\sigma_1 \ge \sigma_2 \ge \dots$ (this is
-  the standard convention, and the note uses it from here on). Under that
-  labeling, piece 1 is the biggest contributor, piece 2 the next, and so on.
-
-**Compression: drop the small pieces.** Keep only the $k$ biggest:
-
-$$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6e}$$
-
-You can say the same thing without pieces: keep the first $k$ columns of $U$,
-the first $k$ singular values, and the first $k$ columns of $V$, and multiply
-the three shrunken matrices. That product and (1.6e) are the same matrix,
-entry for entry - the sum is not a new operation, it is a way of *reading* the
-truncation. What the reading buys: it shows what was kept ($k$ self-contained
-units, each one a taste in the diagram below) and what was lost (exactly the
-dropped pieces $\sigma_{k+1} u_{k+1} v_{k+1}^\top + \dots$, all small
-because their $\sigma$'s are small).
-
-The **Eckart–Young theorem** says (1.6e) is the *best possible* rank-$k$
-approximation of $A$: no other $k$ patterns come closer. Now the arithmetic
-for the ratings matrix, with $k = 20$. One piece costs
-$n + d + 1 = 10{,}000 + 500 + 1 = 10{,}501$ numbers. Twenty pieces cost
-$20 \times 10{,}501 = 210{,}020$ numbers, replacing the original
-$5{,}000{,}000$: about 4%. The approximation loses little whenever the
-$\sigma_i$ decay fast, and for real-world matrices they usually do - people's
-tastes really are combinations of a few archetypes.
+**Could a different summary do better?** No. The **Eckart–Young theorem**
+says (1.6e) is the best approximation of $A$ achievable with $k$ patterns:
+truncating the SVD is optimal, not merely convenient.
 
 **Where ML uses exactly this:**
 
@@ -759,18 +737,16 @@ tastes really are combinations of a few archetypes.
   it directly as $\Delta W = BA$ with a tiny inner dimension - a few
   patterns' worth of change instead of a whole new matrix.
 
-**Why the pieces add up to $A$ (the promised proof).** Multiply any $x$
-through the three steps of (1.6b). Step 1 measures the amounts: entry $i$ of
-$V^\top x$ is $v_i \cdot x$. Step 2 scales amount $i$ by $\sigma_i$. Step 3
-points each scaled amount along its output direction and adds:
+**Why the product splits into the sum (the promised algebra).** Multiply any
+$x$ through the three steps of (1.6b). Step 1 measures the amounts: entry $i$
+of $V^\top x$ is $v_i \cdot x$. Step 2 scales amount $i$ by $\sigma_i$.
+Step 3 points each scaled amount along its output direction and adds:
 
 $$Ax = \sum_i \sigma_i \, (v_i \cdot x) \, u_i$$
 
-Now look at term $i$: since
-$(v_i \cdot x)\, u_i = u_i (v_i^\top x) = (u_i v_i^\top)\, x$, term $i$ is
-exactly the piece $\sigma_i u_i v_i^\top$ applied to $x$. So for every input,
-$A$ and the sum of pieces produce the same output - which means they are the
-same matrix. That is (1.6d).
+Since $(v_i \cdot x)\, u_i = u_i (v_i^\top x) = (u_i v_i^\top)\, x$, term
+$i$ is the summand $\sigma_i u_i v_i^\top$ applied to $x$. Both sides of
+(1.6d) produce the same output for every input, so they are the same matrix.
 
 ### 1.7 Norms: what "big" means
 
