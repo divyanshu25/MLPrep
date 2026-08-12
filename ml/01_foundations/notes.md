@@ -515,7 +515,7 @@ $$A = U \Sigma V^\top \tag{1.6b}$$
   input directions $v_1, v_2, \dots$ onto the coordinate axes - the same job
   $Q^{-1}$ did in Part A's four-frame picture.
 - **$\Sigma$ does the stretches.** Axis $i$ is scaled by $\sigma_i \ge 0$:
-  the **singular values**, sorted biggest first. (This step also moves from
+  the **singular values**, conventionally numbered biggest first. (This step also moves from
   $d$ input dimensions to $n$ output dimensions, padding with zeros.)
 - **$U$ rotates the output space.** It turns the coordinate axes onto the
   output directions $u_1, u_2, \dots$
@@ -636,10 +636,13 @@ properties make such pieces ideal for compression:
 
 - **Each piece is cheap.** Storing $u_i$, $v_i$, and $\sigma_i$ takes
   $n + d + 1$ numbers. The full $n \times d$ grid it produces is never stored.
-- **The pieces come ranked.** $u_i$ and $v_i$ are unit vectors, so every entry
-  of $u_i v_i^\top$ has size at most 1 - the overall size of piece $i$ is set
-  by its $\sigma_i$ alone. And Part B sorted the $\sigma_i$ biggest first, so
-  the pieces arrive ordered from biggest contribution to smallest.
+- **The pieces can be ranked.** $u_i$ and $v_i$ are unit vectors, so every
+  entry of $u_i v_i^\top$ has size at most 1 - the overall size of piece $i$
+  is set by its $\sigma_i$ alone. Nothing in Part B's construction fixes an
+  order for the triples; the numbering is ours to choose. So choose it by
+  size: label the triples so that $\sigma_1 \ge \sigma_2 \ge \dots$ (this is
+  the standard convention, and the note uses it from here on). Under that
+  labeling, piece 1 is the biggest contributor, piece 2 the next, and so on.
 
 **Check the claim on the $2 \times 2$ example.** Three ingredients:
 
