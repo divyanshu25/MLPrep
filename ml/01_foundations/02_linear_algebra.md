@@ -644,7 +644,10 @@ Two quick checks:
 - The shear $\begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$ looks nothing
   like rotations and stretches, yet it factors too: $\sigma_1 \approx 1.62$,
   $\sigma_2 \approx 0.62$. Slant a deck of cards and you have secretly
-  rotated, stretched, and rotated it.
+  rotated, stretched, and rotated it. (The shear is also proof that "square"
+  is not enough for eigendecomposition: it is square, but every eigenvector it
+  has lies along $[1, 0]$ - one direction, when diagonalizing 2-D space needs
+  two. No eigendecomposition exists for it. Its SVD does.)
 
 #### Part C: compressing a matrix - why ML cares
 
