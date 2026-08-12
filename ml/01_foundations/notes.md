@@ -494,31 +494,32 @@ spaces of different sizes. And it only comes with clean orthogonal axes when
 $A$ is **symmetric**. A real data matrix ($n$ houses × $d$ features) is
 neither.
 
-#### Part B: the SVD - drop both requirements
+#### Part B: the SVD - eigendecomposition for a rectangular matrix
 
-The **singular value decomposition** is a claim about *every* matrix, square
-or not. The claim: multiplying by $A$ produces the same effect as doing three
-simple operations in a row -
+Part A ended with a problem: formula (1.6a) needs a square matrix, and a real
+data matrix is $n \times d$. What is the corresponding decomposition for a
+rectangular matrix?
 
-1. rotate the space,
-2. stretch it along the coordinate axes, each axis by its own factor,
-3. rotate again.
-
-$A$ itself is usually none of these three operations. The claim is a
-factorization, the way $12 = 2 \cdot 2 \cdot 3$: 12 is not a prime, but it is a
-product of primes. $A$ is not a rotation or a stretch, but it is a product of
-two rotations and one stretch. As a formula:
+Start with what has to change. A rectangular $A$ takes $d$-dimensional inputs
+to $n$-dimensional outputs - two different spaces. One matrix $Q$ can no longer
+do both the trip in and the trip back, so give each trip its own matrix. That
+is the only change. The proposed decomposition:
 
 $$A = U \Sigma V^\top \tag{1.6b}$$
 
-- **$V^\top$ does rotation 1.** It turns a special set of perpendicular
-  directions $v_1, v_2, \dots$ onto the coordinate axes - the same
-  trip-inward job $Q^{-1}$ did in Part A's four-frame picture.
+- **$V^\top$ does the trip in.** It turns a set of perpendicular input
+  directions $v_1, v_2, \dots$ onto the coordinate axes - the job $Q^{-1}$
+  did in Part A's four-frame picture.
 - **$\Sigma$ does the stretches.** Axis $i$ is scaled by $\sigma_i \ge 0$:
-  the **singular values**, sorted biggest first. (For a rectangular $A$ this
-  step also moves between input and output dimensions, padding with zeros.)
-- **$U$ does rotation 2.** It turns the coordinate axes onto the output
-  directions $u_1, u_2, \dots$ - the trip back out.
+  the **singular values**, sorted biggest first. (This step also moves from
+  $d$ input dimensions to $n$ output dimensions, padding with zeros.)
+- **$U$ does the trip out.** It turns the coordinate axes onto the output
+  directions $u_1, u_2, \dots$
+
+$A$ itself is usually none of these three operations. The claim is a
+factorization, the way $12 = 2 \cdot 2 \cdot 3$: 12 is not a prime, but it is
+a product of primes; $A$ is not a rotation or a stretch, but it is a product of
+two rotations and one stretch.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 190" role="img" aria-label="A maps the unit circle with directions v1 and v2 to an ellipse with radii sigma1 u1 and sigma2 u2" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -544,20 +545,46 @@ $$A = U \Sigma V^\top \tag{1.6b}$$
 
 *Multiply every point of the unit circle by $A$ and the result is always an
 ellipse - and you can see why: a rotation keeps the circle a circle, the
-stretch pulls it into an ellipse with radii $\sigma_1, \sigma_2$, and the last
-rotation just turns the ellipse into place. The input axes $v_1, v_2$ land on the ellipse's axes
-$\sigma_1 u_1, \sigma_2 u_2$.*
+stretch pulls it into an ellipse with radii $\sigma_1, \sigma_2$, and the
+last rotation just turns the ellipse into place. The input axes $v_1, v_2$
+land on the ellipse's axes $\sigma_1 u_1, \sigma_2 u_2$.*
 
-How is (1.6b) different from (1.6a)? In the eigendecomposition, one matrix $Q$
-must do both rotations - and that demand is the only thing that fails for most
-matrices. The SVD allows the input rotation ($V$) and the output rotation ($U$)
-to be *different*, and with that one concession every matrix factors.
+So far (1.6b) is a proposal. Now find the three factors - which will also show
+the decomposition exists for every matrix. The obstacle is that $A$ is
+rectangular, so Part A's machinery doesn't apply to it. But it applies to a
+matrix built *from* $A$. Consider $A^\top A$:
 
-Where do the factors come from? A single question generates them all: *which
-input direction does $A$ stretch the most?* That direction is $v_1$, the
-stretch factor is $\sigma_1$, and the direction it lands on is $u_1$. Ask the
-same question again among the directions perpendicular to $v_1$: that gives
-$v_2, \sigma_2, u_2$. And so on. The SVD is a ranking of input directions by
+- **It is square.** The shapes multiply as
+  $(d \times n)(n \times d) = d \times d$.
+- **It is symmetric.** Transpose it:
+  $(A^\top A)^\top = A^\top (A^\top)^\top = A^\top A$. The same matrix
+  comes back.
+
+Square and symmetric is exactly what eigendecomposition handles best. Now
+substitute the proposal (1.6b) into $A^\top A$, using $U^\top U = I$ (a
+rotation followed by its undo changes nothing):
+
+$$A^\top A = (U \Sigma V^\top)^\top (U \Sigma V^\top)
+           = V \Sigma^\top U^\top U \Sigma V^\top = V \Sigma^2 V^\top \tag{1.6c}$$
+
+Compare the right side with (1.6a), $Q \Lambda Q^{-1}$, piece by piece:
+$Q = V$, $\Lambda = \Sigma^2$, and $Q^{-1} = V^\top$ (for a rotation the
+inverse is the transpose). So (1.6c) is an eigendecomposition - of a square
+symmetric matrix we can actually compute. That turns the proposal into a
+recipe:
+
+1. Form $A^\top A$ and eigendecompose it.
+2. Its eigenvectors are the $v_i$. Its eigenvalues are the $\sigma_i^2$; take
+   square roots to get the $\sigma_i$.
+3. Recover each output direction from $A$ itself: $u_i = A v_i / \sigma_i$.
+
+Each step works for any matrix, so every matrix has an SVD. **Every linear map
+is rotate → stretch → rotate. No exceptions.**
+
+What the factors mean geometrically: $v_1$ is the input direction $A$
+stretches the most, $\sigma_1$ is that biggest stretch, and $u_1$ is the
+direction it lands on. $v_2$ answers the same question among the directions
+perpendicular to $v_1$, and so on. The SVD is a ranking of input directions by
 how much $A$ stretches them.
 
 Two quick checks:
@@ -575,7 +602,7 @@ Two quick checks:
 The product $U \Sigma V^\top$ can also be written as a sum, one term per
 singular value:
 
-$$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6c}$$
+$$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
 Where does the sum come from? Multiply any $x$ through the three steps of
 (1.6b). Step 1 measures the amounts: entry $i$ of $V^\top x$ is $v_i \cdot x$.
@@ -588,7 +615,7 @@ Term $i$ is a complete one-direction pipeline: measure how much of $x$ lies
 along $v_i$, scale that number by $\sigma_i$, point the result along $u_i$.
 The matrix that performs this one pipeline is $\sigma_i \, u_i v_i^\top$,
 because $(v_i \cdot x)\, u_i = u_i (v_i^\top x) = (u_i v_i^\top)\, x$. So
-(1.6c) says: $A$ is the one-direction pipelines, added up.
+(1.6d) says: $A$ is the one-direction pipelines, added up.
 
 Check it on the symmetric matrix from Part A. Three ingredients first:
 
@@ -602,7 +629,7 @@ Check it on the symmetric matrix from Part A. Three ingredients first:
 - **$\sigma_1 = 3$ and $\sigma_2 = 1$**: the stretch factors, which here are
   the eigenvalues.
 
-Put those into the sum (1.6c):
+Put those into the sum (1.6d):
 
 $$3 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
 + 1 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & -1 \\ -1 & 1 \end{bmatrix}
@@ -627,15 +654,15 @@ $1 \times [3, 1]$ and row 2 is $2 \times [3, 1]$ - the same row $v^\top$,
 scaled by the entries of $u$. One pattern, repeated at different strengths. A
 matrix like that is called **rank-1** - the simplest matrix there is.
 
-So equation (1.6c) says: any matrix is a stack of rank-1 patterns. The word
+So equation (1.6d) says: any matrix is a stack of rank-1 patterns. The word
 "any" is inherited from Part B: the SVD (1.6b) exists for every matrix, and
-(1.6c) is that same SVD, only written as a sum. Rectangular matrices are
+(1.6d) is that same SVD, only written as a sum. Rectangular matrices are
 included - for an $n \times d$ matrix, each $u_i$ has $n$ entries and each
 $v_i$ has $d$ entries, so each pattern $u_i v_i^\top$ is a full $n \times d$
 matrix, and there are at most $\min(n, d)$ patterns in the stack. $\sigma_i$
 measures how much of $A$ pattern $i$ carries. Keep only the $k$ biggest:
 
-$$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
+$$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6e}$$
 
 The Eckart–Young theorem says this is the **best possible rank-$k$
 approximation** of $A$ - nothing else with $k$ patterns comes closer. The same
@@ -648,37 +675,6 @@ idea appears all over ML:
 - **LoRA**: assume the *fine-tuning update* $\Delta W$ is low-rank and learn it
   directly as $\Delta W = BA$ with a tiny inner dimension - a few patterns'
   worth of change instead of a whole new matrix.
-
-One last link back to eigenvectors. Two facts about $A^\top A$, for any
-$n \times d$ matrix $A$:
-
-- **It is always square.** The shapes multiply as
-  $(d \times n)(n \times d) = d \times d$, even when $A$ itself is
-  rectangular.
-- **It is always symmetric.** Transpose it:
-  $(A^\top A)^\top = A^\top (A^\top)^\top = A^\top A$. The same matrix
-  comes back.
-
-So the spectral theorem applies to $A^\top A$, whatever $A$ is. Which
-eigenvectors and eigenvalues does it get? Substitute the SVD (1.6b) for $A$
-and use $U^\top U = I$ (undoing a rotation changes nothing):
-
-$$A^\top A = (U \Sigma V^\top)^\top (U \Sigma V^\top)
-           = V \Sigma^\top U^\top U \Sigma V^\top = V \Sigma^2 V^\top \tag{1.6e}$$
-
-Compare the result with the eigendecomposition (1.6a), $A = Q \Lambda Q^{-1}$,
-piece by piece: $Q = V$, $\Lambda = \Sigma^2$, and $Q^{-1} = V^\top$ (for a
-rotation the inverse is the transpose). Conclusion, read straight off the
-matching: the eigenvectors of $A^\top A$ are the $v_i$, and its eigenvalues
-are $\sigma_i^2$.
-
-This doubles as a recipe for computing an SVD by hand: form $A^\top A$,
-eigendecompose it to get the $v_i$ and the $\sigma_i^2$, take square roots to
-get the $\sigma_i$, and recover each output direction as
-$u_i = A v_i / \sigma_i$. It also closes the loop of this section: even when
-$A$ is rectangular, the square symmetric matrix $A^\top A$ carries the SVD's
-ingredients, which is the precise sense in which SVD is what the spectral
-theorem becomes when the matrix isn't square.
 
 ### 1.7 Norms: what "big" means
 
