@@ -826,8 +826,9 @@ Measure the same vector $x = [3, -4, 0]$ three ways:
 - **L∞, worst coordinate:** $\|x\|_\infty = \max(3, 4, 0) = 4$. Only the
   biggest entry matters.
 
-Same vector; sizes 5, 7, and 4. None of them is "the right one" - they punish
-different things, and ML uses each where its way of punishing is the point.
+Same vector; sizes 5, 7, and 4. None of them is "the right one." Each measures
+size differently, and each of the next three paragraphs shows one place in ML
+where one norm's way of measuring is exactly what is needed.
 
 **L2 is the norm of weight decay.** The squared version
 $\|w\|_2^2 = \sum_i w_i^2$ appears everywhere because it is smooth and its
