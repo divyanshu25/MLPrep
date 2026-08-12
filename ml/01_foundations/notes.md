@@ -692,7 +692,47 @@ combinations of a few archetypes.
 - **PCA** is the SVD of the centered data matrix.
 - **Classic recommenders**: approximate the user × item ratings matrix as
   (1.6e) with small $k$; each $v_i$ is a taste archetype over items, each
-  $u_i$ says how much every user has of that taste.
+  $u_i$ says how much every user has of that taste. Concretely:
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 560 190" role="img" aria-label="A 4 by 4 ratings matrix approximated as an action taste column times row plus a romance taste column times row" style="max-width:580px;width:100%;height:auto;font-size:11px;font-family:inherit">
+<rect x="70" y="45" width="24" height="24" fill="currentColor" fill-opacity="0.45" stroke="currentColor" stroke-opacity="0.25"/><text x="82" y="61" text-anchor="middle" fill="currentColor">5</text><rect x="94" y="45" width="24" height="24" fill="currentColor" fill-opacity="0.36" stroke="currentColor" stroke-opacity="0.25"/><text x="106" y="61" text-anchor="middle" fill="currentColor">4</text><rect x="118" y="45" width="24" height="24" fill="currentColor" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="130" y="61" text-anchor="middle" fill="currentColor">0</text><rect x="142" y="45" width="24" height="24" fill="currentColor" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="154" y="61" text-anchor="middle" fill="currentColor">0</text><rect x="70" y="69" width="24" height="24" fill="currentColor" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="82" y="85" text-anchor="middle" fill="currentColor">0</text><rect x="94" y="69" width="24" height="24" fill="currentColor" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="106" y="85" text-anchor="middle" fill="currentColor">0</text><rect x="118" y="69" width="24" height="24" fill="currentColor" fill-opacity="0.45" stroke="currentColor" stroke-opacity="0.25"/><text x="130" y="85" text-anchor="middle" fill="currentColor">5</text><rect x="142" y="69" width="24" height="24" fill="currentColor" fill-opacity="0.36" stroke="currentColor" stroke-opacity="0.25"/><text x="154" y="85" text-anchor="middle" fill="currentColor">4</text><rect x="70" y="93" width="24" height="24" fill="currentColor" fill-opacity="0.27" stroke="currentColor" stroke-opacity="0.25"/><text x="82" y="109" text-anchor="middle" fill="currentColor">3</text><rect x="94" y="93" width="24" height="24" fill="currentColor" fill-opacity="0.22" stroke="currentColor" stroke-opacity="0.25"/><text x="106" y="109" text-anchor="middle" fill="currentColor">2.4</text><rect x="118" y="93" width="24" height="24" fill="currentColor" fill-opacity="0.36" stroke="currentColor" stroke-opacity="0.25"/><text x="130" y="109" text-anchor="middle" fill="currentColor">4</text><rect x="142" y="93" width="24" height="24" fill="currentColor" fill-opacity="0.29" stroke="currentColor" stroke-opacity="0.25"/><text x="154" y="109" text-anchor="middle" fill="currentColor">3.2</text><rect x="70" y="117" width="24" height="24" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.25"/><text x="82" y="133" text-anchor="middle" fill="currentColor">2</text><rect x="94" y="117" width="24" height="24" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-opacity="0.25"/><text x="106" y="133" text-anchor="middle" fill="currentColor">1.6</text><rect x="118" y="117" width="24" height="24" fill="currentColor" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="130" y="133" text-anchor="middle" fill="currentColor">0</text><rect x="142" y="117" width="24" height="24" fill="currentColor" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="154" y="133" text-anchor="middle" fill="currentColor">0</text>
+<text x="64" y="61" text-anchor="end" fill="currentColor" fill-opacity="0.7">Ana</text>
+<text x="64" y="85" text-anchor="end" fill="currentColor" fill-opacity="0.7">Ben</text>
+<text x="64" y="109" text-anchor="end" fill="currentColor" fill-opacity="0.7">Cara</text>
+<text x="64" y="133" text-anchor="end" fill="currentColor" fill-opacity="0.7">Dan</text>
+<text x="82" y="38" fill="currentColor" fill-opacity="0.7" transform="rotate(-40 82 38)">Die Hard</text>
+<text x="106" y="38" fill="currentColor" fill-opacity="0.7" transform="rotate(-40 106 38)">Mad Max</text>
+<text x="130" y="38" fill="currentColor" fill-opacity="0.7" transform="rotate(-40 130 38)">Titanic</text>
+<text x="154" y="38" fill="currentColor" fill-opacity="0.7" transform="rotate(-40 154 38)">Notebook</text>
+<text x="118" y="162" text-anchor="middle" fill="currentColor" fill-opacity="0.6">ratings (users &#215; movies)</text>
+<text x="196" y="99" text-anchor="middle" fill="currentColor" font-size="15">&#8776;</text>
+<rect x="225" y="45" width="24" height="24" fill="#6366f1" fill-opacity="0.45" stroke="currentColor" stroke-opacity="0.25"/><text x="237" y="61" text-anchor="middle" fill="currentColor">1</text><rect x="225" y="69" width="24" height="24" fill="#6366f1" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="237" y="85" text-anchor="middle" fill="currentColor">0</text><rect x="225" y="93" width="24" height="24" fill="#6366f1" fill-opacity="0.27" stroke="currentColor" stroke-opacity="0.25"/><text x="237" y="109" text-anchor="middle" fill="currentColor">.6</text><rect x="225" y="117" width="24" height="24" fill="#6366f1" fill-opacity="0.18" stroke="currentColor" stroke-opacity="0.25"/><text x="237" y="133" text-anchor="middle" fill="currentColor">.4</text>
+<rect x="270" y="81" width="24" height="24" fill="#6366f1" fill-opacity="0.45" stroke="currentColor" stroke-opacity="0.25"/><text x="282" y="97" text-anchor="middle" fill="currentColor">5</text><rect x="294" y="81" width="24" height="24" fill="#6366f1" fill-opacity="0.36" stroke="currentColor" stroke-opacity="0.25"/><text x="306" y="97" text-anchor="middle" fill="currentColor">4</text><rect x="318" y="81" width="24" height="24" fill="#6366f1" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="330" y="97" text-anchor="middle" fill="currentColor">0</text><rect x="342" y="81" width="24" height="24" fill="#6366f1" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="354" y="97" text-anchor="middle" fill="currentColor">0</text>
+<text x="259" y="98" text-anchor="middle" fill="currentColor">&#215;</text>
+<text x="237" y="38" text-anchor="middle" fill="#6366f1">u&#8321;</text>
+<text x="318" y="74" text-anchor="middle" fill="#6366f1">v&#8321;&#7488;</text>
+<text x="295" y="162" text-anchor="middle" fill="#6366f1" font-weight="600">action taste</text>
+<text x="386" y="99" text-anchor="middle" fill="currentColor" font-size="15">+</text>
+<rect x="400" y="45" width="24" height="24" fill="#f43f5e" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="412" y="61" text-anchor="middle" fill="currentColor">0</text><rect x="400" y="69" width="24" height="24" fill="#f43f5e" fill-opacity="0.45" stroke="currentColor" stroke-opacity="0.25"/><text x="412" y="85" text-anchor="middle" fill="currentColor">1</text><rect x="400" y="93" width="24" height="24" fill="#f43f5e" fill-opacity="0.36" stroke="currentColor" stroke-opacity="0.25"/><text x="412" y="109" text-anchor="middle" fill="currentColor">.8</text><rect x="400" y="117" width="24" height="24" fill="#f43f5e" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="412" y="133" text-anchor="middle" fill="currentColor">0</text>
+<rect x="445" y="81" width="24" height="24" fill="#f43f5e" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="457" y="97" text-anchor="middle" fill="currentColor">0</text><rect x="469" y="81" width="24" height="24" fill="#f43f5e" fill-opacity="0.0" stroke="currentColor" stroke-opacity="0.25"/><text x="481" y="97" text-anchor="middle" fill="currentColor">0</text><rect x="493" y="81" width="24" height="24" fill="#f43f5e" fill-opacity="0.45" stroke="currentColor" stroke-opacity="0.25"/><text x="505" y="97" text-anchor="middle" fill="currentColor">5</text><rect x="517" y="81" width="24" height="24" fill="#f43f5e" fill-opacity="0.36" stroke="currentColor" stroke-opacity="0.25"/><text x="529" y="97" text-anchor="middle" fill="currentColor">4</text>
+<text x="434" y="98" text-anchor="middle" fill="currentColor">&#215;</text>
+<text x="412" y="38" text-anchor="middle" fill="#f43f5e">u&#8322;</text>
+<text x="493" y="74" text-anchor="middle" fill="#f43f5e">v&#8322;&#7488;</text>
+<text x="470" y="162" text-anchor="middle" fill="#f43f5e" font-weight="600">romance taste</text>
+</svg>
+</div>
+
+  *A $4 \times 4$ ratings matrix built from just two patterns. The row
+  $v_1^\top = [5, 4, 0, 0]$ is the action archetype: the ratings a pure
+  action fan would give the four movies. The column $u_1$ holds each user's
+  amount of that taste. Same for romance. Read off Cara: she is $0.6$ action
+  and $0.8$ romance, so her predicted row is
+  $0.6 \cdot [5,4,0,0] + 0.8 \cdot [0,0,5,4] = [3, 2.4, 4, 3.2]$ - exactly
+  her row in the matrix. (At this toy size there is no saving - two pieces cost
+  $2 \times (4+4+1) = 18$ numbers for 16 ratings. The saving is at scale: the
+  same two-pattern structure on a $10{,}000 \times 500$ matrix stores
+  5 million ratings in $2 \times 10{,}501 = 21{,}002$ numbers.)*
 - **Model compression**: replace a trained weight matrix with its truncated
   SVD.
 - **LoRA**: assume the *fine-tuning update* $\Delta W$ is low-rank and learn
