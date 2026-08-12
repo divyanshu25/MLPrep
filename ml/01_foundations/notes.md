@@ -619,20 +619,18 @@ In general, one piece per singular value:
 
 $$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
-**What one piece is.** $u_i v_i^\top$ multiplies a column by a row: the
-shapes are $(2 \times 1)(1 \times 2)$, so the result is a full $2 \times 2$
-matrix, by the ordinary multiplication rule. Compute a tiny one, with
-$u = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$ as the column and
-$v^\top = \begin{bmatrix} 3 & 1 \end{bmatrix}$ as the row:
+**What one piece is.** $u_i v_i^\top$ multiplies a column by a row. For
+example, $u = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$ and
+$v^\top = \begin{bmatrix} 3 & 1 \end{bmatrix}$:
 
 $$u v^\top = \begin{bmatrix} 1 \\ 2 \end{bmatrix} \begin{bmatrix} 3 & 1 \end{bmatrix}
 = \begin{bmatrix} 1 \cdot 3 & 1 \cdot 1 \\ 2 \cdot 3 & 2 \cdot 1 \end{bmatrix}
 = \begin{bmatrix} 3 & 1 \\ 6 & 2 \end{bmatrix}$$
 
-This is called an **outer product**. Row 1 is $1 \times [3, 1]$ and row 2 is
-$2 \times [3, 1]$: the same row, scaled by the entries of $u$. One pattern,
-repeated at different strengths. A matrix like that is called **rank-1**. Two
-properties make such pieces ideal for compression:
+Row 1 is $1 \times [3, 1]$ and row 2 is $2 \times [3, 1]$: the same row,
+scaled by the entries of $u$. One pattern, repeated at different strengths. A
+matrix like that is called **rank-1**. Two properties make such pieces ideal
+for compression:
 
 - **Each piece is cheap.** Storing $u_i$, $v_i$, and $\sigma_i$ takes
   $n + d + 1$ numbers. The full $n \times d$ grid it produces is never stored.
