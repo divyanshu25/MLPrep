@@ -643,8 +643,10 @@ part):
 
 $$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
-Summand $i$ uses only triple $i$, and it is a simple object: a column times a
-row. For example, $u = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$ and
+Look at summand $i$: it is $\sigma_i \, u_i v_i^\top$, built from $u_i$,
+$v_i$, and $\sigma_i$ and nothing else - the other triples don't appear in it.
+And $u_i v_i^\top$ is a simple object, a column times a row. For example,
+$u = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$ and
 $v^\top = \begin{bmatrix} 3 & 1 \end{bmatrix}$:
 
 $$u v^\top = \begin{bmatrix} 1 \\ 2 \end{bmatrix} \begin{bmatrix} 3 & 1 \end{bmatrix}
