@@ -592,7 +592,35 @@ Run the recipe on the §1.5 matrix, so every symbol gets a number:
 
 For this symmetric $A$, the recipe returns $u_i = v_i$: each direction lands
 on itself. For a non-symmetric matrix, step 3 is exactly where $U$ and $V$
-come apart.
+come apart - so run the recipe once more, this time on a matrix that is
+actually rectangular:
+
+$$B = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}$$
+
+Three rows, two columns: $B$ has no eigenvectors of its own ("output points
+the same direction as input" cannot even be asked). The recipe does not care:
+
+1. $B^\top B$ is $2 \times 2$; entry $(i, j)$ is column $i$ dotted with
+   column $j$. Column 1 is $[1, 0, 1]$ and column 2 is $[1, 1, 0]$, so
+   $B^\top B = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ - a familiar
+   face: exactly the §1.5 matrix.
+2. So we already know its eigendecomposition: $v_1 = [1,1]/\sqrt{2}$ with
+   eigenvalue 3, $v_2 = [1,-1]/\sqrt{2}$ with eigenvalue 1. Therefore
+   $\sigma_1 = \sqrt{3}$ and $\sigma_2 = 1$. The $v_i$ have 2 entries each:
+   they live in the input space.
+3. $u_1 = B v_1 / \sigma_1 = [2, 1, 1]/\sqrt{6}$ and
+   $u_2 = B v_2 / \sigma_2 = [0, -1, 1]/\sqrt{2}$. These have 3 entries
+   each: they live in the output space. Asking whether $u_1$ equals $v_1$ is
+   not even meaningful now - they are different lengths. Orthogonality still
+   holds where it should: $u_1 \cdot u_2 = (0 - 1 + 1)/\sqrt{12} = 0$. ✓
+
+Why do these factors really rebuild $B$? By construction, $B v_1 = \sigma_1
+u_1$ and $B v_2 = \sigma_2 u_2$: the factorization does the right thing to
+$v_1$ and $v_2$. And $v_1, v_2$ span the whole input space, so by the recipe
+argument of §1.4, knowing what happens to them pins down what happens to
+*every* input. (The $\Sigma$ here is $3 \times 2$,
+$\begin{bmatrix} \sqrt{3} & 0 \\ 0 & 1 \\ 0 & 0 \end{bmatrix}$ - its
+zero third row is the padding between dimensions mentioned above.)
 
 Each step works for any matrix, so every matrix has an SVD. **Every linear map
 is rotate → stretch → rotate. No exceptions.**
