@@ -42,10 +42,51 @@ weight says "if I nudge this weight up by $\epsilon$, the loss changes by (gradi
 $\times \epsilon$." Gradient descent just nudges every weight in whichever direction
 lowers the loss, proportional to its sensitivity.
 
-Numerics aside: in code, prefer the **centered** difference
-$\frac{f(x+h) - f(x-h)}{2h}$ - its error is $O(h^2)$ instead of $O(h)$ (the even-order
-error terms cancel; Taylor-expand both sides to see it). This is the standard gradient
-checker, implemented in `gradients_from_scratch.ipynb`.
+**Numerics aside: two ways to estimate a derivative in code.** The formula at the
+top of this section is the **forward** difference $\frac{f(x+h) - f(x)}{h}$. There is a
+better one, the **centered** difference $\frac{f(x+h) - f(x-h)}{2h}$, and here is
+exactly why it is better.
+
+Taylor's theorem writes $f$ near $x$ as a polynomial in the step $h$:
+
+$$f(x+h) = f(x) + f'(x)\,h + \tfrac{f''(x)}{2} h^2 + \tfrac{f'''(x)}{6} h^3 + \cdots$$
+$$f(x-h) = f(x) - f'(x)\,h + \tfrac{f''(x)}{2} h^2 - \tfrac{f'''(x)}{6} h^3 + \cdots$$
+
+Note the sign pattern in the second line: replacing $h$ with $-h$ flips the sign of
+every odd power of $h$ and leaves every even power alone.
+
+*Forward difference*: subtract $f(x)$ from the first line and divide by $h$:
+
+$$\frac{f(x+h) - f(x)}{h} = f'(x) + \underbrace{\tfrac{f''(x)}{2} h + \cdots}_{\text{error}}$$
+
+The leading error term is proportional to $h^1$. Shrink $h$ tenfold and the error
+shrinks tenfold. That is what "$O(h)$" means.
+
+*Centered difference*: subtract the second line from the first. Every even-power term
+($f(x)$, the $h^2$ term, the $h^4$ term, ...) appears with the **same** sign in both
+lines, so subtraction cancels it exactly. Every odd-power term appears with opposite
+signs, so subtraction doubles it:
+
+$$f(x+h) - f(x-h) = 2 f'(x)\,h + \tfrac{f'''(x)}{3} h^3 + \cdots$$
+
+Divide by $2h$:
+
+$$\frac{f(x+h) - f(x-h)}{2h} = f'(x) + \underbrace{\tfrac{f'''(x)}{6} h^2 + \cdots}_{\text{error}}$$
+
+The $h^1$ error term is gone - it was killed by the cancellation - and the leading
+error is now proportional to $h^2$. Shrink $h$ tenfold and the error shrinks a
+**hundred**fold. That is "$O(h^2)$".
+
+Check it on $f(x) = x^3$ at $x = 1$, where the true derivative is $3$. With $h = 0.01$:
+
+- forward: $\frac{1.01^3 - 1}{0.01} = 3.0301$, error $0.0301$
+  (matches the prediction $\tfrac{f''}{2} h = \tfrac{6}{2}(0.01) = 0.03$)
+- centered: $\frac{1.01^3 - 0.99^3}{0.02} = 3.0001$, error $0.0001$
+  (matches $\tfrac{f'''}{6} h^2 = \tfrac{6}{6}(0.01)^2 = 0.0001$)
+
+Shrink to $h = 0.001$: the forward error becomes $0.0030$ (10× smaller), the centered
+error becomes $0.000001$ (100× smaller). The centered difference is the standard
+gradient checker, implemented in `gradients_from_scratch.ipynb`.
 
 ## 2.2 The chain rule is the ONLY thing backprop needs
 
