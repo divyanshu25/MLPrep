@@ -649,16 +649,36 @@ idea appears all over ML:
   directly as $\Delta W = BA$ with a tiny inner dimension - a few patterns'
   worth of change instead of a whole new matrix.
 
-One last link back to eigenvectors, provable in a line. Plug (1.6b) into
-$A^\top A$ and use $U^\top U = I$ (a rotation undone):
+One last link back to eigenvectors. Two facts about $A^\top A$, for any
+$n \times d$ matrix $A$:
+
+- **It is always square.** The shapes multiply as
+  $(d \times n)(n \times d) = d \times d$, even when $A$ itself is
+  rectangular.
+- **It is always symmetric.** Transpose it:
+  $(A^\top A)^\top = A^\top (A^\top)^\top = A^\top A$. The same matrix
+  comes back.
+
+So the spectral theorem applies to $A^\top A$, whatever $A$ is. Which
+eigenvectors and eigenvalues does it get? Substitute the SVD (1.6b) for $A$
+and use $U^\top U = I$ (undoing a rotation changes nothing):
 
 $$A^\top A = (U \Sigma V^\top)^\top (U \Sigma V^\top)
            = V \Sigma^\top U^\top U \Sigma V^\top = V \Sigma^2 V^\top \tag{1.6e}$$
 
-The right side has exactly the shape of (1.6a): $A^\top A$ - always square and
-symmetric, even when $A$ is neither - has eigenvectors $V$ and eigenvalues
-$\sigma_i^2$. That's how you'd compute an SVD by hand, and it closes the loop:
-SVD is what the spectral theorem becomes when the matrix isn't square.
+Compare the result with the eigendecomposition (1.6a), $A = Q \Lambda Q^{-1}$,
+piece by piece: $Q = V$, $\Lambda = \Sigma^2$, and $Q^{-1} = V^\top$ (for a
+rotation the inverse is the transpose). Conclusion, read straight off the
+matching: the eigenvectors of $A^\top A$ are the $v_i$, and its eigenvalues
+are $\sigma_i^2$.
+
+This doubles as a recipe for computing an SVD by hand: form $A^\top A$,
+eigendecompose it to get the $v_i$ and the $\sigma_i^2$, take square roots to
+get the $\sigma_i$, and recover each output direction as
+$u_i = A v_i / \sigma_i$. It also closes the loop of this section: even when
+$A$ is rectangular, the square symmetric matrix $A^\top A$ carries the SVD's
+ingredients, which is the precise sense in which SVD is what the spectral
+theorem becomes when the matrix isn't square.
 
 ### 1.7 Norms: what "big" means
 
