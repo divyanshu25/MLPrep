@@ -689,6 +689,15 @@ The pieces add up to $A$. It checks.
 
 $$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6e}$$
 
+You can say the same thing without pieces: keep the first $k$ columns of $U$,
+the first $k$ singular values, and the first $k$ columns of $V$, and multiply
+the three shrunken matrices. That product and (1.6e) are the same matrix,
+entry for entry - the sum is not a new operation, it is a way of *reading* the
+truncation. What the reading buys: it shows what was kept ($k$ self-contained
+units, each one a taste in the diagram below) and what was lost (exactly the
+dropped pieces $\sigma_{k+1} u_{k+1} v_{k+1}^\top + \dots$, all small
+because their $\sigma$'s are small).
+
 The **Eckart–Young theorem** says (1.6e) is the *best possible* rank-$k$
 approximation of $A$: no other $k$ patterns come closer. Now the arithmetic
 for the ratings matrix, with $k = 20$. One piece costs
