@@ -473,8 +473,8 @@ are the eigen-directions. $Q^{-1}$ sends them onto the coordinate axes, and in
 that frame $x$'s coordinates are its amounts, $(2,1)$. $\Lambda$ stretches
 along the axes: $(2,1) \to (6,1)$, with the old arrow left faint. $Q$ sends
 the axes back to the eigen-directions, and the result lands on $Ax = [7,5]$.
-Frames 2 and 3 are where the matrix is simple; $Q^{-1}$ and $Q$ are only the
-trip in and the trip back.*
+Frames 2 and 3 are where the matrix is simple; $Q^{-1}$ only moves the vector
+into that frame, and $Q$ moves the result back out.*
 
 So the whole procedure is: multiply by $Q^{-1}$, then $\Lambda$, then $Q$.
 Written as one product (rightmost acts first):
@@ -500,21 +500,25 @@ Part A ended with a problem: formula (1.6a) needs a square matrix, and a real
 data matrix is $n \times d$. What is the corresponding decomposition for a
 rectangular matrix?
 
-Start with what has to change. A rectangular $A$ takes $d$-dimensional inputs
-to $n$-dimensional outputs - two different spaces. One matrix $Q$ can no longer
-do both the trip in and the trip back, so give each trip its own matrix. That
-is the only change. The proposed decomposition:
+Start with what has to change. In (1.6a), $Q^{-1}$ changed the input's
+coordinates and $Q$ changed them back: one matrix and its inverse, usable only
+because inputs and outputs lived in the same space. A rectangular $A$ takes
+$d$-dimensional inputs to $n$-dimensional outputs. Now the matrix acting on the
+input side must be $d \times d$ and the one on the output side must be
+$n \times n$ - they cannot be the same matrix, or each other's inverse. So
+allow two unrelated rotations, one per side. That is the only change. The
+proposed decomposition:
 
 $$A = U \Sigma V^\top \tag{1.6b}$$
 
-- **$V^\top$ does the trip in.** It turns a set of perpendicular input
-  directions $v_1, v_2, \dots$ onto the coordinate axes - the job $Q^{-1}$
-  did in Part A's four-frame picture.
+- **$V^\top$ rotates the input space.** It turns a set of perpendicular
+  input directions $v_1, v_2, \dots$ onto the coordinate axes - the same job
+  $Q^{-1}$ did in Part A's four-frame picture.
 - **$\Sigma$ does the stretches.** Axis $i$ is scaled by $\sigma_i \ge 0$:
   the **singular values**, sorted biggest first. (This step also moves from
   $d$ input dimensions to $n$ output dimensions, padding with zeros.)
-- **$U$ does the trip out.** It turns the coordinate axes onto the output
-  directions $u_1, u_2, \dots$
+- **$U$ rotates the output space.** It turns the coordinate axes onto the
+  output directions $u_1, u_2, \dots$
 
 $A$ itself is usually none of these three operations. The claim is a
 factorization, the way $12 = 2 \cdot 2 \cdot 3$: 12 is not a prime, but it is
