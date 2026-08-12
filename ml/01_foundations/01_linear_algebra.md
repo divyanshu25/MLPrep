@@ -811,20 +811,39 @@ $i$ is the summand $\sigma_i u_i v_i^\top$ applied to $x$. Both sides of
 
 ## 1.7 Norms: what "big" means
 
-A norm is a formalized notion of length. The ones that matter:
+Three ML questions are secretly the same question. How far apart are two
+embeddings? How large are a model's weights (the thing weight decay controls)?
+Is this gradient exploding (the thing gradient clipping controls)? Each needs
+one number for "how big is this vector." A **norm** is that number - and there
+is more than one honest way to define it.
 
-- **L2**: $\|x\|_2 = \sqrt{\sum_i x_i^2}$. Ordinary Euclidean length. Squared-L2 shows
-  up everywhere because it's smooth and its gradient is linear:
-  $\nabla \|x\|_2^2 = 2x$. Weight decay penalizes $\|w\|_2^2$, shrinking all weights
-  smoothly toward 0.
-- **L1**: $\|x\|_1 = \sum_i |x_i|$. Its unit ball is a diamond whose corners sit
-  *on the axes* - and a point on an axis is a point where the other coordinates
-  are exactly zero. Constrained optima tend to land on those corners, which is
-  why L1 regularization produces **sparsity** (lasso). L2's ball is round: no
-  corners, so it shrinks weights smoothly but rarely zeros one out.
-- **L∞**: $\max_i |x_i|$ - worst-case coordinate; the norm of adversarial-example fame.
-- **Frobenius** (matrices): $\|A\|_F = \sqrt{\sum_{ij} a_{ij}^2}$ - L2 with the matrix
-  flattened.
+Measure the same vector $x = [3, -4, 0]$ three ways:
+
+- **L2, straight-line length:**
+  $\|x\|_2 = \sqrt{3^2 + (-4)^2 + 0^2} = \sqrt{25} = 5$.
+- **L1, total amount:** $\|x\|_1 = |3| + |{-4}| + |0| = 7$. No diagonal
+  shortcuts: every coordinate counts in full.
+- **L∞, worst coordinate:** $\|x\|_\infty = \max(3, 4, 0) = 4$. Only the
+  biggest entry matters.
+
+Same vector; sizes 5, 7, and 4. None of them is "the right one" - they punish
+different things, and ML uses each where its way of punishing is the point.
+
+**L2 is the norm of weight decay.** The squared version
+$\|w\|_2^2 = \sum_i w_i^2$ appears everywhere because it is smooth and its
+gradient is plain: $\nabla \|w\|_2^2 = 2w$ (the 1-D check:
+$\frac{d}{dw} w^2 = 2w$). Add it to the loss and each weight feels a pull
+toward zero *proportional to its own size*: big weights are pulled hard, small
+weights barely at all. So everything shrinks smoothly, and almost nothing is
+pushed to exactly zero - the pull dies out as the weight gets small.
+
+**L1 is the norm of sparsity.** The derivative of $|w|$ is $+1$ or $-1$: a
+pull toward zero of *constant strength*, no matter how small the weight
+already is. A weight whose contribution to the loss is worth less than that
+constant pull gets driven to exactly $0$ and pinned there. That is the lasso,
+and it is why "L1 selects features." The same conclusion, geometrically: the
+constrained optimum lands on the unit ball's surface, and L1's ball has
+corners exactly on the axes - points where the other coordinates are zero.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 170" role="img" aria-label="Unit balls of the L1 norm (a diamond), L2 norm (a circle), and L-infinity norm (a square)" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -843,11 +862,19 @@ A norm is a formalized notion of length. The ones that matter:
 </svg>
 </div>
 
-*Unit balls: every point with $\|x\| = 1$. L1's corners (dots) sit exactly on the
-axes - constrained optima land there, zeroing the other coordinate. That corner
-picture is the geometric reason "L1 selects" while round L2 only shrinks.*
+*Every point with $\|x\| = 1$ under each norm. L1's corners (dots) sit on
+the axes; constrained optima land on corners, zeroing the other coordinate.
+L2's ball is round - no corners, nothing gets zeroed.*
 
-Norms also define distance ($\|a - b\|$) and normalization ($x / \|x\|$, as in
-LayerNorm's core idea and cosine similarity). Interview-relevant contrast in one line:
-*L2 shrinks, L1 selects.*
+**L∞ is the norm of adversarial examples.** "Change every pixel by at most
+$\epsilon$" describes an L∞ ball of radius $\epsilon$ around the image:
+the constraint caps the worst single coordinate and says nothing about the
+total.
 
+**Frobenius is L2 for matrices:** flatten the matrix and take ordinary L2,
+$\|A\|_F = \sqrt{\sum_{ij} a_{ij}^2}$.
+
+Two things every norm gives you for free: a **distance** between vectors,
+$\|a - b\|$, and a **normalization**, $x / \|x\|$, which rescales $x$ to
+length 1 - the core move inside cosine similarity (§1.2) and LayerNorm. The
+one-line contrast to keep for interviews: *L2 shrinks, L1 selects.*
