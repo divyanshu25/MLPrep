@@ -579,8 +579,15 @@ recipe:
 
 1. Form $A^\top A$ and eigendecompose it.
 2. Its eigenvectors are the $v_i$. Its eigenvalues are the $\sigma_i^2$; take
-   square roots to get the $\sigma_i$.
+   square roots to get the $\sigma_i$. Because $A^\top A$ is symmetric, the
+   spectral theorem from §1.5 guarantees the $v_i$ are orthogonal to each
+   other - exactly what "$V$ is a rotation" requires.
 3. Recover each output direction from $A$ itself: $u_i = A v_i / \sigma_i$.
+   The $u_i$ inherit orthogonality from the $v_i$: for $i \ne j$,
+   $u_i \cdot u_j = \frac{(A v_i) \cdot (A v_j)}{\sigma_i \sigma_j}
+   = \frac{v_i \cdot (A^\top A\, v_j)}{\sigma_i \sigma_j}
+   = \frac{\sigma_j^2 \, (v_i \cdot v_j)}{\sigma_i \sigma_j} = 0$,
+   so $U$ is a rotation too.
 
 Run the recipe on the §1.5 matrix, so every symbol gets a number:
 
@@ -589,7 +596,8 @@ Run the recipe on the §1.5 matrix, so every symbol gets a number:
 2. Eigendecompose $\begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix}$. Multiply
    it by $[1,1]$: the result is $[9, 9] = 9 \cdot [1,1]$. Multiply it by
    $[1,-1]$: the result is $[1,-1] = 1 \cdot [1,-1]$. So its eigenvectors are
-   $[1,1]$ and $[1,-1]$, with eigenvalues $9$ and $1$. Normalize the
+   $[1,1]$ and $[1,-1]$, with eigenvalues $9$ and $1$. Orthogonal, as
+   promised: $[1,1] \cdot [1,-1] = 1 - 1 = 0$. Normalize the
    eigenvectors to unit length: $v_1 = [1,1]/\sqrt{2}$,
    $v_2 = [1,-1]/\sqrt{2}$. Square-root the eigenvalues:
    $\sigma_1 = \sqrt{9} = 3$, $\sigma_2 = \sqrt{1} = 1$.
