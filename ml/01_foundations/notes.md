@@ -607,18 +607,6 @@ A ratings matrix with $n = 10{,}000$ users and $d = 500$ movies holds
 $n \times d = 5{,}000{,}000$ numbers. The question of Part C: can far fewer
 numbers stand in for almost the same matrix?
 
-**The claim.** Part B produced one triple per singular value: input direction
-$v_i$, stretch $\sigma_i$, output direction $u_i$. Build one matrix from each
-triple: $\sigma_i \, u_i v_i^\top$. The claim - proved at the end of this
-part - is that these matrices add up to $A$ itself. Our $2 \times 2$ example
-has two singular values, so it splits into two pieces:
-
-$$A = \sigma_1 \, u_1 v_1^\top + \sigma_2 \, u_2 v_2^\top$$
-
-In general, one piece per singular value:
-
-$$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
-
 **What one piece is.** $u_i v_i^\top$ multiplies a column by a row. For
 example, $u = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$ and
 $v^\top = \begin{bmatrix} 3 & 1 \end{bmatrix}$:
@@ -629,18 +617,20 @@ $$u v^\top = \begin{bmatrix} 1 \\ 2 \end{bmatrix} \begin{bmatrix} 3 & 1 \end{bma
 
 Row 1 is $1 \times [3, 1]$ and row 2 is $2 \times [3, 1]$: the same row,
 scaled by the entries of $u$. One pattern, repeated at different strengths. A
-matrix like that is called **rank-1**. Two properties make such pieces ideal
-for compression:
+matrix like that is called **rank-1**.
 
-- **Each piece is cheap.** Storing $u_i$, $v_i$, and $\sigma_i$ takes
-  $n + d + 1$ numbers. The full $n \times d$ grid it produces is never stored.
-- **The pieces can be ranked.** $u_i$ and $v_i$ are unit vectors, so every
-  entry of $u_i v_i^\top$ has size at most 1 - the overall size of piece $i$
-  is set by its $\sigma_i$ alone. Nothing in Part B's construction fixes an
-  order for the triples; the numbering is ours to choose. So choose it by
-  size: label the triples so that $\sigma_1 \ge \sigma_2 \ge \dots$ (this is
-  the standard convention, and the note uses it from here on). Under that
-  labeling, piece 1 is the biggest contributor, piece 2 the next, and so on.
+**The claim.** Part B produced one triple per singular value: input direction
+$v_i$, stretch $\sigma_i$, output direction $u_i$. From each triple, build one
+rank-1 matrix like the one above, scaled by its stretch:
+$\sigma_i \, u_i v_i^\top$. The claim - proved at the end of this part - is
+that adding these matrices, entry by entry, gives back $A$ exactly. Our
+$2 \times 2$ example has two singular values, so two pieces:
+
+$$A = \sigma_1 \, u_1 v_1^\top + \sigma_2 \, u_2 v_2^\top$$
+
+In general, one piece per singular value:
+
+$$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
 **Check the claim on the $2 \times 2$ example.** Three ingredients:
 
@@ -662,6 +652,18 @@ $$3 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
 = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$$
 
 The pieces add up to $A$. It checks.
+
+**Why such pieces suit compression.**
+
+- **Each piece is cheap.** Storing $u_i$, $v_i$, and $\sigma_i$ takes
+  $n + d + 1$ numbers. The full $n \times d$ grid it produces is never stored.
+- **The pieces can be ranked.** $u_i$ and $v_i$ are unit vectors, so every
+  entry of $u_i v_i^\top$ has size at most 1 - the overall size of piece $i$
+  is set by its $\sigma_i$ alone. Nothing in Part B's construction fixes an
+  order for the triples; the numbering is ours to choose. So choose it by
+  size: label the triples so that $\sigma_1 \ge \sigma_2 \ge \dots$ (this is
+  the standard convention, and the note uses it from here on). Under that
+  labeling, piece 1 is the biggest contributor, piece 2 the next, and so on.
 
 **Compression: drop the small pieces.** Keep only the $k$ biggest:
 
