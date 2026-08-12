@@ -653,9 +653,10 @@ $$u v^\top = \begin{bmatrix} 1 \\ 2 \end{bmatrix} \begin{bmatrix} 3 & 1 \end{bma
 = \begin{bmatrix} 1 \cdot 3 & 1 \cdot 1 \\ 2 \cdot 3 & 2 \cdot 1 \end{bmatrix}
 = \begin{bmatrix} 3 & 1 \\ 6 & 2 \end{bmatrix}$$
 
-The same row at different strengths: one pattern per summand. (A one-pattern
-matrix is called **rank-1**, a sum of $k$ of them **rank-$k$** - when ML
-says "low-rank", it means exactly this.) Since $u_i$ and $v_i$ are unit
+The same row at different strengths: one pattern per summand. Nothing about
+$u$ or $v$ was special here - *any* column times *any* row produces this
+one-pattern shape. (A one-pattern matrix is called **rank-1**, a sum of $k$ of
+them **rank-$k$** - when ML says "low-rank", it means exactly this.) Since $u_i$ and $v_i$ are unit
 vectors, every entry of $u_i v_i^\top$ has size at most 1, so summand $i$'s
 magnitude is set by its $\sigma_i$ alone.
 
