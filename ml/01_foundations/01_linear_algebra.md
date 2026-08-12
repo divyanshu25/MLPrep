@@ -840,7 +840,10 @@ pushed to exactly zero - the pull dies out as the weight gets small.
 **L1 is the norm of sparsity.** The derivative of $|w|$ is $+1$ or $-1$: a
 pull toward zero of *constant strength*, no matter how small the weight
 already is. A weight whose contribution to the loss is worth less than that
-constant pull gets driven to exactly $0$ and pinned there. That is the lasso,
+constant pull gets driven to exactly $0$ and pinned there. Why pinned: at
+$w = 0$, moving in *either* direction raises the penalty at that same
+constant rate, so unless the loss gradient is strong enough to pay that toll,
+$0$ is where the weight rests. That is the lasso,
 and it is why "L1 selects features." The same conclusion, geometrically: the
 constrained optimum lands on the unit ball's surface, and L1's ball has
 corners exactly on the axes - points where the other coordinates are zero.
