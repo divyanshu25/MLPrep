@@ -14,17 +14,17 @@ being magic and becomes bookkeeping.
 
 Read in this order:
 
-1. [Linear algebra for ML](01_linear_algebra.md) - vectors as data, the dot
+1. [Linear algebra for ML](02_linear_algebra.md) - vectors as data, the dot
    product as similarity and projection, matrix multiplication two ways,
    eigenvectors and the eigendecomposition, and the SVD with low-rank
    compression.
-2. [Calculus for ML](02_calculus.md) - the derivative as local sensitivity,
+2. [Calculus for ML](03_calculus.md) - the derivative as local sensitivity,
    the chain rule as the whole of backprop, gradients of vector expressions,
    and Jacobians.
-3. [Probability & statistics for ML](03_probability.md) - expectation and
+3. [Probability & statistics for ML](04_probability.md) - expectation and
    variance, Bayes rule, maximum likelihood (why cross-entropy is the loss),
    bias and variance of estimators, and the central limit theorem.
-4. [Interview questions & exit checklist](04_interview_questions.md) - model
+4. [Interview questions & exit checklist](05_interview_questions.md) - model
    answers to fifteen standard questions, and the checklist to clear before
    moving to the next module.
 
