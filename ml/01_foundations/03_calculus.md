@@ -523,6 +523,55 @@ $g \mapsto g J$, called a **vector–Jacobian product** (VJP). The engineering
 point: $J$ is never stored as a matrix - only the product $gJ$ is ever
 computed. For a hidden layer of width 4096, $J$ would be $4096 \times 4096
 \approx 17$ million numbers *per example*; the VJP gets $gJ$ directly.
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 480 230" role="img" aria-label="One layer drawn as a fully connected graph with two inputs and two outputs: amber edge labels are the Jacobian entries, red numbers at the outputs are the known sensitivities, and each input's sensitivity is the sum over its edges" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="vj-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
+    <marker id="vj-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f43f5e"/></marker>
+  </defs>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5">
+    <rect x="24" y="28" width="150" height="44" rx="7"/>
+    <rect x="24" y="140" width="150" height="44" rx="7"/>
+    <rect x="330" y="28" width="126" height="44" rx="7"/>
+    <rect x="330" y="140" width="126" height="44" rx="7"/>
+  </g>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="99" y="46">in1</text>
+    <text x="99" y="158">in2</text>
+    <text x="393" y="46">out1</text>
+    <text x="393" y="158">out2</text>
+  </g>
+  <g fill="#f43f5e" text-anchor="middle" font-size="10.5">
+    <text x="99" y="64">&#8706;L/&#8706;in1 = 1&#183;3 + 2&#183;4 = 11</text>
+    <text x="99" y="176">&#8706;L/&#8706;in2 = 1&#183;2 + 2&#183;5 = 12</text>
+    <text x="393" y="64">&#8706;L/&#8706;out1 = 1</text>
+    <text x="393" y="176">&#8706;L/&#8706;out2 = 2</text>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.6">
+    <line x1="174" y1="44" x2="328" y2="44" marker-end="url(#vj-f)"/>
+    <line x1="174" y1="58" x2="328" y2="154" marker-end="url(#vj-f)"/>
+    <line x1="174" y1="154" x2="328" y2="58" marker-end="url(#vj-f)"/>
+    <line x1="174" y1="168" x2="328" y2="168" marker-end="url(#vj-f)"/>
+  </g>
+  <g font-size="10" fill="#f59e0b" text-anchor="middle">
+    <text x="251" y="36">3</text>
+    <text x="224" y="80">4</text>
+    <text x="224" y="140">2</text>
+    <text x="251" y="162">5</text>
+  </g>
+  <line x1="440" y1="214" x2="60" y2="214" stroke="#f43f5e" marker-end="url(#vj-b)"/>
+  <text x="250" y="206" text-anchor="middle" fill="#f43f5e" font-size="10">backward walk</text>
+</svg>
+</div>
+
+*One layer as a graph: every input touches every output. Amber edge labels
+are the local derivatives $\partial \text{out}_j / \partial \text{in}_i$,
+i.e. the entries of $J$ (here $J = [[3, 2], [4, 5]]$). Red at the outputs:
+the known row vector $g = [1, 2]$. Each input's red number is the add-rule
+sum over its edges - $1 \cdot 3 + 2 \cdot 4 = 11$ for in1 - and computing
+both at once is $gJ = [11, 12]$, the VJP.*
+
 Examples worth knowing cold:
 
 - Elementwise ReLU: Jacobian is diagonal, entries $\mathbb{1}[x_i > 0]$ - backprop
