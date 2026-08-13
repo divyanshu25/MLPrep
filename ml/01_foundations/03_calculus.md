@@ -305,9 +305,10 @@ billion-parameter networks is feasible at all.
 A model's loss takes all $n$ weights in at once and returns one number:
 $L(w_1, \dots, w_n)$. The notation for this shape is
 $f : \mathbb{R}^n \to \mathbb{R}$, read "$n$ real numbers in, one real number
-out." The backprop graph in §2.2 was already one of these: $L = (wx + b)^2$
-takes three numbers in and returns one, and the backward walk produced a
-gradient for each of its two parameters, $w$ and $b$.
+out." The backprop graph in §2.2 becomes one of these once the data $x$ is
+held fixed: $L = (wx + b)^2$ is then a function of the two weights,
+$L(w, b) : \mathbb{R}^2 \to \mathbb{R}$, and the backward walk produced its
+gradient, $[42, 14]$.
 
 With $n$ inputs there are $n$ separate questions of the §2.1 kind: hold every
 input fixed except $x_i$, change $x_i$ by $\epsilon$, and the output changes by
@@ -401,8 +402,9 @@ would be 4096², per example). Examples worth knowing cold:
 
 - Elementwise ReLU: Jacobian is diagonal, entries $\mathbb{1}[x_i > 0]$ - backprop
   just masks the upstream gradient.
-- Linear layer $f(x) = Wx$: Jacobian w.r.t. $x$ is exactly $W$; backprop multiplies
-  the upstream gradient by $W^\top$.
+- Linear layer $f(x) = Wx$: Jacobian w.r.t. $x$ is exactly $W$; the backward
+  step is $g \mapsto gW$ with $g$ the upstream row vector (written with
+  columns, $g \mapsto W^\top g$ - the same statement transposed).
 - Softmax: $J_{ij} = p_i(\delta_{ij} - p_j)$ - dense, which is why softmax is always
   fused with cross-entropy (see exercises: the fused gradient collapses to $p - y$).
 
