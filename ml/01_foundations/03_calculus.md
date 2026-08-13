@@ -147,7 +147,9 @@ rates right to left.*
 #### What dy/dx = 36 means (and what it does not)
 
 Not "step $x$ by 1 and $y$ moves by 36": from $x = 2$ to $x = 3$, $y$ goes from
-36 to 81, a change of 45. Write the exact change for a step $h$:
+36 to 81, a change of 45. Write the exact change for a step $h$, calling it
+$\Delta y$ ($\Delta$ is read "delta"; $\Delta y$ = the value of $y$ after the
+step minus the value before):
 
 $$\Delta y = 9(2+h)^2 - 9 \cdot 2^2 = 36h + 9h^2$$
 
@@ -333,7 +335,8 @@ so each keeps its own slot in the vector.
 Stand at a point and take a small step of length $\epsilon$ in some direction.
 A direction is a unit vector $u$ (so $\|u\| = 1$); the step changes input $i$
 by $\epsilon\, u_i$. Each input contributes its per-input change times its
-sensitivity, and the contributions add (§2.2, a variable used in many places):
+sensitivity, and the contributions add (§2.2, a variable used in many places),
+giving the change in $f$ ($\Delta f$, as in §2.2's $\Delta y$):
 
 $$\Delta f \approx \sum_i \frac{\partial f}{\partial x_i}\, \epsilon\, u_i = \epsilon\, (\nabla f \cdot u)$$
 
