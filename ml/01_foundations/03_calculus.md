@@ -106,6 +106,21 @@ $$\frac{dz}{dx} = 3, \qquad \frac{dy}{dz} = 2z = 12, \qquad
 Check without the chain rule: $y = (3x)^2 = 9x^2$, so $y' = 18x = 36$ at
 $x = 2$. Same answer. ✓
 
+What does $\frac{dy}{dx} = 36$ mean? Not "step $x$ by 1 and $y$ moves by 36":
+from $x = 2$ to $x = 3$, $y$ goes from 36 to 81, a change of 45. Write the exact
+change for a step $h$:
+
+$$\Delta y = 9(2+h)^2 - 9 \cdot 2^2 = 36h + 9h^2$$
+
+The derivative accounts for the $36h$ part; the $9h^2$ part is what the linear
+approximation of §2.1 drops. At $h = 1$ the dropped part is big: $36 + 9 = 45$.
+Shrink the step and it dies faster than the kept part: $h = 0.1$ gives
+$\Delta y = 3.69$ vs the predicted $3.6$; $h = 0.01$ gives $0.3609$ vs $0.36$.
+So $\Delta y / h \to 36$ as $h \to 0$, and *that* limit is the claim
+$\frac{dy}{dx} = 36$. Gradient descent lives on this: the gradient is a
+per-unit rate that is only trustworthy for small steps, which is why learning
+rates are small.
+
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 170" role="img" aria-label="Pipeline x to z to y: forward pass computes values left to right, backward pass multiplies local rates of change right to left giving dy/dx = 12 times 3 = 36" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
   <defs>
