@@ -501,11 +501,29 @@ $J = [[2x_1, 0], [x_2, x_1]] = [[4, 0], [3, 2]]$. Step $\delta = [0.01, 0]$:
 exact $f(2.01, 3) = [4.0401,\; 6.03]$; predicted
 $f(2, 3) + J\delta = [4 + 0.04,\; 6 + 0.03] = [4.04,\; 6.03]$. ✓
 
-Chain rule for vectors: Jacobians **multiply**: $J_{f \circ g}(x) = J_f(g(x))\, J_g(x)$.
-Backprop propagates the row vector $\partial L / \partial \text{output}$ through each
-layer by multiplying by that layer's Jacobian (a *vector–Jacobian product* - the
-Jacobian itself is usually never materialized; for a hidden layer of width 4096 it
-would be 4096², per example). Examples worth knowing cold:
+Chain rule for vectors: **Jacobians multiply**. Take the two-step pipeline
+again, now with vectors: $z = g(x)$, then $y = f(z)$. Near a point, each step
+behaves like its Jacobian matrix, and applying two linear maps one after the
+other is the same as multiplying their matrices (§1.4 of the linear algebra
+notes: matrix multiplication *is* composition):
+
+$$J_{f \circ g}(x) = J_f(g(x))\, J_g(x)$$
+
+How backprop uses this. Stand at one layer and suppose the sensitivities of
+the loss to the layer's *outputs* are already known (the walk arrives from
+the right): the row vector
+$g = [\partial L / \partial \text{out}_1, \dots, \partial L / \partial \text{out}_m]$.
+The sensitivity to input $i$ is one add-rule sum - input $i$ touches every
+output:
+
+$$\frac{\partial L}{\partial \text{in}_i} = \sum_j \frac{\partial L}{\partial \text{out}_j}\,\frac{\partial \text{out}_j}{\partial \text{in}_i} = (g\,J)_i$$
+
+So the whole row vector moves one layer back in a single product,
+$g \mapsto g J$, called a **vector–Jacobian product** (VJP). The engineering
+point: $J$ is never stored as a matrix - only the product $gJ$ is ever
+computed. For a hidden layer of width 4096, $J$ would be $4096 \times 4096
+\approx 17$ million numbers *per example*; the VJP gets $gJ$ directly.
+Examples worth knowing cold:
 
 - Elementwise ReLU: Jacobian is diagonal, entries $\mathbb{1}[x_i > 0]$ - backprop
   just masks the upstream gradient.
