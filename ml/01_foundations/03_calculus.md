@@ -304,9 +304,25 @@ billion-parameter networks is feasible at all.
 
 ## 2.3 Gradients of vector/matrix expressions
 
-When $f : \mathbb{R}^n \to \mathbb{R}$ (a loss!), there are $n$ inputs you could
-change, so there are $n$ sensitivities. The **gradient** just collects them into
-a vector: $\nabla f = [\partial f / \partial x_1, \dots, \partial f / \partial x_n]$.
+Until now the input was a single number. A loss function is not like that: it
+takes *every* weight of the model at once and returns one number, the loss.
+The notation for that shape is $f : \mathbb{R}^n \to \mathbb{R}$, read "$n$
+real numbers in, one real number out."
+
+With $n$ inputs there are $n$ separate questions of the §2.1 kind: hold every
+input fixed except $x_i$, change $x_i$ by $\epsilon$, and the output changes by
+$(\partial f / \partial x_i)\,\epsilon$. That per-input sensitivity is the
+**partial derivative** $\partial f / \partial x_i$. The **gradient** collects
+all $n$ of them into a vector:
+
+$$\nabla f = [\partial f / \partial x_1, \dots, \partial f / \partial x_n]$$
+
+Tiny example: $f(x_1, x_2) = x_1^2 + 3 x_2$ at $(x_1, x_2) = (2, 5)$:
+$\partial f / \partial x_1 = 2 x_1 = 4$, $\partial f / \partial x_2 = 3$, so
+$\nabla f = [4, 3]$. Compare this with the two-use figure in §2.2: same
+formula, but there both terms depended on the *same* $x$, so the 4 and the 3
+added into one number. Here $x_1$ and $x_2$ are different inputs, so each
+keeps its own slot in the vector.
 
 Key fact: $\nabla f$ points in the direction of **steepest ascent**, and the
 argument is two lines. Step a tiny unit distance in some direction $u$; to first
