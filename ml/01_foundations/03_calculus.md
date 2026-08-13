@@ -176,6 +176,54 @@ A network is the same pipeline with more steps and more variables, and
    gradient*). The second factor $\partial u / \partial v$ is the node's
    **local derivative**, the only thing each operation must know how to compute.
 
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 520 260" role="img" aria-label="Computation graph of L equals (w x plus b) squared: forward values in boxes, the local derivative of each step on each edge in amber, and the accumulated backward derivative under each variable in red" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="bp-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
+    <marker id="bp-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f43f5e"/></marker>
+  </defs>
+  <rect x="28" y="24" width="60" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+  <text x="58" y="43" text-anchor="middle" fill="currentColor">w = 2</text>
+  <rect x="28" y="92" width="60" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+  <text x="58" y="111" text-anchor="middle" fill="currentColor">x = 3</text>
+  <rect x="170" y="170" width="60" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+  <text x="200" y="189" text-anchor="middle" fill="currentColor">b = 1</text>
+  <rect x="160" y="56" width="92" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+  <text x="206" y="75" text-anchor="middle" fill="currentColor">a = w&#183;x = 6</text>
+  <rect x="296" y="106" width="100" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+  <text x="346" y="125" text-anchor="middle" fill="currentColor">z = a + b = 7</text>
+  <rect x="424" y="106" width="88" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+  <text x="468" y="125" text-anchor="middle" fill="currentColor">L = z&#178; = 49</text>
+  <line x1="88" y1="39" x2="158" y2="66" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#bp-f)"/>
+  <line x1="88" y1="107" x2="158" y2="84" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#bp-f)"/>
+  <line x1="252" y1="75" x2="294" y2="112" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#bp-f)"/>
+  <line x1="230" y1="185" x2="298" y2="139" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#bp-f)"/>
+  <line x1="396" y1="121" x2="422" y2="121" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#bp-f)"/>
+  <g font-size="10" fill="#f59e0b">
+    <text x="140" y="36" text-anchor="middle">&#8706;a/&#8706;w = x = 3</text>
+    <text x="134" y="122" text-anchor="middle">&#8706;a/&#8706;x = w = 2</text>
+    <text x="276" y="84" text-anchor="start">&#8706;z/&#8706;a = 1</text>
+    <text x="238" y="192" text-anchor="start">&#8706;z/&#8706;b = 1</text>
+    <text x="409" y="99" text-anchor="middle">&#8706;L/&#8706;z = 2z = 14</text>
+  </g>
+  <g font-size="10" fill="#f43f5e">
+    <text x="64" y="74" text-anchor="middle">&#8706;L/&#8706;w = 14&#183;3 = 42</text>
+    <text x="64" y="140" text-anchor="middle">&#8706;L/&#8706;x = 14&#183;2 = 28</text>
+    <text x="206" y="104" text-anchor="middle">&#8706;L/&#8706;a = 14&#183;1 = 14</text>
+    <text x="200" y="220" text-anchor="middle">&#8706;L/&#8706;b = 14&#183;1 = 14</text>
+    <text x="346" y="158" text-anchor="middle">&#8706;L/&#8706;z = 1&#183;14 = 14</text>
+    <text x="468" y="158" text-anchor="middle">&#8706;L/&#8706;L = 1</text>
+  </g>
+  <line x1="430" y1="244" x2="100" y2="244" stroke="#f43f5e" marker-end="url(#bp-b)"/>
+  <text x="265" y="236" text-anchor="middle" fill="#f43f5e" font-size="10">backward walk</text>
+</svg>
+</div>
+
+*$L = (wx + b)^2$ at $w = 2$, $x = 3$, $b = 1$. Boxes: forward values. Amber:
+the local derivative of each step. Red: the backward walk - each number is the
+next red number times the amber label on the edge between them, e.g.
+$\partial L / \partial w = 14 \cdot 3 = 42$.*
+
 #### A variable used in two places
 
 The pipeline picture misses one case: a variable that feeds into *two* later
@@ -187,6 +235,42 @@ Check it on $L = x^2 + 3x$, which uses $x$ twice ($u = x^2$ and $v = 3x$, with
 $L = u + v$): the path through $u$ contributes $1 \cdot 2x$, the path through
 $v$ contributes $1 \cdot 3$, total $2x + 3$. Differentiating $L$ directly gives
 the same $2x + 3$.
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 480 240" role="img" aria-label="Computation graph of L equals x squared plus 3 x at x equals 2: x feeds two paths, u equals x squared and v equals 3 x, both feed L; the backward walk sends one contribution per path back to x and they add to 7" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="tu-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
+  </defs>
+  <rect x="30" y="96" width="64" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+  <text x="62" y="115" text-anchor="middle" fill="currentColor">x = 2</text>
+  <rect x="180" y="30" width="96" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+  <text x="228" y="49" text-anchor="middle" fill="currentColor">u = x&#178; = 4</text>
+  <rect x="180" y="168" width="96" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+  <text x="228" y="187" text-anchor="middle" fill="currentColor">v = 3x = 6</text>
+  <rect x="356" y="96" width="108" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+  <text x="410" y="115" text-anchor="middle" fill="currentColor">L = u + v = 10</text>
+  <line x1="94" y1="101" x2="178" y2="52" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#tu-f)"/>
+  <line x1="94" y1="121" x2="178" y2="172" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#tu-f)"/>
+  <line x1="276" y1="50" x2="354" y2="104" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#tu-f)"/>
+  <line x1="276" y1="183" x2="354" y2="120" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#tu-f)"/>
+  <g font-size="10" fill="#f59e0b">
+    <text x="150" y="92" text-anchor="start">&#8706;u/&#8706;x = 2x = 4</text>
+    <text x="150" y="140" text-anchor="start">&#8706;v/&#8706;x = 3</text>
+    <text x="306" y="54" text-anchor="start">&#8706;L/&#8706;u = 1</text>
+    <text x="306" y="180" text-anchor="start">&#8706;L/&#8706;v = 1</text>
+  </g>
+  <g font-size="10" fill="#f43f5e">
+    <text x="228" y="80" text-anchor="middle">&#8706;L/&#8706;u = 1</text>
+    <text x="228" y="218" text-anchor="middle">&#8706;L/&#8706;v = 1</text>
+    <text x="410" y="146" text-anchor="middle">&#8706;L/&#8706;L = 1</text>
+    <text x="80" y="158" text-anchor="middle">&#8706;L/&#8706;x = 4 + 3 = 7</text>
+  </g>
+</svg>
+</div>
+
+*$L = u + v$ with $u = x^2$ and $v = 3x$, at $x = 2$. Two contributions arrive
+back at $x$, one per path: $1 \cdot 4$ through $u$ and $1 \cdot 3$ through $v$.
+They add: $\partial L / \partial x = 7$, matching $2x + 3$ at $x = 2$.*
 
 That is all the math in backprop. Every exotic layer - attention, layernorm,
 convolutions - just needs its local derivative; the chain rule does the rest.
