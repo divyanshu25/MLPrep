@@ -318,6 +318,9 @@ all $n$ of them into a vector:
 
 $$\nabla f = [\partial f / \partial x_1, \dots, \partial f / \partial x_n]$$
 
+The symbol $\nabla$ is read "nabla" (or just "grad"); $\nabla f$ is the
+gradient vector of $f$, and it appears in every formula below.
+
 Tiny example: $f(x_1, x_2) = x_1^2 + 3 x_2$ at $(x_1, x_2) = (2, 5)$:
 $\partial f / \partial x_1 = 2 x_1 = 4$, $\partial f / \partial x_2 = 3$, so
 $\nabla f = [4, 3]$. Compare this with the two-use figure in §2.2: same
