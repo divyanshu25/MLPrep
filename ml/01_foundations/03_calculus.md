@@ -304,12 +304,14 @@ billion-parameter networks is feasible at all.
 
 ## 2.3 Gradients of vector/matrix expressions
 
-Every function differentiated so far in this file took one number in and gave
-one number out: $f(x) = x^2$, $z = 3x$. The loss of a model has a different
-shape. Its input is the full list of weights $w_1, \dots, w_n$ - change any
-one of them and the loss value moves - and its output is a single number, the
-loss. The notation for this shape is $f : \mathbb{R}^n \to \mathbb{R}$, read
-"$n$ real numbers in, one real number out."
+§2.1 differentiated functions of a single number: $f(x) = x^2$, $z = 3x$. The
+backprop graph in §2.2 already went past that without naming it:
+$L = (wx + b)^2$ takes *three* inputs $w$, $x$, $b$, and the backward walk
+produced one derivative per input (42, 28, 14). This section makes that
+situation the official object of study. A model's loss takes the full list of
+weights $w_1, \dots, w_n$ in and returns one number out. The notation for this
+shape is $f : \mathbb{R}^n \to \mathbb{R}$, read "$n$ real numbers in, one
+real number out."
 
 With $n$ inputs there are $n$ separate questions of the §2.1 kind: hold every
 input fixed except $x_i$, change $x_i$ by $\epsilon$, and the output changes by
@@ -326,16 +328,30 @@ formula, but there both terms depended on the *same* $x$, so the 4 and the 3
 added into one number. Here $x_1$ and $x_2$ are different inputs, so each
 keeps its own slot in the vector.
 
-Key fact: $\nabla f$ points in the direction of **steepest ascent**, and the
-argument is two lines. Step a tiny unit distance in some direction $u$; to first
-order (§2.1), $f$ changes by about $\nabla f \cdot u$. Which $u$ makes that change
-biggest? $\nabla f \cdot u = \|\nabla f\| \cos\theta$, maximized at $\theta = 0$:
-when $u$ points along $\nabla f$ itself (the dot product as agreement score,
-again). So the gradient is the locally-uphill direction, and gradient *descent*
-steps along $-\nabla f$, straight downhill.
+#### The gradient points straight uphill
 
-The three identities that cover 90% of ML derivations (all provable by writing out
-components - do it once by hand):
+Stand at a point and take a small step of length $\epsilon$ in some direction.
+A direction is a unit vector $u$ (so $\|u\| = 1$); the step changes input $i$
+by $\epsilon\, u_i$. Each input contributes its per-input change times its
+sensitivity, and the contributions add (§2.2, a variable used in many places):
+
+$$\Delta f \approx \sum_i \frac{\partial f}{\partial x_i}\, \epsilon\, u_i = \epsilon\, (\nabla f \cdot u)$$
+
+So the direction that raises $f$ fastest is the $u$ that maximizes
+$\nabla f \cdot u$. From the linear algebra notes,
+$\nabla f \cdot u = \|\nabla f\|\, \|u\| \cos\theta = \|\nabla f\| \cos\theta$,
+which is biggest at $\theta = 0$: $u$ pointing along $\nabla f$ itself.
+
+Check it on $\nabla f = [4, 3]$: stepping along the axis $[1, 0]$ raises $f$
+at rate $4$; along $[0, 1]$, rate $3$; along
+$u = [4, 3] / 5$, rate $4 \cdot \tfrac{4}{5} + 3 \cdot \tfrac{3}{5} = 5 =
+\|\nabla f\|$. The blend beats both axes. So the gradient is the locally
+steepest uphill direction, and gradient *descent* steps along $-\nabla f$,
+straight downhill.
+
+#### Three identities cover most of ML
+
+All three are provable by writing out components - do it once by hand:
 
 | Expression | Gradient | Sanity check (1-D) |
 |---|---|---|
@@ -343,23 +359,33 @@ components - do it once by hand):
 | $f(x) = x^\top A x$ | $\nabla f = (A + A^\top)x$ | $ax^2 \to 2ax$ |
 | $f(x) = \|x\|^2 = x^\top x$ | $\nabla f = 2x$ | $x^2 \to 2x$ |
 
-The 1-D sanity check column is the trick: matrix calculus identities are the scalar
-rules with transposes arranged so shapes work out. Worked example - linear regression,
-$L(w) = \|Xw - y\|^2$. Let $r = Xw - y$ (the residuals). Chain rule in two hops:
-the sensitivity of $L$ to $r$ is $2r$, and $r$ depends on $w$ through the linear
-map $X$. Why does a transpose appear when we combine them? Going *forward*, a
-change $\delta$ in $w$ becomes the change $X\delta$ in $r$. Going *backward*,
-sensitivity has to ride the same connections in reverse - each entry of $w$
-collects contributions from every residual it touched - and summing over the
-opposite index of $X$ is exactly what $X^\top$ does. So:
+The 1-D sanity check column is the pattern to remember: matrix calculus
+identities are the scalar rules with transposes arranged so the shapes work
+out.
+
+#### Worked example: the linear regression gradient
+
+Setup: $X$ is the $n \times d$ data matrix ($n$ examples, $d$ features), $y$
+the $n$ targets, $w$ the $d$ weights. The residual vector $r = Xw - y$ holds
+the $n$ prediction errors, and the loss is their total square:
+$L(w) = \|r\|^2$.
+
+Chain rule in two hops. Hop one: by the third table row, the sensitivity of
+$L$ to $r$ is $2r$. Hop two: $r$ depends on $w$ through the linear map $X$.
+Why does a transpose appear when the hops combine? Going *forward*, a change
+$\delta$ in $w$ becomes the change $X\delta$ in $r$. Going *backward*,
+sensitivity rides the same connections in reverse: each entry of $w$ collects
+contributions from every residual it touched (§2.2's add rule again), and
+summing over the opposite index of $X$ is exactly what $X^\top$ computes. So:
 
 $$\nabla_w L = X^\top \cdot 2r = 2 X^\top (Xw - y)$$
 
-Shape check: $X^\top$ is $d \times n$, $r$ is $n \times 1$, result $d \times 1$ = shape
-of $w$. ✓ **The gradient of a scalar loss always has the same shape as the thing you're
-differentiating with respect to** - the single most useful debugging rule in matrix
-calculus. Setting $\nabla_w L = 0$ gives the normal equations
-$X^\top X w = X^\top y$, i.e. the closed-form least-squares solution.
+Shape check: $X^\top$ is $d \times n$, $r$ is $n \times 1$, result
+$d \times 1$ = the shape of $w$. ✓ **The gradient of a scalar loss always has
+the same shape as the thing you're differentiating with respect to** - the
+single most useful debugging rule in matrix calculus. Setting
+$\nabla_w L = 0$ gives the normal equations $X^\top X w = X^\top y$, i.e. the
+closed-form least-squares solution.
 
 ## 2.4 Jacobians: the full sensitivity table
 
