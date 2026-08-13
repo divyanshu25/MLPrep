@@ -451,11 +451,14 @@ only term of the sum containing $r_i$; and $\partial r_i / \partial w_k =
 X_{ik}$ because in $r_i = \sum_j X_{ij} w_j - y_i$ the coefficient of $w_k$
 is $X_{ik}$.
 
-Now read $\sum_i X_{ik}\, r_i$ as a matrix product: it dots **column** $k$ of
-$X$ with $r$. Forward, each *row* of $X$ acts on $w$ to make a prediction;
-backward, each weight collects from its *column*, one entry per example.
-Dotting every column of $X$ against a vector is exactly the product
-$X^\top r$. Stack the $d$ components:
+Now read $\sum_i X_{ik}\, r_i$ as a matrix product. The sum has one term per
+example, and the coefficient in example $i$'s term is $X_{ik}$. Line up those
+coefficients across the sum - $X_{1k}, X_{2k}, \dots, X_{nk}$, first index
+running, second fixed at $k$ - and they are exactly **column** $k$ of $X$. So
+$\partial L / \partial w_k$ = (column $k$ of $X$) dotted with $r$. Compare the
+two directions: a *prediction* dots a **row** of $X$ with $w$; a *weight's
+derivative* dots a **column** of $X$ with $r$. Doing the column-dot for every
+$k$ at once is the product $X^\top r$. Stack the $d$ components:
 
 $$\nabla_w L = 2 X^\top r = 2 X^\top (Xw - y)$$
 
