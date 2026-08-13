@@ -304,14 +304,12 @@ billion-parameter networks is feasible at all.
 
 ## 2.3 Gradients of vector/matrix expressions
 
-§2.1 differentiated functions of a single number: $f(x) = x^2$, $z = 3x$. The
-backprop graph in §2.2 already went past that without naming it:
-$L = (wx + b)^2$ takes *three* inputs $w$, $x$, $b$, and the backward walk
-produced one derivative per input (42, 28, 14). This section makes that
-situation the official object of study. A model's loss takes the full list of
-weights $w_1, \dots, w_n$ in and returns one number out. The notation for this
-shape is $f : \mathbb{R}^n \to \mathbb{R}$, read "$n$ real numbers in, one
-real number out."
+A model's loss takes all $n$ weights in at once and returns one number:
+$L(w_1, \dots, w_n)$. The notation for this shape is
+$f : \mathbb{R}^n \to \mathbb{R}$, read "$n$ real numbers in, one real number
+out." The backprop graph in §2.2 was already one of these: $L = (wx + b)^2$
+maps three numbers to one, and the backward walk produced one derivative per
+input.
 
 With $n$ inputs there are $n$ separate questions of the §2.1 kind: hold every
 input fixed except $x_i$, change $x_i$ by $\epsilon$, and the output changes by
