@@ -352,6 +352,43 @@ $u = [4, 3] / 5$, rate $4 \cdot \tfrac{4}{5} + 3 \cdot \tfrac{3}{5} = 5 =
 steepest uphill direction, and gradient *descent* steps along $-\nabla f$,
 straight downhill.
 
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 400 270" role="img" aria-label="Unit circle of candidate step directions for gradient [4,3]: rate 4 along the x axis, 3 along the y axis, 0 perpendicular to the gradient, and 5 along the gradient direction; level lines of f run perpendicular to the gradient" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="gu-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
+    <marker id="gu-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker>
+  </defs>
+  <g stroke="currentColor" stroke-opacity="0.15">
+    <line x1="108" y1="101" x2="180" y2="197"/>
+    <line x1="136" y1="80" x2="208" y2="176"/>
+    <line x1="164" y1="59" x2="236" y2="155"/>
+    <line x1="192" y1="38" x2="264" y2="134"/>
+  </g>
+  <circle cx="140" cy="152" r="95" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="5 5"/>
+  <circle cx="140" cy="152" r="3.5" fill="currentColor"/>
+  <g stroke="currentColor" stroke-opacity="0.75">
+    <line x1="140" y1="152" x2="233" y2="152" marker-end="url(#gu-a)"/>
+    <line x1="140" y1="152" x2="140" y2="59" marker-end="url(#gu-a)"/>
+    <line x1="140" y1="152" x2="85" y2="78" marker-end="url(#gu-a)"/>
+  </g>
+  <line x1="140" y1="152" x2="216" y2="95" stroke="#10b981" stroke-width="2.5" marker-end="url(#gu-g)"/>
+  <g fill="currentColor" fill-opacity="0.8" font-size="11">
+    <text x="243" y="156" text-anchor="start">rate 4</text>
+    <text x="140" y="47" text-anchor="middle">rate 3</text>
+    <text x="76" y="64" text-anchor="middle">rate 0</text>
+  </g>
+  <text x="222" y="112" text-anchor="start" fill="#10b981" font-weight="600" font-size="11">&#8711;f direction: rate 5</text>
+  <text x="282" y="74" text-anchor="start" fill="currentColor" fill-opacity="0.5" font-size="10">level lines of f</text>
+</svg>
+</div>
+
+*Candidate steps are the unit directions (dashed circle); here
+$\nabla f = [4, 3]$. By the $\Delta f$ display, the rate along $u$ is
+$\nabla f \cdot u$: 4 along $[1, 0]$, 3 along $[0, 1]$,
+$5 = \|\nabla f\|$ along $\nabla f / \|\nabla f\|$, and 0 perpendicular to
+$\nabla f$ - which is why the level lines of $f$ (faint) run perpendicular to
+the gradient.*
+
 #### Three identities cover most of ML
 
 All three are provable by writing out components - do it once by hand:
