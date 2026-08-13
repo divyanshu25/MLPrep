@@ -184,32 +184,34 @@ A network is the same pipeline with more steps and more variables, and
   </defs>
   <g fill="none" stroke="currentColor" stroke-opacity="0.5">
     <rect x="24" y="18" width="96" height="44" rx="7"/>
-    <rect x="24" y="83" width="72" height="30" rx="7"/>
+    <rect x="24" y="83" width="96" height="44" rx="7"/>
     <rect x="24" y="148" width="96" height="44" rx="7"/>
     <rect x="220" y="76" width="112" height="44" rx="7"/>
     <rect x="400" y="76" width="92" height="44" rx="7"/>
   </g>
   <g fill="currentColor" text-anchor="middle">
     <text x="72" y="36">w = 2</text>
-    <text x="60" y="102">x = 3</text>
+    <text x="72" y="101">x = 3</text>
     <text x="72" y="166">b = 1</text>
     <text x="276" y="94">z = wx + b = 7</text>
     <text x="446" y="94">L = z&#178; = 49</text>
   </g>
   <g fill="#f43f5e" text-anchor="middle" font-size="10.5">
     <text x="72" y="54">&#8706;L/&#8706;w = 42</text>
+    <text x="72" y="119">&#8706;L/&#8706;x = 28</text>
     <text x="72" y="184">&#8706;L/&#8706;b = 14</text>
     <text x="276" y="112">&#8706;L/&#8706;z = 14</text>
     <text x="446" y="112">&#8706;L/&#8706;L = 1</text>
   </g>
   <g stroke="currentColor" stroke-opacity="0.6">
     <line x1="120" y1="40" x2="218" y2="90" marker-end="url(#bp-f)"/>
-    <line x1="96" y1="98" x2="218" y2="98" marker-end="url(#bp-f)"/>
+    <line x1="120" y1="105" x2="218" y2="100" marker-end="url(#bp-f)"/>
     <line x1="120" y1="170" x2="218" y2="106" marker-end="url(#bp-f)"/>
     <line x1="332" y1="98" x2="398" y2="98" marker-end="url(#bp-f)"/>
   </g>
   <g font-size="10" fill="#f59e0b" text-anchor="middle">
     <text x="166" y="52">&#8706;z/&#8706;w = 3</text>
+    <text x="166" y="94">&#8706;z/&#8706;x = 2</text>
     <text x="166" y="152">&#8706;z/&#8706;b = 1</text>
     <text x="365" y="66">&#8706;L/&#8706;z = 2z = 14</text>
   </g>
@@ -221,7 +223,7 @@ A network is the same pipeline with more steps and more variables, and
 *$L = (wx + b)^2$ at $w = 2$, $x = 3$, $b = 1$. Red inside a box:
 $\partial L / \partial(\text{that variable})$. Each red number is the next red
 number times the amber local derivative between them: $42 = 14 \cdot 3$,
-$14 = 14 \cdot 1$. $x$ is input data, so no gradient is needed for it.*
+$28 = 14 \cdot 2$, $14 = 14 \cdot 1$.*
 
 #### A variable used in two places
 
