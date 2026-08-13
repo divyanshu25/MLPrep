@@ -137,11 +137,25 @@ backprop.*
 Backprop is *nothing but* this, applied to a graph and organized efficiently:
 
 1. **Forward pass**: compute and cache every intermediate value.
-2. **Backward pass**: walk the graph in reverse, and at each node multiply the
-   incoming "rate of change of the loss w.r.t. my output" (the upstream gradient) by
-   the node's **local derivative**, then pass it on. Where paths merge (a variable used
-   twice), **add** the contributions - to first order, changes arriving through
-   separate paths add.
+2. **Backward pass**: compute the number $\partial L / \partial v$ for every
+   variable $v$ in the graph, walking in reverse order. The walk starts at the
+   output, where $\partial L / \partial L = 1$. Each step back is one
+   application of the chain rule: if $v$ feeds into $u$, then
+   $\partial L / \partial v = (\partial L / \partial u) \cdot (\partial u / \partial v)$.
+   The first factor is already known, because $u$ sits later in the graph and
+   the walk visited it first (deep learning libraries call it the *upstream
+   gradient*). The second factor $\partial u / \partial v$ is the node's
+   **local derivative**, the only thing each operation must know how to compute.
+
+One case is not covered yet: a variable used in *two* places. Then the chain
+rule produces one term per use, and the terms add:
+
+$$\frac{\partial L}{\partial x} = \frac{\partial L}{\partial u}\,\frac{\partial u}{\partial x} + \frac{\partial L}{\partial v}\,\frac{\partial v}{\partial x}$$
+
+Check it on $L = x^2 + 3x$, which uses $x$ twice ($u = x^2$ and $v = 3x$, with
+$L = u + v$): the path through $u$ contributes $1 \cdot 2x$, the path through
+$v$ contributes $1 \cdot 3$, total $2x + 3$. Differentiating $L$ directly gives
+the same $2x + 3$.
 
 There is no other math in backprop. Every exotic layer - attention, layernorm,
 convolutions - just needs its local derivative; the chain rule does the rest.
