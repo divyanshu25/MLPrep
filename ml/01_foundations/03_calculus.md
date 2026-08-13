@@ -482,10 +482,24 @@ closed-form least-squares solution.
 When $f : \mathbb{R}^n \to \mathbb{R}^m$ (vector in, vector out - i.e., a layer), one
 number can't describe sensitivity. The **Jacobian** is the $m \times n$ table of all of
 them: $J_{ij} = \partial f_i / \partial x_j$ - "how much does output $i$ change when I
-change input $j$?" To first order, $f(x + \delta) \approx f(x) + J\delta$: **the
-Jacobian is the local linear approximation of the layer** - the matrix that the
-function locally *is*. (Full circle to the linear algebra notes: nonlinear functions are locally
-linear maps.)
+change input $j$?"
+
+What does that table do *as a matrix*? Change the input by a small vector
+$\delta$. Output $i$ changes by $\sum_j (\partial f_i / \partial x_j)\,
+\delta_j$ - one contribution per input, added (§2.2's add rule) - and that
+sum is exactly row $i$ of the product $J\delta$. Stack the $m$ outputs:
+
+$$f(x + \delta) \approx f(x) + J\delta$$
+
+This is §2.1's tangent line $f(x+h) \approx f(x) + f'(x)\,h$ upgraded to
+vectors: near $x$, the layer adds the constant $f(x)$ and applies the matrix
+$J$ to the input change. **The Jacobian is the slope of a vector function** -
+zoomed in at a point, the nonlinear layer behaves like the linear map $J$.
+
+Check: $f(x_1, x_2) = [x_1^2,\; x_1 x_2]$ at $(2, 3)$, so
+$J = [[2x_1, 0], [x_2, x_1]] = [[4, 0], [3, 2]]$. Step $\delta = [0.01, 0]$:
+exact $f(2.01, 3) = [4.0401,\; 6.03]$; predicted
+$f(2, 3) + J\delta = [4 + 0.04,\; 6 + 0.03] = [4.04,\; 6.03]$. ✓
 
 Chain rule for vectors: Jacobians **multiply**: $J_{f \circ g}(x) = J_f(g(x))\, J_g(x)$.
 Backprop propagates the row vector $\partial L / \partial \text{output}$ through each
