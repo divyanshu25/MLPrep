@@ -304,10 +304,12 @@ billion-parameter networks is feasible at all.
 
 ## 2.3 Gradients of vector/matrix expressions
 
-Until now the input was a single number. A loss function is not like that: it
-takes *every* weight of the model at once and returns one number, the loss.
-The notation for that shape is $f : \mathbb{R}^n \to \mathbb{R}$, read "$n$
-real numbers in, one real number out."
+Every function differentiated so far in this file took one number in and gave
+one number out: $f(x) = x^2$, $z = 3x$. The loss of a model has a different
+shape. Its input is the full list of weights $w_1, \dots, w_n$ - change any
+one of them and the loss value moves - and its output is a single number, the
+loss. The notation for this shape is $f : \mathbb{R}^n \to \mathbb{R}$, read
+"$n$ real numbers in, one real number out."
 
 With $n$ inputs there are $n$ separate questions of the §2.1 kind: hold every
 input fixed except $x_i$, change $x_i$ by $\epsilon$, and the output changes by
