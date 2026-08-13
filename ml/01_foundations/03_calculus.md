@@ -98,23 +98,13 @@ $$\frac{dy}{dx} = \frac{dy}{dz} \cdot \frac{dz}{dx}$$
 
 **Rates of change multiply through a pipeline.** That's the whole theorem.
 
-Run it on a concrete pipeline: $z = 3x$, then $y = z^2$, at the point $x = 2$.
-First the forward values: $z = 3 \cdot 2 = 6$, and $y = 6^2 = 36$. Now the two
-local rates:
+Run it once with numbers: $z = 3x$, $y = z^2$, at $x = 2$ (so $z = 6$):
 
-- Inner step $z = 3x$: its derivative is $\frac{dz}{dx} = 3$. Change $x$ by
-  $\epsilon$ and $z$ changes by $3\epsilon$.
-- Outer step $y = z^2$: its derivative is $\frac{dy}{dz} = 2z$, and at the
-  forward value $z = 6$ that is $12$. Change $z$ by $\delta$ and $y$ changes by
-  $12\delta$.
+$$\frac{dz}{dx} = 3, \qquad \frac{dy}{dz} = 2z = 12, \qquad
+\frac{dy}{dx} = 12 \cdot 3 = 36$$
 
-Chain them: a change of $\epsilon$ in $x$ becomes a change of $3\epsilon$ in $z$,
-which becomes a change of $12 \cdot (3\epsilon) = 36\epsilon$ in $y$. So
-$\frac{dy}{dx} = 12 \cdot 3 = 36$.
-
-Check by a route that never uses the chain rule: substitute $z = 3x$ into
-$y = z^2$ to get the single function $y = 9x^2$, and differentiate it directly:
-$y' = 18x$, which at $x = 2$ is also $36$. Both routes agree. ✓
+Check without the chain rule: $y = (3x)^2 = 9x^2$, so $y' = 18x = 36$ at
+$x = 2$. Same answer. ✓
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 170" role="img" aria-label="Pipeline x to z to y: forward pass computes values left to right, backward pass multiplies local rates of change right to left giving dy/dx = 12 times 3 = 36" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
