@@ -314,15 +314,16 @@ Why care in ML:
 - **Optimization.** In 1-D, the second derivative is curvature: how fast the
   slope changes as you move. With $n$ weights, curvature depends on which
   direction you move in, and the **Hessian** is the matrix that stores all of
-  it: $H_{ij} = \partial^2 L / \partial w_i \partial w_j$, read as "wiggle
-  $w_j$, and watch how the slope with respect to $w_i$ changes." Each entry
-  involves exactly two weights because a second derivative is two wiggles, one
-  per differentiation - but $i$ and $j$ range over *all* $n$ weights, so $H$ is
+  it: $H_{ij} = \partial^2 L / \partial w_i \partial w_j$, read as "change
+  $w_j$ slightly, and watch how the slope with respect to $w_i$ changes." Each
+  entry involves exactly two weights because a second derivative differentiates
+  twice, once per weight - but $i$ and $j$ range over *all* $n$ weights, so $H$ is
   the full $n \times n$ table of every pair (the diagonal $H_{ii}$ is the plain
   1-D curvature along weight $i$ alone). At a minimum the
   slope is zero, so curvature is the whole local story - the loss surface is a
-  bowl whose shape $H$ describes. $H$ is symmetric (wiggling $w_i$ then $w_j$
-  is the same as the reverse), so the spectral theorem applies yet again: it
+  bowl whose shape $H$ describes. $H$ is symmetric (differentiating with
+  respect to $w_i$ then $w_j$ gives the same value as the reverse order), so
+  the spectral theorem applies yet again: it
   has orthogonal eigen-directions, and each eigenvalue is the curvature along
   its direction - big $\lambda$ is a steep wall, small $\lambda$ a nearly flat
   floor. The ratio $\lambda_{max}/\lambda_{min}$ (the **condition number**)

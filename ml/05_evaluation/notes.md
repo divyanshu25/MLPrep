@@ -341,7 +341,7 @@ Read it out loud:
   infinitely many training sets to average over. Systematic error from the model
   family being too rigid. A degree-1 polynomial fit to a sine wave has high bias no
   matter how much data you give it.
-- **Variance**: how much does the fit *wiggle* across training sets - sensitivity to
+- **Variance**: how much does the fit *vary* across training sets - sensitivity to
   which particular sample you got. A degree-15 polynomial through 20 noisy points
   changes wildly with each resample.
 - **$\sigma^2$**: label noise. No model beats this; test MSE below $\sigma^2$ means

@@ -3,13 +3,13 @@
 ## 2.1 The derivative is local sensitivity
 
 Forget limits-as-ritual. The derivative answers one concrete question:
-**if I wiggle the input a tiny bit, how much does the output wiggle?**
+**if I change the input by a small amount, how much does the output change?**
 
 $$f'(x) \approx \frac{f(x + h) - f(x)}{h} \quad \text{for tiny } h$$
 
 Take $f(x) = x^2$ at $x = 3$: $f(3) = 9$, $f(3.001) = 9.006001$. Output moved by
-$0.006001$ for an input wiggle of $0.001$ → sensitivity $\approx 6.001 \approx 6 = 2x$.
-The derivative is the **exchange rate between input wiggles and output wiggles**.
+$0.006001$ for an input change of $0.001$ → sensitivity $\approx 6.001 \approx 6 = 2x$.
+The derivative is the **exchange rate between input changes and output changes**.
 Equivalently: zoom in far enough and every smooth function is a straight line;
 $f'$ is that line's slope: $f(x + h) \approx f(x) + f'(x) h$.
 
@@ -37,10 +37,10 @@ $f'$ is that line's slope: $f(x + h) \approx f(x) + f'(x) h$.
 output rises by about $f'(x)\,h$; the tiny gap between tangent and curve is the
 $O(h^2)$ error that vanishes as you zoom in.*
 
-This wiggle view is *the* mental model for training: the gradient of the loss w.r.t. a
-weight says "if I nudge this weight up by $\epsilon$, the loss changes by (gradient)
-$\times \epsilon$." Gradient descent just nudges every weight in whichever direction
-lowers the loss, proportional to its sensitivity.
+This sensitivity reading of the derivative is *the* mental model for training: the
+gradient of the loss w.r.t. a weight says "if I increase this weight by $\epsilon$,
+the loss changes by (gradient) $\times \epsilon$." Gradient descent moves every
+weight in whichever direction lowers the loss, proportional to its sensitivity.
 
 **Numerics aside: two ways to estimate a derivative in code.** The formula at the
 top of this section is the **forward** difference $\frac{f(x+h) - f(x)}{h}$. There is a
@@ -90,18 +90,34 @@ gradient checker, implemented in `gradients_from_scratch.ipynb`.
 
 ## 2.2 The chain rule is the ONLY thing backprop needs
 
-Compose two functions: $z = g(x)$, then $y = f(z)$. Wiggle $x$ by $\epsilon$; $z$
-wiggles by $g'(x)\,\epsilon$; that wiggle in $z$ makes $y$ wiggle by
+Compose two functions: $z = g(x)$, then $y = f(z)$. Change $x$ by $\epsilon$; then
+$z$ changes by $g'(x)\,\epsilon$; that change in $z$ in turn changes $y$ by
 $f'(z) \cdot g'(x)\, \epsilon$. So:
 
 $$\frac{dy}{dx} = \frac{dy}{dz} \cdot \frac{dz}{dx}$$
 
-**Wiggle rates multiply through a pipeline.** That's the whole theorem. Concrete:
-$y = (3x)^2$ at $x = 2$: inner rate 3, outer rate $2z = 12$, total $36$. Check
-directly: $y = 9x^2$, $y' = 18x = 36$. ✓
+**Rates of change multiply through a pipeline.** That's the whole theorem.
+
+Run it on a concrete pipeline: $z = 3x$, then $y = z^2$, at the point $x = 2$.
+First the forward values: $z = 3 \cdot 2 = 6$, and $y = 6^2 = 36$. Now the two
+local rates:
+
+- Inner step $z = 3x$: its derivative is $\frac{dz}{dx} = 3$. Change $x$ by
+  $\epsilon$ and $z$ changes by $3\epsilon$.
+- Outer step $y = z^2$: its derivative is $\frac{dy}{dz} = 2z$, and at the
+  forward value $z = 6$ that is $12$. Change $z$ by $\delta$ and $y$ changes by
+  $12\delta$.
+
+Chain them: a change of $\epsilon$ in $x$ becomes a change of $3\epsilon$ in $z$,
+which becomes a change of $12 \cdot (3\epsilon) = 36\epsilon$ in $y$. So
+$\frac{dy}{dx} = 12 \cdot 3 = 36$.
+
+Check by a route that never uses the chain rule: substitute $z = 3x$ into
+$y = z^2$ to get the single function $y = 9x^2$, and differentiate it directly:
+$y' = 18x$, which at $x = 2$ is also $36$. Both routes agree. ✓
 
 <div style="margin:1.25rem 0">
-<svg viewBox="0 0 340 170" role="img" aria-label="Pipeline x to z to y: forward pass computes values left to right, backward pass multiplies local wiggle rates right to left giving dy/dx = 12 times 3 = 36" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
+<svg viewBox="0 0 340 170" role="img" aria-label="Pipeline x to z to y: forward pass computes values left to right, backward pass multiplies local rates of change right to left giving dy/dx = 12 times 3 = 36" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
   <defs>
     <marker id="p7-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
     <marker id="p7-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f43f5e"/></marker>
@@ -132,9 +148,10 @@ Backprop is *nothing but* this, applied to a graph and organized efficiently:
 
 1. **Forward pass**: compute and cache every intermediate value.
 2. **Backward pass**: walk the graph in reverse, and at each node multiply the
-   incoming "wiggle rate of the loss w.r.t. my output" (the upstream gradient) by the
-   node's **local derivative**, then pass it on. Where paths merge (a variable used
-   twice), **add** the contributions - because independent wiggle paths superpose.
+   incoming "rate of change of the loss w.r.t. my output" (the upstream gradient) by
+   the node's **local derivative**, then pass it on. Where paths merge (a variable used
+   twice), **add** the contributions - to first order, changes arriving through
+   separate paths add.
 
 There is no other math in backprop. Every exotic layer - attention, layernorm,
 convolutions - just needs its local derivative; the chain rule does the rest.
@@ -146,12 +163,12 @@ reason deep learning is computationally feasible.
 ## 2.3 Gradients of vector/matrix expressions
 
 When $f : \mathbb{R}^n \to \mathbb{R}$ (a loss!), there are $n$ inputs you could
-wiggle, so there are $n$ sensitivities. The **gradient** just collects them into
+change, so there are $n$ sensitivities. The **gradient** just collects them into
 a vector: $\nabla f = [\partial f / \partial x_1, \dots, \partial f / \partial x_n]$.
 
 Key fact: $\nabla f$ points in the direction of **steepest ascent**, and the
-argument is two lines. Step a tiny unit distance in some direction $u$; by the
-wiggle view, $f$ changes by about $\nabla f \cdot u$. Which $u$ makes that change
+argument is two lines. Step a tiny unit distance in some direction $u$; to first
+order (§2.1), $f$ changes by about $\nabla f \cdot u$. Which $u$ makes that change
 biggest? $\nabla f \cdot u = \|\nabla f\| \cos\theta$, maximized at $\theta = 0$:
 when $u$ points along $\nabla f$ itself (the dot product as agreement score,
 again). So the gradient is the locally-uphill direction, and gradient *descent*
@@ -171,7 +188,7 @@ rules with transposes arranged so shapes work out. Worked example - linear regre
 $L(w) = \|Xw - y\|^2$. Let $r = Xw - y$ (the residuals). Chain rule in two hops:
 the sensitivity of $L$ to $r$ is $2r$, and $r$ depends on $w$ through the linear
 map $X$. Why does a transpose appear when we combine them? Going *forward*, a
-wiggle $\delta$ in $w$ becomes the wiggle $X\delta$ in $r$. Going *backward*,
+change $\delta$ in $w$ becomes the change $X\delta$ in $r$. Going *backward*,
 sensitivity has to ride the same connections in reverse - each entry of $w$
 collects contributions from every residual it touched - and summing over the
 opposite index of $X$ is exactly what $X^\top$ does. So:
@@ -184,12 +201,12 @@ differentiating with respect to** - the single most useful debugging rule in mat
 calculus. Setting $\nabla_w L = 0$ gives the normal equations
 $X^\top X w = X^\top y$, i.e. the closed-form least-squares solution.
 
-## 2.4 Jacobians: the full wiggle table
+## 2.4 Jacobians: the full sensitivity table
 
 When $f : \mathbb{R}^n \to \mathbb{R}^m$ (vector in, vector out - i.e., a layer), one
 number can't describe sensitivity. The **Jacobian** is the $m \times n$ table of all of
-them: $J_{ij} = \partial f_i / \partial x_j$ - "how much does output $i$ wiggle when I
-wiggle input $j$?" To first order, $f(x + \delta) \approx f(x) + J\delta$: **the
+them: $J_{ij} = \partial f_i / \partial x_j$ - "how much does output $i$ change when I
+change input $j$?" To first order, $f(x + \delta) \approx f(x) + J\delta$: **the
 Jacobian is the local linear approximation of the layer** - the matrix that the
 function locally *is*. (Full circle to the linear algebra notes: nonlinear functions are locally
 linear maps.)
