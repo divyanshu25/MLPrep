@@ -433,19 +433,39 @@ version of $a^\top x$ is $ax$, whose derivative is $a$.)
 #### Worked example: the linear regression gradient
 
 Setup: $X$ is the $n \times d$ data matrix ($n$ examples, $d$ features), $y$
-the $n$ targets, $w$ the $d$ weights. The residual vector $r = Xw - y$ holds
-the $n$ prediction errors, and the loss is their total square:
-$L(w) = \|r\|^2$.
+the $n$ targets, $w$ the $d$ weights. Example $i$'s prediction is row $i$ of
+$X$ dotted with $w$, its error is the **residual**
+$r_i = \sum_j X_{ij} w_j - y_i$, and the loss adds the squared errors:
 
-Chain rule in two hops. Hop one: by the third table row, the sensitivity of
-$L$ to $r$ is $2r$. Hop two: $r$ depends on $w$ through the linear map $X$.
-Why does a transpose appear when the hops combine? Going *forward*, a change
-$\delta$ in $w$ becomes the change $X\delta$ in $r$. Going *backward*,
-sensitivity rides the same connections in reverse: each entry of $w$ collects
-contributions from every residual it touched (§2.2's add rule again), and
-summing over the opposite index of $X$ is exactly what $X^\top$ computes. So:
+$$L(w) = \sum_i r_i^2 = \|Xw - y\|^2$$
 
-$$\nabla_w L = X^\top \cdot 2r = 2 X^\top (Xw - y)$$
+Differentiate with respect to one weight $w_k$. Every example's prediction
+uses $w_k$, so $w_k$ appears in every residual - by §2.2's add rule, the
+contributions add across examples, and each contribution is one chain rule
+step, (sensitivity of $L$ to $r_i$) times (sensitivity of $r_i$ to $w_k$):
+
+$$\frac{\partial L}{\partial w_k} = \sum_i \frac{\partial L}{\partial r_i}\,\frac{\partial r_i}{\partial w_k} = \sum_i 2 r_i \cdot X_{ik}$$
+
+The two factors: $\partial L / \partial r_i = 2 r_i$ because $r_i^2$ is the
+only term of the sum containing $r_i$; and $\partial r_i / \partial w_k =
+X_{ik}$ because in $r_i = \sum_j X_{ij} w_j - y_i$ the coefficient of $w_k$
+is $X_{ik}$.
+
+Now read $\sum_i X_{ik}\, r_i$ as a matrix product: it dots **column** $k$ of
+$X$ with $r$. Forward, each *row* of $X$ acts on $w$ to make a prediction;
+backward, each weight collects from its *column*, one entry per example.
+Dotting every column of $X$ against a vector is exactly the product
+$X^\top r$. Stack the $d$ components:
+
+$$\nabla_w L = 2 X^\top r = 2 X^\top (Xw - y)$$
+
+That column-versus-row switch is the whole reason a transpose appears in
+backward formulas.
+
+Tiny check: $X = [[1, 2], [3, 4]]$, $y = [1, 0]$, $w = [1, 1]$. Residuals
+$r = [1 + 2 - 1,\; 3 + 4 - 0] = [2, 7]$, and
+$2 X^\top r = 2\,[1 \cdot 2 + 3 \cdot 7,\; 2 \cdot 2 + 4 \cdot 7] = [46, 64]$,
+matching the finite-difference gradient of $L$.
 
 Shape check: $X^\top$ is $d \times n$, $r$ is $n \times 1$, result
 $d \times 1$ = the shape of $w$. ✓ **The gradient of a scalar loss always has
