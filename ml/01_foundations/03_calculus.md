@@ -177,52 +177,51 @@ A network is the same pipeline with more steps and more variables, and
    **local derivative**, the only thing each operation must know how to compute.
 
 <div style="margin:1.25rem 0">
-<svg viewBox="0 0 520 260" role="img" aria-label="Computation graph of L equals (w x plus b) squared: forward values in boxes, the local derivative of each step on each edge in amber, and the accumulated backward derivative under each variable in red" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
+<svg viewBox="0 0 500 210" role="img" aria-label="Computation graph of L equals (w x plus b) squared: boxes hold the forward value and, in red, the derivative of the loss with respect to that variable; amber edge labels are local derivatives" style="max-width:520px;width:100%;height:auto;font-size:12px;font-family:inherit">
   <defs>
     <marker id="bp-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
     <marker id="bp-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f43f5e"/></marker>
   </defs>
-  <rect x="28" y="24" width="60" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
-  <text x="58" y="43" text-anchor="middle" fill="currentColor">w = 2</text>
-  <rect x="28" y="92" width="60" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
-  <text x="58" y="111" text-anchor="middle" fill="currentColor">x = 3</text>
-  <rect x="170" y="170" width="60" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
-  <text x="200" y="189" text-anchor="middle" fill="currentColor">b = 1</text>
-  <rect x="160" y="56" width="92" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
-  <text x="206" y="75" text-anchor="middle" fill="currentColor">a = w&#183;x = 6</text>
-  <rect x="296" y="106" width="100" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
-  <text x="346" y="125" text-anchor="middle" fill="currentColor">z = a + b = 7</text>
-  <rect x="424" y="106" width="88" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
-  <text x="468" y="125" text-anchor="middle" fill="currentColor">L = z&#178; = 49</text>
-  <line x1="88" y1="39" x2="158" y2="66" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#bp-f)"/>
-  <line x1="88" y1="107" x2="158" y2="84" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#bp-f)"/>
-  <line x1="252" y1="75" x2="294" y2="112" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#bp-f)"/>
-  <line x1="230" y1="185" x2="298" y2="139" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#bp-f)"/>
-  <line x1="396" y1="121" x2="422" y2="121" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#bp-f)"/>
-  <g font-size="10" fill="#f59e0b">
-    <text x="140" y="36" text-anchor="middle">&#8706;a/&#8706;w = x = 3</text>
-    <text x="134" y="122" text-anchor="middle">&#8706;a/&#8706;x = w = 2</text>
-    <text x="276" y="84" text-anchor="start">&#8706;z/&#8706;a = 1</text>
-    <text x="238" y="192" text-anchor="start">&#8706;z/&#8706;b = 1</text>
-    <text x="409" y="99" text-anchor="middle">&#8706;L/&#8706;z = 2z = 14</text>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5">
+    <rect x="24" y="18" width="96" height="44" rx="7"/>
+    <rect x="24" y="83" width="72" height="30" rx="7"/>
+    <rect x="24" y="148" width="96" height="44" rx="7"/>
+    <rect x="220" y="76" width="112" height="44" rx="7"/>
+    <rect x="400" y="76" width="92" height="44" rx="7"/>
   </g>
-  <g font-size="10" fill="#f43f5e">
-    <text x="64" y="74" text-anchor="middle">&#8706;L/&#8706;w = 14&#183;3 = 42</text>
-    <text x="64" y="140" text-anchor="middle">&#8706;L/&#8706;x = 14&#183;2 = 28</text>
-    <text x="206" y="104" text-anchor="middle">&#8706;L/&#8706;a = 14&#183;1 = 14</text>
-    <text x="200" y="220" text-anchor="middle">&#8706;L/&#8706;b = 14&#183;1 = 14</text>
-    <text x="346" y="158" text-anchor="middle">&#8706;L/&#8706;z = 1&#183;14 = 14</text>
-    <text x="468" y="158" text-anchor="middle">&#8706;L/&#8706;L = 1</text>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="72" y="36">w = 2</text>
+    <text x="60" y="102">x = 3</text>
+    <text x="72" y="166">b = 1</text>
+    <text x="276" y="94">z = wx + b = 7</text>
+    <text x="446" y="94">L = z&#178; = 49</text>
   </g>
-  <line x1="430" y1="244" x2="100" y2="244" stroke="#f43f5e" marker-end="url(#bp-b)"/>
-  <text x="265" y="236" text-anchor="middle" fill="#f43f5e" font-size="10">backward walk</text>
+  <g fill="#f43f5e" text-anchor="middle" font-size="10.5">
+    <text x="72" y="54">&#8706;L/&#8706;w = 42</text>
+    <text x="72" y="184">&#8706;L/&#8706;b = 14</text>
+    <text x="276" y="112">&#8706;L/&#8706;z = 14</text>
+    <text x="446" y="112">&#8706;L/&#8706;L = 1</text>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.6">
+    <line x1="120" y1="40" x2="218" y2="90" marker-end="url(#bp-f)"/>
+    <line x1="96" y1="98" x2="218" y2="98" marker-end="url(#bp-f)"/>
+    <line x1="120" y1="170" x2="218" y2="106" marker-end="url(#bp-f)"/>
+    <line x1="332" y1="98" x2="398" y2="98" marker-end="url(#bp-f)"/>
+  </g>
+  <g font-size="10" fill="#f59e0b" text-anchor="middle">
+    <text x="166" y="52">&#8706;z/&#8706;w = 3</text>
+    <text x="166" y="152">&#8706;z/&#8706;b = 1</text>
+    <text x="365" y="66">&#8706;L/&#8706;z = 2z = 14</text>
+  </g>
+  <line x1="410" y1="198" x2="110" y2="198" stroke="#f43f5e" marker-end="url(#bp-b)"/>
+  <text x="260" y="190" text-anchor="middle" fill="#f43f5e" font-size="10">backward walk</text>
 </svg>
 </div>
 
-*$L = (wx + b)^2$ at $w = 2$, $x = 3$, $b = 1$. Boxes: forward values. Amber:
-the local derivative of each step. Red: the backward walk - each number is the
-next red number times the amber label on the edge between them, e.g.
-$\partial L / \partial w = 14 \cdot 3 = 42$.*
+*$L = (wx + b)^2$ at $w = 2$, $x = 3$, $b = 1$. Red inside a box:
+$\partial L / \partial(\text{that variable})$. Each red number is the next red
+number times the amber local derivative between them: $42 = 14 \cdot 3$,
+$14 = 14 \cdot 1$. $x$ is input data, so no gradient is needed for it.*
 
 #### A variable used in two places
 
@@ -237,33 +236,37 @@ $v$ contributes $1 \cdot 3$, total $2x + 3$. Differentiating $L$ directly gives
 the same $2x + 3$.
 
 <div style="margin:1.25rem 0">
-<svg viewBox="0 0 480 240" role="img" aria-label="Computation graph of L equals x squared plus 3 x at x equals 2: x feeds two paths, u equals x squared and v equals 3 x, both feed L; the backward walk sends one contribution per path back to x and they add to 7" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
+<svg viewBox="0 0 460 240" role="img" aria-label="Computation graph of L equals x squared plus 3 x at x equals 2: x feeds two paths that both reach L, and the two backward contributions add at x" style="max-width:480px;width:100%;height:auto;font-size:12px;font-family:inherit">
   <defs>
     <marker id="tu-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
   </defs>
-  <rect x="30" y="96" width="64" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
-  <text x="62" y="115" text-anchor="middle" fill="currentColor">x = 2</text>
-  <rect x="180" y="30" width="96" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
-  <text x="228" y="49" text-anchor="middle" fill="currentColor">u = x&#178; = 4</text>
-  <rect x="180" y="168" width="96" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
-  <text x="228" y="187" text-anchor="middle" fill="currentColor">v = 3x = 6</text>
-  <rect x="356" y="96" width="108" height="30" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
-  <text x="410" y="115" text-anchor="middle" fill="currentColor">L = u + v = 10</text>
-  <line x1="94" y1="101" x2="178" y2="52" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#tu-f)"/>
-  <line x1="94" y1="121" x2="178" y2="172" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#tu-f)"/>
-  <line x1="276" y1="50" x2="354" y2="104" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#tu-f)"/>
-  <line x1="276" y1="183" x2="354" y2="120" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#tu-f)"/>
-  <g font-size="10" fill="#f59e0b">
-    <text x="150" y="92" text-anchor="start">&#8706;u/&#8706;x = 2x = 4</text>
-    <text x="150" y="140" text-anchor="start">&#8706;v/&#8706;x = 3</text>
-    <text x="306" y="54" text-anchor="start">&#8706;L/&#8706;u = 1</text>
-    <text x="306" y="180" text-anchor="start">&#8706;L/&#8706;v = 1</text>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5">
+    <rect x="24" y="98" width="120" height="44" rx="7"/>
+    <rect x="196" y="24" width="100" height="44" rx="7"/>
+    <rect x="196" y="172" width="100" height="44" rx="7"/>
+    <rect x="346" y="98" width="112" height="44" rx="7"/>
   </g>
-  <g font-size="10" fill="#f43f5e">
-    <text x="228" y="80" text-anchor="middle">&#8706;L/&#8706;u = 1</text>
-    <text x="228" y="218" text-anchor="middle">&#8706;L/&#8706;v = 1</text>
-    <text x="410" y="146" text-anchor="middle">&#8706;L/&#8706;L = 1</text>
-    <text x="80" y="158" text-anchor="middle">&#8706;L/&#8706;x = 4 + 3 = 7</text>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="84" y="116">x = 2</text>
+    <text x="246" y="42">u = x&#178; = 4</text>
+    <text x="246" y="190">v = 3x = 6</text>
+    <text x="402" y="116">L = u + v = 10</text>
+  </g>
+  <g fill="#f43f5e" text-anchor="middle" font-size="10.5">
+    <text x="84" y="134">&#8706;L/&#8706;x = 4 + 3 = 7</text>
+    <text x="246" y="60">&#8706;L/&#8706;u = 1</text>
+    <text x="246" y="208">&#8706;L/&#8706;v = 1</text>
+    <text x="402" y="134">&#8706;L/&#8706;L = 1</text>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.6">
+    <line x1="144" y1="106" x2="194" y2="52" marker-end="url(#tu-f)"/>
+    <line x1="144" y1="136" x2="194" y2="188" marker-end="url(#tu-f)"/>
+    <line x1="296" y1="52" x2="344" y2="104" marker-end="url(#tu-f)"/>
+    <line x1="296" y1="190" x2="344" y2="136" marker-end="url(#tu-f)"/>
+  </g>
+  <g font-size="10" fill="#f59e0b" text-anchor="end">
+    <text x="164" y="74">&#8706;u/&#8706;x = 4</text>
+    <text x="164" y="174">&#8706;v/&#8706;x = 3</text>
   </g>
 </svg>
 </div>
@@ -274,11 +277,28 @@ They add: $\partial L / \partial x = 7$, matching $2x + 3$ at $x = 2$.*
 
 That is all the math in backprop. Every exotic layer - attention, layernorm,
 convolutions - just needs its local derivative; the chain rule does the rest.
-Why walk backward rather than forward? A network has many weights ($n$ inputs)
-and one scalar loss. The backward walk computes all $n$ numbers
-$\partial L / \partial w_i$ in one sweep, at roughly the cost of one forward
-pass; a forward walk would need one sweep per weight, $n$ of them. That
-asymmetry is the entire reason deep learning is computationally feasible.
+
+#### Why walk the graph backward?
+
+The chain rule can be walked in either direction, and the two directions
+answer different questions.
+
+- **Forward walk**: pick *one* weight, say $w_1$, and push its rate left to
+  right through the graph: compute $\partial v / \partial w_1$ for every
+  variable $v$, until $\partial L / \partial w_1$ comes out at the end. One
+  walk answers "how does everything respond to $w_1$?" But training needs
+  $\partial L / \partial w_i$ for *all* $n$ weights, and this walk delivered
+  it for one weight. Getting all of them costs $n$ walks.
+- **Backward walk**: start at the loss and walk right to left, computing
+  $\partial L / \partial v$ for every variable $v$ (the recipe above). One
+  walk answers "how does $L$ respond to everything?" That is exactly the
+  question training asks - and the answer for all $n$ weights comes out of
+  the *single* walk.
+
+Each walk costs roughly one pass over the graph. So for a model with a billion
+weights: a billion forward walks, or one backward walk. That asymmetry - many
+inputs, one scalar loss - is why backprop goes backward, and why training
+billion-parameter networks is feasible at all.
 
 ## 2.3 Gradients of vector/matrix expressions
 
