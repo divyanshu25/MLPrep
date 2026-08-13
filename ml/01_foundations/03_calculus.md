@@ -389,19 +389,46 @@ $5 = \|\nabla f\|$ along $\nabla f / \|\nabla f\|$, and 0 perpendicular to
 $\nabla f$ - which is why the level lines of $f$ (faint) run perpendicular to
 the gradient.*
 
-#### Three identities cover most of ML
+#### Three gradient identities cover most of ML
 
-All three are provable by writing out components - do it once by hand:
+ML losses are built from three recurring expression shapes:
 
-| Expression | Gradient | Sanity check (1-D) |
+- the **weighted sum** $a^\top x = a_1 x_1 + \dots + a_n x_n$ - every linear
+  model's prediction has this form;
+- the **quadratic form** $x^\top A x = \sum_{i,j} A_{ij}\, x_i x_j$ - the
+  shape of curvature terms like $w^\top H w$ with the Hessian;
+- the **squared norm** $\|x\|^2 = x_1^2 + \dots + x_n^2$ - every squared
+  error and every L2 regularizer.
+
+Their gradients come from writing out components and taking the partial
+derivatives one at a time:
+
+- $f = a_1 x_1 + \dots + a_n x_n$: each $x_i$ appears once, with coefficient
+  $a_i$, so $\partial f / \partial x_i = a_i$. Stack them: $\nabla f = a$.
+- $f = x_1^2 + \dots + x_n^2$: only the $x_i^2$ term involves $x_i$, so
+  $\partial f / \partial x_i = 2 x_i$. Stack them: $\nabla f = 2x$.
+- $f = \sum_{i,j} A_{ij}\, x_i x_j$: the variable $x_k$ appears in the terms
+  with $i = k$ (a row's worth) and the terms with $j = k$ (a column's worth),
+  giving $\partial f / \partial x_k = \sum_j A_{kj} x_j + \sum_i A_{ik} x_i =
+  (Ax)_k + (A^\top x)_k$. Stack them: $\nabla f = (A + A^\top) x$.
+
+Numeric check of the third, $A = [[1, 2], [3, 4]]$: written out,
+$x^\top A x = x_1^2 + 5 x_1 x_2 + 4 x_2^2$, whose partials are
+$[2 x_1 + 5 x_2,\; 5 x_1 + 8 x_2]$ - exactly $(A + A^\top) x$ with
+$A + A^\top = [[2, 5], [5, 8]]$. ✓
+
+The summary to memorize:
+
+| Expression | Gradient | Same rule in 1-D |
 |---|---|---|
 | $f(x) = a^\top x$ | $\nabla f = a$ | $ax \to a$ |
 | $f(x) = x^\top A x$ | $\nabla f = (A + A^\top)x$ | $ax^2 \to 2ax$ |
 | $f(x) = \|x\|^2 = x^\top x$ | $\nabla f = 2x$ | $x^2 \to 2x$ |
 
-The 1-D sanity check column is the pattern to remember: matrix calculus
-identities are the scalar rules with transposes arranged so the shapes work
-out.
+The last column is the memory aid: pretend every vector is a single number,
+differentiate with high-school rules, and the matrix version is that answer
+with transposes arranged so the shapes work out. ($ax \to a$ means: the 1-D
+version of $a^\top x$ is $ax$, whose derivative is $a$.)
 
 #### Worked example: the linear regression gradient
 
