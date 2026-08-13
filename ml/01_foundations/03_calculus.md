@@ -184,34 +184,32 @@ A network is the same pipeline with more steps and more variables, and
   </defs>
   <g fill="none" stroke="currentColor" stroke-opacity="0.5">
     <rect x="24" y="18" width="96" height="44" rx="7"/>
-    <rect x="24" y="83" width="96" height="44" rx="7"/>
+    <rect x="24" y="83" width="72" height="30" rx="7"/>
     <rect x="24" y="148" width="96" height="44" rx="7"/>
     <rect x="220" y="76" width="112" height="44" rx="7"/>
     <rect x="400" y="76" width="92" height="44" rx="7"/>
   </g>
   <g fill="currentColor" text-anchor="middle">
     <text x="72" y="36">w = 2</text>
-    <text x="72" y="101">x = 3</text>
+    <text x="60" y="102">x = 3</text>
     <text x="72" y="166">b = 1</text>
     <text x="276" y="94">z = wx + b = 7</text>
     <text x="446" y="94">L = z&#178; = 49</text>
   </g>
   <g fill="#f43f5e" text-anchor="middle" font-size="10.5">
     <text x="72" y="54">&#8706;L/&#8706;w = 42</text>
-    <text x="72" y="119">&#8706;L/&#8706;x = 28</text>
     <text x="72" y="184">&#8706;L/&#8706;b = 14</text>
     <text x="276" y="112">&#8706;L/&#8706;z = 14</text>
     <text x="446" y="112">&#8706;L/&#8706;L = 1</text>
   </g>
   <g stroke="currentColor" stroke-opacity="0.6">
     <line x1="120" y1="40" x2="218" y2="90" marker-end="url(#bp-f)"/>
-    <line x1="120" y1="105" x2="218" y2="100" marker-end="url(#bp-f)"/>
+    <line x1="96" y1="98" x2="218" y2="98" marker-end="url(#bp-f)"/>
     <line x1="120" y1="170" x2="218" y2="106" marker-end="url(#bp-f)"/>
     <line x1="332" y1="98" x2="398" y2="98" marker-end="url(#bp-f)"/>
   </g>
   <g font-size="10" fill="#f59e0b" text-anchor="middle">
     <text x="166" y="52">&#8706;z/&#8706;w = 3</text>
-    <text x="166" y="94">&#8706;z/&#8706;x = 2</text>
     <text x="166" y="152">&#8706;z/&#8706;b = 1</text>
     <text x="365" y="66">&#8706;L/&#8706;z = 2z = 14</text>
   </g>
@@ -223,22 +221,22 @@ A network is the same pipeline with more steps and more variables, and
 *$L = (wx + b)^2$ at $w = 2$, $x = 3$, $b = 1$. Red inside a box:
 $\partial L / \partial(\text{that variable})$. Each red number is the next red
 number times the amber local derivative between them: $42 = 14 \cdot 3$,
-$28 = 14 \cdot 2$, $14 = 14 \cdot 1$.*
+$14 = 14 \cdot 1$. $x$ is data, not a parameter, so the walk skips it.*
 
 #### A variable used in two places
 
 The pipeline picture misses one case: a variable that feeds into *two* later
 steps. Then the chain rule produces one term per use, and the terms add:
 
-$$\frac{\partial L}{\partial x} = \frac{\partial L}{\partial u}\,\frac{\partial u}{\partial x} + \frac{\partial L}{\partial v}\,\frac{\partial v}{\partial x}$$
+$$\frac{\partial L}{\partial w} = \frac{\partial L}{\partial u}\,\frac{\partial u}{\partial w} + \frac{\partial L}{\partial v}\,\frac{\partial v}{\partial w}$$
 
-Check it on $L = x^2 + 3x$, which uses $x$ twice ($u = x^2$ and $v = 3x$, with
-$L = u + v$): the path through $u$ contributes $1 \cdot 2x$, the path through
-$v$ contributes $1 \cdot 3$, total $2x + 3$. Differentiating $L$ directly gives
-the same $2x + 3$.
+Check it on $L = w^2 + 3w$, which uses the weight $w$ twice ($u = w^2$ and
+$v = 3w$, with $L = u + v$): the path through $u$ contributes $1 \cdot 2w$,
+the path through $v$ contributes $1 \cdot 3$, total $2w + 3$. Differentiating
+$L$ directly gives the same $2w + 3$.
 
 <div style="margin:1.25rem 0">
-<svg viewBox="0 0 460 240" role="img" aria-label="Computation graph of L equals x squared plus 3 x at x equals 2: x feeds two paths that both reach L, and the two backward contributions add at x" style="max-width:480px;width:100%;height:auto;font-size:12px;font-family:inherit">
+<svg viewBox="0 0 460 240" role="img" aria-label="Computation graph of L equals w squared plus 3 w at w equals 2: w feeds two paths that both reach L, and the two backward contributions add at w" style="max-width:480px;width:100%;height:auto;font-size:12px;font-family:inherit">
   <defs>
     <marker id="tu-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
   </defs>
@@ -249,13 +247,13 @@ the same $2x + 3$.
     <rect x="346" y="98" width="112" height="44" rx="7"/>
   </g>
   <g fill="currentColor" text-anchor="middle">
-    <text x="84" y="116">x = 2</text>
-    <text x="246" y="42">u = x&#178; = 4</text>
-    <text x="246" y="190">v = 3x = 6</text>
+    <text x="84" y="116">w = 2</text>
+    <text x="246" y="42">u = w&#178; = 4</text>
+    <text x="246" y="190">v = 3w = 6</text>
     <text x="402" y="116">L = u + v = 10</text>
   </g>
   <g fill="#f43f5e" text-anchor="middle" font-size="10.5">
-    <text x="84" y="134">&#8706;L/&#8706;x = 4 + 3 = 7</text>
+    <text x="84" y="134">&#8706;L/&#8706;w = 4 + 3 = 7</text>
     <text x="246" y="60">&#8706;L/&#8706;u = 1</text>
     <text x="246" y="208">&#8706;L/&#8706;v = 1</text>
     <text x="402" y="134">&#8706;L/&#8706;L = 1</text>
@@ -267,15 +265,15 @@ the same $2x + 3$.
     <line x1="296" y1="190" x2="344" y2="136" marker-end="url(#tu-f)"/>
   </g>
   <g font-size="10" fill="#f59e0b" text-anchor="end">
-    <text x="164" y="74">&#8706;u/&#8706;x = 4</text>
-    <text x="164" y="174">&#8706;v/&#8706;x = 3</text>
+    <text x="164" y="74">&#8706;u/&#8706;w = 4</text>
+    <text x="164" y="174">&#8706;v/&#8706;w = 3</text>
   </g>
 </svg>
 </div>
 
-*$L = u + v$ with $u = x^2$ and $v = 3x$, at $x = 2$. Two contributions arrive
-back at $x$, one per path: $1 \cdot 4$ through $u$ and $1 \cdot 3$ through $v$.
-They add: $\partial L / \partial x = 7$, matching $2x + 3$ at $x = 2$.*
+*$L = u + v$ with $u = w^2$ and $v = 3w$, at $w = 2$. One contribution per
+path arrives back at $w$: $1 \cdot 4$ through $u$ and $1 \cdot 3$ through $v$.
+They add: $\partial L / \partial w = 7$, matching $2w + 3$ at $w = 2$.*
 
 That is all the math in backprop. Every exotic layer - attention, layernorm,
 convolutions - just needs its local derivative; the chain rule does the rest.
@@ -308,8 +306,8 @@ A model's loss takes all $n$ weights in at once and returns one number:
 $L(w_1, \dots, w_n)$. The notation for this shape is
 $f : \mathbb{R}^n \to \mathbb{R}$, read "$n$ real numbers in, one real number
 out." The backprop graph in §2.2 was already one of these: $L = (wx + b)^2$
-maps three numbers to one, and the backward walk produced one derivative per
-input.
+takes three numbers in and returns one, and the backward walk produced a
+gradient for each of its two parameters, $w$ and $b$.
 
 With $n$ inputs there are $n$ separate questions of the §2.1 kind: hold every
 input fixed except $x_i$, change $x_i$ by $\epsilon$, and the output changes by
@@ -322,9 +320,9 @@ $$\nabla f = [\partial f / \partial x_1, \dots, \partial f / \partial x_n]$$
 Tiny example: $f(x_1, x_2) = x_1^2 + 3 x_2$ at $(x_1, x_2) = (2, 5)$:
 $\partial f / \partial x_1 = 2 x_1 = 4$, $\partial f / \partial x_2 = 3$, so
 $\nabla f = [4, 3]$. Compare this with the two-use figure in §2.2: same
-formula, but there both terms depended on the *same* $x$, so the 4 and the 3
-added into one number. Here $x_1$ and $x_2$ are different inputs, so each
-keeps its own slot in the vector.
+formula, but there both terms depended on the *same* variable $w$, so the 4
+and the 3 added into one number. Here $x_1$ and $x_2$ are different inputs,
+so each keeps its own slot in the vector.
 
 #### The gradient points straight uphill
 
