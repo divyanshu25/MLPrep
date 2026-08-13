@@ -88,38 +88,34 @@ Shrink to $h = 0.001$: the forward error becomes $0.0030$ (10× smaller), the ce
 error becomes $0.000001$ (100× smaller). The centered difference is the standard
 gradient checker, implemented in `gradients_from_scratch.ipynb`.
 
-## 2.2 The chain rule is the ONLY thing backprop needs
+## 2.2 The chain rule: differentiating a pipeline
 
-Compose two functions: $z = g(x)$, then $y = f(z)$. Change $x$ by $\epsilon$; then
-$z$ changes by $g'(x)\,\epsilon$; that change in $z$ in turn changes $y$ by
-$f'(z) \cdot g'(x)\, \epsilon$. So:
+A neural network computes its loss through a pipeline of steps: weights →
+layer 1 → layer 2 → ... → loss. Training needs $\partial L / \partial w$ for
+every weight $w$, which means differentiating *through* a pipeline. The chain
+rule is the rule for that, and it is the only rule backprop uses. This section
+builds it on the smallest possible pipeline, then scales it up.
+
+#### The rule
+
+The smallest pipeline has two steps: $z = g(x)$, then $y = f(z)$. Change $x$ by
+$\epsilon$. By §2.1, $z$ changes by $g'(x)\,\epsilon$. That change in $z$ then
+changes $y$ by $f'(z)$ times it: $f'(z)\,g'(x)\,\epsilon$. So the rate of $y$
+per unit change of $x$ is the product of the two step rates:
 
 $$\frac{dy}{dx} = \frac{dy}{dz} \cdot \frac{dz}{dx}$$
 
 **Rates of change multiply through a pipeline.** That's the whole theorem.
 
-Run it once with numbers: $z = 3x$, $y = z^2$, at $x = 2$ (so $z = 6$):
+#### Run it with numbers
+
+$z = 3x$, $y = z^2$, at $x = 2$ (so $z = 6$):
 
 $$\frac{dz}{dx} = 3, \qquad \frac{dy}{dz} = 2z = 12, \qquad
 \frac{dy}{dx} = 12 \cdot 3 = 36$$
 
 Check without the chain rule: $y = (3x)^2 = 9x^2$, so $y' = 18x = 36$ at
 $x = 2$. Same answer. ✓
-
-What does $\frac{dy}{dx} = 36$ mean? Not "step $x$ by 1 and $y$ moves by 36":
-from $x = 2$ to $x = 3$, $y$ goes from 36 to 81, a change of 45. Write the exact
-change for a step $h$:
-
-$$\Delta y = 9(2+h)^2 - 9 \cdot 2^2 = 36h + 9h^2$$
-
-The derivative accounts for the $36h$ part; the $9h^2$ part is what the linear
-approximation of §2.1 drops. At $h = 1$ the dropped part is big: $36 + 9 = 45$.
-Shrink the step and it dies faster than the kept part: $h = 0.1$ gives
-$\Delta y = 3.69$ vs the predicted $3.6$; $h = 0.01$ gives $0.3609$ vs $0.36$.
-So $\Delta y / h \to 36$ as $h \to 0$, and *that* limit is the claim
-$\frac{dy}{dx} = 36$. Gradient descent lives on this: the gradient is a
-per-unit rate that is only trustworthy for small steps, which is why learning
-rates are small.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 170" role="img" aria-label="Pipeline x to z to y: forward pass computes values left to right, backward pass multiplies local rates of change right to left giving dy/dx = 12 times 3 = 36" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -146,10 +142,28 @@ rates are small.
 </div>
 
 *Forward (top): compute values left to right. Backward (red): multiply local
-rates right to left. That right-to-left sweep, applied to a whole graph, is
-backprop.*
+rates right to left.*
 
-Backprop is *nothing but* this, applied to a graph and organized efficiently:
+#### What dy/dx = 36 means (and what it does not)
+
+Not "step $x$ by 1 and $y$ moves by 36": from $x = 2$ to $x = 3$, $y$ goes from
+36 to 81, a change of 45. Write the exact change for a step $h$:
+
+$$\Delta y = 9(2+h)^2 - 9 \cdot 2^2 = 36h + 9h^2$$
+
+The derivative accounts for the $36h$ part; the $9h^2$ part is what the linear
+approximation of §2.1 drops. At $h = 1$ the dropped part is big: $36 + 9 = 45$.
+Shrink the step and it dies faster than the kept part: $h = 0.1$ gives
+$\Delta y = 3.69$ vs the predicted $3.6$; $h = 0.01$ gives $0.3609$ vs $0.36$.
+So $\Delta y / h \to 36$ as $h \to 0$, and *that* limit is the claim
+$\frac{dy}{dx} = 36$. Gradient descent lives on this: the gradient is a
+per-unit rate that is only trustworthy for small steps, which is why learning
+rates are small.
+
+#### Backprop: the chain rule walked over a whole graph
+
+A network is the same pipeline with more steps and more variables, and
+**backprop** is the chain rule applied to it in an organized way:
 
 1. **Forward pass**: compute and cache every intermediate value.
 2. **Backward pass**: compute the number $\partial L / \partial v$ for every
@@ -162,8 +176,10 @@ Backprop is *nothing but* this, applied to a graph and organized efficiently:
    gradient*). The second factor $\partial u / \partial v$ is the node's
    **local derivative**, the only thing each operation must know how to compute.
 
-One case is not covered yet: a variable used in *two* places. Then the chain
-rule produces one term per use, and the terms add:
+#### A variable used in two places
+
+The pipeline picture misses one case: a variable that feeds into *two* later
+steps. Then the chain rule produces one term per use, and the terms add:
 
 $$\frac{\partial L}{\partial x} = \frac{\partial L}{\partial u}\,\frac{\partial u}{\partial x} + \frac{\partial L}{\partial v}\,\frac{\partial v}{\partial x}$$
 
@@ -172,12 +188,13 @@ $L = u + v$): the path through $u$ contributes $1 \cdot 2x$, the path through
 $v$ contributes $1 \cdot 3$, total $2x + 3$. Differentiating $L$ directly gives
 the same $2x + 3$.
 
-There is no other math in backprop. Every exotic layer - attention, layernorm,
+That is all the math in backprop. Every exotic layer - attention, layernorm,
 convolutions - just needs its local derivative; the chain rule does the rest.
-Why backward and not forward? With many parameters ($n$ inputs, 1 scalar loss),
-reverse mode computes all $n$ sensitivities in one backward sweep at roughly the cost
-of one forward pass; forward mode would need $n$ sweeps. That asymmetry is the entire
-reason deep learning is computationally feasible.
+Why walk backward rather than forward? A network has many weights ($n$ inputs)
+and one scalar loss. The backward walk computes all $n$ numbers
+$\partial L / \partial w_i$ in one sweep, at roughly the cost of one forward
+pass; a forward walk would need one sweep per weight, $n$ of them. That
+asymmetry is the entire reason deep learning is computationally feasible.
 
 ## 2.3 Gradients of vector/matrix expressions
 
