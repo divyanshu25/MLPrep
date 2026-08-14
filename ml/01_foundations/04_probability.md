@@ -119,10 +119,14 @@ that way - assembling the group would require already knowing who is sick,
 which is the very question. Bayes rule computes the unmeasurable direction
 from the measurable one plus the prior.
 
-The classic trap (run it with raw counts, as in `probability_demos.ipynb`): a disease has
-prevalence 1%, the test has 99% sensitivity and 95% specificity. You test positive -
-what's the chance you're sick? Take 10,000 people: 100 sick → 99 true positives;
-9,900 healthy → 5% false positive rate → 495 false positives. Positive tests: $99 +
+The classic trap (run it with raw counts, as in `probability_demos.ipynb`):
+a disease has **prevalence** 1% - one person in 100 has it. The test's
+quality is stated as two conditional probabilities: **sensitivity**
+$= P(+ \mid \text{sick}) = 99\%$, how often it flags a sick person, and
+**specificity** $= P(- \mid \text{healthy}) = 95\%$, how often it clears a
+healthy person - so 5% of healthy people get a false positive. You test
+positive - what's the chance you're sick? Take 10,000 people: 100 sick →
+99 true positives; 9,900 healthy → 5% false positives → 495 of them. Positive tests: $99 +
 495 = 594$; sick among them: $99 / 594 \approx 16.7\%$. Not 99%. The prior (rarity of
 the disease) dominates because false positives come from a *huge* pool. In ML terms:
 this is precision under class imbalance - exactly why accuracy is a useless metric for
