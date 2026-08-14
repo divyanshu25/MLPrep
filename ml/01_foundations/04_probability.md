@@ -321,9 +321,15 @@ $$\sum_k y_{ik} \log p_\theta(k \mid x_i) = 0 \cdot \log p_\theta(1 \mid x_i) + 
 
 which is exactly $\log p_\theta(y_i \mid x_i)$, that example's term on the
 left. The one-hot vector is a selector: the zeros delete the wrong-class
-terms, the single 1 keeps the true-class term. So per example the double sum
-collapses to the single term, and the two sides are the same sum written two
-ways. The right-hand side is the **cross-entropy**
+terms, the single 1 keeps the true-class term.
+
+The same holds for every example, so the two sides of the displayed identity
+match example by example. In the two-photo dataset: the left side is
+$-(\log 0.7 + \log 0.2)$ directly, and the right side is $-($photo 1's inner
+sum$)$ $- ($photo 2's inner sum$)$, which collapse to the same
+$-\log 0.7$ and $-\log 0.2$. Same numbers per example, same total.
+
+The right-hand side is the **cross-entropy**
 $-\sum_k q_k \log p_k$ between two distributions, with the target
 distribution $q$ set to the one-hot label. So: **minimizing cross-entropy =
 maximizing the log-probability the model assigns to the true labels.**
