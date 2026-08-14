@@ -168,6 +168,56 @@ The first test moved the probability from 1% to 17%, the second from 17% to
 80%: each piece of evidence updates the current belief, and the names
 "prior" and "posterior" are relative to where you stand in that chain.
 
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 520 240" role="img" aria-label="Three bars showing the probability of being sick rising from 1 percent before any test to 17 percent after one positive test to 80 percent after a second positive test, with the population counts under each bar" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="ch-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
+  </defs>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.4">
+    <rect x="60" y="40" width="44" height="130" rx="3"/>
+    <rect x="230" y="40" width="44" height="130" rx="3"/>
+    <rect x="400" y="40" width="44" height="130" rx="3"/>
+  </g>
+  <g fill="#10b981">
+    <rect x="60" y="168" width="44" height="2"/>
+    <rect x="230" y="148" width="44" height="22"/>
+    <rect x="400" y="66" width="44" height="104"/>
+  </g>
+  <g fill="currentColor" text-anchor="middle" font-weight="600">
+    <text x="82" y="30">1%</text>
+    <text x="252" y="30">17%</text>
+    <text x="422" y="30">80%</text>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.6">
+    <line x1="112" y1="105" x2="222" y2="105" marker-end="url(#ch-f)"/>
+    <line x1="282" y1="105" x2="392" y2="105" marker-end="url(#ch-f)"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.7" text-anchor="middle" font-size="10.5">
+    <text x="167" y="96">test 1: positive</text>
+    <text x="337" y="96">test 2: positive</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.8" text-anchor="middle" font-size="10.5">
+    <text x="82" y="190">before any test</text>
+    <text x="252" y="190">after test 1</text>
+    <text x="422" y="190">after test 2</text>
+    <text x="82" y="206">100 sick / 10,000</text>
+    <text x="252" y="206">99 sick / 594</text>
+    <text x="422" y="206">98 sick / 123</text>
+  </g>
+  <g fill="#6366f1" text-anchor="middle" font-size="10">
+    <text x="82" y="224">prior</text>
+    <text x="252" y="224">posterior of test 1 = prior of test 2</text>
+    <text x="422" y="224">posterior of test 2</text>
+  </g>
+</svg>
+</div>
+
+*$P(\text{sick})$ at each stage, green portion of each bar. Every update
+keeps only the people consistent with the new evidence: 10,000 shrink to the
+594 who tested positive, then to the 123 who tested positive twice - and the
+sick share of the survivors climbs from 1% to 17% to 80%. The middle number
+wears both names: posterior of the first test, prior of the second.*
+
 ## 3.3 MLE, and why minimizing cross-entropy IS maximum likelihood
 
 #### The principle
