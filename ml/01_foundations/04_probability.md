@@ -111,10 +111,13 @@ observed evidence (concrete values from the disease example below):
 - The denominator $P(B)$: the overall probability of the evidence, from all
   causes. Below: $594/10{,}000$ people test positive.
 
-The value of the rule is its direction. The likelihood is the measurable
-quantity: run the test on people known to be sick and count. But the question
-you face runs the other way: "I tested positive - am I sick?" Bayes rule
-converts the measurable direction into the wanted one, weighted by the prior.
+Why this rule is worth having: $P(B \mid A)$ and $P(A \mid B)$ are different
+numbers (here 99% and 17%), and only the first can be measured directly. A
+lab estimates $P(+ \mid \text{sick})$ by running the test on people already
+known to be sick and counting. Nobody can measure $P(\text{sick} \mid +)$
+that way - assembling the group would require already knowing who is sick,
+which is the very question. Bayes rule computes the unmeasurable direction
+from the measurable one plus the prior.
 
 The classic trap (run it with raw counts, as in `probability_demos.ipynb`): a disease has
 prevalence 1%, the test has 99% sensitivity and 95% specificity. You test positive -
