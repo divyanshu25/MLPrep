@@ -412,6 +412,42 @@ loss comes out:
   $-\log p(y \mid x) = \frac{|y - f_\theta(x)|}{b} + \text{const}$, an
   absolute error. MLE under Laplace noise is **L1 loss**.
 
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 520 220" role="img" aria-label="Left: Gaussian and Laplace noise densities. Right: their minus log curves, a parabola for the Gaussian giving MSE and a V shape for the Laplace giving L1 loss" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <g fill="currentColor" fill-opacity="0.7" text-anchor="middle" font-size="10.5">
+    <text x="130" y="24">noise density p(&#949;)</text>
+    <text x="390" y="24">loss = &#8722;log p(&#949;) + const</text>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.4">
+    <line x1="20" y1="190" x2="240" y2="190"/>
+    <line x1="280" y1="190" x2="500" y2="190"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.6" text-anchor="middle" font-size="10">
+    <text x="130" y="204">0</text>
+    <text x="390" y="204">0</text>
+    <text x="246" y="194" text-anchor="start">&#949;</text>
+    <text x="506" y="194" text-anchor="start">&#949;</text>
+  </g>
+  <polyline points="20,188.8 38.3,185.2 56.7,175.3 75,154.8 93.3,124.2 111.7,94.2 130,81.5 148.3,94.2 166.7,124.2 185,154.8 203.3,175.3 221.7,185.2 240,188.8" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <polyline points="20,183.2 38.3,178.8 56.7,171.6 75,159.7 93.3,140 111.7,107.5 130,54 148.3,107.5 166.7,140 185,159.7 203.3,171.6 221.7,178.8 240,183.2" fill="none" stroke="#10b981" stroke-width="2.5"/>
+  <line x1="24" y1="44" x2="44" y2="44" stroke="#6366f1" stroke-width="2.5"/>
+  <text x="48" y="48" fill="#6366f1" font-size="10.5">Gaussian</text>
+  <line x1="24" y1="62" x2="44" y2="62" stroke="#10b981" stroke-width="2.5"/>
+  <text x="48" y="66" fill="#10b981" font-size="10.5">Laplace</text>
+  <polyline points="280,43.3 298.3,88.1 316.7,124.8 335,153.3 353.3,173.7 371.7,185.9 390,190 408.3,185.9 426.7,173.7 445,153.3 463.3,124.8 481.7,88.1 500,43.3" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <polyline points="280,92.2 390,190 500,92.2" fill="none" stroke="#10b981" stroke-width="2.5"/>
+  <text x="350" y="54" text-anchor="middle" fill="#6366f1" font-size="10.5">&#949;&#178;/2: MSE</text>
+  <text x="437" y="54" text-anchor="middle" fill="#10b981" font-size="10.5">|&#949;|: L1</text>
+</svg>
+</div>
+
+*Left: two candidate noise distributions on matching scales - the Gaussian
+bell, and the Laplace with its sharper peak and heavier tails. Right: their
+$-\log$ densities, which are the per-example losses. The Gaussian's is the
+parabola $\varepsilon^2/2$ (MSE); the Laplace's is the V shape
+$|\varepsilon|$ (L1). The shape of the loss is the noise assumption, made
+visible.*
+
 So picking a regression loss *is* picking a noise model. When an interviewer
 asks "why this loss?", the answer is: it is the negative log-likelihood
 under this output/noise model.
