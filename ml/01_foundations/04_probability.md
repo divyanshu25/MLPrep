@@ -346,16 +346,26 @@ true class - and charges $-\log(\text{that bar})$. A confident correct answer
 means making the green bars tall, which is making the observed labels
 probable.*
 
-Why is this a principled loss rather than a convention? Compute the
-*likelihood* of the same dataset, as in the principle above: the probability
-the model assigned to what actually happened is $0.7$ to photo 1 being a
-cat, times $0.2$ to photo 2 being a dog:
+Why is this a principled loss rather than a convention? Ask a different
+question about the same dataset: what probability did the model give to
+*both observed labels together*? It gave $0.7$ to photo 1's label and $0.2$
+to photo 2's label, so (examples independent) the probability of the pair is
+the product - the likelihood from the principle above:
 
-$$L = 0.7 \cdot 0.2 = 0.14, \qquad -\log L = -\log 0.7 - \log 0.2 = 0.36 + 1.61 = 1.97$$
+$$L = 0.7 \cdot 0.2 = 0.14$$
 
-The same $1.97$. That is not a coincidence of this example - it is an
-identity. Write the one-hot label of example $i$ as $y_{ik}$ ($1$ if the
-true class is $k$, else $0$). The selector argument from above, per example:
+Take $-\log$, and the product becomes a sum:
+
+$$-\log L = -\log 0.7 - \log 0.2 = 0.36 + 1.61 = 1.97$$
+
+These are the cross-entropy's per-example charges, term for term. Nothing
+new was computed, and that is the finding: the numbers cross-entropy was
+already adding are exactly the $-\log$ of the likelihood's factors. **The
+loss you minimize is the negative log of the probability the model assigns
+to the observed labels.**
+
+In general: write the one-hot label of example $i$ as $y_{ik}$ ($1$ if the
+true class is $k$, else $0$). Per example:
 
 $$-\sum_k y_{ik} \log p_\theta(k \mid x_i) = -\log p_\theta(y_i \mid x_i)$$
 
