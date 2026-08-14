@@ -141,6 +141,16 @@ rare-event detection and why a 99%-accurate fraud model can be garbage.
 is small (100 people), so the 495 false positives from the 9,900 healthy
 people outnumber the 99 true positives five to one.*
 
+Bayes rule chains: **today's posterior is tomorrow's prior.** Suppose the
+positive patient takes the test again, independently, and it is positive
+again. Apply the rule a second time, starting from the first result's
+posterior: of the 99 sick positives, 99% test positive again, about 98
+people; of the 495 healthy false positives, 5% do, about 25 people. So
+$P(\text{sick} \mid \text{two positives}) = 98 / (98 + 25) \approx 80\%$.
+The first test moved the probability from 1% to 17%, the second from 17% to
+80%: each piece of evidence updates the current belief, and the names
+"prior" and "posterior" are relative to where you stand in that chain.
+
 ## 3.3 MLE, and why minimizing cross-entropy IS maximum likelihood
 
 #### The principle
