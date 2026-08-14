@@ -613,6 +613,44 @@ both at once is $sJ = [11, 12]$, the VJP.*
   dense Jacobian and the loss's numerically dangerous $1/p_i$ factor cancel,
   and the whole backward step collapses to $p - y$.
 
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 520 190" role="img" aria-label="Softmax followed by cross-entropy on three classes: forward boxes compute probabilities and the loss; the step-by-step backward path through 1 over p and the dense Jacobian is skipped, replaced by the single fused step p minus y" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="sm-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
+    <marker id="sm-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f43f5e"/></marker>
+    <marker id="sm-d" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" fill-opacity="0.35"/></marker>
+  </defs>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5">
+    <rect x="24" y="34" width="130" height="44" rx="7"/>
+    <rect x="192" y="34" width="140" height="44" rx="7"/>
+    <rect x="370" y="34" width="126" height="44" rx="7"/>
+  </g>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="89" y="52">logits</text>
+    <text x="89" y="70">z = [2, 0, 1]</text>
+    <text x="262" y="52">softmax</text>
+    <text x="262" y="70">p &#8776; [.67, .09, .24]</text>
+    <text x="433" y="52">cross-entropy</text>
+    <text x="433" y="70">L = &#8722;log p1 &#8776; .41</text>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.6">
+    <line x1="154" y1="56" x2="190" y2="56" marker-end="url(#sm-f)"/>
+    <line x1="332" y1="56" x2="368" y2="56" marker-end="url(#sm-f)"/>
+  </g>
+  <line x1="470" y1="108" x2="60" y2="108" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="5 5" marker-end="url(#sm-d)"/>
+  <text x="265" y="100" text-anchor="middle" fill="currentColor" fill-opacity="0.5" font-size="10">step-by-step (skipped): multiply by 1/p1, then by the dense 3&#215;3 J</text>
+  <line x1="470" y1="152" x2="60" y2="152" stroke="#f43f5e" stroke-width="2" marker-end="url(#sm-b)"/>
+  <text x="265" y="144" text-anchor="middle" fill="#f43f5e" font-size="10.5" font-weight="600">fused: &#8706;L/&#8706;z = p &#8722; y &#8776; [&#8722;.33, .09, .24]</text>
+</svg>
+</div>
+
+*Three classes, logits $z = [2, 0, 1]$, true class 1 so $y = [1, 0, 0]$.
+Forward: $p \approx [.67, .09, .24]$, $L = -\log p_1 \approx 0.41$. The
+step-by-step backward walk would multiply by $1/p_1$ and then by the dense
+$3 \times 3$ Jacobian; the fused step computes
+$\partial L / \partial z = p - y \approx [-.33, .09, .24]$ directly - one
+subtraction.*
+
 #### Vanishing and exploding gradients
 
 The backward signal is a product of
