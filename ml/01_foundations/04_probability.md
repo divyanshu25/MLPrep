@@ -273,22 +273,27 @@ derivative-equals-zero computation picks out.*
 
 #### Cross-entropy is MLE for a classifier
 
-Now the instance that runs every classifier. Three classes (cat, dog, bird)
-and two training photos; the model's output for an input is one probability
-per class (a softmax over its scores):
+**Cross-entropy** is the loss classifiers actually train with. For a target
+distribution $q$ and a predicted distribution $p$ over $K$ classes it is
+defined as
 
-- Photo 1 is a **cat**. The model outputs $[0.7, 0.2, 0.1]$ for (cat, dog, bird).
-- Photo 2 is a **dog**. The model outputs $[0.5, 0.2, 0.3]$.
+$$H(q, p) = -\sum_k q_k \log p_k$$
 
-The likelihood of this dataset is the probability the model assigned to what
-actually happened: $0.7$ to photo 1 being a cat, times $0.2$ to photo 2 being
-a dog:
+In classification the target is the **one-hot** label: $q_k = 1$ for the
+true class and $0$ for every other class. Multiplying by 0 deletes a term
+and multiplying by 1 keeps it, so per example the sum keeps a single term,
+and the loss is $-\log(\text{probability the model put on the true class})$.
 
-$$L = 0.7 \cdot 0.2 = 0.14, \qquad -\log L = -\log 0.7 - \log 0.2 = 0.36 + 1.61 = 1.97$$
+Run it on a concrete dataset: three classes (cat, dog, bird), two training
+photos, and a model that outputs one probability per class (a softmax over
+its scores):
 
-Each example contributes $-\log(\text{probability on its true class})$, and
-nothing else: the wrong-class entries matter only because probabilities sum
-to 1, so mass placed on them is mass taken from the true class.
+- Photo 1 is a **cat**. The model outputs $[0.7, 0.2, 0.1]$ for (cat, dog,
+  bird). Loss term: $-\log 0.7 = 0.36$.
+- Photo 2 is a **dog**. The model outputs $[0.5, 0.2, 0.3]$. Loss term:
+  $-\log 0.2 = 1.61$.
+
+Total cross-entropy: $0.36 + 1.61 = 1.97$.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 255" role="img" aria-label="Two examples with three-class probability bars: the loss reads only the true class bar of each example, contributing minus log of that probability; the contributions add to the cross-entropy" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -341,35 +346,30 @@ true class - and charges $-\log(\text{that bar})$. A confident correct answer
 means making the green bars tall, which is making the observed labels
 probable.*
 
-For a general dataset the same computation is
-$-\sum_i \log p_\theta(y_i \mid x_i)$: one term per example, the
-log-probability of its true class - the two red terms above were exactly
-this.
+Why is this a principled loss rather than a convention? Compute the
+*likelihood* of the same dataset, as in the principle above: the probability
+the model assigned to what actually happened is $0.7$ to photo 1 being a
+cat, times $0.2$ to photo 2 being a dog:
 
-One rewriting step turns it into the textbook loss. Encode each label as a
-**one-hot** vector: $y_{ik} = 1$ if example $i$'s true class is $k$, and $0$
-otherwise, so photo 1's label is $(1, 0, 0)$. Multiplying by 1 keeps a term
-and multiplying by 0 deletes it, so "the log-probability of the true class"
-becomes a sum over *all* classes:
+$$L = 0.7 \cdot 0.2 = 0.14, \qquad -\log L = -\log 0.7 - \log 0.2 = 0.36 + 1.61 = 1.97$$
 
-$$\log p_\theta(y_i \mid x_i) = \sum_k y_{ik} \log p_\theta(k \mid x_i)$$
+The same $1.97$. That is not a coincidence of this example - it is an
+identity. Write the one-hot label of example $i$ as $y_{ik}$ ($1$ if the
+true class is $k$, else $0$). The selector argument from above, per example:
 
-For photo 1 the right side reads
-$1 \cdot \log 0.7 + 0 \cdot \log 0.2 + 0 \cdot \log 0.1 = \log 0.7$:
-the one-hot vector selects the true-class term and nothing changes. Sum over
-examples and negate:
+$$-\sum_k y_{ik} \log p_\theta(k \mid x_i) = -\log p_\theta(y_i \mid x_i)$$
 
-$$-\sum_i \log p_\theta(y_i \mid x_i) = -\sum_i \sum_k y_{ik} \log p_\theta(k \mid x_i)$$
+(photo 1: $-(1 \cdot \log 0.7 + 0 \cdot \log 0.2 + 0 \cdot \log 0.1) =
+-\log 0.7$). Sum over examples:
 
-The right-hand side is the **cross-entropy** $-\sum_k q_k \log p_k$ between
-two distributions, with the target distribution $q$ set to the one-hot
-label. So: **minimizing cross-entropy = maximizing the log-probability the
-model assigns to the true labels.** Cross-entropy isn't an arbitrary "good
-loss"; for one-hot labels it *equals* the negative log-likelihood, i.e. it
-is MLE for a categorical output. (The two concepts stay distinct in general:
-with soft targets such as label smoothing, $q = [0.9, 0.05, 0.05]$, the
-cross-entropy formula still applies but is no longer the log-likelihood of
-any observed label.)
+$$\underbrace{-\sum_i \sum_k y_{ik} \log p_\theta(k \mid x_i)}_{\text{cross-entropy loss}} \;=\; \underbrace{-\sum_i \log p_\theta(y_i \mid x_i)}_{\text{negative log-likelihood}}$$
+
+So **minimizing cross-entropy = maximizing the likelihood of the observed
+labels**. Cross-entropy isn't an arbitrary "good loss"; for one-hot labels
+it *equals* the negative log-likelihood, i.e. it is MLE for a categorical
+output. (The identity needs one-hot targets: with soft targets such as label
+smoothing, $q = [0.9, 0.05, 0.05]$, the cross-entropy formula still applies
+but is no longer the log-likelihood of any observed label.)
 
 #### The same pattern gives the regression losses
 
