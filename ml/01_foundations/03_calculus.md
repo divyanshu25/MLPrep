@@ -589,13 +589,29 @@ both at once is $sJ = [11, 12]$, the VJP.*
 
 #### Three Jacobians worth knowing cold
 
-- Elementwise ReLU: Jacobian is diagonal, entries $\mathbb{1}[x_i > 0]$ - backprop
-  just masks the upstream gradient.
-- Linear layer $f(x) = Wx$: Jacobian w.r.t. $x$ is exactly $W$; the backward
-  step is $s \mapsto sW$ with $s$ the upstream row vector (written with
-  columns, $s \mapsto W^\top s$ - the same statement transposed).
-- Softmax: $J_{ij} = p_i(\delta_{ij} - p_j)$ - dense, which is why softmax is always
-  fused with cross-entropy (see exercises: the fused gradient collapses to $p - y$).
+- **Elementwise ReLU**: $\text{ReLU}(x)_i = \max(0, x_i)$, applied to each
+  entry separately. Output $i$ depends only on input $i$, so $J_{ij} = 0$
+  whenever $i \neq j$: the Jacobian is **diagonal**. The diagonal entry is
+  the derivative of $\max(0, x_i)$: 1 if $x_i > 0$, 0 if $x_i < 0$. (The
+  notation $\mathbb{1}[x_i > 0]$ means exactly that: 1 when the condition
+  holds, 0 otherwise.) So the backward step $s \mapsto sJ$ just zeroes the
+  entries of $s$ where the input was negative: with $x = [0.5, -1.2]$ and
+  $s = [7, 9]$, back goes $[7, 0]$.
+- **Linear layer** $f(x) = Wx$: output $j$ is $\sum_i W_{ji}\, x_i$, so
+  $\partial \text{out}_j / \partial \text{in}_i = W_{ji}$ - the Jacobian *is*
+  $W$. The backward step is $s \mapsto sW$ with $s$ the upstream row vector
+  (written with columns, $s \mapsto W^\top s$ - the same statement
+  transposed).
+- **Softmax** turns logits $z$ into probabilities
+  $p_i = e^{z_i} / \sum_j e^{z_j}$. Every output shares the same denominator,
+  so every output depends on every input, and no entry of $J$ is zero: the
+  Jacobian is **dense**, with no ReLU-style shortcut. The entries are
+  $J_{ij} = p_i(\delta_{ij} - p_j)$, where $\delta_{ij}$ is 1 if $i = j$ and
+  0 otherwise (derived step by step in exercise 9). In practice softmax is
+  immediately followed by the cross-entropy loss, and frameworks
+  differentiate the *combined* function instead of chaining through $J$: the
+  dense Jacobian and the loss's numerically dangerous $1/p_i$ factor cancel,
+  and the whole backward step collapses to $p - y$.
 
 #### Vanishing and exploding gradients
 
