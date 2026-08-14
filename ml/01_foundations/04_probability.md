@@ -223,9 +223,11 @@ wears both names: posterior of the first test, prior of the second.*
 #### The principle
 
 **Maximum likelihood estimation**: given data and a model family $p_\theta$,
-choose the $\theta$ that makes the observed data most probable. The notation
-$\arg\max_\theta$ means "the value of $\theta$ at which the expression is
-largest":
+choose the $\theta$ that makes the observed data most probable. "Likelihood"
+is §3.2's word: the probability of the observed evidence given a hypothesis.
+Here the hypothesis is a parameter value $\theta$, and the evidence is the
+dataset. The notation $\arg\max_\theta$ means "the value of $\theta$ at
+which the expression is largest":
 
 $$\hat\theta = \arg\max_\theta \prod_{i=1}^n p_\theta(y_i \mid x_i)
              = \arg\max_\theta \sum_{i=1}^n \log p_\theta(y_i \mid x_i)$$
@@ -235,11 +237,45 @@ which input is largest. The log form is the one used in practice: it turns
 the product into a sum, which is numerically stable and differentiable term
 by term.
 
+#### The smallest instance: a coin
+
+One parameter, closed-form answer. A coin has unknown heads probability $p$;
+you observe $h$ heads in $n$ flips. The log-likelihood of that data is
+
+$$\log L(p) = h \log p + (n - h)\log(1-p)$$
+
+Differentiate and set to zero: $\frac{h}{p} = \frac{n-h}{1-p}$, so
+$\hat p = h/n$ - the empirical frequency. (Verified numerically in
+`probability_demos.ipynb`.)
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 360 235" role="img" aria-label="Log likelihood of a coin's heads probability after seeing 7 heads in 10 flips: a single-peaked curve with its maximum at p equals 0.7" style="max-width:380px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <g stroke="currentColor" stroke-opacity="0.45">
+    <line x1="40" y1="200" x2="330" y2="200"/>
+    <line x1="40" y1="215" x2="40" y2="30"/>
+  </g>
+  <polyline points="82,153 96,126.3 110,106.4 124,90.9 138,78.4 152,68.3 166,60.1 180,53.5 194,48.4 208,44.7 222,42.4 236,41.6 250,42.5 264,45.7 278,52.1 292,63.9 306,88.7" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <line x1="236" y1="41.6" x2="236" y2="200" stroke="#f59e0b" stroke-dasharray="4 4"/>
+  <circle cx="236" cy="41.6" r="4" fill="#f59e0b"/>
+  <text x="236" y="30" text-anchor="middle" fill="#f59e0b">max at h/n = 0.7</text>
+  <text x="236" y="216" text-anchor="middle" fill="#f59e0b">0.7</text>
+  <text x="40" y="216" text-anchor="middle" fill="currentColor" fill-opacity="0.7">0</text>
+  <text x="180" y="216" text-anchor="middle" fill="currentColor" fill-opacity="0.7">0.5</text>
+  <text x="320" y="216" text-anchor="middle" fill="currentColor" fill-opacity="0.7">1</text>
+  <text x="336" y="204" fill="currentColor" fill-opacity="0.7">p</text>
+  <text x="48" y="40" fill="currentColor" fill-opacity="0.7">log L(p)</text>
+</svg>
+</div>
+
+*The log-likelihood of every candidate $p$ after observing 7 heads in 10
+flips: one peak, at $p = h/n = 0.7$ - the same value the
+derivative-equals-zero computation picks out.*
+
 #### Cross-entropy is MLE for a classifier
 
-Start concrete: three classes (cat, dog, bird) and two training photos. A
-classifier's output for an input is one probability per class (a softmax over
-its scores):
+Now the instance that runs every classifier. Three classes (cat, dog, bird)
+and two training photos; the model's output for an input is one probability
+per class (a softmax over its scores):
 
 - Photo 1 is a **cat**. The model outputs $[0.7, 0.2, 0.1]$ for (cat, dog, bird).
 - Photo 2 is a **dog**. The model outputs $[0.5, 0.2, 0.3]$.
@@ -305,39 +341,35 @@ true class - and charges $-\log(\text{that bar})$. A confident correct answer
 means making the green bars tall, which is making the observed labels
 probable.*
 
-The general statement: a classifier with softmax output assigns probabilities
-$p_\theta(k \mid x_i)$ to each class $k$. The negative log-likelihood of the data is:
+For a general dataset the same computation is
+$-\sum_i \log p_\theta(y_i \mid x_i)$: one term per example, the
+log-probability of its true class - the two red terms above were exactly
+this.
+
+One rewriting step turns it into the textbook loss. Encode each label as a
+**one-hot** vector: $y_{ik} = 1$ if example $i$'s true class is $k$, and $0$
+otherwise, so photo 1's label is $(1, 0, 0)$. Multiplying by 1 keeps a term
+and multiplying by 0 deletes it, so "the log-probability of the true class"
+becomes a sum over *all* classes:
+
+$$\log p_\theta(y_i \mid x_i) = \sum_k y_{ik} \log p_\theta(k \mid x_i)$$
+
+For photo 1 the right side reads
+$1 \cdot \log 0.7 + 0 \cdot \log 0.2 + 0 \cdot \log 0.1 = \log 0.7$:
+the one-hot vector selects the true-class term and nothing changes. Sum over
+examples and negate:
 
 $$-\sum_i \log p_\theta(y_i \mid x_i) = -\sum_i \sum_k y_{ik} \log p_\theta(k \mid x_i)$$
 
-where $y_{ik}$ is the **one-hot** label: $y_{ik} = 1$ if example $i$'s true
-class is $k$, and $0$ otherwise.
-
-To see the equality, work out one example. Say example $i$'s true class is 2,
-out of $K = 3$ classes, so $(y_{i1}, y_{i2}, y_{i3}) = (0, 1, 0)$. Its inner
-sum is
-
-$$\sum_k y_{ik} \log p_\theta(k \mid x_i) = 0 \cdot \log p_\theta(1 \mid x_i) + 1 \cdot \log p_\theta(2 \mid x_i) + 0 \cdot \log p_\theta(3 \mid x_i) = \log p_\theta(2 \mid x_i)$$
-
-which is exactly $\log p_\theta(y_i \mid x_i)$, that example's term on the
-left. The one-hot vector is a selector: the zeros delete the wrong-class
-terms, the single 1 keeps the true-class term.
-
-The same holds for every example, so the two sides of the displayed identity
-match example by example. In the two-photo dataset: the left side is
-$-(\log 0.7 + \log 0.2)$ directly, and the right side is $-($photo 1's inner
-sum$)$ $- ($photo 2's inner sum$)$, which collapse to the same
-$-\log 0.7$ and $-\log 0.2$. Same numbers per example, same total.
-
-The right-hand side is the **cross-entropy**
-$-\sum_k q_k \log p_k$ between two distributions, with the target
-distribution $q$ set to the one-hot label. So: **minimizing cross-entropy =
-maximizing the log-probability the model assigns to the true labels.**
-Cross-entropy isn't an arbitrary "good loss"; for one-hot labels it *equals*
-the negative log-likelihood, i.e. it is MLE for a categorical output. (The
-two concepts stay distinct in general: with soft targets such as label
-smoothing, $q = [0.9, 0.05, 0.05]$, the cross-entropy formula still applies
-but is no longer the log-likelihood of any observed label.)
+The right-hand side is the **cross-entropy** $-\sum_k q_k \log p_k$ between
+two distributions, with the target distribution $q$ set to the one-hot
+label. So: **minimizing cross-entropy = maximizing the log-probability the
+model assigns to the true labels.** Cross-entropy isn't an arbitrary "good
+loss"; for one-hot labels it *equals* the negative log-likelihood, i.e. it
+is MLE for a categorical output. (The two concepts stay distinct in general:
+with soft targets such as label smoothing, $q = [0.9, 0.05, 0.05]$, the
+cross-entropy formula still applies but is no longer the log-likelihood of
+any observed label.)
 
 #### The same pattern gives the regression losses
 
@@ -355,42 +387,10 @@ and take the negative log of the noise density:
 When an interviewer asks "why this loss?", the answer is: it is the negative
 log-likelihood under this output/noise model.
 
-#### The smallest concrete MLE: a coin
-
-Coin with unknown heads probability $p$: observe $h$ heads in $n$ flips.
-
-$$\log L(p) = h \log p + (n - h)\log(1-p)$$
-
-Differentiate and set to zero: $\frac{h}{p} = \frac{n-h}{1-p}$, so
-$\hat p = h/n$ - the empirical frequency. (Verified numerically in
-`probability_demos.ipynb`.)
-
-<div style="margin:1.25rem 0">
-<svg viewBox="0 0 360 235" role="img" aria-label="Log likelihood of a coin's heads probability after seeing 7 heads in 10 flips: a single-peaked curve with its maximum at p equals 0.7" style="max-width:380px;width:100%;height:auto;font-size:12px;font-family:inherit">
-  <g stroke="currentColor" stroke-opacity="0.45">
-    <line x1="40" y1="200" x2="330" y2="200"/>
-    <line x1="40" y1="215" x2="40" y2="30"/>
-  </g>
-  <polyline points="82,153 96,126.3 110,106.4 124,90.9 138,78.4 152,68.3 166,60.1 180,53.5 194,48.4 208,44.7 222,42.4 236,41.6 250,42.5 264,45.7 278,52.1 292,63.9 306,88.7" fill="none" stroke="#6366f1" stroke-width="2.5"/>
-  <line x1="236" y1="41.6" x2="236" y2="200" stroke="#f59e0b" stroke-dasharray="4 4"/>
-  <circle cx="236" cy="41.6" r="4" fill="#f59e0b"/>
-  <text x="236" y="30" text-anchor="middle" fill="#f59e0b">max at h/n = 0.7</text>
-  <text x="236" y="216" text-anchor="middle" fill="#f59e0b">0.7</text>
-  <text x="40" y="216" text-anchor="middle" fill="currentColor" fill-opacity="0.7">0</text>
-  <text x="180" y="216" text-anchor="middle" fill="currentColor" fill-opacity="0.7">0.5</text>
-  <text x="320" y="216" text-anchor="middle" fill="currentColor" fill-opacity="0.7">1</text>
-  <text x="336" y="204" fill="currentColor" fill-opacity="0.7">p</text>
-  <text x="48" y="40" fill="currentColor" fill-opacity="0.7">log L(p)</text>
-</svg>
-</div>
-
-*The log-likelihood of every candidate $p$ after observing 7 heads in 10
-flips: one peak, at $p = h/n = 0.7$ - the same value the
-derivative-equals-zero computation picks out.*
-
 ## 3.4 Bernoulli and Gaussian - where they come from
 
-**Bernoulli($p$)**: one binary event. $P(X = 1) = p$, $P(X = 0) = 1 - p$.
+**Bernoulli($p$)**: one binary event - each flip of §3.3's coin is one.
+$P(X = 1) = p$, $P(X = 0) = 1 - p$.
 Its moments come straight from the definitions: $\mathbb{E}[X] = 1 \cdot p +
 0 \cdot (1-p) = p$; since $X^2 = X$ for a 0/1 variable,
 $\mathbb{E}[X^2] = p$ too, so $\mathrm{Var}(X) = p - p^2 = p(1-p)$ - largest
@@ -450,7 +450,8 @@ $$\mathbb{E}[(\hat\theta - \theta)^2] = \mathrm{Bias}^2 + \mathrm{Var}$$
 
 *Each dot is the estimate you'd get from one resampled dataset. Bias is how far
 the cloud's center sits from the bullseye; variance is how scattered the cloud
-is. The decomposition above says total error is exactly those two plus noise.*
+is. The decomposition above says the expected squared miss is exactly those
+two, $\mathrm{Bias}^2 + \mathrm{Var}$.*
 
 #### Why the 1/n sample variance is biased (Bessel's correction)
 
