@@ -484,6 +484,8 @@ number can't describe sensitivity. The **Jacobian** is the $m \times n$ table of
 them: $J_{ij} = \partial f_i / \partial x_j$ - "how much does output $i$ change when I
 change input $j$?"
 
+#### The Jacobian is the local linear map
+
 What does that table do *as a matrix*? Change the input by a small vector
 $\delta$. Output $i$ changes by $\sum_j (\partial f_i / \partial x_j)\,
 \delta_j$ - one contribution per input, added (§2.2's add rule) - and that
@@ -501,28 +503,41 @@ $J = [[2x_1, 0], [x_2, x_1]] = [[4, 0], [3, 2]]$. Step $\delta = [0.01, 0]$:
 exact $f(2.01, 3) = [4.0401,\; 6.03]$; predicted
 $f(2, 3) + J\delta = [4 + 0.04,\; 6 + 0.03] = [4.04,\; 6.03]$. ✓
 
-Chain rule for vectors: **Jacobians multiply**. Take the two-step pipeline
-again, now with vectors: $z = g(x)$, then $y = f(z)$. Near a point, each step
-behaves like its Jacobian matrix, and applying two linear maps one after the
-other is the same as multiplying their matrices (§1.4 of the linear algebra
-notes: matrix multiplication *is* composition):
+#### Chain rule for vectors: Jacobians multiply
 
-$$J_{f \circ g}(x) = J_f(g(x))\, J_g(x)$$
+Take the two-step pipeline
+again, now with vectors: $z = g(x)$, then $y = f(z)$. The symbol $f \circ g$
+names the whole pipeline as one function, "first $g$, then $f$":
+$(f \circ g)(x) = f(g(x))$.
 
-How backprop uses this. Stand at one layer and suppose the sensitivities of
+Fix a specific input $x_0$ and run the pipeline there: step $g$ operates at
+$x_0$, and step $f$ operates at $z_0 = g(x_0)$. By the previous passage, each
+step near its own operating point behaves like its Jacobian: $g$ like the
+matrix $J_g(x_0)$, $f$ like the matrix $J_f(z_0)$. Now push a small input
+change $\delta$ through: after the first step it becomes $J_g(x_0)\,\delta$,
+and after the second, $J_f(z_0)\, J_g(x_0)\,\delta$. Two linear maps applied
+one after the other are the product of their matrices (§1.4 of the linear
+algebra notes: matrix multiplication *is* composition), so the pipeline's
+Jacobian at $x_0$ is that product:
+
+$$J_{f \circ g}(x_0) = J_f(g(x_0))\, J_g(x_0)$$
+
+#### One layer back in one product: the VJP
+
+Stand at one layer and suppose the sensitivities of
 the loss to the layer's *outputs* are already known (the walk arrives from
 the right): the row vector
-$g = [\partial L / \partial \text{out}_1, \dots, \partial L / \partial \text{out}_m]$.
+$s = [\partial L / \partial \text{out}_1, \dots, \partial L / \partial \text{out}_m]$.
 The sensitivity to input $i$ is one add-rule sum - input $i$ touches every
 output:
 
-$$\frac{\partial L}{\partial \text{in}_i} = \sum_j \frac{\partial L}{\partial \text{out}_j}\,\frac{\partial \text{out}_j}{\partial \text{in}_i} = (g\,J)_i$$
+$$\frac{\partial L}{\partial \text{in}_i} = \sum_j \frac{\partial L}{\partial \text{out}_j}\,\frac{\partial \text{out}_j}{\partial \text{in}_i} = (s\,J)_i$$
 
 So the whole row vector moves one layer back in a single product,
-$g \mapsto g J$, called a **vector–Jacobian product** (VJP). The engineering
-point: $J$ is never stored as a matrix - only the product $gJ$ is ever
+$s \mapsto s J$, called a **vector–Jacobian product** (VJP). The engineering
+point: $J$ is never stored as a matrix - only the product $sJ$ is ever
 computed. For a hidden layer of width 4096, $J$ would be $4096 \times 4096
-\approx 17$ million numbers *per example*; the VJP gets $gJ$ directly.
+\approx 17$ million numbers *per example*; the VJP gets $sJ$ directly.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 480 230" role="img" aria-label="One layer drawn as a fully connected graph with two inputs and two outputs: amber edge labels are the Jacobian entries, red numbers at the outputs are the known sensitivities, and each input's sensitivity is the sum over its edges" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -568,21 +583,23 @@ computed. For a hidden layer of width 4096, $J$ would be $4096 \times 4096
 *One layer as a graph: every input touches every output. Amber edge labels
 are the local derivatives $\partial \text{out}_j / \partial \text{in}_i$,
 i.e. the entries of $J$ (here $J = [[3, 2], [4, 5]]$). Red at the outputs:
-the known row vector $g = [1, 2]$. Each input's red number is the add-rule
+the known row vector $s = [1, 2]$. Each input's red number is the add-rule
 sum over its edges - $1 \cdot 3 + 2 \cdot 4 = 11$ for in1 - and computing
-both at once is $gJ = [11, 12]$, the VJP.*
+both at once is $sJ = [11, 12]$, the VJP.*
 
-Examples worth knowing cold:
+#### Three Jacobians worth knowing cold
 
 - Elementwise ReLU: Jacobian is diagonal, entries $\mathbb{1}[x_i > 0]$ - backprop
   just masks the upstream gradient.
 - Linear layer $f(x) = Wx$: Jacobian w.r.t. $x$ is exactly $W$; the backward
-  step is $g \mapsto gW$ with $g$ the upstream row vector (written with
-  columns, $g \mapsto W^\top g$ - the same statement transposed).
+  step is $s \mapsto sW$ with $s$ the upstream row vector (written with
+  columns, $s \mapsto W^\top s$ - the same statement transposed).
 - Softmax: $J_{ij} = p_i(\delta_{ij} - p_j)$ - dense, which is why softmax is always
   fused with cross-entropy (see exercises: the fused gradient collapses to $p - y$).
 
-Vanishing/exploding gradients, restated precisely: the backward signal is a product of
+#### Vanishing and exploding gradients
+
+The backward signal is a product of
 many Jacobians; if their singular values are systematically $< 1$ or $> 1$, the product
 shrinks or blows up exponentially with depth. Residual connections fix this by making
 each layer's Jacobian $\approx I + \text{small}$, so products stay near $I$.
