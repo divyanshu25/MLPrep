@@ -200,9 +200,9 @@ The first test moved the probability from 1% to 17%, the second from 17% to
     <text x="82" y="190">before any test</text>
     <text x="252" y="190">after test 1</text>
     <text x="422" y="190">after test 2</text>
-    <text x="82" y="206">100 sick / 10,000</text>
-    <text x="252" y="206">99 sick / 594</text>
-    <text x="422" y="206">98 sick / 123</text>
+    <text x="82" y="206">P(sick) = 100/10,000</text>
+    <text x="252" y="206">P(sick | 1st +) = 99/594</text>
+    <text x="422" y="206">P(sick | both +) = 98/123</text>
   </g>
   <g fill="#6366f1" text-anchor="middle" font-size="10">
     <text x="82" y="224">prior</text>
