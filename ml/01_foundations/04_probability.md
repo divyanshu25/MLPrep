@@ -243,10 +243,19 @@ $p_\theta(k \mid x_i)$ to each class $k$. The negative log-likelihood of the dat
 $$-\sum_i \log p_\theta(y_i \mid x_i) = -\sum_i \sum_k y_{ik} \log p_\theta(k \mid x_i)$$
 
 where $y_{ik}$ is the **one-hot** label: $y_{ik} = 1$ if example $i$'s true
-class is $k$, and $0$ otherwise. So the inner sum has exactly one surviving
-term, the log-probability of the correct class - the two sides are the same
-sum written two ways. The right-hand side is the definition of the
-**cross-entropy loss**. So: **minimizing cross-entropy = maximizing the
+class is $k$, and $0$ otherwise.
+
+To see the equality, work out one example. Say example $i$'s true class is 2,
+out of $K = 3$ classes, so $(y_{i1}, y_{i2}, y_{i3}) = (0, 1, 0)$. Its inner
+sum is
+
+$$\sum_k y_{ik} \log p_\theta(k \mid x_i) = 0 \cdot \log p_\theta(1 \mid x_i) + 1 \cdot \log p_\theta(2 \mid x_i) + 0 \cdot \log p_\theta(3 \mid x_i) = \log p_\theta(2 \mid x_i)$$
+
+which is exactly $\log p_\theta(y_i \mid x_i)$, that example's term on the
+left. The one-hot vector is a selector: the zeros delete the wrong-class
+terms, the single 1 keeps the true-class term. So per example the double sum
+collapses to the single term, and the two sides are the same sum written two
+ways. The right-hand side is the definition of the **cross-entropy loss**. So: **minimizing cross-entropy = maximizing the
 log-probability the model assigns to the true labels.** Cross-entropy isn't
 an arbitrary "good loss"; it's MLE for a categorical output.
 
