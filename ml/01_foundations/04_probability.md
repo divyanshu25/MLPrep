@@ -59,11 +59,24 @@ variance so each layer's outputs keep unit variance).
 
 ## 3.2 Bayes rule - derived, not memorized
 
-Notation first: $A \cap B$ is the event "$A$ *and* $B$ both happen".
-Conditional probability is a *definition*: restrict attention to the world
-where $B$ happened, and renormalize:
+Notation first: $A \cap B$ is the event "$A$ *and* $B$ both happen", and
+$P(A \mid B)$ is read "the probability of $A$ given $B$": the probability of
+$A$ once you *know* that $B$ happened.
+
+Knowing $B$ happened rules out every outcome outside $B$. The outcomes inside
+$B$ keep their old probabilities, but those probabilities now sum to $P(B)$
+rather than to 1 - so divide each by $P(B)$ to make them a proper
+distribution again. The part of $A$ still possible is the overlap
+$A \cap B$. Put together:
 
 $$P(A \mid B) = \frac{P(A \cap B)}{P(B)}$$
+
+Check it by counting, on a die: $A$ = "roll is even" $= \{2, 4, 6\}$, $B$ =
+"roll is at least 4" $= \{4, 5, 6\}$. Given $B$, three equally likely
+outcomes remain, and $A$ holds for two of them (4 and 6), so the answer must
+be $2/3$. The formula agrees: $P(A \cap B) = P(\{4, 6\}) = 2/6$, $P(B) =
+3/6$, ratio $= 2/3$. ✓ (This is a *definition*, not a theorem - the check
+shows it is the definition that matches counting.)
 
 Write it twice: $P(A \cap B) = P(A \mid B) P(B)$ and also $P(A \cap B) = P(B \mid A)
 P(A)$ - same quantity, two factorizations. Set them equal, divide by $P(B)$:
