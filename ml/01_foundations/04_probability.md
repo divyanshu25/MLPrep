@@ -237,7 +237,75 @@ by term.
 
 #### Cross-entropy is MLE for a classifier
 
-A classifier with softmax output assigns probabilities
+Start concrete: three classes (cat, dog, bird) and two training photos. A
+classifier's output for an input is one probability per class (a softmax over
+its scores):
+
+- Photo 1 is a **cat**. The model outputs $[0.7, 0.2, 0.1]$ for (cat, dog, bird).
+- Photo 2 is a **dog**. The model outputs $[0.5, 0.2, 0.3]$.
+
+The likelihood of this dataset is the probability the model assigned to what
+actually happened: $0.7$ to photo 1 being a cat, times $0.2$ to photo 2 being
+a dog:
+
+$$L = 0.7 \cdot 0.2 = 0.14, \qquad -\log L = -\log 0.7 - \log 0.2 = 0.36 + 1.61 = 1.97$$
+
+Each example contributes $-\log(\text{probability on its true class})$, and
+nothing else: the wrong-class entries matter only because probabilities sum
+to 1, so mass placed on them is mass taken from the true class.
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 520 255" role="img" aria-label="Two examples with three-class probability bars: the loss reads only the true class bar of each example, contributing minus log of that probability; the contributions add to the cross-entropy" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <g fill="currentColor" fill-opacity="0.85" text-anchor="middle">
+    <text x="101" y="34">photo 1: a cat</text>
+    <text x="331" y="34">photo 2: a dog</text>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.35">
+    <line x1="44" y1="150" x2="160" y2="150"/>
+    <line x1="274" y1="150" x2="390" y2="150"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.25">
+    <rect x="88" y="130" width="26" height="20"/>
+    <rect x="126" y="140" width="26" height="10"/>
+    <rect x="280" y="100" width="26" height="50"/>
+    <rect x="356" y="120" width="26" height="30"/>
+  </g>
+  <g fill="#10b981">
+    <rect x="50" y="80" width="26" height="70"/>
+    <rect x="318" y="130" width="26" height="20"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.75" text-anchor="middle" font-size="10.5">
+    <text x="63" y="72">0.7</text>
+    <text x="101" y="124">0.2</text>
+    <text x="139" y="134">0.1</text>
+    <text x="293" y="94">0.5</text>
+    <text x="331" y="124">0.2</text>
+    <text x="369" y="114">0.3</text>
+  </g>
+  <g text-anchor="middle" font-size="10.5">
+    <text x="63" y="166" fill="#10b981" font-weight="600">cat</text>
+    <text x="101" y="166" fill="currentColor" fill-opacity="0.6">dog</text>
+    <text x="139" y="166" fill="currentColor" fill-opacity="0.6">bird</text>
+    <text x="293" y="166" fill="currentColor" fill-opacity="0.6">cat</text>
+    <text x="331" y="166" fill="#10b981" font-weight="600">dog</text>
+    <text x="369" y="166" fill="currentColor" fill-opacity="0.6">bird</text>
+  </g>
+  <g fill="#f43f5e" text-anchor="middle" font-size="10.5">
+    <text x="101" y="192">term: &#8722;log 0.7 = 0.36</text>
+    <text x="331" y="192">term: &#8722;log 0.2 = 1.61</text>
+  </g>
+  <text x="260" y="222" text-anchor="middle" fill="currentColor" fill-opacity="0.8" font-size="10.5">likelihood = 0.7 &#183; 0.2 = 0.14</text>
+  <text x="260" y="242" text-anchor="middle" fill="#f43f5e" font-weight="600" font-size="10.5">cross-entropy = 0.36 + 1.61 = 1.97</text>
+</svg>
+</div>
+
+*The loss reads only the green bar of each example - the probability on the
+true class - and charges $-\log(\text{that bar})$. A confident correct answer
+(0.7) costs little; a doubtful one (0.2) costs a lot. Making the loss small
+means making the green bars tall, which is making the observed labels
+probable.*
+
+The general statement: a classifier with softmax output assigns probabilities
 $p_\theta(k \mid x_i)$ to each class $k$. The negative log-likelihood of the data is:
 
 $$-\sum_i \log p_\theta(y_i \mid x_i) = -\sum_i \sum_k y_{ik} \log p_\theta(k \mid x_i)$$
