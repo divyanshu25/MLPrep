@@ -391,10 +391,15 @@ mood) plus measurement error. Call that gap the **noise** $\varepsilon$:
 
 $$y = f_\theta(x) + \varepsilon$$
 
-Why this matters here: MLE needs the model to assign a *probability* to the
-observed $y$, and a bare predicted number assigns none. The noise assumption
-supplies it - assume $\varepsilon$ follows some distribution, and $y$ given
-$x$ inherits that distribution, centered at the prediction. Now the recipe
+Why this matters here: MLE works with $p_\theta(y \mid x)$, the probability
+the model gives to the observed target. But a regression model's output is a
+single number, $f_\theta(x) = 300$k, and one number is not a distribution:
+it does not say how probable a sale at 310k or at 295k would be, so there is
+nothing to take the likelihood of. The noise assumption supplies the missing
+distribution: assume $\varepsilon$ follows one (say, Gaussian centered at
+0), and then $y$ given $x$ is distributed as that noise shifted to sit on
+top of the prediction - probable near 300k, less probable further away. Now
+$p_\theta(y \mid x)$ exists, and the recipe
 from the classifier case runs unchanged: take $-\log p(y \mid x)$ per
 example and minimize the sum. The choice of noise distribution decides which
 loss comes out:
