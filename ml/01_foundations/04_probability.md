@@ -323,9 +323,15 @@ which is exactly $\log p_\theta(y_i \mid x_i)$, that example's term on the
 left. The one-hot vector is a selector: the zeros delete the wrong-class
 terms, the single 1 keeps the true-class term. So per example the double sum
 collapses to the single term, and the two sides are the same sum written two
-ways. The right-hand side is the definition of the **cross-entropy loss**. So: **minimizing cross-entropy = maximizing the
-log-probability the model assigns to the true labels.** Cross-entropy isn't
-an arbitrary "good loss"; it's MLE for a categorical output.
+ways. The right-hand side is the **cross-entropy**
+$-\sum_k q_k \log p_k$ between two distributions, with the target
+distribution $q$ set to the one-hot label. So: **minimizing cross-entropy =
+maximizing the log-probability the model assigns to the true labels.**
+Cross-entropy isn't an arbitrary "good loss"; for one-hot labels it *equals*
+the negative log-likelihood, i.e. it is MLE for a categorical output. (The
+two concepts stay distinct in general: with soft targets such as label
+smoothing, $q = [0.9, 0.05, 0.05]$, the cross-entropy formula still applies
+but is no longer the log-likelihood of any observed label.)
 
 #### The same pattern gives the regression losses
 
