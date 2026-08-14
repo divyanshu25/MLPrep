@@ -119,18 +119,28 @@ that way - assembling the group would require already knowing who is sick,
 which is the very question. Bayes rule computes the unmeasurable direction
 from the measurable one plus the prior.
 
-The classic trap (run it with raw counts, as in `probability_demos.ipynb`):
-a disease has **prevalence** 1% - one person in 100 has it. The test's
-quality is stated as two conditional probabilities: **sensitivity**
-$= P(+ \mid \text{sick}) = 99\%$, how often it flags a sick person, and
-**specificity** $= P(- \mid \text{healthy}) = 95\%$, how often it clears a
-healthy person - so 5% of healthy people get a false positive. You test
-positive - what's the chance you're sick? Take 10,000 people: 100 sick →
-99 true positives; 9,900 healthy → 5% false positives → 495 of them. Positive tests: $99 +
-495 = 594$; sick among them: $99 / 594 \approx 16.7\%$. Not 99%. The prior (rarity of
-the disease) dominates because false positives come from a *huge* pool. In ML terms:
-this is precision under class imbalance - exactly why accuracy is a useless metric for
-rare-event detection and why a 99%-accurate fraud model can be garbage.
+The classic trap (run it with raw counts, as in `probability_demos.ipynb`).
+The setup:
+
+- **Prevalence** 1%: one person in 100 has the disease.
+- **Sensitivity** $= P(+ \mid \text{sick}) = 99\%$: how often the test flags
+  a sick person.
+- **Specificity** $= P(- \mid \text{healthy}) = 95\%$: how often the test
+  clears a healthy person. So 5% of healthy people get a false positive.
+
+You test positive - what's the chance you're sick? Count through 10,000
+people:
+
+- 100 are sick; 99% of them test positive → **99 true positives**.
+- 9,900 are healthy; 5% of them test positive → **495 false positives**.
+- Everyone who tested positive: $99 + 495 = 594$. Sick among them:
+  $99 / 594 \approx 16.7\%$.
+
+Not 99%. The prior (the rarity of the disease) dominates because the false
+positives come from a pool 99 times larger than the sick pool (9,900 vs
+100). In ML terms: this is precision under class imbalance - exactly why
+accuracy is a useless metric for rare-event detection and why a 99%-accurate
+fraud model can be garbage.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 130" role="img" aria-label="Among 10,000 people the positive tests split into 99 true positives from the sick group and 495 false positives from the healthy group, so a positive test means only about 17 percent chance of being sick" style="max-width:430px;width:100%;height:auto;font-size:12px;font-family:inherit">
