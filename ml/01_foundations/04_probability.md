@@ -75,15 +75,27 @@ Check it by counting, on a die: $A$ = "roll is even" $= \{2, 4, 6\}$, $B$ =
 "roll is at least 4" $= \{4, 5, 6\}$. Given $B$, three equally likely
 outcomes remain, and $A$ holds for two of them (4 and 6), so the answer must
 be $2/3$. The formula agrees: $P(A \cap B) = P(\{4, 6\}) = 2/6$, $P(B) =
-3/6$, ratio $= 2/3$. ✓ (This is a *definition*, not a theorem - the check
-shows it is the definition that matches counting.)
+3/6$, ratio $= 2/3$. ✓
 
-Write it twice: $P(A \cap B) = P(A \mid B) P(B)$ and also $P(A \cap B) = P(B \mid A)
-P(A)$ - same quantity, two factorizations. Set them equal, divide by $P(B)$:
+There is nothing to prove in the equation above: it is the *definition* of
+$P(A \mid B)$. The die check only confirms that the definition gives the
+same answer as counting outcomes directly. That is what makes it a safe
+starting point for the derivation below.
+
+Multiply the definition through by $P(B)$ to get
+$P(A \cap B) = P(A \mid B)\, P(B)$. Now note that $A \cap B$ and $B \cap A$
+are the same event ("$A$ and $B$" = "$B$ and $A$"), so the definition also
+applies with the roles of $A$ and $B$ swapped:
+$P(A \cap B) = P(B \mid A)\, P(A)$. Two expressions for the same quantity -
+set them equal:
+
+$$P(A \mid B)\, P(B) = P(B \mid A)\, P(A)$$
+
+Divide both sides by $P(B)$:
 
 $$P(A \mid B) = \frac{P(B \mid A)\, P(A)}{P(B)}$$
 
-That's the whole derivation - two lines from the definition. The point of Bayes rule is
+That's the whole derivation - two applications of the definition. The point of Bayes rule is
 that it converts **likelihood** ("probability of the evidence given the hypothesis",
 often easy to model) into the **posterior** ("probability of the hypothesis given the
 evidence", the thing you actually want), weighted by the **prior** $P(A)$.
