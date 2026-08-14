@@ -95,10 +95,26 @@ Divide both sides by $P(B)$:
 
 $$P(A \mid B) = \frac{P(B \mid A)\, P(A)}{P(B)}$$
 
-That's the whole derivation - two applications of the definition. The point of Bayes rule is
-that it converts **likelihood** ("probability of the evidence given the hypothesis",
-often easy to model) into the **posterior** ("probability of the hypothesis given the
-evidence", the thing you actually want), weighted by the **prior** $P(A)$.
+That's the whole derivation - two applications of the definition.
+
+Each factor has a name. Read them with $A$ = a hypothesis and $B$ = the
+observed evidence (concrete values from the disease example below):
+
+- **Prior** $P(A)$: the probability of the hypothesis *before* seeing the
+  evidence. Below: $P(\text{sick}) = 1\%$, the prevalence.
+- **Likelihood** $P(B \mid A)$: the probability of seeing this evidence *if
+  the hypothesis is true*. Below: $P(+ \mid \text{sick}) = 99\%$, a property
+  of the test.
+- **Posterior** $P(A \mid B)$: the probability of the hypothesis *after*
+  seeing the evidence - the thing you actually want. Below:
+  $P(\text{sick} \mid +) \approx 17\%$.
+- The denominator $P(B)$: the overall probability of the evidence, from all
+  causes. Below: $594/10{,}000$ people test positive.
+
+The value of the rule is its direction. The likelihood is the measurable
+quantity: run the test on people known to be sick and count. But the question
+you face runs the other way: "I tested positive - am I sick?" Bayes rule
+converts the measurable direction into the wanted one, weighted by the prior.
 
 The classic trap (run it with raw counts, as in `probability_demos.ipynb`): a disease has
 prevalence 1%, the test has 99% sensitivity and 95% specificity. You test positive -
