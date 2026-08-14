@@ -280,9 +280,9 @@ defined as
 $$H(q, p) = -\sum_k q_k \log p_k$$
 
 In classification the target is the **one-hot** label: $q_k = 1$ for the
-true class and $0$ for every other class. Multiplying by 0 deletes a term
-and multiplying by 1 keeps it, so per example the sum keeps a single term,
-and the loss is $-\log(\text{probability the model put on the true class})$.
+true class and $0$ for every other class. So per example the sum keeps a
+single term, and the loss is
+$-\log(\text{probability the model put on the true class})$.
 
 Run it on a concrete dataset: three classes (cat, dog, bird), two training
 photos, and a model that outputs one probability per class (a softmax over
