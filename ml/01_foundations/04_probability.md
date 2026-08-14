@@ -383,8 +383,21 @@ but is no longer the log-likelihood of any observed label.)
 
 #### The same pattern gives the regression losses
 
-Model the target as prediction plus noise, $y = f_\theta(x) + \varepsilon$,
-and take the negative log of the noise density:
+In regression the target is a number: say, predict an apartment's price from
+its size. The prediction $f_\theta(x)$ never matches the observed price $y$
+exactly - a 60 m² apartment predicted at 300k might sell for 310k. The 10k
+gap is everything the input doesn't capture (floor, condition, the buyer's
+mood) plus measurement error. Call that gap the **noise** $\varepsilon$:
+
+$$y = f_\theta(x) + \varepsilon$$
+
+Why this matters here: MLE needs the model to assign a *probability* to the
+observed $y$, and a bare predicted number assigns none. The noise assumption
+supplies it - assume $\varepsilon$ follows some distribution, and $y$ given
+$x$ inherits that distribution, centered at the prediction. Now the recipe
+from the classifier case runs unchanged: take $-\log p(y \mid x)$ per
+example and minimize the sum. The choice of noise distribution decides which
+loss comes out:
 
 - Gaussian noise, density $\frac{1}{\sqrt{2\pi\sigma^2}}
   e^{-\varepsilon^2 / 2\sigma^2}$:
@@ -394,8 +407,9 @@ and take the negative log of the noise density:
   $-\log p(y \mid x) = \frac{|y - f_\theta(x)|}{b} + \text{const}$, an
   absolute error. MLE under Laplace noise is **L1 loss**.
 
-When an interviewer asks "why this loss?", the answer is: it is the negative
-log-likelihood under this output/noise model.
+So picking a regression loss *is* picking a noise model. When an interviewer
+asks "why this loss?", the answer is: it is the negative log-likelihood
+under this output/noise model.
 
 ## 3.4 Bernoulli and Gaussian - where they come from
 
