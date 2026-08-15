@@ -508,15 +508,26 @@ bell curve, with its two parameters being exactly its mean $\mu$ and
 variance $\sigma^2$. It is not chosen for convenience alone; it holds its
 place for three reasons:
 
-1. **CLT** (§3.6): sums of many small independent effects are approximately
-   Gaussian, *whatever the effects' own distribution*. Measurement noise is
-   usually such a sum - many small disturbances - which is why "assume
-   Gaussian noise" so often matches reality.
+1. **The CLT** (§3.6, where it is stated and demonstrated): add up many
+   independent effects, each individually small, and the distribution of the
+   *total* is approximately the bell curve - regardless of what distribution
+   each individual effect follows. Now look at what a regression residual
+   is: §3.3's 10k price gap was floor + condition + the buyer's mood +
+   timing, many small independent nudges, each pushing the price a little up
+   or down. The noise $\varepsilon$ is a total of exactly that kind, so the
+   CLT is the reason "assume Gaussian noise" so often matches reality.
 2. **Maximum entropy**: among all distributions with a given mean and
    variance, the Gaussian adds no structure beyond those two constraints -
    so it is the default assumption when mean and variance are all you know.
-3. Its $-\log$ density is quadratic - the bridge from "Gaussian noise" to
-   "least-squares loss" (§3.3).
+3. **Its $-\log$ density is a squared distance.** Compute it:
+
+   $$-\log\Big(\tfrac{1}{\sqrt{2\pi\sigma^2}}\, e^{-(x-\mu)^2 / 2\sigma^2}\Big)
+   = \frac{(x-\mu)^2}{2\sigma^2} + \tfrac{1}{2}\log(2\pi\sigma^2)$$
+
+   The second term does not depend on $x$; the first is a squared distance
+   from the mean. This is the computation §3.3's regression subsection ran:
+   assume Gaussian noise, take $-\log$, and the loss that falls out is least
+   squares.
 
 ## 3.5 Bias and variance of estimators
 
