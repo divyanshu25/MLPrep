@@ -468,9 +468,22 @@ mean and variance follow from §3.1's definitions:
 
 $p(1 - p)$ is largest at $p = 1/2$ (value $1/4$): the fair coin, where the
 outcome is hardest to predict. It shrinks to 0 as $p \to 0$ or $p \to 1$,
-where the outcome is nearly certain. Summing $n$ independent Bernoullis
-gives the **Binomial**. Every binary-classification output and every dropout
-mask is a Bernoulli.
+where the outcome is nearly certain.
+
+Two things built from it:
+
+- **Count the 1s.** Add $n$ independent Bernoullis,
+  $X_1 + \dots + X_n$: the sum is the *number of successes* in $n$ tries,
+  and its distribution is called the **Binomial**. §3.1's rules give its
+  mean and variance at once: $\mathbb{E} = np$ by linearity,
+  $\mathrm{Var} = np(1 - p)$ by additivity over independent draws. (§3.3's
+  coin data, $h$ heads in $n$ flips, was one Binomial draw.)
+- **Where it appears in ML.** A binary classifier that outputs "spam with
+  probability 0.9" is modeling the label as Bernoulli($0.9$); training it
+  with binary cross-entropy is MLE under exactly that model - §3.3's
+  pattern with two classes. Dropout keeps each unit with probability $p$
+  and zeroes it otherwise: each keep/drop decision is one Bernoulli($p$)
+  draw, and a layer's mask is a vector of independent ones.
 
 **Gaussian** $\mathcal{N}(\mu, \sigma^2)$, density $\frac{1}{\sqrt{2\pi\sigma^2}}
 e^{-\frac{(x-\mu)^2}{2\sigma^2}}$. It is not chosen for convenience alone; it shows
