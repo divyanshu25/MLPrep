@@ -386,8 +386,11 @@ but is no longer the log-likelihood of any observed label.)
 In regression the target is a number: say, predict an apartment's price from
 its size. The prediction $f_\theta(x)$ never matches the observed price $y$
 exactly - a 60 m² apartment predicted at 300k might sell for 310k. The 10k
-gap is everything the input doesn't capture (floor, condition, the buyer's
-mood) plus measurement error. Call that gap the **noise** $\varepsilon$:
+gap, $y - f_\theta(x)$, is everything the input doesn't capture (floor,
+condition, the buyer's mood) plus measurement error. Measured after the
+fact it is called the **residual** (what remains after the model has
+explained what it can); as a modeling assumption before the fact, call it
+the **noise** $\varepsilon$:
 
 $$y = f_\theta(x) + \varepsilon$$
 
@@ -508,14 +511,29 @@ bell curve, with its two parameters being exactly its mean $\mu$ and
 variance $\sigma^2$. It is not chosen for convenience alone; it holds its
 place for three reasons:
 
-1. **The CLT** (§3.6, where it is stated and demonstrated): add up many
-   independent effects, each individually small, and the distribution of the
-   *total* is approximately the bell curve - regardless of what distribution
-   each individual effect follows. Now look at what a regression residual
-   is: §3.3's 10k price gap was floor + condition + the buyer's mood +
-   timing, many small independent nudges, each pushing the price a little up
-   or down. The noise $\varepsilon$ is a total of exactly that kind, so the
-   CLT is the reason "assume Gaussian noise" so often matches reality.
+1. **Sums of many small effects are bell-shaped (the CLT, §3.6).** Picture
+   §3.3's price gap as roughly 20 small independent contributions, summed:
+
+   - floor: $+0.8$k
+   - condition: $-0.3$k
+   - buyer's mood: $+0.5$k
+   - timing: $-0.2$k
+   - ...and 16 more of the same size, adding up to that apartment's
+     residual $y - f_\theta(x)$.
+
+   Across many apartments, which totals come up often?
+
+   - **Near zero: common.** The nudges only need to roughly cancel, and
+     many combinations do.
+   - **Around $+15$k: rare.** Nearly all 20 nudges would have to point the
+     same way at once.
+
+   So totals pile up near the middle and thin out toward the extremes: a
+   bell. §3.6's CLT makes this a theorem - the sum of many small
+   independent effects is approximately Gaussian, whatever distribution
+   each effect follows. Measurement noise and regression residuals are
+   usually such sums, which is why "assume Gaussian noise" so often matches
+   reality.
 2. **Maximum entropy**: among all distributions with a given mean and
    variance, the Gaussian adds no structure beyond those two constraints -
    so it is the default assumption when mean and variance are all you know.
