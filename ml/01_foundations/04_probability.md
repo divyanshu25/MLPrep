@@ -454,14 +454,23 @@ under this output/noise model.
 
 ## 3.4 Bernoulli and Gaussian - where they come from
 
-**Bernoulli($p$)**: one binary event - each flip of §3.3's coin is one.
-$P(X = 1) = p$, $P(X = 0) = 1 - p$.
-Its moments come straight from the definitions: $\mathbb{E}[X] = 1 \cdot p +
-0 \cdot (1-p) = p$; since $X^2 = X$ for a 0/1 variable,
-$\mathbb{E}[X^2] = p$ too, so $\mathrm{Var}(X) = p - p^2 = p(1-p)$ - largest
-at $p = 1/2$, where the outcome is hardest to predict. Summing $n$
-independent Bernoullis gives the **Binomial**. Every binary-classification
-output and every dropout mask is a Bernoulli.
+**Bernoulli($p$)**: a random variable with exactly two values:
+$P(X = 1) = p$ and $P(X = 0) = 1 - p$. Each flip of §3.3's coin is one. Its
+mean and variance follow from §3.1's definitions:
+
+- Expectation is each value times its probability, summed:
+  $\mathbb{E}[X] = 1 \cdot p + 0 \cdot (1 - p) = p$.
+- For the variance, use §3.1's identity
+  $\mathrm{Var}(X) = \mathbb{E}[X^2] - \mu^2$. A 0/1 variable satisfies
+  $X^2 = X$ (because $0^2 = 0$ and $1^2 = 1$), so
+  $\mathbb{E}[X^2] = \mathbb{E}[X] = p$, and
+  $\mathrm{Var}(X) = p - p^2 = p(1 - p)$.
+
+$p(1 - p)$ is largest at $p = 1/2$ (value $1/4$): the fair coin, where the
+outcome is hardest to predict. It shrinks to 0 as $p \to 0$ or $p \to 1$,
+where the outcome is nearly certain. Summing $n$ independent Bernoullis
+gives the **Binomial**. Every binary-classification output and every dropout
+mask is a Bernoulli.
 
 **Gaussian** $\mathcal{N}(\mu, \sigma^2)$, density $\frac{1}{\sqrt{2\pi\sigma^2}}
 e^{-\frac{(x-\mu)^2}{2\sigma^2}}$. It is not chosen for convenience alone; it shows
