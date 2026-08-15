@@ -452,7 +452,22 @@ So picking a regression loss *is* picking a noise model. When an interviewer
 asks "why this loss?", the answer is: it is the negative log-likelihood
 under this output/noise model.
 
-## 3.4 Bernoulli and Gaussian - where they come from
+## 3.4 Bernoulli and Gaussian: the two distributions ML leans on
+
+The sections around this one keep reaching for the same two distributions:
+the coin's flips and the classifier's labels (§3.3) are Bernoullis; the
+noise on a regression target (§3.3) and the limit of averages (§3.6) are
+Gaussians. That is not a coincidence. They answer the two commonest modeling
+questions:
+
+- What does **one yes/no event** look like? → Bernoulli.
+- What does the **sum of many small independent effects** look like? →
+  Gaussian.
+
+This section defines each, derives its basic facts, and states why it holds
+its job.
+
+#### Bernoulli: one yes/no event
 
 **Bernoulli($p$)**: a random variable with exactly two values:
 $P(X = 1) = p$ and $P(X = 0) = 1 - p$. Each flip of §3.3's coin is one. Its
@@ -485,12 +500,18 @@ Two things built from it:
   and zeroes it otherwise: each keep/drop decision is one Bernoulli($p$)
   draw, and a layer's mask is a vector of independent ones.
 
-**Gaussian** $\mathcal{N}(\mu, \sigma^2)$, density $\frac{1}{\sqrt{2\pi\sigma^2}}
-e^{-\frac{(x-\mu)^2}{2\sigma^2}}$. It is not chosen for convenience alone; it shows
-up for three reasons:
+#### Gaussian: the sum of many small effects
+
+**Gaussian** $\mathcal{N}(\mu, \sigma^2)$, density
+$\frac{1}{\sqrt{2\pi\sigma^2}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}$ - the
+bell curve, with its two parameters being exactly its mean $\mu$ and
+variance $\sigma^2$. It is not chosen for convenience alone; it holds its
+place for three reasons:
 
 1. **CLT** (§3.6): sums of many small independent effects are approximately
-   Gaussian - which is why measurement noise so often is.
+   Gaussian, *whatever the effects' own distribution*. Measurement noise is
+   usually such a sum - many small disturbances - which is why "assume
+   Gaussian noise" so often matches reality.
 2. **Maximum entropy**: among all distributions with a given mean and
    variance, the Gaussian adds no structure beyond those two constraints -
    so it is the default assumption when mean and variance are all you know.
