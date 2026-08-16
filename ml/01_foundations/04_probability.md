@@ -812,10 +812,10 @@ them:
   typical distance between the average you computed and the true mean. This
   section computes it, $\sigma / \sqrt{n}$, which is the error bar on every
   number computed from a sample.
-- **What distribution does the average follow?** Approximately Gaussian,
-  whatever distribution the individual terms follow. That is the **central
-  limit theorem (CLT)**, and it is the theorem §3.4 leaned on when it
-  argued that sums of many small effects are bell-shaped.
+- **What distribution does the average follow?** Approximately Gaussian, no
+  matter which distribution the individual draws came from. That is the
+  **central limit theorem (CLT)**, and it is the theorem §3.4 leaned on
+  when it argued that sums of many small effects are bell-shaped.
 
 Both answers need the setup pinned down first.
 
@@ -849,8 +849,10 @@ shape: not only does $\bar X_n$ concentrate, its distribution becomes **Gaussian
 
 $$\frac{\bar X_n - \mu}{\sigma / \sqrt{n}} \to \mathcal{N}(0, 1)$$
 
-The display makes a strong claim: whatever distribution one draw follows,
-the average's distribution turns Gaussian. Watch it happen. Start from a
+This equation makes a strong claim: the individual draws $X_i$ can come
+from *any* distribution (die rolls, exponentials, anything with a mean and
+a variance), and the distribution of their average still turns Gaussian.
+Watch it happen. Start from a
 deliberately non-Gaussian distribution, the exponential (density $e^{-x}$,
 mean $\mu = 1$): highest at zero, long tail to the right, no left tail at
 all. The three panels show the distribution of the average $\bar X_n$ as
