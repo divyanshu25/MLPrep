@@ -596,15 +596,26 @@ $$\hat\theta - \theta =
   \underbrace{\big(\hat\theta - \mathbb{E}[\hat\theta]\big)}_{\text{jump around the average}}
   + \underbrace{\big(\mathbb{E}[\hat\theta] - \theta\big)}_{\text{Bias, a constant}}$$
 
-Square this sum and take expectations term by term:
+To keep the next step readable, name the two pieces:
+$a = \hat\theta - \mathbb{E}[\hat\theta]$ (random, changes with the sample)
+and $b = \mathbb{E}[\hat\theta] - \theta$ (the Bias, one fixed number).
+Square the sum:
 
-- the first term squared gives $\mathbb{E}[(\hat\theta - \mathbb{E}[\hat\theta])^2] = \mathrm{Var}$;
-- the second term squared is the constant $\mathrm{Bias}^2$, and the
-  expectation of a constant is itself;
-- the cross term is
-  $2\,(\mathbb{E}[\hat\theta] - \theta)\,\mathbb{E}\big[\hat\theta - \mathbb{E}[\hat\theta]\big]$,
-  and the last factor is $\mathbb{E}[\hat\theta] - \mathbb{E}[\hat\theta] = 0$,
-  so the whole term vanishes.
+$$(\hat\theta - \theta)^2 = (a + b)^2 = a^2 + 2ab + b^2$$
+
+Take the expectation of each term. In the middle term, $2b$ is a constant
+factor, and §3.1's linearity lets a constant factor move outside the
+expectation: $\mathbb{E}[2ab] = 2b\,\mathbb{E}[a]$. So:
+
+$$\mathbb{E}[(\hat\theta - \theta)^2] = \mathbb{E}[a^2] + 2b\,\mathbb{E}[a] + b^2$$
+
+Now evaluate the three pieces:
+
+- $\mathbb{E}[a^2] = \mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big] = \mathrm{Var}$, the definition above.
+- $\mathbb{E}[a] = \mathbb{E}\big[\hat\theta - \mathbb{E}[\hat\theta]\big] = \mathbb{E}[\hat\theta] - \mathbb{E}[\hat\theta] = 0$,
+  because $\mathbb{E}[\hat\theta]$ is a fixed number and the expectation of a
+  fixed number is itself. The middle term is therefore $2b \cdot 0 = 0$.
+- $b^2 = \mathrm{Bias}^2$, a fixed number, unchanged by the expectation.
 
 $$\mathbb{E}[(\hat\theta - \theta)^2] = \mathrm{Bias}^2 + \mathrm{Var}$$
 
