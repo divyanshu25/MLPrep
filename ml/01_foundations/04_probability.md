@@ -647,19 +647,28 @@ two, $\mathrm{Bias}^2 + \mathrm{Var}$.*
 
 #### Why the 1/n sample variance is biased (Bessel's correction)
 
-First, where this estimator comes from. The variance of one draw is defined
-through the true mean: $\sigma^2 = \mathbb{E}[(X - \mu)^2]$. To estimate it
-from a sample, replace both unknowns with sample versions: the expectation
-becomes an average over the $n$ draws, and $\mu$ (unknown) becomes $\bar x$.
-That double substitution produces $\frac{1}{n}\sum_i (x_i - \bar x)^2$, and
-the question is the same one just asked about $\bar x$: what is its
-expectation, and does it equal the target $\sigma^2$? The answer will be no:
-it underestimates $\sigma^2$, and the derivation shows by exactly how much.
+**The task.** §3.1 defined the variance of one draw through the true mean:
+$\sigma^2 = \mathbb{E}[(X - \mu)^2]$. To estimate it from a sample of $n$
+draws, replace both unknowns with their sample versions: the expectation
+becomes an average over the draws, and $\mu$ (unknown) becomes $\bar x$.
+That double substitution produces the natural estimator
 
-The obstacle to computing its expectation directly: $\sigma^2$ is defined
-through deviations from $\mu$, but the estimator measures deviations from
-$\bar x$. So first relate the two kinds of deviation. For a single term,
-add and subtract $\bar x$ (the same move as the decomposition above):
+$$\hat\sigma^2 = \frac{1}{n}\sum_i (x_i - \bar x)^2$$
+
+**The issue.** This estimator is biased low. Seeing that needs no algebra,
+just the die, whose true variance is $\sigma^2 = \frac{35}{12} \approx 2.92$
+(§3.1). Enumerate all $6^3 = 216$ equally likely 3-roll samples, apply the
+formula to each, and average the 216 results: the average is
+$\frac{35}{18} \approx 1.94$, a third short of $2.92$. So
+$\mathbb{E}[\hat\sigma^2] \neq \sigma^2$: by the definition at the top of
+§3.5 this estimator has nonzero bias, a systematic miss that no amount of
+resampling repairs. The rest of this subsection finds where the shortfall
+comes from, and the fix falls out of the derivation.
+
+**The diagnosis.** $\sigma^2$ is defined through deviations from $\mu$, but
+the estimator measures deviations from $\bar x$. So first relate the two
+kinds of deviation. For a single term, add and subtract $\bar x$ (the same
+move as the decomposition above):
 
 $$x_i - \mu = (x_i - \bar x) + (\bar x - \mu)$$
 
@@ -694,18 +703,18 @@ $\mathrm{Var}(\bar x) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$. So:
 
 $$\mathbb{E}\Big[\sum_i (x_i - \bar x)^2\Big] = n\sigma^2 - \sigma^2 = (n-1)\,\sigma^2$$
 
-The sum of squared deviations averages $(n-1)\sigma^2$. The last step is to
-divide by a constant and see what each choice of divisor does to the
-expectation (the constant moves outside by linearity):
+**The fix.** The sum of squared deviations averages $(n-1)\sigma^2$. The
+last step is to divide by a constant and see what each choice of divisor
+does to the expectation (the constant moves outside by linearity):
 
 - **Divide by $n$** (the estimator under study):
   $\mathbb{E}\big[\frac{1}{n}\sum_i (x_i - \bar x)^2\big] = \frac{1}{n}(n-1)\sigma^2 = \frac{n-1}{n}\sigma^2$.
   This is less than $\sigma^2$, so
   $\mathrm{Bias} = \frac{n-1}{n}\sigma^2 - \sigma^2 = -\frac{\sigma^2}{n}$:
-  a systematic underestimate. For the 3-roll die estimator that means an
+  a systematic underestimate. For the 3-roll die estimator this predicts an
   average of $\frac{2}{3} \cdot \frac{35}{12} = \frac{35}{18} \approx 1.94$,
-  well below the true $\sigma^2 \approx 2.92$ (verified by enumerating all
-  $6^3 = 216$ equally likely samples).
+  exactly the number the enumeration at the start of this subsection
+  produced. The derivation explains the observation.
 - **Divide by $n-1$ instead**:
   $\mathbb{E}\big[\frac{1}{n-1}\sum_i (x_i - \bar x)^2\big] = \frac{1}{n-1}(n-1)\sigma^2 = \sigma^2$,
   exactly. Zero bias. Choosing $n-1$ as the divisor is **Bessel's
