@@ -982,17 +982,24 @@ each total can happen (out of 36). The total $7$ sits under all six copies;
 the totals $2$ and $12$ sit under one each. The flat shape has become a
 triangle.*
 
-Adding slid copies smooths the shape: the middle of the stack collects
-contributions from every copy, the ends from few. Every extra draw slides
-and adds again, so
-features specific to the starting distribution (the exponential's spike at
-zero, in the panels above) fade a little more each time, while §3.1's rules
-pin down the mean and variance. The Gaussian is the resting point of the
-process: convolving two Gaussians gives another Gaussian, so once the shape
-arrives there, further draws change nothing. §3.4's cancellation argument
-(many combinations of nudges produce a middling total, few produce an
-extreme one) is the triangle's counting argument, applied to small
-continuous nudges instead of dice.
+The diagram shows why adding slid copies smooths the shape: the middle of
+the stack collects contributions from every copy, the ends from few. Each
+new draw repeats the slide-and-add, and repeating it has three effects:
+
+- **Features of the starting distribution fade.** Every slide-and-add
+  averages the shape once more, so anything specific to the original
+  distribution (the exponential's spike at zero, in the panels above) gets
+  blurred a little further with each draw.
+- **The mean and variance survive.** §3.1's rules fix both regardless of
+  shape: means add, and variances of independent draws add. Smoothing
+  changes the shape, not those two numbers.
+- **The process has a resting point: the Gaussian.** Convolving two
+  Gaussians gives another Gaussian, so once the shape reaches the bell,
+  further draws have nothing left to change.
+
+§3.4's cancellation argument (many combinations of nudges produce a
+middling total, few produce an extreme one) is the triangle's counting
+argument, applied to small continuous nudges instead of dice.
 `probability_demos.ipynb` tracks the process numerically: the skewness of
 $\bar X_n$ falls toward 0 and its standard deviation matches
 $\sigma/\sqrt{n}$.
