@@ -905,12 +905,16 @@ $$P(S = t) = \sum_{v=1}^{6} \tfrac16 \cdot P(\text{first die} = t - v)$$
 
 Read the right side one term at a time, each as a function of the total $t$:
 
-- The $v = 1$ term is $\tfrac16\,P(\text{first die} = t - 1)$. It is
-  nonzero for $t = 2$ through $7$: the first die's distribution, slid one
-  step to the right and scaled by $\tfrac16$.
+- The $v = 1$ term is $\tfrac16\,P(\text{first die} = t - 1)$. The first
+  die only ever shows $1$ through $6$, so this term is nonzero only when
+  $t - 1$ is one of those values, i.e. for $t = 2$ through $7$. As a
+  function of $t$, it is the first die's distribution slid one step to the
+  right and scaled by $\tfrac16$.
 - The $v = 2$ term is the same distribution slid two steps right (nonzero
   for $t = 3$ through $8$), the $v = 3$ term three steps, and so on up to
-  $v = 6$.
+  the $v = 6$ term, which covers $t = 7$ through $12$. No single term spans
+  all totals; together the six windows cover every possible total, $2$
+  through $12$.
 
 So the formula says: slide six copies of the first die's distribution, one
 step apart, and add them up. This slide-and-add operation is called the
