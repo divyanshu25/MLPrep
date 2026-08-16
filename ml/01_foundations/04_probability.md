@@ -849,24 +849,82 @@ shape: not only does $\bar X_n$ concentrate, its distribution becomes **Gaussian
 
 $$\frac{\bar X_n - \mu}{\sigma / \sqrt{n}} \to \mathcal{N}(0, 1)$$
 
-Where the shape comes from: the distribution of a sum is the **convolution**
-of the summands' distributions, and each convolution smooths the result -
-after many of them, distribution-specific features (skew, bumps) shrink
-toward zero while the normalization holds mean and variance fixed, and the
-limiting shape is the Gaussian. This is §3.4's cancellation argument (many
-combinations of nudges land a total near zero, few land it far out) carried
-out at the level of whole distributions. Concretely: start from a distribution as
-lopsided as the exponential; means of 100 draws are already visibly symmetric
-and bell-shaped. `probability_demos.ipynb` tracks this numerically - the
-skewness of $\bar X_n$ falls toward 0 and its standard deviation matches
+The display makes a strong claim: whatever distribution one draw follows,
+the average's distribution turns Gaussian. Watch it happen. Start from a
+deliberately non-Gaussian distribution, the exponential (density $e^{-x}$,
+mean $\mu = 1$): highest at zero, long tail to the right, no left tail at
+all. The three panels show the distribution of the average $\bar X_n$ as
+$n$ grows:
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 520 205" role="img" aria-label="Three panels showing the distribution of the average of n exponential draws for n equal to 1, 4, and 30: the lopsided exponential becomes a narrow symmetric bell centered on the mean 1" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <g fill="currentColor" fill-opacity="0.85" text-anchor="middle">
+    <text x="90" y="28">n = 1: one draw</text>
+    <text x="265" y="28">n = 4</text>
+    <text x="440" y="28">n = 30</text>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.4">
+    <line x1="20" y1="170" x2="160" y2="170"/>
+    <line x1="195" y1="170" x2="335" y2="170"/>
+    <line x1="370" y1="170" x2="510" y2="170"/>
+  </g>
+  <g stroke="#f59e0b" stroke-dasharray="4 4">
+    <line x1="66.7" y1="170" x2="66.7" y2="44"/>
+    <line x1="241.7" y1="170" x2="241.7" y2="44"/>
+    <line x1="416.7" y1="170" x2="416.7" y2="44"/>
+  </g>
+  <polyline points="20.0,48.0 25.0,60.4 30.0,71.5 35.0,81.5 40.0,90.5 45.0,98.6 50.0,105.9 55.0,112.4 60.0,118.2 65.0,123.5 70.0,128.2 75.0,132.5 80.0,136.3 85.0,139.7 90.0,142.8 95.0,145.5 100.0,148.0 105.0,150.3 110.0,152.3 115.0,154.1 120.0,155.7 125.0,157.1 130.0,158.4 135.0,159.6 140.0,160.7 145.0,161.6 150.0,162.5 155.0,163.2 160.0,163.9" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <polyline points="195.0,170.0 200.0,165.3 205.0,145.7 210.0,116.7 215.0,87.7 220.0,65.2 225.0,52.1 230.0,48.0 235.0,51.4 240.0,60.0 245.0,71.7 250.0,84.7 255.0,97.9 260.0,110.3 265.0,121.4 270.0,131.1 275.0,139.2 280.0,145.9 285.0,151.4 290.0,155.8 295.0,159.2 300.0,161.8 305.0,163.9 310.0,165.4 315.0,166.6 320.0,167.5 325.0,168.2 330.0,168.7 335.0,169.0" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <polyline points="370.0,170.0 375.0,170.0 380.0,170.0 385.0,170.0 390.0,169.9 395.0,168.1 400.0,155.3 405.0,118.4 410.0,70.3 415.0,48.0 420.0,65.9 425.0,103.7 430.0,136.8 435.0,156.4 440.0,165.3 445.0,168.6 450.0,169.6 455.0,169.9 460.0,170.0 465.0,170.0 470.0,170.0 475.0,170.0 480.0,170.0 485.0,170.0 490.0,170.0 495.0,170.0 500.0,170.0 505.0,170.0 510.0,170.0" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <g fill="currentColor" fill-opacity="0.6" text-anchor="middle" font-size="10">
+    <text x="20" y="184">0</text>
+    <text x="195" y="184">0</text>
+    <text x="370" y="184">0</text>
+  </g>
+  <g fill="#f59e0b" text-anchor="middle" font-size="10">
+    <text x="66.7" y="184">&#956; = 1</text>
+    <text x="241.7" y="184">&#956; = 1</text>
+    <text x="416.7" y="184">&#956; = 1</text>
+  </g>
+</svg>
+</div>
+
+*The distribution of $\bar X_n$ for averages of $n$ exponential draws
+(curves scaled to matching heights). Both of the section's answers are
+visible: the curve narrows around $\mu = 1$ (that is $\sigma/\sqrt{n}$),
+and the lopsided shape becomes a symmetric bell (that is the CLT).*
+
+The mechanism behind the change of shape: adding one more draw to a sum
+blends shifted copies of the sum's current distribution, one copy for each
+value the new draw can take, weighted by how probable that value is (this
+operation is called the **convolution**). Blending smooths: features
+specific to the starting distribution, like the exponential's spike at
+zero, get averaged away a little more with every draw, while §3.1's rules
+pin down the mean and variance. The Gaussian is the resting point of this
+process: blending two Gaussians gives another Gaussian, so once the shape
+gets there, more draws change nothing. §3.4's cancellation argument (many
+combinations of nudges produce a middling total, few produce an extreme
+one) is the same smoothing, seen one total at a time.
+`probability_demos.ipynb` tracks the process numerically: the skewness of
+$\bar X_n$ falls toward 0 and its standard deviation matches
 $\sigma/\sqrt{n}$.
 
-Why care in ML:
+Three places this gets used daily in ML:
 
-- Minibatch gradients are sample means of per-example gradients, so SGD noise
-  shrinks like $1/\sqrt{\text{batch size}}$.
-- Test-set accuracy is a sample mean of 0/1 correctness (a Bernoulli), so its
-  standard error is $\sqrt{p(1-p)/n}$. With $n = 1000$ and accuracy near
-  90%, that is $\sqrt{0.9 \cdot 0.1 / 1000} \approx 0.9\%$ - a "0.5%
-  improvement" on such a test set is within the noise.
-- A/B tests and confidence intervals lean on the CLT's Gaussian shape.
+- **SGD noise.** A minibatch gradient is the average of the per-example
+  gradients in the batch: a sample mean. Its standard deviation around the
+  full-dataset gradient therefore shrinks like
+  $1/\sqrt{\text{batch size}}$: quadrupling the batch halves the gradient
+  noise.
+- **Error bars on test accuracy.** Each test example scores 1 (correct) or
+  0 (wrong): a Bernoulli draw (§3.4) with unknown true accuracy $p$.
+  Reported accuracy is the mean of $n$ such draws, so its standard
+  deviation is $\sqrt{p(1-p)} / \sqrt{n}$ (Bernoulli variance $p(1-p)$,
+  §3.4). With $n = 1000$ test examples and accuracy near 90%:
+  $\sqrt{0.9 \cdot 0.1 / 1000} \approx 0.009$, an error bar of about
+  $\pm 0.9\%$. A claimed "0.5% improvement" measured on such a test set is
+  smaller than the error bar: it could be sampling luck.
+- **Confidence intervals and A/B tests** report ranges like "$\pm 2$
+  standard errors". The 2 comes from the Gaussian shape the CLT guarantees:
+  95% of a Gaussian's probability lies within 2 standard deviations of its
+  mean.
