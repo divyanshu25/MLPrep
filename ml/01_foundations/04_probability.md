@@ -1012,10 +1012,14 @@ Three places this gets used daily in ML:
   $1/\sqrt{\text{batch size}}$: quadrupling the batch halves the gradient
   noise.
 - **Error bars on test accuracy.** Each test example scores 1 (correct) or
-  0 (wrong): a Bernoulli draw (§3.4) with unknown true accuracy $p$.
-  Reported accuracy is the mean of $n$ such draws, so its standard
-  deviation is $\sqrt{p(1-p)} / \sqrt{n}$ (Bernoulli variance $p(1-p)$,
-  §3.4). With $n = 1000$ test examples and accuracy near 90%:
+  0 (wrong): a Bernoulli draw (§3.4) with unknown true accuracy $p$. The
+  variance of one score, from §3.1's identity
+  $\mathrm{Var}(X) = \mathbb{E}[X^2] - (\mathbb{E}[X])^2$: a 0/1 score
+  satisfies $X^2 = X$ (because $0^2 = 0$ and $1^2 = 1$), so
+  $\mathbb{E}[X^2] = \mathbb{E}[X] = p$, giving
+  $\mathrm{Var} = p - p^2 = p(1-p)$. Reported accuracy is the mean of $n$
+  such draws, so its standard deviation is $\sqrt{p(1-p)} / \sqrt{n}$.
+  With $n = 1000$ test examples and accuracy near 90%:
   $\sqrt{0.9 \cdot 0.1 / 1000} \approx 0.009$, an error bar of about
   $\pm 0.9\%$. A claimed "0.5% improvement" measured on such a test set is
   smaller than the error bar: it could be sampling luck.
