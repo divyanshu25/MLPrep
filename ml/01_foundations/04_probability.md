@@ -647,12 +647,44 @@ two, $\mathrm{Bias}^2 + \mathrm{Var}$.*
 
 #### Why the 1/n sample variance is biased (Bessel's correction)
 
-The estimator $\frac{1}{n}\sum_i (x_i - \bar x)^2$ underestimates $\sigma^2$,
-and the derivation shows by exactly how much. Start from an algebraic
-identity (add and subtract $\bar x$ inside $(x_i - \mu)^2$ and expand; the
-cross term vanishes because $\sum_i (x_i - \bar x) = 0$):
+First, where this estimator comes from. The variance of one draw is defined
+through the true mean: $\sigma^2 = \mathbb{E}[(X - \mu)^2]$. To estimate it
+from a sample, replace both unknowns with sample versions: the expectation
+becomes an average over the $n$ draws, and $\mu$ (unknown) becomes $\bar x$.
+That double substitution produces $\frac{1}{n}\sum_i (x_i - \bar x)^2$, and
+the question is the same one just asked about $\bar x$: what is its
+expectation, and does it equal the target $\sigma^2$? The answer will be no:
+it underestimates $\sigma^2$, and the derivation shows by exactly how much.
+
+The obstacle to computing its expectation directly: $\sigma^2$ is defined
+through deviations from $\mu$, but the estimator measures deviations from
+$\bar x$. So first relate the two kinds of deviation. For a single term,
+add and subtract $\bar x$ (the same move as the decomposition above):
+
+$$x_i - \mu = (x_i - \bar x) + (\bar x - \mu)$$
+
+Square it and sum over $i$. The factor $(\bar x - \mu)$ is the same number
+for every $i$, so in the cross term it comes out of the sum, and its square
+appears $n$ times:
+
+$$\sum_i (x_i - \mu)^2 = \sum_i (x_i - \bar x)^2
+  + 2(\bar x - \mu)\sum_i (x_i - \bar x) + n(\bar x - \mu)^2$$
+
+The remaining sum in the middle term is zero by the definition of $\bar x$:
+$\sum_i (x_i - \bar x) = \sum_i x_i - n\bar x = n\bar x - n\bar x = 0$
+(deviations from their own average cancel exactly). Drop it and move
+$n(\bar x - \mu)^2$ to the other side:
 
 $$\sum_i (x_i - \bar x)^2 = \sum_i (x_i - \mu)^2 - n(\bar x - \mu)^2$$
+
+Check on the die rolls $2, 6, 3$ from above ($\mu = 3.5$, $\bar x = \frac{11}{3}$,
+so $\bar x - \mu = \frac{1}{6}$): the left side is
+$\left(\frac{5}{3}\right)^2 + \left(\frac{7}{3}\right)^2 + \left(\frac{2}{3}\right)^2 = \frac{78}{9} \approx 8.67$;
+the right side is $8.75 - 3 \cdot \left(\frac{1}{6}\right)^2 = 8.75 - 0.08 \approx 8.67$.
+Both sides agree. And the identity already shows the direction of the bias:
+the subtracted term $n(\bar x - \mu)^2$ is never negative, so deviations
+measured from $\bar x$ always sum to less than (or at most equal to)
+deviations measured from $\mu$.
 
 Take expectations of both sides. The first term is $n\sigma^2$ by the
 definition of variance. For the second: $\mathbb{E}[(\bar x - \mu)^2] =
