@@ -801,15 +801,17 @@ test label. The full derivation is in the evaluation module.
 
 ## 3.6 Central limit theorem - the $\sqrt{n}$ intuition
 
-Why this section: almost every number ML reads off is an average over a
-sample. $\bar x$ estimating a mean (§3.5), a test-set accuracy (an average
-of per-example 0/1 scores), a minibatch gradient (an average of per-example
-gradients). This section answers the two questions that apply to all of
+Why this section: almost every number used to train or evaluate a model is
+an average over a sample. $\bar x$ estimating a mean (§3.5), a test-set
+accuracy (an average of per-example 0/1 scores), a minibatch gradient (an
+average of per-example gradients). This section answers the two questions that apply to all of
 them:
 
-- **How far off is the average?** Its spread shrinks like
-  $\sigma / \sqrt{n}$, which puts an error bar on every number computed
-  from a sample.
+- **How far off is the average?** An average computed from a random sample
+  is itself a random variable (§3.5), so it has a standard deviation: the
+  typical distance between the average you computed and the true mean. This
+  section computes it, $\sigma / \sqrt{n}$, which is the error bar on every
+  number computed from a sample.
 - **What distribution does the average follow?** Approximately Gaussian,
   whatever distribution the individual terms follow. That is the **central
   limit theorem (CLT)**, and it is the theorem §3.4 leaned on when it
@@ -837,8 +839,11 @@ familiar from §3.5 (each follows from §3.1's rules):
 - $\mathrm{Var}(\bar X_n) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$
   (independence → variances add; the $\frac1n$ comes out squared).
 
-So the spread of the mean shrinks like $\sigma/\sqrt{n}$ - the **law of large
-numbers** with a rate. To halve your error bar you need 4× the data. The CLT adds the
+Take the square root of that variance: the standard deviation of $\bar X_n$
+is $\sigma/\sqrt{n}$. It falls toward zero as $n$ grows - the **law of
+large numbers**, with a rate attached. The rate is the practical part: the
+$\sqrt{n}$ in the denominator means halving your error bar needs 4× the
+data. The CLT adds the
 shape: not only does $\bar X_n$ concentrate, its distribution becomes **Gaussian**,
 *regardless of the original distribution*:
 
