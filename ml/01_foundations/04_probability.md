@@ -467,8 +467,8 @@ questions:
 - What does the **sum of many small independent effects** look like? →
   Gaussian.
 
-This section defines each, derives its basic facts, and states why it holds
-its job.
+This section defines each, derives its basic facts, and gives the reasons it
+is the right model for its question.
 
 #### Bernoulli: one yes/no event
 
@@ -508,8 +508,8 @@ Two things built from it:
 **Gaussian** $\mathcal{N}(\mu, \sigma^2)$, density
 $\frac{1}{\sqrt{2\pi\sigma^2}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}$ - the
 bell curve, with its two parameters being exactly its mean $\mu$ and
-variance $\sigma^2$. It is not chosen for convenience alone; it holds its
-place for three reasons:
+variance $\sigma^2$. It is not chosen for convenience alone; there are three
+reasons it is the default:
 
 1. **Sums of many small effects are bell-shaped (the CLT, §3.6).** Picture
    §3.3's price gap as roughly 20 small independent contributions, summed:
@@ -553,7 +553,10 @@ The setup: there is a true number $\theta$ you want to know, and you cannot
 read it off directly - you only get a random sample. An **estimator** is a
 formula applied to that sample; its output $\hat\theta$ is your estimate of
 $\theta$. The hat marks "computed from data, intended to approximate
-$\theta$."
+$\theta$." §3.3 already produced estimators without using the name: the
+coin's $\hat p = h/n$ is a formula applied to the observed flips, and every
+MLE is a formula applied to the dataset. This section asks how good such a
+formula is.
 
 The concrete instance to keep in mind, continuing §3.1's die (true mean
 $\theta = 3.5$): estimate the mean by rolling 3 times and averaging,
@@ -787,7 +790,8 @@ test label. The full derivation is in the evaluation module.
 Take $n$ **i.i.d.** draws - independent and identically distributed, i.e.
 sampled from the same distribution with mean $\mu$ and variance $\sigma^2$,
 each draw independent of the rest - and average them:
-$\bar X_n = \frac1n \sum X_i$. Two facts, both from §3.1:
+$\bar X_n = \frac1n \sum X_i$. Two facts, both familiar from §3.5 (each
+follows from §3.1's rules):
 
 - $\mathbb{E}[\bar X_n] = \mu$ (linearity) - unbiased.
 - $\mathrm{Var}(\bar X_n) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$
@@ -804,7 +808,9 @@ Where the shape comes from: the distribution of a sum is the **convolution**
 of the summands' distributions, and each convolution smooths the result -
 after many of them, distribution-specific features (skew, bumps) shrink
 toward zero while the normalization holds mean and variance fixed, and the
-limiting shape is the Gaussian. Concretely: start from a distribution as
+limiting shape is the Gaussian. This is §3.4's cancellation argument (many
+combinations of nudges land a total near zero, few land it far out) carried
+out at the level of whole distributions. Concretely: start from a distribution as
 lopsided as the exponential; means of 100 draws are already visibly symmetric
 and bell-shaped. `probability_demos.ipynb` tracks this numerically - the
 skewness of $\bar X_n$ falls toward 0 and its standard deviation matches
