@@ -787,11 +787,21 @@ test label. The full derivation is in the evaluation module.
 
 ## 3.6 Central limit theorem - the $\sqrt{n}$ intuition
 
-Take $n$ **i.i.d.** draws - independent and identically distributed, i.e.
-sampled from the same distribution with mean $\mu$ and variance $\sigma^2$,
-each draw independent of the rest - and average them:
-$\bar X_n = \frac1n \sum X_i$. Two facts, both familiar from §3.5 (each
-follows from §3.1's rules):
+A **draw** is one observation of a random variable: one die roll, one coin
+flip, one sampled data point. Take $n$ of them, $X_1, \dots, X_n$. They are
+**i.i.d.** (independent and identically distributed) when two conditions
+hold:
+
+- **Identically distributed**: every draw comes from the same distribution,
+  so each one has the same mean $\mu$ and the same variance $\sigma^2$.
+  Rolling one die $n$ times qualifies; rolling a die for some draws and
+  flipping a coin for others does not.
+- **Independent**: no draw affects any other. Die rolls qualify. Dealing
+  cards from a deck without replacement does not: each card dealt changes
+  what the next draw can be.
+
+Average the $n$ draws: $\bar X_n = \frac1n \sum X_i$. Two facts, both
+familiar from §3.5 (each follows from §3.1's rules):
 
 - $\mathbb{E}[\bar X_n] = \mu$ (linearity) - unbiased.
 - $\mathrm{Var}(\bar X_n) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$
