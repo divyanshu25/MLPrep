@@ -698,11 +698,25 @@ the subtracted term $n(\bar x - \mu)^2$ is never negative, so deviations
 measured from $\bar x$ always sum to less than (or at most equal to)
 deviations measured from $\mu$.
 
-Take expectations of both sides. The first term is $n\sigma^2$ by the
-definition of variance. For the second: $\mathbb{E}[(\bar x - \mu)^2] =
-\mathrm{Var}(\bar x)$, and by §3.1's two rules (variances add over the $n$
-independent draws, then the $1/n$ comes out squared),
-$\mathrm{Var}(\bar x) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$. So:
+Take expectations of both sides, one term at a time:
+
+- $\mathbb{E}\big[\sum_i (x_i - \mu)^2\big] = n\sigma^2$: each term is
+  $\mathbb{E}[(x_i - \mu)^2] = \sigma^2$ (the definition of variance,
+  §3.1), and there are $n$ of them.
+- $\mathbb{E}[(\bar x - \mu)^2] = \mathrm{Var}(\bar x)$: since
+  $\mathbb{E}[\bar x] = \mu$ (shown at the top of §3.5), this expression is
+  the expected squared distance of $\bar x$ from its own mean, which is the
+  definition of $\mathrm{Var}(\bar x)$. Its value comes from the same two
+  steps as the 3-roll computation earlier in §3.5, now for general $n$,
+  applied to $\bar x = \frac{1}{n}(X_1 + \dots + X_n)$:
+  - Variances of independent draws add, and each draw has variance
+    $\sigma^2$, so $\mathrm{Var}(X_1 + \dots + X_n) = n\sigma^2$. (Die,
+    $n = 3$: $3 \cdot 2.92 = 8.76$.)
+  - The constant factor $\frac{1}{n}$ comes out squared, so
+    $\mathrm{Var}(\bar x) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$.
+    (Die: $\frac{8.76}{9} \approx 0.97$.)
+
+So:
 
 $$\mathbb{E}\Big[\sum_i (x_i - \bar x)^2\Big] = n\sigma^2 - \sigma^2 = (n-1)\,\sigma^2$$
 
