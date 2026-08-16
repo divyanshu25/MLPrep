@@ -731,14 +731,56 @@ systematically too small.
 
 #### The tradeoff in ML terms
 
-A linear model is high-bias/low-variance: it misses curvature systematically,
-but refitting on a new sample gives nearly the same line. A deep net or
-unpruned tree is low-bias/high-variance: it can fit anything, including this
-particular sample's noise. Regularization trades variance down for some bias;
-more data lowers variance directly; bagging averages several high-variance
-fits to cancel their variance. Test error decomposes as
-$\text{Bias}^2 + \text{Variance} + \text{irreducible noise}$ (derived in the
-evaluation module).
+Everything above was about estimating one number from one sample. The reason
+it sits in an ML syllabus: training a model fits the same template. The
+dictionary:
+
+- The **random sample** is the training set.
+- The **estimator** (the formula applied to the sample) is the whole
+  training procedure.
+- The **estimate** $\hat\theta$ is the trained model's prediction at some
+  input $x$.
+- **Redrawing the sample** means collecting a fresh training set and
+  retraining.
+
+With that dictionary, §3.5's two definitions read directly:
+
+- **Bias**: train on many independent training sets and average all the
+  resulting predictions at $x$; bias is how far that average sits from the
+  true relationship. A miss that survives this averaging is systematic: it
+  comes from what the model class cannot express.
+- **Variance**: how much the prediction at $x$ changes from one training
+  set to the next. It comes from the fit following details specific to the
+  one sample it saw, including that sample's noise, which a fresh sample
+  would not repeat.
+
+The two classic model types sit at opposite corners of the dartboard figure:
+
+- A **linear model** is high-bias/low-variance. If the true relationship
+  curves, a straight line misses the curve at the same places in the same
+  direction no matter which training set it saw (bias), but refitting on a
+  new sample gives nearly the same line (low variance).
+- A **deep net or unpruned decision tree** is low-bias/high-variance. It
+  can express nearly any shape, so the average over training sets tracks
+  the true relationship (low bias), but each individual fit also follows
+  its own training set's noise, so two fits on two samples disagree
+  (variance).
+
+The standard interventions, stated as which term each one moves:
+
+- **Regularization** limits how closely the fit can follow the particular
+  training set: variance drops, and some bias is accepted in exchange.
+- **More data** lowers variance directly, the same mechanism as
+  $\mathrm{Var}(\bar x) = \sigma^2 / n$ shrinking with $n$.
+- **Bagging** trains several high-variance models on resampled data and
+  averages their predictions: averaging cancels variance (the $\bar x$
+  mechanism again) while leaving bias roughly unchanged.
+
+For a model's test error, the decomposition gains one term:
+$\text{Bias}^2 + \text{Variance} + \text{irreducible noise}$. The new term
+is the noise $\varepsilon$ in the target itself (§3.3): even a perfect
+model of the true relationship cannot predict the noise draw added to the
+test label. The full derivation is in the evaluation module.
 
 ## 3.6 Central limit theorem - the $\sqrt{n}$ intuition
 
