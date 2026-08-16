@@ -549,18 +549,58 @@ place for three reasons:
 
 ## 3.5 Bias and variance of estimators
 
-An estimator $\hat\theta$ is a formula applied to a random sample, so it's a random
-variable itself. Two failure modes:
+The setup: there is a true number $\theta$ you want to know, and you cannot
+read it off directly - you only get a random sample. An **estimator** is a
+formula applied to that sample; its output $\hat\theta$ is your estimate of
+$\theta$. The hat marks "computed from data, intended to approximate
+$\theta$."
+
+The concrete instance to keep in mind, continuing §3.1's die (true mean
+$\theta = 3.5$): estimate the mean by rolling 3 times and averaging,
+$\hat\theta = \bar x = \frac{1}{3}(x_1 + x_2 + x_3)$. Different samples give
+different estimates:
+
+- rolls $2, 6, 3 \;\rightarrow\; \hat\theta = 3.67$
+- rolls $1, 2, 4 \;\rightarrow\; \hat\theta = 2.33$
+- rolls $5, 3, 6 \;\rightarrow\; \hat\theta = 4.67$
+
+The formula is fixed, but its output depends on which random sample was
+drawn. So $\hat\theta$ is itself a random variable, and everything from §3.1
+applies to it: it has an expectation $\mathbb{E}[\hat\theta]$ (the average
+estimate over all possible samples) and a variance. That gives two separate
+ways an estimator can be bad:
 
 $$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
   \mathrm{Var} = \mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big]$$
 
-Bias: wrong *on average*, a systematic miss. Variance: right on average but
-*jumpy* from sample to sample. They combine exactly. The derivation is one
-move: inside $\mathbb{E}[(\hat\theta - \theta)^2]$, add and subtract
-$\mathbb{E}[\hat\theta]$ and expand the square; the cross term is zero
-because it contains the factor
-$\mathbb{E}\big[\hat\theta - \mathbb{E}[\hat\theta]\big] = 0$:
+- **Bias** compares the *average* estimate to the truth. If it is nonzero,
+  the miss is systematic: even averaging the estimates from thousands of
+  fresh samples would not land on $\theta$. The die estimator has zero bias:
+  by §3.1's linearity, $\mathbb{E}[\bar x] = \frac{1}{3}(3.5 + 3.5 + 3.5) = 3.5 = \theta$.
+- **Var** is §3.1's variance applied to the random variable $\hat\theta$:
+  how much the estimate jumps around its own average from sample to sample.
+  The three estimates above ranged from 2.33 to 4.67; that spread is what
+  Var measures. By §3.1's two scaling rules,
+  $\mathrm{Var}(\bar x) = \frac{1}{3^2} \cdot 3 \cdot 2.92 = \frac{2.92}{3} \approx 0.97$.
+
+The two combine exactly. The quantity to decompose is the expected squared
+miss, $\mathbb{E}[(\hat\theta - \theta)^2]$. Inside it, add and subtract
+$\mathbb{E}[\hat\theta]$ (net change zero) to split the miss into the two
+pieces just defined:
+
+$$\hat\theta - \theta =
+  \underbrace{\big(\hat\theta - \mathbb{E}[\hat\theta]\big)}_{\text{jump around the average}}
+  + \underbrace{\big(\mathbb{E}[\hat\theta] - \theta\big)}_{\text{Bias, a constant}}$$
+
+Square this sum and take expectations term by term:
+
+- the first term squared gives $\mathbb{E}[(\hat\theta - \mathbb{E}[\hat\theta])^2] = \mathrm{Var}$;
+- the second term squared is the constant $\mathrm{Bias}^2$, and the
+  expectation of a constant is itself;
+- the cross term is
+  $2\,(\mathbb{E}[\hat\theta] - \theta)\,\mathbb{E}\big[\hat\theta - \mathbb{E}[\hat\theta]\big]$,
+  and the last factor is $\mathbb{E}[\hat\theta] - \mathbb{E}[\hat\theta] = 0$,
+  so the whole term vanishes.
 
 $$\mathbb{E}[(\hat\theta - \theta)^2] = \mathrm{Bias}^2 + \mathrm{Var}$$
 
