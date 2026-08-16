@@ -694,11 +694,31 @@ $\mathrm{Var}(\bar x) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$. So:
 
 $$\mathbb{E}\Big[\sum_i (x_i - \bar x)^2\Big] = n\sigma^2 - \sigma^2 = (n-1)\,\sigma^2$$
 
-Dividing by $n$ therefore gives $\frac{n-1}{n}\sigma^2$ on average - biased
-low - while dividing by $n - 1$ gives exactly $\sigma^2$: **Bessel's
-correction**. The source of the bias is visible in the identity: deviations
-are measured from $\bar x$, which was computed from the same sample, and the
-$-n(\bar x - \mu)^2$ term is the price of that double use.
+The sum of squared deviations averages $(n-1)\sigma^2$. The last step is to
+divide by a constant and see what each choice of divisor does to the
+expectation (the constant moves outside by linearity):
+
+- **Divide by $n$** (the estimator under study):
+  $\mathbb{E}\big[\frac{1}{n}\sum_i (x_i - \bar x)^2\big] = \frac{1}{n}(n-1)\sigma^2 = \frac{n-1}{n}\sigma^2$.
+  This is less than $\sigma^2$, so
+  $\mathrm{Bias} = \frac{n-1}{n}\sigma^2 - \sigma^2 = -\frac{\sigma^2}{n}$:
+  a systematic underestimate. For the 3-roll die estimator that means an
+  average of $\frac{2}{3} \cdot \frac{35}{12} = \frac{35}{18} \approx 1.94$,
+  well below the true $\sigma^2 \approx 2.92$ (verified by enumerating all
+  $6^3 = 216$ equally likely samples).
+- **Divide by $n-1$ instead**:
+  $\mathbb{E}\big[\frac{1}{n-1}\sum_i (x_i - \bar x)^2\big] = \frac{1}{n-1}(n-1)\sigma^2 = \sigma^2$,
+  exactly. Zero bias. Choosing $n-1$ as the divisor is **Bessel's
+  correction**.
+
+Where did one whole $\sigma^2$ go? The identity says the sum measured from
+$\bar x$ falls short of the sum measured from $\mu$ by $n(\bar x - \mu)^2$,
+and in expectation that shortfall is
+$n \cdot \mathrm{Var}(\bar x) = n \cdot \frac{\sigma^2}{n} = \sigma^2$:
+exactly one draw's worth of variance. The cause: $\bar x$ was computed from
+the same sample it is then subtracted from, so it sits closer to these
+particular $x_i$ than $\mu$ does, and the measured deviations come out
+systematically too small.
 
 #### The tradeoff in ML terms
 
