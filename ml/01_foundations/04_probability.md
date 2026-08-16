@@ -801,6 +801,22 @@ test label. The full derivation is in the evaluation module.
 
 ## 3.6 Central limit theorem - the $\sqrt{n}$ intuition
 
+Why this section: almost every number ML reads off is an average over a
+sample. $\bar x$ estimating a mean (§3.5), a test-set accuracy (an average
+of per-example 0/1 scores), a minibatch gradient (an average of per-example
+gradients). This section answers the two questions that apply to all of
+them:
+
+- **How far off is the average?** Its spread shrinks like
+  $\sigma / \sqrt{n}$, which puts an error bar on every number computed
+  from a sample.
+- **What distribution does the average follow?** Approximately Gaussian,
+  whatever distribution the individual terms follow. That is the **central
+  limit theorem (CLT)**, and it is the theorem §3.4 leaned on when it
+  argued that sums of many small effects are bell-shaped.
+
+Both answers need the setup pinned down first.
+
 A **draw** is one observation of a random variable: one die roll, one coin
 flip, one sampled data point. Take $n$ of them, $X_1, \dots, X_n$. They are
 **i.i.d.** (independent and identically distributed) when two conditions
