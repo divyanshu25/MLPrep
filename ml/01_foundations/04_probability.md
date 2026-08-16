@@ -580,8 +580,12 @@ $$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
 - **Var** is §3.1's variance applied to the random variable $\hat\theta$:
   how much the estimate jumps around its own average from sample to sample.
   The three estimates above ranged from 2.33 to 4.67; that spread is what
-  Var measures. By §3.1's two scaling rules,
-  $\mathrm{Var}(\bar x) = \frac{1}{3^2} \cdot 3 \cdot 2.92 = \frac{2.92}{3} \approx 0.97$.
+  Var measures. Its exact value comes from applying §3.1's two scaling rules
+  to $\bar x = \frac{1}{3}(X_1 + X_2 + X_3)$, one rule at a time:
+  - Variances of independent draws add, and one roll has variance $2.92$
+    (§3.1). So $\mathrm{Var}(X_1 + X_2 + X_3) = 2.92 + 2.92 + 2.92 = 8.76$.
+  - A constant factor comes out squared:
+    $\mathrm{Var}\big(\tfrac{1}{3}\,(X_1 + X_2 + X_3)\big) = \tfrac{1}{3^2} \cdot 8.76 = \tfrac{8.76}{9} \approx 0.97$.
 
 The two combine exactly. The quantity to decompose is the expected squared
 miss, $\mathbb{E}[(\hat\theta - \theta)^2]$. Inside it, add and subtract
