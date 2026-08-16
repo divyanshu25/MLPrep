@@ -903,16 +903,84 @@ $t - v$. Each $v$ has probability $\frac16$, so add up the six cases:
 
 $$P(S = t) = \sum_{v=1}^{6} \tfrac16 \cdot P(\text{first die} = t - v)$$
 
-Read the right side as a recipe: take the first die's distribution, make
-six copies shifted by $1$ through $6$, and average them. This
-shift-and-average operation is called the **convolution** of the two
-distributions, and a sum's distribution is always the convolution of its
-summands' distributions.
+Read the right side one term at a time, each as a function of the total $t$:
 
-Averaging shifted copies smooths the shape. One die's distribution is flat,
-but the sum of two is already a triangle: the totals $2$ and $12$ happen in
-one way each ($1{+}1$, $6{+}6$) while $7$ happens in six ways, so the
-middle rises and the ends thin out. Every extra draw averages again, so
+- The $v = 1$ term is $\tfrac16\,P(\text{first die} = t - 1)$. It is
+  nonzero for $t = 2$ through $7$: the first die's distribution, slid one
+  step to the right and scaled by $\tfrac16$.
+- The $v = 2$ term is the same distribution slid two steps right (nonzero
+  for $t = 3$ through $8$), the $v = 3$ term three steps, and so on up to
+  $v = 6$.
+
+So the formula says: slide six copies of the first die's distribution, one
+step apart, and add them up. This slide-and-add operation is called the
+**convolution** of the two distributions, and a sum's distribution is
+always the convolution of its summands' distributions.
+
+<div style="margin:1.25rem 0">
+<svg viewBox="-32 0 552 250" role="img" aria-label="Six copies of a die's flat distribution, each slid one step further right, stack into a triangle: the total 7 is covered by all six copies while the totals 2 and 12 are covered by one each" style="max-width:560px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <line x1="240" y1="18" x2="240" y2="215" stroke="#f59e0b" stroke-dasharray="4 4" stroke-opacity="0.7"/>
+  <g fill="currentColor" fill-opacity="0.3">
+    <rect x="22" y="24" width="236" height="9" rx="2"/>
+    <rect x="62" y="39" width="236" height="9" rx="2"/>
+    <rect x="102" y="54" width="236" height="9" rx="2"/>
+    <rect x="142" y="69" width="236" height="9" rx="2"/>
+    <rect x="182" y="84" width="236" height="9" rx="2"/>
+    <rect x="222" y="99" width="236" height="9" rx="2"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.65" font-size="10">
+    <text x="18" y="32" text-anchor="end">v = 1</text>
+    <text x="58" y="47" text-anchor="end">v = 2</text>
+    <text x="98" y="62" text-anchor="end">v = 3</text>
+    <text x="138" y="77" text-anchor="end">v = 4</text>
+    <text x="178" y="92" text-anchor="end">v = 5</text>
+    <text x="218" y="107" text-anchor="end">v = 6</text>
+  </g>
+  <text x="240" y="136" text-anchor="middle" fill="currentColor" fill-opacity="0.7" font-size="10.5">add the six rows, column by column</text>
+  <g fill="#6366f1">
+    <rect x="26" y="204" width="28" height="11"/>
+    <rect x="66" y="193" width="28" height="22"/>
+    <rect x="106" y="182" width="28" height="33"/>
+    <rect x="146" y="171" width="28" height="44"/>
+    <rect x="186" y="160" width="28" height="55"/>
+    <rect x="226" y="149" width="28" height="66"/>
+    <rect x="266" y="160" width="28" height="55"/>
+    <rect x="306" y="171" width="28" height="44"/>
+    <rect x="346" y="182" width="28" height="33"/>
+    <rect x="386" y="193" width="28" height="22"/>
+    <rect x="426" y="204" width="28" height="11"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.6" text-anchor="middle" font-size="10">
+    <text x="40" y="200">1</text>
+    <text x="80" y="189">2</text>
+    <text x="120" y="178">3</text>
+    <text x="160" y="167">4</text>
+    <text x="200" y="156">5</text>
+    <text x="240" y="145">6</text>
+    <text x="280" y="156">5</text>
+    <text x="320" y="167">4</text>
+    <text x="360" y="178">3</text>
+    <text x="400" y="189">2</text>
+    <text x="440" y="200">1</text>
+  </g>
+  <g text-anchor="middle" font-size="10.5">
+    <text x="40" y="232" fill="currentColor" fill-opacity="0.7">t = 2</text>
+    <text x="240" y="232" fill="#f59e0b">t = 7</text>
+    <text x="440" y="232" fill="currentColor" fill-opacity="0.7">t = 12</text>
+  </g>
+</svg>
+</div>
+
+*Top: the six slid copies of the first die's flat distribution; the copy
+for $v$ is slid right by $v$ steps, so it covers the totals $v+1$ through
+$v+6$. Bottom: adding the rows column by column gives the number of ways
+each total can happen (out of 36). The total $7$ sits under all six copies;
+the totals $2$ and $12$ sit under one each. The flat shape has become a
+triangle.*
+
+Adding slid copies smooths the shape: the middle of the stack collects
+contributions from every copy, the ends from few. Every extra draw slides
+and adds again, so
 features specific to the starting distribution (the exponential's spike at
 zero, in the panels above) fade a little more each time, while §3.1's rules
 pin down the mean and variance. The Gaussian is the resting point of the
