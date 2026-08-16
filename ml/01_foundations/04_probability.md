@@ -896,17 +896,31 @@ $n$ grows:
 visible: the curve narrows around $\mu = 1$ (that is $\sigma/\sqrt{n}$),
 and the lopsided shape becomes a symmetric bell (that is the CLT).*
 
-The mechanism behind the change of shape: adding one more draw to a sum
-blends shifted copies of the sum's current distribution, one copy for each
-value the new draw can take, weighted by how probable that value is (this
-operation is called the **convolution**). Blending smooths: features
-specific to the starting distribution, like the exponential's spike at
-zero, get averaged away a little more with every draw, while §3.1's rules
-pin down the mean and variance. The Gaussian is the resting point of this
-process: blending two Gaussians gives another Gaussian, so once the shape
-gets there, more draws change nothing. §3.4's cancellation argument (many
-combinations of nudges produce a middling total, few produce an extreme
-one) is the same smoothing, seen one total at a time.
+The mechanism behind the change of shape, run on the smallest instance: two
+dice. What is the distribution of their sum $S$? For $S$ to equal a total
+$t$, the second die must show some value $v$, and the first must then show
+$t - v$. Each $v$ has probability $\frac16$, so add up the six cases:
+
+$$P(S = t) = \sum_{v=1}^{6} \tfrac16 \cdot P(\text{first die} = t - v)$$
+
+Read the right side as a recipe: take the first die's distribution, make
+six copies shifted by $1$ through $6$, and average them. This
+shift-and-average operation is called the **convolution** of the two
+distributions, and a sum's distribution is always the convolution of its
+summands' distributions.
+
+Averaging shifted copies smooths the shape. One die's distribution is flat,
+but the sum of two is already a triangle: the totals $2$ and $12$ happen in
+one way each ($1{+}1$, $6{+}6$) while $7$ happens in six ways, so the
+middle rises and the ends thin out. Every extra draw averages again, so
+features specific to the starting distribution (the exponential's spike at
+zero, in the panels above) fade a little more each time, while §3.1's rules
+pin down the mean and variance. The Gaussian is the resting point of the
+process: convolving two Gaussians gives another Gaussian, so once the shape
+arrives there, further draws change nothing. §3.4's cancellation argument
+(many combinations of nudges produce a middling total, few produce an
+extreme one) is the triangle's counting argument, applied to small
+continuous nudges instead of dice.
 `probability_demos.ipynb` tracks the process numerically: the skewness of
 $\bar X_n$ falls toward 0 and its standard deviation matches
 $\sigma/\sqrt{n}$.
