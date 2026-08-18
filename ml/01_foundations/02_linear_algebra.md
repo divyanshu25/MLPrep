@@ -54,7 +54,7 @@ what every neuron in a network's linear layer is doing.
 
 Check with numbers: $\|a\| = \sqrt{5} \approx 2.24$, $\|b\| = \sqrt{10} \approx 3.16$,
 so $\cos\theta = 5 / (2.24 \cdot 3.16) \approx 0.707$, i.e. $\theta = 45°$. Draw the two
-arrows - it's visibly 45°. The formula isn't abstract; it just works.
+arrows - it's visibly 45°.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 320 240" role="img" aria-label="Vectors a=[1,2] and b=[3,1] drawn from the origin with a 45 degree angle between them and the shadow a casts on b" style="max-width:340px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -104,8 +104,9 @@ Row 1 of $W$ dotted with $x$, then row 2 of $W$ dotted with $x$. So $Wx$ is just
 **many similarity scores computed at once**: each row of $W$ is a feature detector,
 and $Wx$ asks "how much does $x$ activate each detector?" A linear layer with 768
 inputs and 3072 outputs is 3072 dot products. Stack a batch of inputs as rows of $X$
-and $XW^\top$ does *batch × detectors* dot products in one shot. This is why GPUs +
-matmuls = deep learning: the whole field runs on "many dot products at once."
+and $XW^\top$ computes *batch × detectors* dot products in a single matrix
+multiplication. This is why deep learning runs on GPUs: a GPU's specialty is
+computing many dot products at once, and that is nearly all a network does.
 
 ## 1.4 Matrix multiply, view 2: a linear map (columns tell you everything)
 
@@ -193,9 +194,7 @@ written in numbers.** Two facts now come for free:
 
 A matrix warps space: a typical vector comes out rotated *and* stretched. Natural
 question: are there special directions the matrix treats more simply - directions
-it stretches but does *not* rotate? Think of the grain in a piece of wood: the
-material has built-in directions it prefers, and along them it behaves simply.
-A vector $v \ne 0$ with
+it stretches but does *not* rotate? A vector $v \ne 0$ with
 
 $$A v = \lambda v \tag{1.5a}$$
 
@@ -212,8 +211,8 @@ Make it concrete with $A = \begin{bmatrix} 2 & 1 \\ 1 & 2\end{bmatrix}$:
 - Try a non-eigenvector, $u = [1, 0]$: $Au = [2, 1]$, which points somewhere
   new. Most vectors are like $u$; eigenvectors are the exceptions.
 
-So this $A$ has a grain: stretch 3× along the diagonal, do nothing along the
-anti-diagonal. Notice the two eigen-directions are orthogonal. That's not luck:
+So this $A$ has exactly two such directions: stretch 3× along the diagonal, do
+nothing along the anti-diagonal. Notice the two eigen-directions are orthogonal. That's not luck:
 **a symmetric matrix always has a full set of orthogonal eigenvectors with real
 eigenvalues** (the spectral theorem).
 
@@ -298,7 +297,8 @@ Why care in ML:
 - **Repeated application.** Work in the eigenbasis and apply $A$ over and over:
   each component gets multiplied by its own $\lambda_i$ at every step, so after
   $k$ steps a component has grown (or shrunk) by $\lambda_i^k$. Whatever has
-  $|\lambda| > 1$ explodes exponentially and whatever has $|\lambda| < 1$ dies -
+  $|\lambda| > 1$ grows exponentially and whatever has $|\lambda| < 1$ shrinks
+  toward zero -
   so $A^k v$ ends up pointing along the largest-$|\lambda|$ eigenvector. Where
   this appears in ML: an RNN applies the *same* update rule at every timestep,
   so backprop through $T$ timesteps multiplies the gradient by roughly the same
@@ -306,14 +306,15 @@ Why care in ML:
   explode or vanish over long sequences. (The per-step matrix is that update's
   *Jacobian* - defined properly in the calculus notes, §2.4; for now, "the
   matrix the update locally acts like.")
-- **Power iteration and PageRank.** The blow-up above is also an *algorithm*.
+- **Power iteration and PageRank.** That exponential growth is also an
+  *algorithm*.
   Want the top eigenvector of some matrix $A$? Start from a random vector and
   repeat: multiply by $A$, rescale back to unit length. Every multiply grows the
   component along the biggest-$|\lambda|$ eigenvector faster than all the
   others, so after enough rounds those others are negligible and the vector has
-  swung onto the top eigenvector; the rescaling only keeps the numbers from
+  landed on the top eigenvector; the rescaling only keeps the numbers from
   overflowing. That loop is **power iteration**. **PageRank** is this idea
-  pointed at the web: model a random surfer, where entry $(j, i)$ of the matrix
+  applied to the web: model a random surfer, where entry $(j, i)$ of the matrix
   is the chance of hopping from page $i$ to page $j$, and define a page's
   importance self-consistently as "the importance flowing into it" - in symbols,
   an importance vector $p$ with $Ap = p$, i.e. an eigenvector. Google's original
@@ -334,8 +335,8 @@ Why care in ML:
   has orthogonal eigen-directions, and each eigenvalue is the curvature along
   its direction - big $\lambda$ is a steep wall, small $\lambda$ a nearly flat
   floor. The ratio $\lambda_{max}/\lambda_{min}$ (the **condition number**)
-  says how elongated the bowl is, and elongated bowls make gradient descent
-  miserable: the gradient points across the narrow valley rather than along it,
+  says how elongated the bowl is, and an elongated bowl slows gradient descent
+  badly: the gradient points across the narrow valley rather than along it,
   so the iterates zig-zag.
 
 <div style="margin:1.25rem 0">
@@ -601,8 +602,8 @@ the same direction as input" cannot even be asked). The recipe does not care:
 
 1. $B^\top B$ is $2 \times 2$; entry $(i, j)$ is column $i$ dotted with
    column $j$. Column 1 is $[1, 0, 1]$ and column 2 is $[1, 1, 0]$, so
-   $B^\top B = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ - a familiar
-   face: exactly the §1.5 matrix.
+   $B^\top B = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ - exactly the
+   §1.5 matrix again.
 2. So we already know its eigendecomposition: $v_1 = [1,1]/\sqrt{2}$ with
    eigenvalue 3, $v_2 = [1,-1]/\sqrt{2}$ with eigenvalue 1. Therefore
    $\sigma_1 = \sqrt{3}$ and $\sigma_2 = 1$. The $v_i$ have 2 entries each:
@@ -826,7 +827,7 @@ Three ML questions are secretly the same question. How far apart are two
 embeddings? How large are a model's weights (the thing weight decay controls)?
 Is this gradient exploding (the thing gradient clipping controls)? Each needs
 one number for "how big is this vector." A **norm** is that number - and there
-is more than one honest way to define it.
+is more than one useful way to define it.
 
 Measure the same vector $x = [3, -4, 0]$ three ways:
 
@@ -846,15 +847,15 @@ gradient is plain: $\nabla \|w\|_2^2 = 2w$ (the 1-D check:
 $\frac{d}{dw} w^2 = 2w$). Add it to the loss and each weight feels a pull
 toward zero *proportional to its own size*: big weights are pulled hard, small
 weights barely at all. So everything shrinks smoothly, and almost nothing is
-pushed to exactly zero - the pull dies out as the weight gets small.
+pushed to exactly zero - the pull weakens as the weight gets small.
 
 **L1 is the norm of sparsity.** The derivative of $|w|$ is $+1$ or $-1$: a
 pull toward zero of *constant strength*, no matter how small the weight
 already is. A weight whose contribution to the loss is worth less than that
-constant pull gets driven to exactly $0$ and pinned there. Why pinned: at
+constant pull gets driven to exactly $0$ and held there. Why held: at
 $w = 0$, moving in *either* direction raises the penalty at that same
-constant rate, so unless the loss gradient is strong enough to pay that toll,
-$0$ is where the weight rests. That is the lasso,
+constant rate, so unless the loss gradient at $0$ is larger than that rate,
+$0$ is where the weight stays. That is the lasso,
 and it is why "L1 selects features." The same conclusion, geometrically: the
 constrained optimum lands on the unit ball's surface, and L1's ball has
 corners exactly on the axes - points where the other coordinates are zero.
