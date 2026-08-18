@@ -138,10 +138,9 @@ Same $[17, 39]$ as the row picture, but now it says something different:
 Two consequences worth internalizing:
 
 1. **The columns tell you everything.** A matrix is a function: vector in,
-   vector out. "$W$ *sends* $e_1$ to $[1,3]$" is just function talk for
-   $We_1 = [1,3]$, the way $f(x) = x^2$ sends $3$ to $9$. Once you know where $W$
-   sends $e_1$ and $e_2$, linearity pins down where it sends *every* vector. A
-   matrix is nothing more than a lookup table of "where do the axes land."
+   vector out. Once you know $We_1$ and $We_2$, linearity pins down the
+   output for *every* input. A matrix is nothing more than a lookup table of
+   "where do the axes land."
 2. **Geometry.** $W$ warps all of space - rotating, stretching, shearing - and the
    columns are literally the warped images of the unit axes: the square spanned by
    $e_1, e_2$ gets mapped to the parallelogram spanned by $[1,3]$ and $[2,4]$.
