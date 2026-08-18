@@ -24,12 +24,19 @@ meaningful? Two views, both essential:
 
 $$a \cdot b = \|a\| \, \|b\| \cos\theta$$
 
-where $\theta$ is the angle between them. Hold the lengths fixed and read off the
-three regimes: vectors pointing the same way have $\cos\theta = 1$, so the dot
-product is as large and positive as it can be; perpendicular vectors have
-$\cos\theta = 0$, so the dot product is exactly zero, no agreement at all;
-opposite vectors make it negative. So the dot product is an (unnormalized)
-**agreement score**. Divide out the lengths and you get **cosine similarity** -
+where $\theta$ is the angle between them. Hold the two lengths constant;
+then the dot product depends only on $\cos\theta$, and there are three
+cases:
+
+- **Same direction** ($\theta = 0$): $\cos\theta = 1$, so the dot product
+  is as large and positive as the two lengths allow.
+- **Perpendicular** ($\theta = 90°$): $\cos\theta = 0$, so the dot product
+  is exactly zero. No agreement at all.
+- **Opposite directions** ($\theta = 180°$): $\cos\theta = -1$, so the dot
+  product is as negative as possible.
+
+So the dot product is an (unnormalized) **agreement score**. Divide out the
+lengths and you get **cosine similarity** -
 the thing every embedding search engine computes. Attention scores in a
 transformer are literally $q \cdot k$: "how much does this query agree with this
 key?"
