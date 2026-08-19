@@ -302,12 +302,7 @@ Why care in ML:
   this appears in ML: an RNN applies the *same* update rule at every timestep,
   so backprop through $T$ timesteps multiplies the gradient by roughly the same
   matrix $T$ times - literally the $A^k$ story, which is why RNN gradients
-  explode or vanish over long sequences. (The per-step matrix is that update's
-  *Jacobian*, defined properly in the calculus notes, §2.4. The short
-  version: the update rule is not linear, but for small changes it behaves
-  like a matrix - change the current state by a small $\delta$ and the next
-  state changes by approximately $J\delta$. That matrix $J$ is what gets
-  multiplied $T$ times.)
+  explode or vanish over long sequences.
 - **Power iteration and PageRank.** That exponential growth is also an
   *algorithm*.
   Want the top eigenvector of some matrix $A$? Start from a random vector and
