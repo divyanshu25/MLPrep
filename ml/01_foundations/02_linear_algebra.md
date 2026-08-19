@@ -311,11 +311,23 @@ Why care in ML:
   others, so after enough rounds those others are negligible and the vector has
   landed on the top eigenvector; the rescaling only keeps the numbers from
   overflowing. That loop is **power iteration**. **PageRank** is this idea
-  applied to the web: model a random surfer, where entry $(j, i)$ of the matrix
-  is the chance of hopping from page $i$ to page $j$, and define a page's
-  importance self-consistently as "the importance flowing into it" - in symbols,
-  an importance vector $p$ with $Ap = p$, i.e. an eigenvector. Google's original
-  ranking computed $p$ by exactly this keep-multiplying loop.
+  applied to the web:
+  - Build a matrix $A$ from the link structure. A reader on page $i$ is
+    assumed to click one of its outgoing links at random (3 links, each
+    with probability $\frac13$), so entry $(j, i)$ of $A$ is the
+    probability that a reader on page $i$ goes to page $j$ next.
+  - Let $p_i$ be the fraction of all readers currently on page $i$. After
+    everyone clicks once, the new fraction on page $j$ is
+    $\sum_i A_{ji}\, p_i$: readers arrive at $j$ from every page that
+    links to it. That sum is entry $j$ of $Ap$. So one round of clicking
+    turns the vector $p$ into the vector $Ap$.
+  - Define a page's importance as its share of readers once this process
+    settles: a $p$ that one more round of clicking does not change,
+    $Ap = p$. That equation says $p$ is an eigenvector of $A$ with
+    eigenvalue $1$.
+  - Google's original ranking computed $p$ by power iteration: start from
+    any spread of readers and keep multiplying by $A$ until the vector
+    stops changing.
 - **Optimization.** In 1-D, the second derivative is curvature: how fast the
   slope changes as you move. With $n$ weights, curvature depends on which
   direction you move in, and the **Hessian** is the matrix that stores all of
