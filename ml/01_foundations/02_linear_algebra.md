@@ -350,38 +350,83 @@ Why care in ML:
   - **The condition number.** The ratio $\lambda_{max}/\lambda_{min}$
     measures how elongated the bowl is, and an elongated bowl slows
     gradient descent badly: the gradient points across the narrow valley
-    rather than along it, so the iterates zig-zag (the figure below).
+    rather than along it, so the iterates zig-zag (the figures below).
 
 <div style="margin:1.25rem 0">
-<svg viewBox="0 0 480 205" role="img" aria-label="Contour plots of two loss bowls: a round bowl where gradient descent goes straight to the minimum, and an elongated bowl where it zig-zags across the narrow valley" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
+<svg viewBox="0 0 480 245" role="img" aria-label="A 3D loss bowl over two weights, sliced at three heights colored green, amber, and rose, next to the same bowl seen from above where the slices become contour rings" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
   <defs>
-    <marker id="hz-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker>
-    <marker id="hz-z" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f43f5e"/></marker>
-    <marker id="hz-e" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/></marker>
+    <marker id="hz3-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" fill-opacity="0.6"/></marker>
   </defs>
-  <g fill="none" stroke="currentColor" stroke-opacity="0.25">
-    <circle cx="110" cy="105" r="20"/><circle cx="110" cy="105" r="40"/><circle cx="110" cy="105" r="60"/>
-    <ellipse cx="350" cy="105" rx="36" ry="9"/><ellipse cx="350" cy="105" rx="73" ry="18"/><ellipse cx="350" cy="105" rx="110" ry="27"/>
+  <line x1="40" y1="190" x2="40" y2="70" stroke="currentColor" stroke-opacity="0.5" marker-end="url(#hz3-a)"/>
+  <text x="34" y="62" fill="currentColor" fill-opacity="0.7">loss</text>
+  <path d="M 65 90 Q 150 290 235 90" fill="none" stroke="currentColor" stroke-opacity="0.55" stroke-width="1.5"/>
+  <g fill="none" stroke-opacity="0.8">
+    <ellipse cx="150" cy="90" rx="85" ry="24" stroke="#f43f5e"/>
+    <ellipse cx="150" cy="125" rx="68" ry="19" stroke="#f59e0b"/>
+    <ellipse cx="150" cy="160" rx="46" ry="13" stroke="#10b981"/>
   </g>
-  <circle cx="110" cy="105" r="2.5" fill="currentColor" fill-opacity="0.7"/>
-  <circle cx="350" cy="105" r="2.5" fill="currentColor" fill-opacity="0.7"/>
-  <line x1="152" y1="63" x2="117" y2="98" stroke="#10b981" stroke-width="2" marker-end="url(#hz-g)"/>
-  <circle cx="143" cy="72" r="2" fill="#10b981"/><circle cx="133" cy="82" r="2" fill="#10b981"/><circle cx="124" cy="91" r="2" fill="#10b981"/>
-  <line x1="350" y1="105" x2="350" y2="74" stroke="#6366f1" stroke-width="1.5" marker-end="url(#hz-e)"/>
-  <line x1="350" y1="105" x2="276" y2="105" stroke="#6366f1" stroke-width="1.5" marker-end="url(#hz-e)"/>
-  <text x="350" y="62" text-anchor="middle" fill="#6366f1">big &#955;: steep</text>
-  <text x="290" y="145" text-anchor="middle" fill="#6366f1">small &#955;: flat</text>
-  <polyline points="438,92 400,118 372,95 356,112 348,101" fill="none" stroke="#f43f5e" stroke-width="2" marker-end="url(#hz-z)"/>
-  <circle cx="438" cy="92" r="2" fill="#f43f5e"/><circle cx="400" cy="118" r="2" fill="#f43f5e"/><circle cx="372" cy="95" r="2" fill="#f43f5e"/><circle cx="356" cy="112" r="2" fill="#f43f5e"/>
-  <text x="110" y="195" text-anchor="middle" fill="currentColor" fill-opacity="0.7">condition number &#8776; 1</text>
-  <text x="350" y="195" text-anchor="middle" fill="currentColor" fill-opacity="0.7">condition number &#8811; 1</text>
+  <circle cx="150" cy="190" r="2.5" fill="currentColor" fill-opacity="0.8"/>
+  <line x1="255" y1="128" x2="300" y2="128" stroke="currentColor" stroke-opacity="0.6" marker-end="url(#hz3-a)"/>
+  <text x="277" y="114" text-anchor="middle" fill="currentColor" fill-opacity="0.7" font-size="10.5">from above</text>
+  <g fill="none" stroke-opacity="0.8">
+    <circle cx="390" cy="128" r="48" stroke="#f43f5e"/>
+    <circle cx="390" cy="128" r="36" stroke="#f59e0b"/>
+    <circle cx="390" cy="128" r="23" stroke="#10b981"/>
+  </g>
+  <circle cx="390" cy="128" r="2.5" fill="currentColor" fill-opacity="0.8"/>
+  <g fill="currentColor" fill-opacity="0.65" text-anchor="middle" font-size="10.5">
+    <text x="150" y="232">the loss bowl over two weights</text>
+    <text x="390" y="232">the same bowl seen from above</text>
+  </g>
 </svg>
 </div>
 
-*Loss contours from above; the dot is the minimum. The gradient is
-perpendicular to the contour underfoot: in the round bowl that points at the
-minimum, in the elongated bowl it points across the valley, so descent
-zig-zags. This picture is why momentum and Adam exist.*
+*A loss surface over two weights, drawn in 3-D: a bowl with its minimum at
+the bottom dot. Slice the bowl at three loss heights (emerald lowest, then
+amber, then rose) and look straight down: each slice becomes a ring, and
+that ring picture is the contour plot used below.*
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 480 205" role="img" aria-label="Contour plots of two loss bowls with rings colored by loss height: a round bowl where gradient descent goes straight to the minimum, and an elongated bowl where it zig-zags across the narrow valley" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="hz-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/></marker>
+    <marker id="hz-e" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" fill-opacity="0.6"/></marker>
+  </defs>
+  <g fill="none" stroke-opacity="0.6">
+    <circle cx="110" cy="105" r="20" stroke="#10b981"/>
+    <circle cx="110" cy="105" r="40" stroke="#f59e0b"/>
+    <circle cx="110" cy="105" r="60" stroke="#f43f5e"/>
+    <ellipse cx="350" cy="105" rx="36" ry="9" stroke="#10b981"/>
+    <ellipse cx="350" cy="105" rx="73" ry="18" stroke="#f59e0b"/>
+    <ellipse cx="350" cy="105" rx="110" ry="27" stroke="#f43f5e"/>
+  </g>
+  <circle cx="110" cy="105" r="2.5" fill="currentColor" fill-opacity="0.7"/>
+  <circle cx="350" cy="105" r="2.5" fill="currentColor" fill-opacity="0.7"/>
+  <line x1="152" y1="63" x2="117" y2="98" stroke="#6366f1" stroke-width="2" marker-end="url(#hz-t)"/>
+  <circle cx="143" cy="72" r="2" fill="#6366f1"/><circle cx="133" cy="82" r="2" fill="#6366f1"/><circle cx="124" cy="91" r="2" fill="#6366f1"/>
+  <line x1="350" y1="105" x2="350" y2="74" stroke="currentColor" stroke-opacity="0.6" stroke-width="1.5" marker-end="url(#hz-e)"/>
+  <line x1="350" y1="105" x2="276" y2="105" stroke="currentColor" stroke-opacity="0.6" stroke-width="1.5" marker-end="url(#hz-e)"/>
+  <text x="350" y="62" text-anchor="middle" fill="currentColor" fill-opacity="0.75">big &#955;: steep</text>
+  <text x="290" y="145" text-anchor="middle" fill="currentColor" fill-opacity="0.75">small &#955;: flat</text>
+  <polyline points="438,92 400,118 372,95 356,112 348,101" fill="none" stroke="#6366f1" stroke-width="2" marker-end="url(#hz-t)"/>
+  <circle cx="438" cy="92" r="2" fill="#6366f1"/><circle cx="400" cy="118" r="2" fill="#6366f1"/><circle cx="372" cy="95" r="2" fill="#6366f1"/><circle cx="356" cy="112" r="2" fill="#6366f1"/>
+  <text x="110" y="195" text-anchor="middle" fill="currentColor" fill-opacity="0.7">condition number &#8776; 1</text>
+  <text x="350" y="195" text-anchor="middle" fill="currentColor" fill-opacity="0.7">condition number &#8811; 1</text>
+  <g font-size="10.5">
+    <text x="20" y="28" fill="currentColor" fill-opacity="0.7">loss height:</text>
+    <text x="85" y="28" fill="#10b981">low</text>
+    <text x="112" y="28" fill="#f59e0b">mid</text>
+    <text x="140" y="28" fill="#f43f5e">high</text>
+  </g>
+</svg>
+</div>
+
+*Loss contours from above; the dot is the minimum, and ring color is loss
+height (emerald just above the minimum, then amber, then rose). The indigo
+path is gradient descent, and the gradient is perpendicular to the contour
+underfoot: in the round bowl that points at the minimum, in the elongated
+bowl it points across the valley, so descent zig-zags. This picture is why
+momentum and Adam exist.*
 
 ## 1.6 SVD: every matrix is rotate → stretch → rotate
 
