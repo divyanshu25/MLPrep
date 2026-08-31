@@ -76,3 +76,6 @@ datasets/
 models/
 checkpoints/
 
+# External Anki decks (mined into practice/flashcards.md, not committed)
+prepcards/
+
