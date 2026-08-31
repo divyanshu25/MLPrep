@@ -1,7 +1,9 @@
 # Rapid-Recall Flashcards
 
-~170 cards distilled from the interview-question banks at the end of each
-`ml/` module's notes plus the invariants in `dsa/` - the answers you must
+~200 cards distilled from the interview-question banks at the end of each
+`ml/` module's notes plus the invariants in `dsa/`, and the genuinely
+missing topics mined from the DeepMindPrep Anki deck in `prepcards/`
+(sections 1-4, 9 gained cards; section 11 is new) - the answers you must
 produce in ≤15 seconds, because in a live round anything slower reads as
 not-known. Protocol: answer **out loud** before unfolding; a hesitation counts
 as a miss. Track deck passes in the queue (`cards:<section>` items). The same
@@ -99,6 +101,66 @@ Var(mean) = σ²/n, so standard error shrinks as 1/√n - 4× the data for half 
 <details><summary>A</summary>
 
 No - SE ≈ √(p(1−p)/n) ≈ 1%, so 0.5% is within noise; need a bigger test set, paired test, or multiple seeds.
+</details>
+
+**Q:** What is a positive definite matrix, and where does it appear in ML?
+<details><summary>A</summary>
+
+xᵀAx > 0 for every x ≠ 0; equivalently all eigenvalues > 0. The Hessian at a strict minimum is PD (the bowl curves up in every direction); covariance matrices are the ≥ 0 version (PSD).
+</details>
+
+**Q:** What is the rank of a matrix?
+<details><summary>A</summary>
+
+The number of linearly independent columns = the number of nonzero singular values. Rank k means the matrix holds k patterns; low-rank approximation keeps the biggest k.
+</details>
+
+**Q:** What does the determinant measure?
+<details><summary>A</summary>
+
+The volume-scale factor of the map (the unit square lands on area |det|); equals the product of the eigenvalues. det = 0 means a dimension collapses, so no inverse.
+</details>
+
+**Q:** When does A⁻¹ not exist, and what does least squares use instead?
+<details><summary>A</summary>
+
+When det = 0 / rank < n / some σᵢ = 0 - the map collapses a direction, which can't be undone. The pseudo-inverse A⁺ = VΣ⁺Uᵀ (invert only the nonzero σᵢ) gives the minimum-norm least-squares solution.
+</details>
+
+**Q:** Entropy in one line?
+<details><summary>A</summary>
+
+H(p) = −Σ pᵢ log pᵢ - the expected surprise −log p of one draw. Uniform maximizes it; a deterministic outcome gives 0.
+</details>
+
+**Q:** KL divergence - definition and key properties?
+<details><summary>A</summary>
+
+KL(q‖p) = Σ q log(q/p): expected extra surprise from modeling q's draws with p. Always ≥ 0, zero iff q = p, asymmetric - not a distance.
+</details>
+
+**Q:** Cross-entropy, entropy, KL - the identity?
+<details><summary>A</summary>
+
+H(q,p) = H(q) + KL(q‖p). With the target q fixed, minimizing cross-entropy is minimizing KL to the target.
+</details>
+
+**Q:** How do you compute softmax without overflow?
+<details><summary>A</summary>
+
+Subtract max(z) from every logit first: the ratios e^z are unchanged and the largest exponent becomes e⁰ = 1. Same trick as log-sum-exp.
+</details>
+
+**Q:** Newton's method - the update, and why DL doesn't use it?
+<details><summary>A</summary>
+
+w ← w − H⁻¹∇L: jump to the minimum of the local quadratic. Needs the n×n Hessian (O(n²) memory, O(n³) solve) and is attracted to saddle points - hopeless at n = 10⁹.
+</details>
+
+**Q:** How do you check that a function is convex?
+<details><summary>A</summary>
+
+1-D: f″ ≥ 0 everywhere. n-D: Hessian PSD everywhere. Geometrically: every chord lies on or above the curve.
 </details>
 
 ---
@@ -213,6 +275,24 @@ P(point missed by all n bootstrap draws) = (1 − 1/n)ⁿ → e⁻¹ ≈ 0.368 -
 It's ~99% missing; SVD optimizes error over ALL entries, so zeros-as-missing fits "everyone dislikes everything". Sum error over observed entries only + regularization → SGD or ALS.
 </details>
 
+**Q:** Parametric vs non-parametric models?
+<details><summary>A</summary>
+
+Parametric: a fixed number of parameters regardless of data size (linear/logistic regression). Non-parametric: capacity grows with the data (kNN, kernels, unpruned trees).
+</details>
+
+**Q:** No free lunch theorem in one line?
+<details><summary>A</summary>
+
+Averaged over all possible data distributions, every learner has the same error - good generalization always comes from assumptions (inductive bias) that happen to match the world.
+</details>
+
+**Q:** What is a latent variable, and what is a Gaussian mixture model?
+<details><summary>A</summary>
+
+A variable the model posits but never observes. GMM: each point is drawn from one of K Gaussians, and which one is latent; k-means is its hard-assignment special case.
+</details>
+
 ---
 
 ## 3. Neural networks & training (ml/03)
@@ -325,6 +405,24 @@ Gradient SE shrinks 1/√B while cost grows ∝ B - past modest B, compute buys 
 Centered finite differences (h ≈ 1e−5, O(h²) error) vs analytic gradient, relative error ≲ 1e−6 in float64, on a tiny model/batch.
 </details>
 
+**Q:** AdaGrad → RMSProp → Adam - the lineage?
+<details><summary>A</summary>
+
+AdaGrad divides the LR by √(sum of squared grads): per-weight adaptation, but the sum only grows, so the LR decays to nothing. RMSProp swaps the sum for an EMA. Adam adds momentum plus bias correction.
+</details>
+
+**Q:** What is an adversarial example, and one cause?
+<details><summary>A</summary>
+
+A tiny perturbation (every pixel within ε - an L∞ ball) that flips the prediction. One cause: near-linearity in high dimension - Σ wᵢεᵢ over 10⁵ pixels adds many small aligned nudges into a big logit change.
+</details>
+
+**Q:** Label smoothing - what and why?
+<details><summary>A</summary>
+
+Replace one-hot [1,0,0] with [1−ε, ε/2, ε/2]. Cross-entropy toward an exact 1 demands infinite logits; smoothing caps confidence and improves calibration. (With soft targets, CE is no longer exactly an NLL.)
+</details>
+
 ---
 
 ## 4. Deep learning & transformers (ml/04)
@@ -435,6 +533,24 @@ KV-cache size scales with KV heads; sharing one K,V per group of query heads cut
 <details><summary>A</summary>
 
 Router picks top-2 of 8 expert MLPs: own ~47B params, spend ~13B of FLOPs. Loss scales with params, cost with FLOPs - conditional compute buys params without per-token compute. Costs: all params in memory, routing comms, load-balancing loss.
+</details>
+
+**Q:** Equivariance vs invariance?
+<details><summary>A</summary>
+
+Equivariant: shift the input and the output shifts the same way - convolution. Invariant: the output does not change - what pooling builds toward. Classification wants invariance; detection needs equivariance.
+</details>
+
+**Q:** Teacher forcing, and its failure mode?
+<details><summary>A</summary>
+
+Train a decoder on the gold prefix instead of its own outputs - parallel and stable. The failure is exposure bias: at generation time it consumes its own errors, which training never showed it.
+</details>
+
+**Q:** Transfer learning vs domain adaptation vs zero-shot?
+<details><summary>A</summary>
+
+Transfer: reuse task-A representations for task B (pretrain → fine-tune). Domain adaptation: same task, shifted input distribution. Zero-shot: classes unseen in training, matched through a shared representation (e.g. text descriptions).
 </details>
 
 ---
@@ -895,6 +1011,12 @@ D ≈ 20N - so C ≈ 120N².
 √(p(1−p)/n) - ~1% at n=1000, p≈0.9: half-point gains on 1k examples are noise.
 </details>
 
+**Q:** How is a float represented, and fp16 vs bf16?
+<details><summary>A</summary>
+
+sign + exponent (range) + mantissa (precision): value ≈ ±1.mantissa × 2^exponent. fp16: 5 exponent + 10 mantissa bits, precise but overflows past 65504. bf16: 8 + 7, fp32's full range with less precision - why training prefers it.
+</details>
+
 ---
 
 ## 10. DSA invariants (dsa/01–07)
@@ -1065,4 +1187,65 @@ XOR is commutative/associative, a⊕a = 0, a⊕0 = a - fold the array and every 
 <details><summary>A</summary>
 
 The index map (i,j) → (j, n−1−i) factors into transpose then reverse each row - two clean in-place passes; never try to spiral-swap by hand under time pressure.
+</details>
+
+---
+
+## 11. RL basics (from the DeepMindPrep deck)
+
+The one cluster of the 238-card Anki deck in `prepcards/` with no notes
+module behind it - enough RL vocabulary to survive an interview detour.
+
+**Q:** An MDP - the five pieces?
+<details><summary>A</summary>
+
+(S, A, P, R, γ): states, actions, transition probabilities P(s′|s,a), rewards, discount. The Markov property: the next state depends only on the current state and action, not the history.
+</details>
+
+**Q:** Policy, value function, action-value function?
+<details><summary>A</summary>
+
+π(a|s): how to act. V^π(s): expected discounted return from s following π. Q^π(s,a): the same but forcing first action a - the "what if I did a instead" table.
+</details>
+
+**Q:** Bellman optimality equation for Q*?
+<details><summary>A</summary>
+
+Q*(s,a) = E[r + γ max over a′ of Q*(s′,a′)]: one step of reward plus the best continuation. Acting greedily with respect to Q* is an optimal policy.
+</details>
+
+**Q:** On-policy vs off-policy?
+<details><summary>A</summary>
+
+On-policy learns about the policy generating the data (SARSA); off-policy learns about a different target policy from behavior data (Q-learning) - what makes replay buffers and learning from logs possible.
+</details>
+
+**Q:** Monte Carlo vs TD - the bias/variance trade?
+<details><summary>A</summary>
+
+MC waits for the full return: unbiased, high variance, episodic only. TD bootstraps r + γV(s′): biased (uses its own estimate), low variance, learns online at every step.
+</details>
+
+**Q:** SARSA vs Q-learning - the one-symbol difference?
+<details><summary>A</summary>
+
+Target r + γQ(s′,a′) with a′ the action actually taken next (SARSA, on-policy) vs r + γ max over a′ of Q(s′,a′) (Q-learning, off-policy).
+</details>
+
+**Q:** Why importance sampling in off-policy evaluation?
+<details><summary>A</summary>
+
+The data came from behavior policy μ but you want values under π: reweight each return by the product of π/μ along the trajectory. Unbiased, but the product's variance explodes over long horizons; TD reweights one step at a time to tame it.
+</details>
+
+**Q:** Policy gradient and actor-critic in one line each?
+<details><summary>A</summary>
+
+∇J = E[∇ log π(a|s) · (return or advantage)]: make actions that scored well more probable. Actor-critic: the actor updates π by that rule while a learned critic V(s) supplies the advantage, cutting variance.
+</details>
+
+**Q:** ε-greedy, and what GLIE adds?
+<details><summary>A</summary>
+
+With probability ε act randomly, otherwise greedily. GLIE: keep visiting every state-action forever but let ε → 0 - the condition under which MC control converges to the optimal policy.
 </details>
