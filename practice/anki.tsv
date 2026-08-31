@@ -168,3 +168,32 @@ RandomizedSet - why hashmap alone fails, and the O(1)-delete trick?	getRandom ne
 Two's complement: why does -x = ~x + 1, and what does x & (x−1) do?	x + ~x is all 1s = −1, so ~x + 1 = −x. x & (x−1) clears the lowest set bit (the −1 borrows through the trailing zeros) - Kernighan popcount loops once per set bit; x & −x isolates that bit.
 Why does XOR-fold find the single number?	XOR is commutative/associative, a⊕a = 0, a⊕0 = a - fold the array and every pair annihilates, leaving the singleton. Same trick finds the missing number: XOR all values with all indices.
 Rotate a matrix 90° clockwise in place?	The index map (i,j) → (j, n−1−i) factors into transpose then reverse each row - two clean in-place passes; never try to spiral-swap by hand under time pressure.
+What is a positive definite matrix, and where does it appear in ML?	xᵀAx > 0 for every x ≠ 0; equivalently all eigenvalues > 0. Hessian at a strict minimum is PD; covariance matrices are the ≥ 0 version (PSD).
+What is the rank of a matrix?	Number of linearly independent columns = number of nonzero singular values. Rank k = k patterns; low-rank approximation keeps the biggest k.
+What does the determinant measure?	Volume-scale factor of the map; product of the eigenvalues. det = 0 means a dimension collapses, so no inverse.
+When does A⁻¹ not exist, and what does least squares use instead?	det = 0 / rank < n / some σᵢ = 0 - a direction collapses and can't be undone. Pseudo-inverse A⁺ = VΣ⁺Uᵀ gives the minimum-norm least-squares solution.
+Entropy in one line?	H(p) = −Σ pᵢ log pᵢ - expected surprise −log p of one draw. Uniform maximizes it; deterministic gives 0.
+KL divergence - definition and key properties?	KL(q‖p) = Σ q log(q/p): expected extra surprise from modeling q's draws with p. Always ≥ 0, zero iff q = p, asymmetric - not a distance.
+Cross-entropy, entropy, KL - the identity?	H(q,p) = H(q) + KL(q‖p). With target q fixed, minimizing cross-entropy is minimizing KL to the target.
+How do you compute softmax without overflow?	Subtract max(z) from every logit first: ratios unchanged, largest exponent becomes e⁰ = 1. Same trick as log-sum-exp.
+Newton's method - the update, and why DL doesn't use it?	w ← w − H⁻¹∇L: jump to the local quadratic's minimum. Needs the n×n Hessian (O(n²) memory, O(n³) solve) and is attracted to saddle points.
+How do you check that a function is convex?	1-D: f″ ≥ 0 everywhere. n-D: Hessian PSD everywhere. Geometrically: every chord lies on or above the curve.
+Parametric vs non-parametric models?	Parametric: fixed parameter count regardless of data size (linear/logistic regression). Non-parametric: capacity grows with data (kNN, kernels, unpruned trees).
+No free lunch theorem in one line?	Averaged over all possible data distributions, every learner has the same error - generalization comes from inductive bias matching the world.
+What is a latent variable, and what is a Gaussian mixture model?	A variable the model posits but never observes. GMM: each point drawn from one of K Gaussians, which one is latent; k-means is the hard-assignment special case.
+AdaGrad → RMSProp → Adam - the lineage?	AdaGrad divides LR by √(sum of squared grads); sum only grows so LR decays to nothing. RMSProp swaps the sum for an EMA. Adam adds momentum plus bias correction.
+What is an adversarial example, and one cause?	A tiny perturbation (every pixel within ε, an L∞ ball) that flips the prediction. Cause: near-linearity in high dimension - many small aligned nudges sum to a big logit change.
+Label smoothing - what and why?	Replace one-hot [1,0,0] with [1−ε, ε/2, ε/2]. CE toward exact 1 demands infinite logits; smoothing caps confidence and improves calibration.
+Equivariance vs invariance?	Equivariant: shift input, output shifts the same way (convolution). Invariant: output unchanged (what pooling builds toward). Classification wants invariance; detection needs equivariance.
+Teacher forcing, and its failure mode?	Train a decoder on the gold prefix instead of its own outputs. Failure: exposure bias - at generation it consumes its own errors, which training never showed it.
+Transfer learning vs domain adaptation vs zero-shot?	Transfer: reuse task-A representations for task B. Domain adaptation: same task, shifted input distribution. Zero-shot: unseen classes matched through a shared representation.
+How is a float represented, and fp16 vs bf16?	sign + exponent (range) + mantissa (precision). fp16: 5+10, precise but overflows past 65504. bf16: 8+7, fp32's range with less precision - why training prefers it.
+An MDP - the five pieces?	(S, A, P, R, γ): states, actions, transitions P(s′|s,a), rewards, discount. Markov property: next state depends only on current state and action.
+Policy, value function, action-value function?	π(a|s): how to act. V^π(s): expected discounted return from s under π. Q^π(s,a): same but forcing first action a.
+Bellman optimality equation for Q*?	Q*(s,a) = E[r + γ max over a′ of Q*(s′,a′)]. Greedy with respect to Q* is an optimal policy.
+On-policy vs off-policy?	On-policy learns about the policy generating the data (SARSA); off-policy learns about a different target policy from behavior data (Q-learning) - enables replay buffers.
+Monte Carlo vs TD - the bias/variance trade?	MC uses the full return: unbiased, high variance, episodic only. TD bootstraps r + γV(s′): biased, low variance, learns online.
+SARSA vs Q-learning - the one-symbol difference?	Target r + γQ(s′,a′) with a′ actually taken (SARSA, on-policy) vs r + γ max over a′ of Q(s′,a′) (Q-learning, off-policy).
+Why importance sampling in off-policy evaluation?	Data from behavior μ, values wanted under π: reweight returns by the product of π/μ along the trajectory. Unbiased but variance explodes over long horizons.
+Policy gradient and actor-critic in one line each?	∇J = E[∇ log π(a|s) · advantage]: make actions that scored well more probable. Actor-critic: actor updates π, a learned critic supplies the advantage to cut variance.
+ε-greedy, and what GLIE adds?	Probability ε random, else greedy. GLIE: visit every state-action forever but ε → 0 - the condition for MC control to converge to optimal.
