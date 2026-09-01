@@ -570,20 +570,22 @@ proposed decomposition:
 
 $$A = U \Sigma V^\top \tag{1.6b}$$
 
-- **$V^\top$ rotates the input space.** It sends each of a set of
-  perpendicular unit directions $v_1, v_2, \dots$ to a coordinate axis:
-  $V^\top v_1 = e_1$, $V^\top v_2 = e_2$, and so on (row $i$ of $V^\top$ is
-  $v_i$, and $v_i \cdot v_j$ is 1 when $i = j$, else 0). Consequence for a
-  general input $x = c_1 v_1 + c_2 v_2$:
-  $V^\top x = c_1 e_1 + c_2 e_2 = \begin{bmatrix} c_1 \\ c_2 \end{bmatrix}$,
-  the amounts of $x$ along the $v_i$: its coordinates in the $v$ basis. The
-  same job $Q^{-1}$ did in Part A - produce the amounts - with the $v_i$
-  standing where the eigenvectors stood.
+- **$V^\top$ produces the input's coordinates in the $v$ basis.** For
+  $x = c_1 v_1 + c_2 v_2$,
+  $V^\top x = \begin{bmatrix} c_1 \\ c_2 \end{bmatrix}$: the amounts of $x$
+  along a set of perpendicular unit directions $v_1, v_2, \dots$ - the same
+  job $Q^{-1}$ did in Part A (there the amounts were eigen-coordinates; here
+  the $v_i$ stand where the eigenvectors stood). Why it works: row $i$ of
+  $V^\top$ is $v_i$, so entry $i$ of $V^\top x$ is $v_i \cdot x$, and the
+  dot product with a unit vector reads off the amount along it (§1.2).
 - **$\Sigma$ does the stretches.** Axis $i$ is scaled by $\sigma_i \ge 0$:
   the **singular values**, conventionally numbered biggest first. (This step also moves from
   $d$ input dimensions to $n$ output dimensions, padding with zeros.)
-- **$U$ rotates the output space.** It turns the coordinate axes onto the
-  output directions $u_1, u_2, \dots$
+- **$U$ rebuilds an output vector from the scaled amounts.** Each amount
+  multiplies its own output direction and the results add:
+  $U$ applied to amounts $(a_1, a_2, \dots)$ gives
+  $a_1 u_1 + a_2 u_2 + \dots$ - the same rebuild job $Q$ did in Part A,
+  now with the output directions $u_i$ as the columns.
 
 $A$ itself is usually none of these three operations. The claim is a
 factorization, the way $12 = 2 \cdot 2 \cdot 3$: 12 is not a prime, but it is
