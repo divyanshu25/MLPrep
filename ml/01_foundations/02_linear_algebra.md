@@ -705,19 +705,28 @@ too.
 **The recipe on numbers.** Run it first on the §1.5 matrix, so every symbol
 gets a number:
 
-1. $A^\top A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} = \begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix}$
-   (here $A^\top = A$ because $A$ is symmetric).
-2. Eigendecompose $\begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix}$. Multiply
-   it by $[1,1]$: the result is $[9, 9] = 9 \cdot [1,1]$. Multiply it by
-   $[1,-1]$: the result is $[1,-1] = 1 \cdot [1,-1]$. So its eigenvectors are
-   $[1,1]$ and $[1,-1]$, with eigenvalues $9$ and $1$; orthogonal, as
-   the spectral theorem guarantees: $[1,1] \cdot [1,-1] = 1 - 1 = 0$. Normalize the
-   eigenvectors to unit length: $v_1 = [1,1]/\sqrt{2}$,
-   $v_2 = [1,-1]/\sqrt{2}$. Square-root the eigenvalues:
-   $\sigma_1 = \sqrt{9} = 3$, $\sigma_2 = \sqrt{1} = 1$.
-3. Output directions:
-   $u_1 = A v_1 / \sigma_1 = \left([3,3]/\sqrt{2}\right) / 3 = [1,1]/\sqrt{2} = v_1$,
-   and $u_2 = A v_2 / \sigma_2 = \left([1,-1]/\sqrt{2}\right) / 1 = v_2$.
+1. **Form $A^\top A$** (here $A^\top = A$ because $A$ is symmetric):
+
+   $$A^\top A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} = \begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix}$$
+
+2. **Eigendecompose it.** Test the two candidate directions:
+
+   - $\begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix} \begin{bmatrix} 1 \\ 1 \end{bmatrix} = \begin{bmatrix} 9 \\ 9 \end{bmatrix} = 9 \begin{bmatrix} 1 \\ 1 \end{bmatrix}$:
+     an eigenvector, eigenvalue $9$.
+   - $\begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix} \begin{bmatrix} 1 \\ -1 \end{bmatrix} = \begin{bmatrix} 1 \\ -1 \end{bmatrix} = 1 \begin{bmatrix} 1 \\ -1 \end{bmatrix}$:
+     an eigenvector, eigenvalue $1$.
+
+   The two are orthogonal, as the spectral theorem guarantees:
+   $[1,1] \cdot [1,-1] = 1 - 1 = 0$. Normalize each to unit length, and
+   square-root the eigenvalues:
+
+   $$v_1 = \frac{[1,1]}{\sqrt{2}}, \quad v_2 = \frac{[1,-1]}{\sqrt{2}}
+   \qquad \sigma_1 = \sqrt{9} = 3, \quad \sigma_2 = \sqrt{1} = 1$$
+
+3. **Output directions**, one division each:
+
+   $$u_1 = \frac{A v_1}{\sigma_1} = \frac{[3,3]/\sqrt{2}}{3} = \frac{[1,1]}{\sqrt{2}} = v_1
+   \qquad u_2 = \frac{A v_2}{\sigma_2} = \frac{[1,-1]/\sqrt{2}}{1} = v_2$$
 
 For this symmetric $A$, the recipe returns $u_i = v_i$: each direction lands
 on itself. For a non-symmetric matrix, step 3 is exactly where $U$ and $V$
