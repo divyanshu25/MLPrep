@@ -233,7 +233,10 @@ are the ones $A$ merely scales:
 
 $$Ax = c_1 (A v_1) + c_2 (A v_2) = 3 c_1 v_1 + 1 \cdot c_2 v_2 \tag{1.5d}$$
 
-Read that off: in eigen-coordinates the map is just $(c_1, c_2) \to (3c_1, c_2)$.
+Read that off. The pair of amounts $(c_1, c_2)$ is $x$ described in the
+eigenbasis - its **eigen-coordinates**; the two words name the same numbers,
+and this file uses them interchangeably. In eigen-coordinates the map is
+just $(c_1, c_2) \to (3c_1, c_2)$.
 Multiply the first coordinate by 3, leave the second alone, done - no mixing
 between coordinates at all. *That* is what "$A$ becomes a diagonal matrix in the
 eigenbasis" means: same machine, better axes. Along those axes the map is
@@ -567,13 +570,15 @@ proposed decomposition:
 
 $$A = U \Sigma V^\top \tag{1.6b}$$
 
-- **$V^\top$ rotates the input space.** It turns a set of perpendicular
-  input directions $v_1, v_2, \dots$ onto the coordinate axes - the same job
-  $Q^{-1}$ did in Part A's four-frame picture. Turning the $v_i$ onto the
-  axes is what "write $x$ in the $v$ basis" looks like as a motion: for
-  $x = c_1 v_1 + c_2 v_2$, the result is
-  $c_1 e_1 + c_2 e_2 = \begin{bmatrix} c_1 \\ c_2 \end{bmatrix}$, the
-  amounts now sitting on the axes.
+- **$V^\top$ rotates the input space.** It sends each of a set of
+  perpendicular unit directions $v_1, v_2, \dots$ to a coordinate axis:
+  $V^\top v_1 = e_1$, $V^\top v_2 = e_2$, and so on (row $i$ of $V^\top$ is
+  $v_i$, and $v_i \cdot v_j$ is 1 when $i = j$, else 0). Consequence for a
+  general input $x = c_1 v_1 + c_2 v_2$:
+  $V^\top x = c_1 e_1 + c_2 e_2 = \begin{bmatrix} c_1 \\ c_2 \end{bmatrix}$,
+  the amounts of $x$ along the $v_i$: its coordinates in the $v$ basis. The
+  same job $Q^{-1}$ did in Part A - produce the amounts - with the $v_i$
+  standing where the eigenvectors stood.
 - **$\Sigma$ does the stretches.** Axis $i$ is scaled by $\sigma_i \ge 0$:
   the **singular values**, conventionally numbered biggest first. (This step also moves from
   $d$ input dimensions to $n$ output dimensions, padding with zeros.)
