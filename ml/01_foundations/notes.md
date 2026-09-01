@@ -10,7 +10,7 @@ transformer, a diffusion model - is built out of exactly three ingredients:
    (likelihood).
 
 If you deeply understand these three, "backprop through a transformer" stops
-being magic and becomes bookkeeping.
+being opaque and becomes bookkeeping.
 
 Read in this order:
 

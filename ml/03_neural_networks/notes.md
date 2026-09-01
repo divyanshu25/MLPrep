@@ -1,6 +1,6 @@
 # Neural Networks from First Principles
 
-> Style note: nothing here is magic. Every formula is derived, every gradient is
+> Style note: every formula is derived, every gradient is
 > computed by hand at least once on actual numbers, and every design choice
 > (init, normalization, Adam, residuals) is motivated by a concrete failure you
 > can reproduce in `training_dynamics.ipynb`. If a claim seems hand-wavy, it's a

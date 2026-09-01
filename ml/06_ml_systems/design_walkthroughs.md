@@ -251,7 +251,7 @@ don't want to bake them into training. I want a **calibrated**
 $\hat{p} = P(\text{fraud})$ and a decision layer on top computing expected
 value: decline when $\hat{p} \cdot \text{loss}_{\text{fraud}}$ exceeds
 $(1-\hat{p}) \cdot \text{cost}_{\text{decline}}$, and - this is where the
-step-up action earns its keep - challenge in the ambiguous middle band, because
+step-up action is most valuable - challenge in the ambiguous middle band, because
 a challenge converts uncertainty into information for ~10 seconds of friction
 instead of a lost customer.
 

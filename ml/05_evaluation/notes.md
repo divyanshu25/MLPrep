@@ -17,7 +17,7 @@ Companion code in this directory:
 ## 1. The confusion matrix: the atom of classification evaluation
 
 Binary classification. The model says positive or negative; reality says positive or
-negative. Two binary variables → four cells. That's it. Every classification metric
+negative. Two binary variables → four cells. Every classification metric
 you've ever heard of is some ratio of these four numbers.
 
 |                    | Predicted + | Predicted − |
