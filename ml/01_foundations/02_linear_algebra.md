@@ -455,9 +455,13 @@ standing side by side as columns. Then:
   multiplies its own column of $Q$ (its eigenvector), and the results add.
   Check: $Q \begin{bmatrix} 6 \\ 1 \end{bmatrix} = 6 \begin{bmatrix} 1 \\ 1 \end{bmatrix} + 1 \begin{bmatrix} 1 \\ -1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$,
   exactly step 3's rebuild. ✓
-- **Step 1 is "multiply by $Q^{-1}$".** Splitting is the reverse of
-  rebuilding. Here $Q^{-1} = \tfrac{1}{2}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
-  Check: $Q^{-1} \begin{bmatrix} 3 \\ 1 \end{bmatrix} = \begin{bmatrix} 2 \\ 1 \end{bmatrix}$. ✓
+- **Step 1 is "multiply by $Q^{-1}$".** This step asks the reverse question
+  of step 3: there the amounts $c$ were known and $Qc$ produced the vector;
+  here the vector $x$ is known and the amounts are wanted. So solve
+  $Qc = x$ for $c$: multiply both sides by $Q^{-1}$ to get $c = Q^{-1}x$.
+  Here $Q^{-1} = \tfrac{1}{2}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
+  Check: $Q^{-1} \begin{bmatrix} 3 \\ 1 \end{bmatrix} = \begin{bmatrix} 2 \\ 1 \end{bmatrix}$,
+  the amounts step 1 found. ✓
 - **Step 2 is "multiply by $\Lambda = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$".**
   A diagonal matrix multiplies coordinate $i$ by $\lambda_i$, nothing else.
   Check: $\Lambda \begin{bmatrix} 2 \\ 1 \end{bmatrix} = \begin{bmatrix} 6 \\ 1 \end{bmatrix}$. ✓
