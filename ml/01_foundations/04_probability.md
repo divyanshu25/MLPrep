@@ -95,7 +95,7 @@ Divide both sides by $P(B)$:
 
 $$P(A \mid B) = \frac{P(B \mid A)\, P(A)}{P(B)}$$
 
-That's the whole derivation - two applications of the definition.
+The derivation is complete: two applications of the definition.
 
 Each factor has a name. Read them with $A$ = a hypothesis and $B$ = the
 observed evidence (concrete values from the disease example below):
@@ -460,8 +460,8 @@ under this output/noise model.
 The sections around this one keep reaching for the same two distributions:
 the coin's flips and the classifier's labels (§3.3) are Bernoullis; the
 noise on a regression target (§3.3) and the limit of averages (§3.6) are
-Gaussians. That is not a coincidence. They answer the two commonest modeling
-questions:
+Gaussians. They keep appearing because they answer the two commonest
+modeling questions:
 
 - What does **one yes/no event** look like? → Bernoulli.
 - What does the **sum of many small independent effects** look like? →

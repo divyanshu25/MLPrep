@@ -170,7 +170,7 @@ training is $4+4+4+4 = 16$ too but with 4-byte grads and no fp16 copy.
 So the interview-safe answer: **~16–20 bytes per parameter, before
 activations**.
 
-Notice the punchline: the model you're training (2 bytes/param) is the
+Notice the surprising part: the model you're training (2 bytes/param) is the
 *smallest* item in memory. Training state is ~8× the model.
 
 ### 2.2 The canonical question: "How much memory to train a 70B model?"

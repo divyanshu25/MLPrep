@@ -65,7 +65,8 @@ assert not np.allclose(y1[-1], y2[-1])
 The `-np.inf` before max-subtraction is safe: each row keeps at least the
 diagonal, so no all-`-inf` row exists and no NaN appears. The head split
 `reshape(T, h, hd).transpose(1, 0, 2)` is correct; `reshape(h, T, hd)` is the
-silent killer - it shuffles channels across heads and still "runs fine".
+dangerous variant: it shuffles channels across heads and still runs without
+errors.
 </details>
 
 ---

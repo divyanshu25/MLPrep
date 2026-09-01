@@ -104,7 +104,7 @@ $\frac{\partial L}{\partial p} = -\frac{y}{p} + \frac{1-y}{1-p} = \frac{-y(1-p) 
 
 $$\frac{\partial L}{\partial z} = \frac{p-y}{p(1-p)}\cdot p(1-p) = p - y, \qquad \nabla_w L = (p - y)\,x.$$
 
-The $p(1-p)$ cancellation is the punchline: with the *matched* loss
+The $p(1-p)$ cancellation is the key result: with the *matched* loss
 (cross-entropy for a sigmoid), the sigmoid's flat tails do not appear in the
 gradient. Had you used MSE, $\partial L/\partial z = (p - y)\,p(1-p)$, which
 $\to 0$ when the model is confidently wrong - learning stalls. Full-batch:
@@ -485,7 +485,7 @@ Plug in $\mu_1 = 0$, $\mu_2 = 4$:
 $(x-0)^2 - (x-4)^2 = 8x - 16$, so
 $\gamma_1(x) = \sigma(8 - 4x)$ - the responsibility is a **sigmoid of a
 linear function of $x$**, with decision boundary at the midpoint $x = 2$
-(same structure as logistic regression; not a coincidence - two equal-
+(same structure as logistic regression, and systematically so: two equal-
 covariance Gaussians induce a logistic posterior).
 
 | $x$ | $\gamma_1(x) = \sigma(8-4x)$ | $\gamma_2(x)$ |

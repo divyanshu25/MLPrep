@@ -197,7 +197,7 @@ how wrong the probability is. No vanishing.
 
 **The deep pattern:** linear regression's gradient is $(\hat y - y)x$;
 logistic regression's is $(p - y)x$; softmax regression's is
-$(p_k - y_k)x$. All identical in form. This is not a coincidence - squared
+$(p_k - y_k)x$. All identical in form, and systematically so: squared
 loss + identity link, and cross-entropy + sigmoid/softmax link, are all
 *matched pairs* (canonical links of exponential-family models), and matched
 pairs always yield residual-times-input gradients. If an interviewer asks
@@ -514,7 +514,7 @@ the step in function space:
 
 $$F_m = F_{m-1} + \eta\, h_m.$$
 
-That's the whole algorithm. Check it against the special case everyone knows:
+The algorithm is complete. Check it against the standard special case:
 for squared loss $\ell = \frac12 (y - F)^2$, $r_i = y_i - F(x_i)$ = the plain
 residual - "fit a tree to the residuals and add it," the classic description.
 For log-loss, $r_i = y_i - p_i$ (§2.3 again!). Boosting with a generic loss
@@ -874,7 +874,7 @@ a data point and shrink its variance: $\mathcal{N}(x_i; x_i, \sigma^2)
 $\varepsilon I$ to covariances (sklearn's `reg_covar`) or put a prior on
 $\Sigma$ (MAP - the §3 move again).
 
-### 11.4 The punchline: k-means is EM with hard assignments
+### 11.4 k-means is EM with hard assignments
 
 Freeze the covariances to a shared spherical $\Sigma_j = \varepsilon I$ and
 the weights to $\pi_j = 1/k$, and learn only the means. The responsibilities

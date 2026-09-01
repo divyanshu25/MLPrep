@@ -105,7 +105,7 @@ per unit change of $x$ is the product of the two step rates:
 
 $$\frac{dy}{dx} = \frac{dy}{dz} \cdot \frac{dz}{dx}$$
 
-**Rates of change multiply through a pipeline.** That's the whole theorem.
+**Rates of change multiply through a pipeline.**
 
 #### Run it with numbers
 
@@ -115,7 +115,7 @@ $$\frac{dz}{dx} = 3, \qquad \frac{dy}{dz} = 2z = 12, \qquad
 \frac{dy}{dx} = 12 \cdot 3 = 36$$
 
 Check without the chain rule: $y = (3x)^2 = 9x^2$, so $y' = 18x = 36$ at
-$x = 2$. Same answer. ✓
+$x = 2$, matching the chain-rule result. ✓
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 170" role="img" aria-label="Pipeline x to z to y: forward pass computes values left to right, backward pass multiplies local rates of change right to left giving dy/dx = 12 times 3 = 36" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">

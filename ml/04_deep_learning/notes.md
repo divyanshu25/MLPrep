@@ -160,8 +160,8 @@ nonlinearities in between. This is VGG's whole thesis.
 Max-pool $2\times2$ stride 2: take the max of each non-overlapping
 $2\times2$ window; halves $H$ and $W$, keeps channels. Zero parameters. It
 buys (a) downsampling, so later layers see a coarser, wider view cheaply, and
-(b) small local translation *invariance* - the max doesn't care exactly which
-of the 4 positions fired. Backward pass: the gradient flows entirely to the
+(b) small local translation *invariance* - the max output is the same
+whichever of the 4 positions fired. Backward pass: the gradient flows entirely to the
 argmax position, zero to the others (max is locally the identity on the
 winner). Average pooling spreads the gradient uniformly. Modern nets often
 replace pooling with stride-2 convs (learned downsampling) and end with
@@ -682,7 +682,7 @@ $$
 
 Each factor is a $V$-way **classification problem**: given the prefix, output
 a softmax over the vocabulary; train with cross-entropy against the actual
-next token. That's all. No new theory beyond a classifier - the magic is
+next token. There is no new theory beyond a classifier; the notable fact is
 that this one objective, at scale, forces the model to learn syntax, facts,
 and reasoning, because they all reduce prediction error. As noted in §3.7,
 causal masking lets one forward pass supply all $n$ classification losses in
@@ -937,7 +937,7 @@ form); only the *positional* dependence collapses to the gap.
 
 ### 7.2 MQA / GQA: shrinking the KV-cache
 
-§3.8 ended with the punchline that inference is a memory problem: ~2 GB of
+§3.8 ended with the conclusion that inference is a memory problem: ~2 GB of
 KV-cache per sequence for a 7B model at $T = 4096$. Look at where that
 number comes from: the cache stores $K$ and $V$ **per head**, so
 
