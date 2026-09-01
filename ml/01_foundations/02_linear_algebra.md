@@ -450,15 +450,32 @@ Each of the three steps is a matrix multiplication. Let
 $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$: the eigenvectors,
 standing side by side as columns. Then:
 
-- **Step 3 is "multiply by $Q$".** Rule (1.4c) says $Qc = c_1 v_1 + c_2 v_2$:
-  give $Q$ the two amounts, and it returns the vector those amounts build.
-  Check: $Q \begin{bmatrix} 6 \\ 1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$. ✓
+- **Step 3 is "multiply by $Q$".** By §1.4's blend rule (1.4c),
+  $Q$ times a vector of amounts is $c_1 v_1 + c_2 v_2$: each amount
+  multiplies its own column of $Q$ (its eigenvector), and the results add.
+  Check: $Q \begin{bmatrix} 6 \\ 1 \end{bmatrix} = 6 \begin{bmatrix} 1 \\ 1 \end{bmatrix} + 1 \begin{bmatrix} 1 \\ -1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$,
+  exactly step 3's rebuild. ✓
 - **Step 1 is "multiply by $Q^{-1}$".** Splitting is the reverse of
   rebuilding. Here $Q^{-1} = \tfrac{1}{2}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
   Check: $Q^{-1} \begin{bmatrix} 3 \\ 1 \end{bmatrix} = \begin{bmatrix} 2 \\ 1 \end{bmatrix}$. ✓
 - **Step 2 is "multiply by $\Lambda = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$".**
   A diagonal matrix multiplies coordinate $i$ by $\lambda_i$, nothing else.
   Check: $\Lambda \begin{bmatrix} 2 \\ 1 \end{bmatrix} = \begin{bmatrix} 6 \\ 1 \end{bmatrix}$. ✓
+
+The intuition for the three factors: they split $A$'s job into *translate,
+act, translate back*.
+
+- $Q^{-1}$ is the translator **into** eigen-coordinates: give it an ordinary
+  vector, and it returns the amounts - how much of each eigenvector the
+  vector contains.
+- $\Lambda$ does the actual work, and in this coordinate system the work is
+  trivial: stretch each coordinate by its own $\lambda_i$, with no mixing
+  between coordinates.
+- $Q$ is the translator **back**: give it amounts, and it rebuilds the
+  ordinary vector.
+
+So $A = Q \Lambda Q^{-1}$, read right to left, says: change to the basis
+where $A$ is diagonal, apply the stretch, change back.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 178" role="img" aria-label="Four frames following x=[3,1] through Q inverse, Lambda, and Q: eigen-directions map onto the axes, the stretch happens along the axes, then everything maps back" style="max-width:540px;width:100%;height:auto;font-size:11px;font-family:inherit">
