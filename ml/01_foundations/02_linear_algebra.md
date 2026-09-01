@@ -451,10 +451,12 @@ $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$: the eigenvectors,
 standing side by side as columns. Then:
 
 - **Step 1 is "multiply by $Q^{-1}$".** Splitting $x$ means finding the
-  amounts $c_1, c_2$ with $c_1 v_1 + c_2 v_2 = x$. By §1.4's blend rule
-  (1.4c), the left side is exactly $Q$ times the amount vector $c$, so the
-  amounts solve $Qc = x$: multiply both sides by $Q^{-1}$ to get
-  $c = Q^{-1}x$.
+  amounts $c_1, c_2$ with $c_1 v_1 + c_2 v_2 = x$. Stack the two unknown
+  amounts into a vector,
+  $c = \begin{bmatrix} c_1 \\ c_2 \end{bmatrix}$ (for this run,
+  $c = \begin{bmatrix} 2 \\ 1 \end{bmatrix}$). §1.4's blend rule (1.4c)
+  says $Qc = c_1 v_1 + c_2 v_2$, so the equation to solve is $Qc = x$:
+  multiply both sides by $Q^{-1}$ to get $c = Q^{-1}x$.
   Here $Q^{-1} = \tfrac{1}{2}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
   Check: $Q^{-1} \begin{bmatrix} 3 \\ 1 \end{bmatrix} = \begin{bmatrix} 2 \\ 1 \end{bmatrix}$,
   the amounts step 1 found. ✓
