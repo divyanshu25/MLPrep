@@ -450,21 +450,22 @@ Each of the three steps is a matrix multiplication. Let
 $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$: the eigenvectors,
 standing side by side as columns. Then:
 
-- **Step 3 is "multiply by $Q$".** By §1.4's blend rule (1.4c),
-  $Q$ times a vector of amounts is $c_1 v_1 + c_2 v_2$: each amount
-  multiplies its own column of $Q$ (its eigenvector), and the results add.
-  Check: $Q \begin{bmatrix} 6 \\ 1 \end{bmatrix} = 6 \begin{bmatrix} 1 \\ 1 \end{bmatrix} + 1 \begin{bmatrix} 1 \\ -1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$,
-  exactly step 3's rebuild. ✓
-- **Step 1 is "multiply by $Q^{-1}$".** This step asks the reverse question
-  of step 3: there the amounts $c$ were known and $Qc$ produced the vector;
-  here the vector $x$ is known and the amounts are wanted. So solve
-  $Qc = x$ for $c$: multiply both sides by $Q^{-1}$ to get $c = Q^{-1}x$.
+- **Step 1 is "multiply by $Q^{-1}$".** Splitting $x$ means finding the
+  amounts $c_1, c_2$ with $c_1 v_1 + c_2 v_2 = x$. By §1.4's blend rule
+  (1.4c), the left side is exactly $Q$ times the amount vector $c$, so the
+  amounts solve $Qc = x$: multiply both sides by $Q^{-1}$ to get
+  $c = Q^{-1}x$.
   Here $Q^{-1} = \tfrac{1}{2}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
   Check: $Q^{-1} \begin{bmatrix} 3 \\ 1 \end{bmatrix} = \begin{bmatrix} 2 \\ 1 \end{bmatrix}$,
   the amounts step 1 found. ✓
 - **Step 2 is "multiply by $\Lambda = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$".**
   A diagonal matrix multiplies coordinate $i$ by $\lambda_i$, nothing else.
   Check: $\Lambda \begin{bmatrix} 2 \\ 1 \end{bmatrix} = \begin{bmatrix} 6 \\ 1 \end{bmatrix}$. ✓
+- **Step 3 is "multiply by $Q$".** Rebuilding is the blend rule read
+  forward: $Qc = c_1 v_1 + c_2 v_2$, each amount multiplying its own column
+  of $Q$ (its eigenvector), the results added.
+  Check: $Q \begin{bmatrix} 6 \\ 1 \end{bmatrix} = 6 \begin{bmatrix} 1 \\ 1 \end{bmatrix} + 1 \begin{bmatrix} 1 \\ -1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$,
+  exactly step 3's rebuild. ✓
 
 The intuition for the three factors: they split $A$'s job into *translate,
 act, translate back*.
