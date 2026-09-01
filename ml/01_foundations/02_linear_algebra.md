@@ -665,6 +665,14 @@ recipe:
    spectral theorem from §1.5 guarantees the $v_i$ are orthogonal to each
    other - exactly what "$V$ is a rotation" requires.
 3. Recover each output direction from $A$ itself: $u_i = A v_i / \sigma_i$.
+   Where this formula comes from: apply the proposal (1.6b) to $v_i$, one
+   factor at a time. $V^\top v_i = e_i$, then $\Sigma\, e_i = \sigma_i e_i$,
+   then $U (\sigma_i e_i) = \sigma_i u_i$. So if (1.6b) holds, then
+   $A v_i = \sigma_i u_i$: the proposal leaves no choice about $u_i$ - it
+   must be the direction $A$ actually sends $v_i$ to. Divide by $\sigma_i$
+   to get the formula. (The division needs $\sigma_i > 0$; directions with
+   $\sigma = 0$ are filled in by any orthonormal completion - the padding
+   noted earlier.)
    The $u_i$ inherit orthogonality from the $v_i$: for $i \ne j$,
    $u_i \cdot u_j = \frac{(A v_i) \cdot (A v_j)}{\sigma_i \sigma_j}
    = \frac{v_i \cdot (A^\top A\, v_j)}{\sigma_i \sigma_j}
