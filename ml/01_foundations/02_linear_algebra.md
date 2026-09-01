@@ -738,19 +738,35 @@ $$B = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}$$
 $B$ has no eigenvectors, as noted there, but the recipe does not require
 any: every step operates on $B^\top B$, which is square and symmetric.
 
-1. $B^\top B$ is $2 \times 2$; entry $(i, j)$ is column $i$ dotted with
-   column $j$. Column 1 is $[1, 0, 1]$ and column 2 is $[1, 1, 0]$, so
-   $B^\top B = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ - exactly the
-   §1.5 matrix again.
-2. So we already know its eigendecomposition: $v_1 = [1,1]/\sqrt{2}$ with
-   eigenvalue 3, $v_2 = [1,-1]/\sqrt{2}$ with eigenvalue 1. Therefore
-   $\sigma_1 = \sqrt{3}$ and $\sigma_2 = 1$. The $v_i$ have 2 entries each:
-   they live in the input space.
-3. $u_1 = B v_1 / \sigma_1 = [2, 1, 1]/\sqrt{6}$ and
-   $u_2 = B v_2 / \sigma_2 = [0, -1, 1]/\sqrt{2}$. These have 3 entries
-   each: they live in the output space. Asking whether $u_1$ equals $v_1$ is
-   not even meaningful now - they are different lengths. Orthogonality still
-   holds where it should: $u_1 \cdot u_2 = (0 - 1 + 1)/\sqrt{12} = 0$. ✓
+1. **Form $B^\top B$** ($2 \times 2$: the input-space size):
+
+   $$B^\top B = \begin{bmatrix} 1 & 0 & 1 \\ 1 & 1 & 0 \end{bmatrix}
+   \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}
+   = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$$
+
+   which is exactly the §1.5 matrix.
+
+2. **Eigendecompose it.** §1.5 already did: $[1,1]$ with eigenvalue $3$,
+   $[1,-1]$ with eigenvalue $1$. Normalized, with square roots:
+
+   $$v_1 = \frac{[1,1]}{\sqrt{2}}, \quad v_2 = \frac{[1,-1]}{\sqrt{2}}
+   \qquad \sigma_1 = \sqrt{3}, \quad \sigma_2 = 1$$
+
+   The $v_i$ have 2 entries each: they live in the input space.
+
+3. **Output directions.** Multiply each $v_i$ through $B$, divide by its
+   $\sigma_i$:
+
+   $$u_1 = \frac{B v_1}{\sigma_1} = \frac{[2, 1, 1]/\sqrt{2}}{\sqrt{3}}
+   = \frac{[2, 1, 1]}{\sqrt{6}}
+   \qquad u_2 = \frac{B v_2}{\sigma_2} = \frac{[0, -1, 1]/\sqrt{2}}{1}
+   = \frac{[0, -1, 1]}{\sqrt{2}}$$
+
+   These have 3 entries each: they live in the output space, so "does
+   $u_1$ equal $v_1$?" is no longer a well-formed question. The
+   orthogonality check:
+
+   $$u_1 \cdot u_2 = \frac{0 - 1 + 1}{\sqrt{12}} = 0 \; ✓$$
 
 Assemble the results into the three matrices: the $u_i$ stand side by side as
 the columns of $U$, the $\sigma_i$ sit on $\Sigma$'s diagonal, and the
