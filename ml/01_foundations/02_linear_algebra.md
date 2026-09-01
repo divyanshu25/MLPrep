@@ -430,20 +430,6 @@ momentum and Adam exist.*
 
 ## 1.6 SVD: every matrix is rotate → stretch → rotate
 
-This section builds to the SVD in three parts.
-
-- **Part A** takes what §1.5 showed - write the input vector as a combination
-  of *the matrix's own eigenvectors* (amounts $c_1, c_2$), and multiplying by
-  $A$ collapses to multiplying each amount by a number,
-  $(c_1, c_2) \to (3c_1, c_2)$ - and turns it into a formula:
-  $A = Q \Lambda Q^{-1}$, the **eigendecomposition**.
-- **Part B** fixes that formula's weakness: it only exists for square
-  (and, for orthogonal axes, symmetric) matrices. The fix is $A = U \Sigma V^\top$, the
-  **SVD**, which exists for every matrix.
-- **Part C** is the payoff for ML: cut the SVD short to compress a matrix down
-  to its few biggest patterns - **low-rank approximation**, the idea inside
-  PCA, recommenders, and LoRA.
-
 #### Part A: the eigendecomposition - §1.5 as a formula
 
 Take the §1.5 matrix $A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ and a
