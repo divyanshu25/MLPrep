@@ -555,18 +555,31 @@ neither.
 
 #### Part B: the SVD - eigendecomposition for a rectangular matrix
 
-Part A ended with a problem: formula (1.6a) needs a square matrix, and a real
-data matrix is $n \times d$. What is the corresponding decomposition for a
-rectangular matrix?
+**The problem.** Formula (1.6a) needs a square matrix, and a real data
+matrix is rectangular: $n$ rows × $d$ columns. The running example for this
+part:
 
-Start with what has to change. In (1.6a), $Q^{-1}$ changed the input's
-coordinates and $Q$ changed them back: one matrix and its inverse, usable only
-because inputs and outputs lived in the same space. A rectangular $A$ takes
-$d$-dimensional inputs to $n$-dimensional outputs. Now the matrix acting on the
-input side must be $d \times d$ and the one on the output side must be
-$n \times n$ - they cannot be the same matrix, or each other's inverse. So
-allow two unrelated rotations, one per side. That is the only change. The
-proposed decomposition:
+$$B = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}$$
+
+Three rows, two columns: $B$ takes 2-number inputs to 3-number outputs, so
+"does the output point the same direction as the input?" cannot even be
+asked - $B$ has no eigenvectors at all. What plays the role of
+eigendecomposition here?
+
+**What has to change.** In (1.6a), $Q^{-1}$ translated the input into
+amounts and $Q$ translated back: one matrix and its inverse, possible only
+because inputs and outputs lived in the same space. For a rectangular
+matrix the two translators handle different spaces:
+
+- the input-side translator must be $d \times d$ (it processes $d$-number
+  inputs),
+- the output-side translator must be $n \times n$ (it produces $n$-number
+  outputs),
+
+so they cannot be one matrix and its inverse. The fix is to allow two
+*unrelated* rotations, one per side, and that is the only change.
+
+**The proposal:**
 
 $$A = U \Sigma V^\top \tag{1.6b}$$
 
@@ -619,10 +632,13 @@ the stretch makes the ellipse (radii $\sigma_1, \sigma_2$), the last
 rotation turns it into place. The inputs $v_1, v_2$ land on
 $\sigma_1 u_1, \sigma_2 u_2$.*
 
-So far (1.6b) is a proposal. Now find the three factors - which will also show
-the decomposition exists for every matrix. The obstacle is that $A$ is
-rectangular, so Part A's machinery doesn't apply to it. But it applies to a
-matrix built *from* $A$. Consider $A^\top A$:
+**Finding the factors.** So far (1.6b) is a proposal naming three unknowns.
+The tool for finding them is Part A's machinery, but that needs a square,
+symmetric matrix, and $A$ is neither. So manufacture one out of $A$:
+multiplying $A$ by its own transpose is the way to get a square matrix from
+a rectangular one, and there are exactly two ways to do it, $A^\top A$
+($d \times d$) and $A A^\top$ ($n \times n$). Take the first. It has both
+properties the machinery needs:
 
 - **It is square.** The shapes multiply as
   $(d \times n)(n \times d) = d \times d$.
@@ -655,7 +671,8 @@ recipe:
    = \frac{\sigma_j^2 \, (v_i \cdot v_j)}{\sigma_i \sigma_j} = 0$,
    so $U$ is a rotation too.
 
-Run the recipe on the §1.5 matrix, so every symbol gets a number:
+**The recipe, run on numbers - twice.** First on the §1.5 matrix, so every
+symbol gets a number on familiar ground:
 
 1. $A^\top A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} = \begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix}$
    (here $A^\top = A$ because $A$ is symmetric).
@@ -673,13 +690,12 @@ Run the recipe on the §1.5 matrix, so every symbol gets a number:
 
 For this symmetric $A$, the recipe returns $u_i = v_i$: each direction lands
 on itself. For a non-symmetric matrix, step 3 is exactly where $U$ and $V$
-come apart - so run the recipe once more, this time on a matrix that is
-actually rectangular:
+come apart - so run the recipe once more, this time on the rectangular
+running example from the top of Part B:
 
 $$B = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}$$
 
-Three rows, two columns: $B$ has no eigenvectors of its own ("output points
-the same direction as input" cannot even be asked). The recipe does not care:
+$B$ has no eigenvectors, as noted there. The recipe does not care:
 
 1. $B^\top B$ is $2 \times 2$; entry $(i, j)$ is column $i$ dotted with
    column $j$. Column 1 is $[1, 0, 1]$ and column 2 is $[1, 1, 0]$, so
