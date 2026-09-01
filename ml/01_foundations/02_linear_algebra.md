@@ -2,9 +2,9 @@
 
 ## 1.1 Vectors are data points
 
-Forget arrows in space for a second. In ML, a vector is just **a list of measurements
+In ML, a vector is **a list of measurements
 about one thing**. A house might be $x = [1400, 3, 1985]$ - square feet, bedrooms,
-year built. A word in a transformer is a vector of 768 learned numbers. That's it.
+year built. A word in a transformer is a vector of 768 learned numbers.
 
 The "arrow" picture is still useful for one reason: it gives us geometry. Once data
 points are vectors, we can ask geometric questions: *how long is it? how similar are
@@ -110,15 +110,15 @@ computing many dot products at once, and that is nearly all a network does.
 
 ## 1.4 Matrix multiply, view 2: a linear map (columns tell you everything)
 
-Same numbers, different lens. Forget the rows for a moment and ask a simpler
-question: what does $W$ do to the two easiest possible inputs, the unit axis
+Take the same $W$ and $x$, and ask a different
+question: what does $W$ do to the two simplest possible inputs, the unit axis
 vectors $e_1 = \begin{bmatrix}1\\0\end{bmatrix}$ and $e_2 = \begin{bmatrix}0\\1\end{bmatrix}$?
 
 $$W e_1 = \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}\begin{bmatrix}1\\0\end{bmatrix} = \begin{bmatrix}1\\3\end{bmatrix} \qquad W e_2 = \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}\begin{bmatrix}0\\1\end{bmatrix} = \begin{bmatrix}2\\4\end{bmatrix} \tag{1.4a}$$
 
-Do the arithmetic and you'll see the pattern: a one-hot input zeroes out every
-column except one. **Multiplying $W$ by $e_1$ returns column 1 of $W$;
-multiplying by $e_2$ returns column 2.** That's step one.
+Step one: a one-hot input zeroes out every column except one, so
+**multiplying $W$ by $e_1$ returns column 1 of $W$, and multiplying by
+$e_2$ returns column 2.**
 
 Step two: any input is just a recipe built from those two ingredients.
 
@@ -182,7 +182,7 @@ written in numbers.** Two facts now come for free:
 
 - **Associativity.** $(AB)C = A(BC)$, because both sides mean the same thing:
   "apply $C$, then $B$, then $A$." Grouping the steps differently doesn't change
-  the steps. No index gymnastics required.
+  the steps.
 - **The collapse.** Stack two linear layers with no nonlinearity between them:
   $W_2(W_1 x) = (W_2 W_1)\,x$. But $W_2 W_1$ is just *one* matrix - so the
   two-layer stack computes nothing a single linear layer couldn't. Depth without
@@ -211,11 +211,12 @@ Make it concrete with $A = \begin{bmatrix} 2 & 1 \\ 1 & 2\end{bmatrix}$:
   new. Most vectors are like $u$; eigenvectors are the exceptions.
 
 So this $A$ has exactly two such directions: stretch 3× along the diagonal, do
-nothing along the anti-diagonal. Notice the two eigen-directions are orthogonal. That's not luck:
+nothing along the anti-diagonal. The two eigen-directions are orthogonal, and
+that is a general fact:
 **a symmetric matrix always has a full set of orthogonal eigenvectors with real
 eigenvalues** (the spectral theorem).
 
-Why eigenvectors are a *payoff*, not just a curiosity. In ordinary coordinates
+Why eigenvectors are useful. In ordinary coordinates
 $A$ mixes its inputs: writing $v = [x, y]$,
 
 $$Av = \begin{bmatrix} 2x + y \\ x + 2y \end{bmatrix} \tag{1.5b}$$
@@ -446,8 +447,8 @@ test vector $x = \begin{bmatrix} 3 \\ 1 \end{bmatrix}$.
    $\lambda_1 = 3$), and $1 \to 1$ (times $\lambda_2 = 1$).
 3. **Rebuild the vector.** $6\,[1,1] + 1\,[1,-1] = [7,5]$.
 
-Direct check: $Ax = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}\begin{bmatrix} 3 \\ 1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$.
-Same answer.
+Direct check: $Ax = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}\begin{bmatrix} 3 \\ 1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$,
+matching the three-step result.
 
 Each of the three steps is a matrix multiplication. Let
 $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$: the eigenvectors,
@@ -540,9 +541,8 @@ Written as one product (rightmost acts first):
 
 $$A = Q \Lambda Q^{-1} \tag{1.6a}$$
 
-This formula is the **eigendecomposition** of $A$. Multiply the three matrices
-out and you get $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ back. It
-checks.
+This formula is the **eigendecomposition** of $A$. Multiplying the three matrices
+out returns exactly $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$.
 
 (When $A$ is symmetric, the eigenvectors are orthogonal, $Q$ is a pure
 rotation, and $Q^{-1} = Q^\top$.)
@@ -672,15 +672,15 @@ recipe:
    so $U$ is a rotation too.
 
 **The recipe, run on numbers - twice.** First on the §1.5 matrix, so every
-symbol gets a number on familiar ground:
+symbol gets a number:
 
 1. $A^\top A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} = \begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix}$
    (here $A^\top = A$ because $A$ is symmetric).
 2. Eigendecompose $\begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix}$. Multiply
    it by $[1,1]$: the result is $[9, 9] = 9 \cdot [1,1]$. Multiply it by
    $[1,-1]$: the result is $[1,-1] = 1 \cdot [1,-1]$. So its eigenvectors are
-   $[1,1]$ and $[1,-1]$, with eigenvalues $9$ and $1$. Orthogonal, as
-   promised: $[1,1] \cdot [1,-1] = 1 - 1 = 0$. Normalize the
+   $[1,1]$ and $[1,-1]$, with eigenvalues $9$ and $1$; orthogonal, as
+   the spectral theorem guarantees: $[1,1] \cdot [1,-1] = 1 - 1 = 0$. Normalize the
    eigenvectors to unit length: $v_1 = [1,1]/\sqrt{2}$,
    $v_2 = [1,-1]/\sqrt{2}$. Square-root the eigenvalues:
    $\sigma_1 = \sqrt{9} = 3$, $\sigma_2 = \sqrt{1} = 1$.
@@ -695,7 +695,8 @@ running example from the top of Part B:
 
 $$B = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}$$
 
-$B$ has no eigenvectors, as noted there. The recipe does not care:
+$B$ has no eigenvectors, as noted there, but the recipe does not require
+any: every step operates on $B^\top B$, which is square and symmetric.
 
 1. $B^\top B$ is $2 \times 2$; entry $(i, j)$ is column $i$ dotted with
    column $j$. Column 1 is $[1, 0, 1]$ and column 2 is $[1, 1, 0]$, so
@@ -734,7 +735,7 @@ argument of §1.4, knowing what happens to them pins down what happens to
 *every* input.
 
 Each step works for any matrix, so every matrix has an SVD. **Every linear map
-is rotate → stretch → rotate. No exceptions.**
+is rotate → stretch → rotate.**
 
 What the factors mean geometrically: $v_1$ is the input direction $A$
 stretches the most, $\sigma_1$ is that biggest stretch, and $u_1$ is the
@@ -749,8 +750,7 @@ Two quick checks:
   on themselves ($U = V$), and its SVD is just its eigendecomposition.
 - The shear $\begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$ looks nothing
   like rotations and stretches, yet it factors too: $\sigma_1 \approx 1.62$,
-  $\sigma_2 \approx 0.62$. Slant a deck of cards and you have secretly
-  rotated, stretched, and rotated it. (The shear is also proof that "square"
+  $\sigma_2 \approx 0.62$. (The shear is also proof that "square"
   is not enough for eigendecomposition: it is square, but every eigenvector it
   has lies along $[1, 0]$ - one direction, when diagonalizing 2-D space needs
   two. No eigendecomposition exists for it. Its SVD does.)
@@ -817,7 +817,7 @@ $$3 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
 + \begin{bmatrix} 0.5 & -0.5 \\ -0.5 & 0.5 \end{bmatrix}
 = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$$
 
-The summands add back to $A$. It checks.
+The summands add back to exactly $A$.
 
 **Could a different summary do better?** No. The **Eckart–Young theorem**
 says (1.6e) is the best approximation of $A$ achievable with $k$ patterns:
@@ -907,7 +907,7 @@ truncating the SVD is optimal, not merely convenient.
   it directly as $\Delta W = BA$ with a tiny inner dimension - a few
   patterns' worth of change instead of a whole new matrix.
 
-**Why the product splits into the sum (the promised algebra).** Multiply any
+**Why the product splits into the sum.** Multiply any
 $x$ through the three steps of (1.6b). Step 1 measures the amounts: entry $i$
 of $V^\top x$ is $v_i \cdot x$. Step 2 scales amount $i$ by $\sigma_i$.
 Step 3 points each scaled amount along its output direction and adds:
@@ -920,7 +920,7 @@ $i$ is the summand $\sigma_i u_i v_i^\top$ applied to $x$. Both sides of
 
 ## 1.7 Norms: what "big" means
 
-Three ML questions are secretly the same question. How far apart are two
+Three ML questions are the same question. How far apart are two
 embeddings? How large are a model's weights (the thing weight decay controls)?
 Is this gradient exploding (the thing gradient clipping controls)? Each needs
 one number for "how big is this vector." A **norm** is that number - and there
