@@ -569,7 +569,11 @@ $$A = U \Sigma V^\top \tag{1.6b}$$
 
 - **$V^\top$ rotates the input space.** It turns a set of perpendicular
   input directions $v_1, v_2, \dots$ onto the coordinate axes - the same job
-  $Q^{-1}$ did in Part A's four-frame picture.
+  $Q^{-1}$ did in Part A's four-frame picture. Turning the $v_i$ onto the
+  axes is what "write $x$ in the $v$ basis" looks like as a motion: for
+  $x = c_1 v_1 + c_2 v_2$, the result is
+  $c_1 e_1 + c_2 e_2 = \begin{bmatrix} c_1 \\ c_2 \end{bmatrix}$, the
+  amounts now sitting on the axes.
 - **$\Sigma$ does the stretches.** Axis $i$ is scaled by $\sigma_i \ge 0$:
   the **singular values**, conventionally numbered biggest first. (This step also moves from
   $d$ input dimensions to $n$ output dimensions, padding with zeros.)
