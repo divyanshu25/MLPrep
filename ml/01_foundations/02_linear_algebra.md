@@ -664,20 +664,43 @@ recipe:
    square roots to get the $\sigma_i$. Because $A^\top A$ is symmetric, the
    spectral theorem from §1.5 guarantees the $v_i$ are orthogonal to each
    other - exactly what "$V$ is a rotation" requires.
-3. Recover each output direction from $A$ itself: $u_i = A v_i / \sigma_i$.
-   Where this formula comes from: apply the proposal (1.6b) to $v_i$, one
-   factor at a time. $V^\top v_i = e_i$, then $\Sigma\, e_i = \sigma_i e_i$,
-   then $U (\sigma_i e_i) = \sigma_i u_i$. So if (1.6b) holds, then
-   $A v_i = \sigma_i u_i$: the proposal leaves no choice about $u_i$ - it
-   must be the direction $A$ actually sends $v_i$ to. Divide by $\sigma_i$
-   to get the formula. (The division needs $\sigma_i > 0$; directions with
-   $\sigma = 0$ are filled in by any orthonormal completion - the padding
-   noted earlier.)
-   The $u_i$ inherit orthogonality from the $v_i$: for $i \ne j$,
-   $u_i \cdot u_j = \frac{(A v_i) \cdot (A v_j)}{\sigma_i \sigma_j}
-   = \frac{v_i \cdot (A^\top A\, v_j)}{\sigma_i \sigma_j}
-   = \frac{\sigma_j^2 \, (v_i \cdot v_j)}{\sigma_i \sigma_j} = 0$,
-   so $U$ is a rotation too.
+3. Recover each output direction from $A$ itself:
+   $u_i = A v_i / \sigma_i$. (Both facts about this step are derived just
+   below.)
+
+**Where step 3's formula comes from.** Feed $v_i$ through the proposal's
+three factors:
+
+- $V^\top v_i = e_i$: the amounts of $v_i$ are 1 along itself, 0 along the
+  others.
+- $\Sigma$ scales slot $i$: $e_i \to \sigma_i e_i$.
+- $U$ rebuilds: $\sigma_i e_i \to \sigma_i u_i$ (a one-hot picks out column
+  $i$ of $U$).
+
+So if (1.6b) holds, then $A v_i = \sigma_i u_i$: the proposal leaves no
+choice about $u_i$; it must be the direction $A$ actually sends $v_i$ to.
+Dividing by $\sigma_i$ gives the formula. (For $\sigma_i = 0$ there is
+nothing to divide by; those directions are filled in by any orthonormal
+completion - the padding noted earlier.)
+
+**Why the $u_i$ come out perpendicular.** Take $i \ne j$ and start from the
+formula:
+
+$$u_i \cdot u_j = \frac{(A v_i) \cdot (A v_j)}{\sigma_i \sigma_j}$$
+
+Move one $A$ to the other side of the dot product, using
+$(Ax) \cdot y = x \cdot (A^\top y)$:
+
+$$= \frac{v_i \cdot (A^\top A\, v_j)}{\sigma_i \sigma_j}$$
+
+$v_j$ is an eigenvector of $A^\top A$ with eigenvalue $\sigma_j^2$, so
+$A^\top A\, v_j = \sigma_j^2 v_j$:
+
+$$= \frac{\sigma_j^2\, (v_i \cdot v_j)}{\sigma_i \sigma_j} = 0
+\qquad \text{because } v_i \cdot v_j = 0$$
+
+Perpendicular inputs produce perpendicular outputs, so $U$ is a rotation
+too.
 
 **The recipe, run on numbers - twice.** First on the §1.5 matrix, so every
 symbol gets a number:
