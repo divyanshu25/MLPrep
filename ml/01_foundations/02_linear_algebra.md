@@ -463,11 +463,13 @@ standing side by side as columns. Then:
 - **Step 2 is "multiply by $\Lambda = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$".**
   A diagonal matrix multiplies coordinate $i$ by $\lambda_i$, nothing else.
   Check: $\Lambda \begin{bmatrix} 2 \\ 1 \end{bmatrix} = \begin{bmatrix} 6 \\ 1 \end{bmatrix}$. ✓
-- **Step 3 is "multiply by $Q$".** Rebuilding is the blend rule read
-  forward: $Qc = c_1 v_1 + c_2 v_2$, each amount multiplying its own column
-  of $Q$ (its eigenvector), the results added.
-  Check: $Q \begin{bmatrix} 6 \\ 1 \end{bmatrix} = 6 \begin{bmatrix} 1 \\ 1 \end{bmatrix} + 1 \begin{bmatrix} 1 \\ -1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$,
-  exactly step 3's rebuild. ✓
+- **Step 3 is "multiply by $Q$".** Step 2 handed over the *scaled* amounts
+  $\Lambda c = \begin{bmatrix} 6 \\ 1 \end{bmatrix}$. Multiplying by $Q$
+  turns amounts back into an ordinary vector, by the same blend rule as
+  step 1: each amount multiplies its own column of $Q$ (its eigenvector),
+  and the results add.
+  Check: $Q \begin{bmatrix} 6 \\ 1 \end{bmatrix} = 6 \begin{bmatrix} 1 \\ 1 \end{bmatrix} + 1 \begin{bmatrix} 1 \\ -1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$:
+  exactly the rebuild in numbered step 3, and the final answer $Ax$. ✓
 
 The intuition for the three factors: they split $A$'s job into *translate,
 act, translate back*.
