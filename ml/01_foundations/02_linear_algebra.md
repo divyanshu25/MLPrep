@@ -702,8 +702,8 @@ $$= \frac{\sigma_j^2\, (v_i \cdot v_j)}{\sigma_i \sigma_j} = 0
 Perpendicular inputs produce perpendicular outputs, so $U$ is a rotation
 too.
 
-**The recipe, run on numbers - twice.** First on the §1.5 matrix, so every
-symbol gets a number:
+**The recipe on numbers.** Run it first on the §1.5 matrix, so every symbol
+gets a number:
 
 1. $A^\top A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} = \begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix}$
    (here $A^\top = A$ because $A$ is symmetric).
