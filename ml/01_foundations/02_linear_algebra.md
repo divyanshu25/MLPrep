@@ -1014,9 +1014,13 @@ constant pull gets driven to exactly $0$ and held there. Why held: at
 $w = 0$, moving in *either* direction raises the penalty at that same
 constant rate, so unless the loss gradient at $0$ is larger than that rate,
 $0$ is where the weight stays. That is the lasso,
-and it is why "L1 selects features." The same conclusion, geometrically: the
-constrained optimum lands on the unit ball's surface, and L1's ball has
-corners exactly on the axes - points where the other coordinates are zero.
+and it is why "L1 selects features." The same conclusion, geometrically.
+The set of all vectors with $\|x\| \le 1$ is called a norm's **unit ball**;
+the name comes from L2, whose version really is round, but each norm has
+its own shape - the figure below shows L1's is a diamond and L∞'s is a
+square. A constrained optimum lands on the unit ball's surface, and L1's
+diamond has corners exactly on the axes: points where the other
+coordinates are zero.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 170" role="img" aria-label="Unit balls of the L1 norm (a diamond), L2 norm (a circle), and L-infinity norm (a square)" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
