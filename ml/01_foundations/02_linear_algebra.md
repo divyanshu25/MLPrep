@@ -810,12 +810,18 @@ Two quick checks:
 - The symmetric $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ from §1.5
   stretches $[1,1]$ by 3 and $[1,-1]$ by 1 - so those are its $v$'s, they land
   on themselves ($U = V$), and its SVD is just its eigendecomposition.
-- The shear $\begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$ looks nothing
-  like rotations and stretches, yet it factors too: $\sigma_1 \approx 1.62$,
-  $\sigma_2 \approx 0.62$. (The shear is also proof that "square"
-  is not enough for eigendecomposition: it is square, but every eigenvector it
-  has lies along $[1, 0]$ - one direction, when diagonalizing 2-D space needs
-  two. No eigendecomposition exists for it. Its SVD does.)
+- The shear $S = \begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$ does not
+  look like rotations and stretches, yet it factors: its singular values
+  are $\sigma_1 \approx 1.62$ and $\sigma_2 \approx 0.62$.
+- The same shear shows that square alone is not enough for
+  *eigen*decomposition. Look for its eigenvectors directly:
+  $S \begin{bmatrix} x \\ y \end{bmatrix} = \begin{bmatrix} x + y \\ y \end{bmatrix}$,
+  and for this to equal $\lambda \begin{bmatrix} x \\ y \end{bmatrix}$ the
+  second entries force $\lambda = 1$ whenever $y \ne 0$, and then the first
+  entries force $x + y = x$, i.e. $y = 0$. So every eigenvector of $S$ lies
+  along the single direction $[1, 0]$, and diagonalizing 2-D space needs
+  two independent eigen-directions: $S$ has no eigendecomposition. Its SVD
+  exists anyway.
 
 #### Part C: compressing a matrix - why ML cares
 
