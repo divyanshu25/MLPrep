@@ -987,7 +987,9 @@ Three common ML questions each reduce to measuring the size of one vector:
 Each needs a single number for "how big is this vector." A **norm** is that
 number, and there is more than one useful way to define it.
 
-Measure the same vector $x = [3, -4, 0]$ three ways:
+The notation: $\|x\|$ (double bars) is the size of the vector $x$, with a
+subscript naming which definition of size is in use. Measure the same
+vector $x = [3, -4, 0]$ three ways:
 
 - **L2, straight-line length:**
   $\|x\|_2 = \sqrt{3^2 + (-4)^2 + 0^2} = \sqrt{25} = 5$.
@@ -1015,7 +1017,8 @@ $w = 0$, moving in *either* direction raises the penalty at that same
 constant rate, so unless the loss gradient at $0$ is larger than that rate,
 $0$ is where the weight stays. That is the lasso,
 and it is why "L1 selects features." The same conclusion, geometrically.
-The set of all vectors with $\|x\| \le 1$ is called a norm's **unit ball**;
+The set of all vectors of size at most 1 under a given norm
+($\|x\| \le 1$) is called that norm's **unit ball**;
 the name comes from L2, whose version really is round, but each norm has
 its own shape - the figure below shows L1's is a diamond and L∞'s is a
 square. A constrained optimum lands on the unit ball's surface, and L1's
