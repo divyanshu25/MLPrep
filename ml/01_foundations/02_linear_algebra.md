@@ -841,8 +841,7 @@ Two questions decide whether this is a good idea. How much does the
 approximation lose? And could some other $k$-sized summary lose less?
 
 **What the approximation loses.** Multiplying $U \Sigma V^\top$ out splits
-it into one summand per singular value (the algebra is at the end of this
-part):
+it into one summand per singular value:
 
 $$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
@@ -975,24 +974,16 @@ truncating the SVD is optimal, not merely convenient.
   it directly as $\Delta W = BA$ with a tiny inner dimension - a few
   patterns' worth of change instead of a whole new matrix.
 
-**Why the product splits into the sum.** Multiply any
-$x$ through the three steps of (1.6b). Step 1 measures the amounts: entry $i$
-of $V^\top x$ is $v_i \cdot x$. Step 2 scales amount $i$ by $\sigma_i$.
-Step 3 points each scaled amount along its output direction and adds:
-
-$$Ax = \sum_i \sigma_i \, (v_i \cdot x) \, u_i$$
-
-Since $(v_i \cdot x)\, u_i = u_i (v_i^\top x) = (u_i v_i^\top)\, x$, term
-$i$ is the summand $\sigma_i u_i v_i^\top$ applied to $x$. Both sides of
-(1.6d) produce the same output for every input, so they are the same matrix.
-
 ## 1.7 Norms: what "big" means
 
-Three ML questions are the same question. How far apart are two
-embeddings? How large are a model's weights (the thing weight decay controls)?
-Is this gradient exploding (the thing gradient clipping controls)? Each needs
-one number for "how big is this vector." A **norm** is that number - and there
-is more than one useful way to define it.
+Three common ML questions each reduce to measuring the size of one vector:
+
+- How far apart are two embeddings? (the size of their difference)
+- How large are a model's weights? (the quantity weight decay controls)
+- Is this gradient exploding? (the quantity gradient clipping checks)
+
+Each needs a single number for "how big is this vector." A **norm** is that
+number, and there is more than one useful way to define it.
 
 Measure the same vector $x = [3, -4, 0]$ three ways:
 
