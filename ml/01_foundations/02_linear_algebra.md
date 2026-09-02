@@ -547,11 +547,17 @@ out returns exactly $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$.
 (When $A$ is symmetric, the eigenvectors are orthogonal, $Q$ is a pure
 rotation, and $Q^{-1} = Q^\top$.)
 
-Two limitations. It needs $A$ **square**: "does the output point the same
-direction as the input?" can't even be asked when inputs and outputs live in
-spaces of different sizes. And it only comes with clean orthogonal axes when
-$A$ is **symmetric**. A real data matrix ($n$ houses × $d$ features) is
-neither.
+Two limitations.
+
+- **It needs $A$ square.** An eigenvector is defined by $Av = \lambda v$,
+  an equation that sets the output $Av$ equal to a scaled copy of the input
+  $v$ - which requires the two sides to have the same number of entries.
+  For a rectangular $A$, $Av$ and $v$ have different lengths, and the
+  equation cannot even be written down.
+- **Clean axes need $A$ symmetric.** Only then does the spectral theorem
+  guarantee orthogonal eigenvectors, making $Q$ a rotation.
+
+A real data matrix ($n$ houses × $d$ features) is neither.
 
 #### Part B: the SVD - eigendecomposition for a rectangular matrix
 
@@ -561,10 +567,10 @@ part:
 
 $$B = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}$$
 
-Three rows, two columns: $B$ takes 2-number inputs to 3-number outputs, so
-"does the output point the same direction as the input?" cannot even be
-asked - $B$ has no eigenvectors at all. What plays the role of
-eigendecomposition here?
+Three rows, two columns: $B$ takes 2-number inputs to 3-number outputs. In
+the eigenvector equation $Bv = \lambda v$, the left side would have 3
+entries and the right side 2, so the equation cannot be written down: $B$
+has no eigenvectors at all. What plays the role of eigendecomposition here?
 
 **What has to change.** In (1.6a), $Q^{-1}$ translated the input into
 amounts and $Q$ translated back: one matrix and its inverse, possible only
