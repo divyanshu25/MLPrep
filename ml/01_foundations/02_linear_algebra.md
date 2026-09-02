@@ -978,7 +978,9 @@ truncating the SVD is optimal, not merely convenient.
 
 Three common ML questions each reduce to measuring the size of one vector:
 
-- How far apart are two embeddings? (the size of their difference)
+- How far apart are two embeddings $a$ and $b$? Their difference $a - b$
+  is a single vector, and the distance between them is its size:
+  $\|a - b\|$.
 - How large are a model's weights? (the quantity weight decay controls)
 - Is this gradient exploding? (the quantity gradient clipping checks)
 
