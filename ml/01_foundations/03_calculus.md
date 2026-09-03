@@ -157,8 +157,12 @@ $$\Delta y = 9(2+h)^2 - 9 \cdot 2^2 = 36h + 9h^2$$
 
 The exact change has two parts:
 
-- $36h$ is the part the derivative predicts.
-- $9h^2$ is the part the linear approximation of §2.1 drops.
+- $36h$ is the part the derivative predicts. §2.1's approximation
+  $f(x + h) \approx f(x) + f'(x)\,h$ says the change is about
+  $f'(x)\,h = 36h$.
+- $9h^2$ is the part that approximation omits: the formula has no $h^2$
+  term, so everything quadratic in $h$ is dropped, and here that is
+  exactly $9h^2$.
 
 Compare prediction with truth as the step shrinks:
 
