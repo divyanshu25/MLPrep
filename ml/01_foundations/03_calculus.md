@@ -146,21 +146,35 @@ rates right to left.*
 
 #### What dy/dx = 36 means (and what it does not)
 
-Not "step $x$ by 1 and $y$ moves by 36": from $x = 2$ to $x = 3$, $y$ goes from
-36 to 81, a change of 45. Write the exact change for a step $h$, calling it
-$\Delta y$ ($\Delta$ is read "delta"; $\Delta y$ = the value of $y$ after the
-step minus the value before):
+It does not mean "step $x$ by 1 and $y$ moves by 36": from $x = 2$ to
+$x = 3$, $y$ goes from 36 to 81, a change of 45.
+
+To state what it does mean, write the exact change caused by a step of size
+$h$. Call it $\Delta y$ ($\Delta$ is read "delta"; $\Delta y$ = the value
+of $y$ after the step minus the value before):
 
 $$\Delta y = 9(2+h)^2 - 9 \cdot 2^2 = 36h + 9h^2$$
 
-The derivative accounts for the $36h$ part; the $9h^2$ part is what the linear
-approximation of §2.1 drops. At $h = 1$ the dropped part is big: $36 + 9 = 45$.
-Shrink the step and it dies faster than the kept part: $h = 0.1$ gives
-$\Delta y = 3.69$ vs the predicted $3.6$; $h = 0.01$ gives $0.3609$ vs $0.36$.
-So $\Delta y / h \to 36$ as $h \to 0$, and *that* limit is the claim
-$\frac{dy}{dx} = 36$. Gradient descent lives on this: the gradient is a
-per-unit rate that is only trustworthy for small steps, which is why learning
-rates are small.
+The exact change has two parts:
+
+- $36h$ is the part the derivative predicts.
+- $9h^2$ is the part the linear approximation of §2.1 drops.
+
+Compare prediction with truth as the step shrinks:
+
+- $h = 1$: predicted $36$, actual $45$. Dropped part: $9$.
+- $h = 0.1$: predicted $3.6$, actual $3.69$. Dropped part: $0.09$.
+- $h = 0.01$: predicted $0.36$, actual $0.3609$. Dropped part: $0.0009$.
+
+Shrinking the step 10× shrinks the predicted part 10× but the dropped part
+100×, because the dropped part is quadratic in $h$. So the per-unit ratio
+
+$$\frac{\Delta y}{h} = 36 + 9h \;\to\; 36 \quad \text{as } h \to 0$$
+
+and that limit is the exact meaning of $\frac{dy}{dx} = 36$: a per-unit
+rate, accurate only for small steps. Gradient descent relies on exactly
+this: the gradient is trustworthy only near the current point, which is why
+learning rates are small.
 
 #### Backprop: the chain rule walked over a whole graph
 
