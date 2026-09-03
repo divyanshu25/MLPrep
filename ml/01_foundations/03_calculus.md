@@ -353,22 +353,23 @@ so each keeps its own slot in the vector.
 Stand at a point and take a small step of length $\epsilon$ in some direction.
 A direction is a unit vector $u$ (so $\|u\| = 1$); the step changes input $i$
 by $\epsilon\, u_i$. Each input contributes its per-input change times its
-sensitivity, and the contributions add (§2.2, a variable used in many places),
-giving the change in $f$ ($\Delta f$, as in §2.2's $\Delta y$):
+sensitivity, and the contributions add (§2.2's add rule, from the
+variable-used-twice subsection), giving the change in $f$ ($\Delta f$, as in
+§2.2's $\Delta y$):
 
 $$\Delta f \approx \sum_i \frac{\partial f}{\partial x_i}\, \epsilon\, u_i = \epsilon\, (\nabla f \cdot u)$$
 
 So the direction that raises $f$ fastest is the $u$ that maximizes
-$\nabla f \cdot u$. From the linear algebra notes,
+$\nabla f \cdot u$. By the dot-product identity of §1.2,
 $\nabla f \cdot u = \|\nabla f\|\, \|u\| \cos\theta = \|\nabla f\| \cos\theta$,
 which is biggest at $\theta = 0$: $u$ pointing along $\nabla f$ itself.
 
 Check it on $\nabla f = [4, 3]$: stepping along the axis $[1, 0]$ raises $f$
 at rate $4$; along $[0, 1]$, rate $3$; along
 $u = [4, 3] / 5$, rate $4 \cdot \tfrac{4}{5} + 3 \cdot \tfrac{3}{5} = 5 =
-\|\nabla f\|$. The blend beats both axes. So the gradient is the locally
-steepest uphill direction, and gradient *descent* steps along $-\nabla f$,
-straight downhill.
+\|\nabla f\|$. The blended direction raises $f$ faster than either axis
+alone. So the gradient is the locally steepest uphill direction, and
+gradient *descent* steps along $-\nabla f$, straight downhill.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 270" role="img" aria-label="Unit circle of candidate step directions for gradient [4,3]: rate 4 along the x axis, 3 along the y axis, 0 perpendicular to the gradient, and 5 along the gradient direction; level lines of f run perpendicular to the gradient" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -444,7 +445,7 @@ The summary to memorize:
 | $f(x) = \|x\|^2 = x^\top x$ | $\nabla f = 2x$ | $x^2 \to 2x$ |
 
 The last column is the memory aid: pretend every vector is a single number,
-differentiate with high-school rules, and the matrix version is that answer
+differentiate with 1-D rules, and the matrix version is that answer
 with transposes arranged so the shapes work out. ($ax \to a$ means: the 1-D
 version of $a^\top x$ is $ax$, whose derivative is $a$.)
 
