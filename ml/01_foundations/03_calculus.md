@@ -470,14 +470,57 @@ only term of the sum containing $r_i$; and $\partial r_i / \partial w_k =
 X_{ik}$ because in $r_i = \sum_j X_{ij} w_j - y_i$ the coefficient of $w_k$
 is $X_{ik}$.
 
-Now read $\sum_i X_{ik}\, r_i$ as a matrix product. The sum has one term per
-example, and the coefficient in example $i$'s term is $X_{ik}$. Line up those
-coefficients across the sum - $X_{1k}, X_{2k}, \dots, X_{nk}$, first index
-running, second fixed at $k$ - and they are exactly **column** $k$ of $X$. So
-$\partial L / \partial w_k$ = (column $k$ of $X$) dotted with $r$. Compare the
-two directions: a *prediction* dots a **row** of $X$ with $w$; a *weight's
-derivative* dots a **column** of $X$ with $r$. Doing the column-dot for every
-$k$ at once is the product $X^\top r$. Stack the $d$ components:
+Now read $\sum_i 2 r_i \, X_{ik}$ as a dot product by stacking its
+coefficients:
+
+$$\frac{\partial L}{\partial w_k}
+= 2\,(X_{1k}\, r_1 + X_{2k}\, r_2 + \dots + X_{nk}\, r_n)
+= 2 \begin{bmatrix} X_{1k} \\ X_{2k} \\ \vdots \\ X_{nk} \end{bmatrix} \cdot r$$
+
+That stack sits inside $X$ as column $k$:
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 480 250" role="img" aria-label="The data matrix X with row i highlighted in green and column k highlighted in indigo: a prediction dots row i with w, a weight's derivative dots column k with r" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="xg-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/></marker>
+    <marker id="xg-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/></marker>
+  </defs>
+  <g fill="currentColor" fill-opacity="0.55" text-anchor="middle" font-size="10.5">
+    <text x="92" y="42">feature 1</text>
+    <text x="136" y="24">feature k</text>
+    <text x="180" y="42">feature d</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.55" text-anchor="end" font-size="10.5">
+    <text x="58" y="78">ex. 1</text>
+    <text x="58" y="114">ex. i</text>
+    <text x="58" y="186">ex. n</text>
+  </g>
+  <path d="M 72 52 L 66 52 L 66 196 L 72 196" fill="none" stroke="currentColor" stroke-opacity="0.6"/>
+  <path d="M 200 52 L 206 52 L 206 196 L 200 196" fill="none" stroke="currentColor" stroke-opacity="0.6"/>
+  <rect x="114" y="52" width="44" height="144" fill="#6366f1" fill-opacity="0.12" stroke="#6366f1" stroke-opacity="0.4"/>
+  <rect x="70" y="88" width="132" height="36" fill="#10b981" fill-opacity="0.12" stroke="#10b981" stroke-opacity="0.4"/>
+  <g fill="currentColor" fill-opacity="0.85" text-anchor="middle" font-size="11">
+    <text x="136" y="78">X&#8321;&#8342;</text>
+    <text x="92" y="114">X&#7522;&#8321;</text>
+    <text x="136" y="114">X&#7522;&#8342;</text>
+    <text x="136" y="152">&#8942;</text>
+    <text x="136" y="186">X&#8345;&#8342;</text>
+  </g>
+  <line x1="210" y1="106" x2="234" y2="106" stroke="#10b981" stroke-opacity="0.8" marker-end="url(#xg-a)"/>
+  <text x="240" y="102" fill="#10b981" font-weight="600" font-size="11">row i &#183; w = prediction for example i</text>
+  <text x="240" y="118" fill="currentColor" fill-opacity="0.65" font-size="10.5">one example, all its features</text>
+  <line x1="136" y1="200" x2="136" y2="218" stroke="#6366f1" stroke-opacity="0.8" marker-end="url(#xg-b)"/>
+  <text x="136" y="234" text-anchor="middle" fill="#6366f1" font-weight="600" font-size="11">column k &#183; r = &#8706;L/&#8706;w&#8342;</text>
+  <text x="136" y="248" text-anchor="middle" fill="currentColor" fill-opacity="0.65" font-size="10.5">one feature, across all examples</text>
+</svg>
+</div>
+
+*The two directions through the same matrix: a prediction dots a **row** of
+$X$ (one example) with $w$; a weight's derivative dots a **column** of $X$
+(one feature) with $r$.*
+
+Doing the column-dot for every $k$ at once is the product $X^\top r$. Stack
+the $d$ components:
 
 $$\nabla_w L = 2 X^\top r = 2 X^\top (Xw - y)$$
 
