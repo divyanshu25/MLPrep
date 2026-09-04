@@ -555,9 +555,16 @@ change input $j$?"
 #### The Jacobian is the local linear map
 
 What does that table do *as a matrix*? Change the input by a small vector
-$\delta$. Output $i$ changes by $\sum_j (\partial f_i / \partial x_j)\,
-\delta_j$ - one contribution per input, added (§2.2's add rule) - and that
-sum is exactly row $i$ of the product $J\delta$. Stack the $m$ outputs:
+$\delta$: all $n$ inputs move at once, input $j$ by $\delta_j$. Changing
+input $j$ alone would change output $i$ by
+$(\partial f_i / \partial x_j)\,\delta_j$ (§2.1, per-input sensitivity),
+and since output $i$ receives one such contribution from every input,
+§2.2's add rule sums them:
+
+$$\Delta f_i \approx \sum_j \frac{\partial f_i}{\partial x_j}\, \delta_j
+= (\text{row } i \text{ of } J) \cdot \delta$$
+
+Stack the $m$ outputs, and the row-dots become the matrix product $J\delta$:
 
 $$f(x + \delta) \approx f(x) + J\delta$$
 
@@ -596,8 +603,11 @@ Stand at one layer and suppose the sensitivities of
 the loss to the layer's *outputs* are already known (the walk arrives from
 the right): the row vector
 $s = [\partial L / \partial \text{out}_1, \dots, \partial L / \partial \text{out}_m]$.
-The sensitivity to input $i$ is one add-rule sum - input $i$ touches every
-output:
+Input $i$ reaches the loss through every output, one path per output:
+
+$$\text{in}_i \to \text{out}_1 \to L, \qquad \text{in}_i \to \text{out}_2 \to L, \qquad \dots, \qquad \text{in}_i \to \text{out}_m \to L$$
+
+so §2.2's add rule gives one chain-rule contribution per path, summed:
 
 $$\frac{\partial L}{\partial \text{in}_i} = \sum_j \frac{\partial L}{\partial \text{out}_j}\,\frac{\partial \text{out}_j}{\partial \text{in}_i} = (s\,J)_i$$
 
