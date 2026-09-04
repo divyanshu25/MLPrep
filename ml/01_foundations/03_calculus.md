@@ -459,9 +459,15 @@ $r_i = \sum_j X_{ij} w_j - y_i$, and the loss adds the squared errors:
 $$L(w) = \sum_i r_i^2 = \|Xw - y\|^2$$
 
 Differentiate with respect to one weight $w_k$. Every example's prediction
-uses $w_k$, so $w_k$ appears in every residual - by §2.2's add rule, the
-contributions add across examples, and each contribution is one chain rule
-step, (sensitivity of $L$ to $r_i$) times (sensitivity of $r_i$ to $w_k$):
+uses $w_k$, so $w_k$ reaches the loss through $n$ separate paths, one per
+example:
+
+$$w_k \to r_1 \to L, \qquad w_k \to r_2 \to L, \qquad \dots, \qquad w_k \to r_n \to L$$
+
+This is §2.2's variable-used-in-two-places situation with $n$ places
+instead of two, and the same add rule applies: one chain-rule contribution
+per path, all summed. Path $i$'s contribution is (sensitivity of $L$ to
+$r_i$) times (sensitivity of $r_i$ to $w_k$):
 
 $$\frac{\partial L}{\partial w_k} = \sum_i \frac{\partial L}{\partial r_i}\,\frac{\partial r_i}{\partial w_k} = \sum_i 2 r_i \cdot X_{ik}$$
 
