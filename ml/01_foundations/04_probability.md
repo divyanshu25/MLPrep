@@ -13,8 +13,10 @@ $$\mathbb{E}[X] = \sum_x x \, P(X = x) = \tfrac{1}{6}(1+2+3+4+5+6) = 3.5$$
 $$\mathbb{E}[aX + bY] = a\,\mathbb{E}[X] + b\,\mathbb{E}[Y]$$
 
 This holds *even when $X$ and $Y$ are dependent*, because both sides are the
-same weighted sum with its terms grouped differently. It is what makes many
-ML proofs one-liners.
+same weighted sum with its terms grouped differently. This chapter uses it
+repeatedly: the variance identity just below, the Binomial mean
+$\mathbb{E} = np$ (§3.4), and the unbiasedness of the sample mean,
+$\mathbb{E}[\bar x] = \mu$ (§3.5), are each a single application of it.
 
 Products are different. In general $\mathbb{E}[XY] \neq
 \mathbb{E}[X]\,\mathbb{E}[Y]$; equality needs **independence**
