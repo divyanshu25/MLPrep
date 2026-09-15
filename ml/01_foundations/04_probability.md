@@ -423,13 +423,25 @@ the classifier case runs unchanged: take $-\log p(y \mid x)$ per example
 and minimize the sum. The choice of noise density decides which loss comes
 out:
 
-- Gaussian noise, density $\frac{1}{\sqrt{2\pi\sigma^2}}
-  e^{-\varepsilon^2 / 2\sigma^2}$:
-  $-\log p(y \mid x) = \frac{(y - f_\theta(x))^2}{2\sigma^2} + \text{const}$,
-  a squared error. MLE under Gaussian noise is **MSE**.
-- Laplace noise, density $\frac{1}{2b} e^{-|\varepsilon| / b}$:
-  $-\log p(y \mid x) = \frac{|y - f_\theta(x)|}{b} + \text{const}$, an
-  absolute error. MLE under Laplace noise is **L1 loss**.
+- **Gaussian noise**, density
+  $p_\varepsilon(\varepsilon) = \frac{1}{\sqrt{2\pi\sigma^2}} e^{-\varepsilon^2 / 2\sigma^2}$.
+  Substitute $\varepsilon = y - f_\theta(x)$ and take $-\log$, using
+  $\log(ab) = \log a + \log b$ and $\log e^t = t$: the factor
+  $\frac{1}{\sqrt{2\pi\sigma^2}}$ contributes $+\tfrac12 \log(2\pi\sigma^2)$
+  and the exponential contributes its exponent with the sign flipped:
+
+  $$-\log p(y \mid x) = \frac{(y - f_\theta(x))^2}{2\sigma^2}
+  + \underbrace{\tfrac{1}{2}\log(2\pi\sigma^2)}_{\text{no } \theta \text{ inside: a constant}}$$
+
+  Minimizing this over $\theta$ is minimizing the squared error: MLE under
+  Gaussian noise is **MSE**.
+- **Laplace noise**, density $\frac{1}{2b} e^{-|\varepsilon| / b}$. The same
+  two steps give
+
+  $$-\log p(y \mid x) = \frac{|y - f_\theta(x)|}{b} + \log(2b)$$
+
+  an absolute error plus a constant: MLE under Laplace noise is **L1
+  loss**.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 220" role="img" aria-label="Left: Gaussian and Laplace noise densities. Right: their minus log curves, a parabola for the Gaussian giving MSE and a V shape for the Laplace giving L1 loss" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
