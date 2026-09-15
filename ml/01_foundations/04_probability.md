@@ -523,7 +523,7 @@ $p(1 - p)$ is largest at $p = 1/2$ (value $1/4$): the fair coin, where the
 outcome is hardest to predict. It shrinks to 0 as $p \to 0$ or $p \to 1$,
 where the outcome is nearly certain.
 
-Two things built from it:
+Three things built from it:
 
 - **Count the 1s.** Add $n$ independent Bernoullis,
   $X_1 + \dots + X_n$: the sum is the *number of successes* in $n$ tries,
@@ -531,12 +531,26 @@ Two things built from it:
   mean and variance at once: $\mathbb{E} = np$ by linearity,
   $\mathrm{Var} = np(1 - p)$ by additivity over independent draws. (§3.3's
   coin data, $h$ heads in $n$ flips, was one Binomial draw.)
-- **Where it appears in ML.** A binary classifier that outputs "spam with
-  probability 0.9" is modeling the label as Bernoulli($0.9$); training it
-  with binary cross-entropy is MLE under exactly that model - §3.3's
-  pattern with two classes. Dropout keeps each unit with probability $p$
-  and zeroes it otherwise: each keep/drop decision is one Bernoulli($p$)
-  draw, and a layer's mask is a vector of independent ones.
+- **Model a binary label.** A classifier that outputs "spam with
+  probability 0.9" is modeling the label as Bernoulli($0.9$): it claims
+  $P(y = 1 \mid x) = 0.9$ and $P(y = 0 \mid x) = 0.1$. Write
+  $\hat{p} = p_\theta(1 \mid x)$ for the model's output on input $x$ and
+  $y \in \{0, 1\}$ for the true label. The probability the model assigns
+  to the observed label is $\hat{p}$ when $y = 1$ and $1 - \hat{p}$ when
+  $y = 0$. Taking $-\log$ of that probability, as §3.3 does for every
+  model, and writing both cases in one line (the factor $y$ keeps its
+  term only when $y = 1$, the factor $1 - y$ only when $y = 0$):
+
+  $$-\log P(y \mid x) = -\big[\, y \log \hat{p} + (1 - y) \log(1 - \hat{p}) \,\big]$$
+
+  This is the **binary cross-entropy** loss for one example. Training
+  with it is MLE under the Bernoulli label model: the two-class case of
+  §3.3's derivation.
+- **Randomize a network (dropout).** Dropout keeps each unit with
+  probability $p$ and zeroes it otherwise. Each keep/drop decision is
+  one Bernoulli($p$) draw, so a layer's mask is a vector of independent
+  Bernoulli($p$) draws, and by the Binomial mean above a layer of $n$
+  units keeps $np$ of them on average.
 
 #### Gaussian: the sum of many small effects
 
