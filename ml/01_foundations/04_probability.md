@@ -401,13 +401,21 @@ the model gives to the observed target. But a regression model's output is a
 single number, $f_\theta(x) = 300$k, and one number is not a distribution:
 it does not say how probable a sale at 310k or at 295k would be, so there is
 nothing to take the likelihood of. The noise assumption supplies the missing
-distribution: assume $\varepsilon$ follows one (say, Gaussian centered at
-0), and then $y$ given $x$ is distributed as that noise shifted to sit on
-top of the prediction - probable near 300k, less probable further away. Now
-$p_\theta(y \mid x)$ exists, and the recipe
-from the classifier case runs unchanged: take $-\log p(y \mid x)$ per
-example and minimize the sum. The choice of noise distribution decides which
-loss comes out:
+distribution. Assume the noise is drawn from a known density
+$p_\varepsilon$ (say, a Gaussian centered at 0). Since
+$y = f_\theta(x) + \varepsilon$, observing the value $y$ means the noise
+draw came out to exactly $\varepsilon = y - f_\theta(x)$, so the
+probability of $y$ is the noise density at that value:
+
+$$p_\theta(y \mid x) = p_\varepsilon\big(y - f_\theta(x)\big)$$
+
+Concretely, with the prediction at 300k: a sale at 310k has the density of
+$\varepsilon = +10$k, a sale at 295k the density of $\varepsilon = -5$k,
+and a Gaussian centered at 0 makes values near the prediction probable and
+far ones improbable. Now $p_\theta(y \mid x)$ exists, and the recipe from
+the classifier case runs unchanged: take $-\log p(y \mid x)$ per example
+and minimize the sum. The choice of noise density decides which loss comes
+out:
 
 - Gaussian noise, density $\frac{1}{\sqrt{2\pi\sigma^2}}
   e^{-\varepsilon^2 / 2\sigma^2}$:
