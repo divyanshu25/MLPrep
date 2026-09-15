@@ -479,9 +479,19 @@ parabola $\varepsilon^2/2$ (MSE); the Laplace's is the V shape
 $|\varepsilon|$ (L1). The shape of the loss is the noise assumption, made
 visible.*
 
-So picking a regression loss *is* picking a noise model. When an interviewer
-asks "why this loss?", the answer is: it is the negative log-likelihood
-under this output/noise model.
+So picking a regression loss *is* picking a noise model, in both
+directions: assume a noise density and the loss falls out (the two bullets
+above), and use a loss and you have implicitly assumed the matching noise:
+
+- Choosing **MSE** asserts Gaussian noise: large residuals are treated as
+  extremely rare, and punished quadratically.
+- Choosing **L1** asserts Laplace noise: heavier tails, so outliers are
+  expected, and punished only linearly.
+
+When an interviewer asks "why this loss?", the answer names the assumption
+behind it: the loss is the negative log-likelihood of the assumed model of
+the target - Gaussian noise for MSE, Laplace noise for L1, the categorical
+model of the previous subsection for cross-entropy.
 
 ## 3.4 Bernoulli and Gaussian: the two distributions ML leans on
 
