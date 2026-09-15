@@ -401,8 +401,14 @@ the model gives to the observed target. But a regression model's output is a
 single number, $f_\theta(x) = 300$k, and one number is not a distribution:
 it does not say how probable a sale at 310k or at 295k would be, so there is
 nothing to take the likelihood of. The noise assumption supplies the missing
-distribution. Assume the noise is drawn from a known density
-$p_\varepsilon$ (say, a Gaussian centered at 0). Since
+distribution. One new word first: the noise is a *continuous* quantity, and
+for a continuous quantity no single exact value has positive probability
+(the chance of a gap of exactly 10,000.000... is zero). Probabilities are
+instead described by a **density** $p_\varepsilon$: the chance that
+$\varepsilon$ lands within a small window of width $h$ around a value $t$
+is approximately $p_\varepsilon(t) \cdot h$. A density is probability per
+unit of $\varepsilon$; where it is high, nearby values are likely. Assume
+the noise's density is known - say, a Gaussian centered at 0. Since
 $y = f_\theta(x) + \varepsilon$, observing the value $y$ means the noise
 draw came out to exactly $\varepsilon = y - f_\theta(x)$, so the
 probability of $y$ is the noise density at that value:
