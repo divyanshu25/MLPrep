@@ -507,21 +507,58 @@ modeling questions:
 
 #### Bernoulli: one yes/no event
 
-**Bernoulli($p$)**: a random variable with exactly two values:
-$P(X = 1) = p$ and $P(X = 0) = 1 - p$. Each flip of §3.3's coin is one. Its
-mean and variance follow from §3.1's definitions:
+The simplest random quantity ML models is a single yes/no event: one coin
+flip, one email being spam or not, one unit being kept or dropped. Code the
+two outcomes as 1 and 0, and write $p$ for the probability of 1. The result
+is the **Bernoulli($p$)** distribution:
 
-- Expectation is each value times its probability, summed:
-  $\mathbb{E}[X] = 1 \cdot p + 0 \cdot (1 - p) = p$.
-- For the variance, use §3.1's identity
-  $\mathrm{Var}(X) = \mathbb{E}[X^2] - \mu^2$. A 0/1 variable satisfies
-  $X^2 = X$ (because $0^2 = 0$ and $1^2 = 1$), so
+$$P(X = 1) = p, \qquad P(X = 0) = 1 - p$$
+
+Each flip of §3.3's coin is one draw from it. Its mean and variance follow
+from §3.1's definitions:
+
+- **Mean.** Each value times its probability, summed:
+
+  $$\mathbb{E}[X] = 1 \cdot p + 0 \cdot (1 - p) = p$$
+
+- **Variance.** §3.1's identity
+  $\mathrm{Var}(X) = \mathbb{E}[X^2] - \mu^2$ needs $\mathbb{E}[X^2]$. A
+  0/1 variable satisfies $X^2 = X$ (because $0^2 = 0$ and $1^2 = 1$), so
   $\mathbb{E}[X^2] = \mathbb{E}[X] = p$, and
-  $\mathrm{Var}(X) = p - p^2 = p(1 - p)$.
 
-$p(1 - p)$ is largest at $p = 1/2$ (value $1/4$): the fair coin, where the
-outcome is hardest to predict. It shrinks to 0 as $p \to 0$ or $p \to 1$,
-where the outcome is nearly certain.
+  $$\mathrm{Var}(X) = \mathbb{E}[X^2] - \mu^2 = p - p^2 = p(1 - p)$$
+
+The variance $p(1 - p)$ is a parabola in $p$:
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 380 200" role="img" aria-label="The Bernoulli variance p times one minus p plotted against p: a parabola that is zero at p equals 0 and p equals 1 and peaks at one quarter when p equals one half" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <text x="180" y="22" text-anchor="middle" fill="#6366f1" font-weight="600">Var(X) = p(1 − p)</text>
+  <line x1="40" y1="150" x2="332" y2="150" stroke="currentColor" opacity="0.5"/>
+  <line x1="40" y1="150" x2="40" y2="30" stroke="currentColor" opacity="0.5"/>
+  <line x1="180" y1="150" x2="180" y2="40" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
+  <line x1="40" y1="40" x2="180" y2="40" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
+  <path d="M 40 150 Q 180 -70 320 150" fill="none" stroke="#6366f1" stroke-width="2"/>
+  <circle cx="180" cy="40" r="3.5" fill="#6366f1"/>
+  <circle cx="40" cy="150" r="3" fill="#f43f5e"/>
+  <circle cx="320" cy="150" r="3" fill="#f43f5e"/>
+  <text x="40" y="168" text-anchor="middle" fill="currentColor">0</text>
+  <text x="180" y="168" text-anchor="middle" fill="currentColor">1/2</text>
+  <text x="320" y="168" text-anchor="middle" fill="currentColor">1</text>
+  <text x="344" y="154" fill="currentColor">p</text>
+  <text x="34" y="44" text-anchor="end" fill="currentColor">1/4</text>
+  <text x="186" y="100" fill="#6366f1" font-size="10.5">fair coin</text>
+  <text x="52" y="140" fill="#f43f5e" font-size="10.5">nearly certain</text>
+  <text x="308" y="140" text-anchor="end" fill="#f43f5e" font-size="10.5">nearly certain</text>
+</svg>
+</div>
+
+*The variance of one Bernoulli($p$) draw as $p$ sweeps from 0 to 1: zero
+at both ends, maximum $1/4$ at $p = 1/2$.*
+
+- At $p = 1/2$ the variance is $\tfrac{1}{2}\cdot\tfrac{1}{2} = \tfrac{1}{4}$,
+  the maximum: the fair coin, where the outcome is hardest to predict.
+- As $p \to 0$ or $p \to 1$ the variance falls to 0: one outcome is nearly
+  certain, so draws barely vary.
 
 Three things built from it:
 
