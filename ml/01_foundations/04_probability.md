@@ -505,9 +505,6 @@ modeling questions:
 - What does the **sum of many small independent effects** look like? →
   Gaussian.
 
-This section defines each, derives its basic facts, and gives the reasons it
-is the right model for its question.
-
 #### Bernoulli: one yes/no event
 
 **Bernoulli($p$)**: a random variable with exactly two values:
