@@ -635,14 +635,19 @@ reasons it is the default:
 
 ## 3.5 Bias and variance of estimators
 
-The setup: there is a true number $\theta$ you want to know, and you cannot
-read it off directly - you only get a random sample. An **estimator** is a
-formula applied to that sample; its output $\hat\theta$ is your estimate of
-$\theta$. The hat marks "computed from data, intended to approximate
-$\theta$." §3.3 already produced estimators without using the name: the
-coin's $\hat p = h/n$ is a formula applied to the observed flips, and every
-MLE is a formula applied to the dataset. This section asks how good such a
-formula is.
+The setup: there is a true number $\theta$ you want to know - the die's
+mean, the coin's heads probability - and you cannot read it off directly.
+You only get a random sample. Three names for the pieces:
+
+- $\theta$, the **target**: the true, fixed number.
+- The **estimator**: a formula applied to the sample.
+- $\hat\theta$, the **estimate**: the formula's output. The hat marks
+  "computed from data, intended to approximate $\theta$."
+
+§3.3 already produced estimators without using the name: the coin's
+$\hat p = h/n$ is a formula applied to the observed flips, and every MLE is
+a formula applied to the dataset. This section asks how good such a formula
+is.
 
 The concrete instance to keep in mind, continuing §3.1's die (true mean
 $\theta = 3.5$): estimate the mean by rolling 3 times and averaging,
@@ -676,10 +681,14 @@ $$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
   - A constant factor comes out squared:
     $\mathrm{Var}\big(\tfrac{1}{3}\,(X_1 + X_2 + X_3)\big) = \tfrac{1}{3^2} \cdot 8.76 = \tfrac{8.76}{9} \approx 0.97$.
 
-The two combine exactly. The quantity to decompose is the expected squared
-miss, $\mathbb{E}[(\hat\theta - \theta)^2]$. Inside it, add and subtract
-$\mathbb{E}[\hat\theta]$ (net change zero) to split the miss into the two
-pieces just defined:
+Bias and Var are two separate failure modes, so judging an estimator with
+one number means combining them. The standard single score is the expected
+squared miss, called the **mean squared error**:
+
+$$\mathrm{MSE} = \mathbb{E}\big[(\hat\theta - \theta)^2\big]$$
+
+It splits exactly into the two pieces just defined. Inside the square, add
+and subtract $\mathbb{E}[\hat\theta]$ (net change zero):
 
 $$\hat\theta - \theta =
   \underbrace{\big(\hat\theta - \mathbb{E}[\hat\theta]\big)}_{\text{jump around the average}}
@@ -706,7 +715,7 @@ Now evaluate the three pieces:
   fixed number is itself. The middle term is therefore $2b \cdot 0 = 0$.
 - $b^2 = \mathrm{Bias}^2$, a fixed number, unchanged by the expectation.
 
-$$\mathbb{E}[(\hat\theta - \theta)^2] = \mathrm{Bias}^2 + \mathrm{Var}$$
+$$\mathrm{MSE} = \mathbb{E}\big[(\hat\theta - \theta)^2\big] = \mathrm{Bias}^2 + \mathrm{Var}$$
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 320 220" role="img" aria-label="Four dartboards showing the combinations of low and high bias with low and high variance" style="max-width:340px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -744,15 +753,14 @@ That double substitution produces the natural estimator
 
 $$\hat\sigma^2 = \frac{1}{n}\sum_i (x_i - \bar x)^2$$
 
-**The issue.** This estimator is biased low. Seeing that needs no algebra,
-just the die, whose true variance is $\sigma^2 = \frac{35}{12} \approx 2.92$
-(§3.1). Enumerate all $6^3 = 216$ equally likely 3-roll samples, apply the
+**The issue.** This estimator is biased low. The die shows it directly:
+its true variance is $\sigma^2 = \frac{35}{12} \approx 2.92$ (§3.1).
+Enumerate all $6^3 = 216$ equally likely 3-roll samples, apply the
 formula to each, and average the 216 results: the average is
 $\frac{35}{18} \approx 1.94$, a third short of $2.92$. So
 $\mathbb{E}[\hat\sigma^2] \neq \sigma^2$: by the definition at the top of
 §3.5 this estimator has nonzero bias, a systematic miss that no amount of
-resampling repairs. The rest of this subsection finds where the shortfall
-comes from, and the fix falls out of the derivation.
+resampling repairs.
 
 **The diagnosis.** $\sigma^2$ is defined through deviations from $\mu$, but
 the estimator measures deviations from $\bar x$. So first relate the two
@@ -778,8 +786,8 @@ $$\sum_i (x_i - \bar x)^2 = \sum_i (x_i - \mu)^2 - n(\bar x - \mu)^2$$
 Check on the die rolls $2, 6, 3$ from above ($\mu = 3.5$, $\bar x = \frac{11}{3}$,
 so $\bar x - \mu = \frac{1}{6}$): the left side is
 $\left(\frac{5}{3}\right)^2 + \left(\frac{7}{3}\right)^2 + \left(\frac{2}{3}\right)^2 = \frac{78}{9} \approx 8.67$;
-the right side is $8.75 - 3 \cdot \left(\frac{1}{6}\right)^2 = 8.75 - 0.08 \approx 8.67$.
-Both sides agree. And the identity already shows the direction of the bias:
+the right side is $8.75 - 3 \cdot \left(\frac{1}{6}\right)^2 = 8.75 - 0.08 \approx 8.67$,
+equal to the left side. The identity already shows the direction of the bias:
 the subtracted term $n(\bar x - \mu)^2$ is never negative, so deviations
 measured from $\bar x$ always sum to less than (or at most equal to)
 deviations measured from $\mu$.
@@ -817,7 +825,7 @@ does to the expectation (the constant moves outside by linearity):
   a systematic underestimate. For the 3-roll die estimator this predicts an
   average of $\frac{2}{3} \cdot \frac{35}{12} = \frac{35}{18} \approx 1.94$,
   exactly the number the enumeration at the start of this subsection
-  produced. The derivation explains the observation.
+  produced.
 - **Divide by $n-1$ instead**:
   $\mathbb{E}\big[\frac{1}{n-1}\sum_i (x_i - \bar x)^2\big] = \frac{1}{n-1}(n-1)\sigma^2 = \sigma^2$,
   exactly. Zero bias. Choosing $n-1$ as the divisor is **Bessel's
@@ -868,6 +876,34 @@ The two classic model types sit at opposite corners of the dartboard figure:
   the true relationship (low bias), but each individual fit also follows
   its own training set's noise, so two fits on two samples disagree
   (variance).
+
+Between the two corners sits a whole range of model flexibility, and the
+decomposition says how the error moves across it:
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 380 205" role="img" aria-label="Bias squared falls and variance rises as model flexibility grows; their sum is a U shaped curve with a minimum at intermediate flexibility" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <line x1="50" y1="170" x2="348" y2="170" stroke="currentColor" opacity="0.5"/>
+  <line x1="50" y1="170" x2="50" y2="28" stroke="currentColor" opacity="0.5"/>
+  <line x1="195" y1="103.3" x2="195" y2="170" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
+  <path d="M 50 36.7 Q 195 170 340 170" fill="none" stroke="#10b981" stroke-width="2"/>
+  <path d="M 50 170 Q 195 170 340 36.7" fill="none" stroke="#f59e0b" stroke-width="2"/>
+  <path d="M 50 36.7 Q 195 170 340 36.7" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <circle cx="195" cy="103.3" r="3.5" fill="#6366f1"/>
+  <text x="195" y="90" text-anchor="middle" fill="#6366f1" font-weight="600">Bias² + Variance</text>
+  <text x="72" y="120" fill="#10b981">Bias²</text>
+  <text x="318" y="120" text-anchor="end" fill="#f59e0b">Variance</text>
+  <text x="52" y="18" fill="currentColor" fill-opacity="0.7">error</text>
+  <text x="50" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">simple</text>
+  <text x="195" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">model flexibility</text>
+  <text x="340" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">flexible</text>
+</svg>
+</div>
+
+*Error contributions as model flexibility grows: $\mathrm{Bias}^2$ falls,
+because the model class can express more; Variance rises, because the fit
+can follow more of its sample's noise. Their sum is smallest at an
+intermediate flexibility (the dot). This is the tradeoff the subsection
+title names.*
 
 The standard interventions, stated as which term each one moves:
 
