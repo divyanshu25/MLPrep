@@ -758,9 +758,17 @@ two, $\mathrm{Bias}^2 + \mathrm{Var}$.*
 
 #### Why the 1/n sample variance is biased (Bessel's correction)
 
-**The task.** Everything so far estimated a *mean* from a sample. Now
-estimate a *variance*: given $n$ draws $X_1, \dots, X_n$, how spread out is
-the distribution they came from?
+**The task.** Variances have been computed several times already, but always
+from a distribution whose probabilities were known in advance: the die's
+$\sigma^2 = \frac{35}{12} \approx 2.92$ from its six equally likely faces
+(§3.1), the Bernoulli's $p(1-p)$ from its two outcomes (§3.4),
+$\mathrm{Var}(\bar X) = \sigma^2/n$ from those (§3.5). The *estimators* so
+far ran the other way, from data to a number, and both of them estimated a
+mean: the coin's $\hat p = h/n$ (§3.3) and the die's $\bar X$ (§3.5).
+
+This subsection estimates a variance from data: given $n$ draws
+$X_1, \dots, X_n$ and no knowledge of the distribution behind them, how
+spread out is it?
 
 Start from the quantity being estimated. §3.1 defined the variance of one
 draw as the expected squared distance from the mean:
@@ -799,10 +807,12 @@ $$\hat\sigma^2 = \frac{1}{3}\left[\left(\tfrac{5}{3}\right)^2 + \left(\tfrac{7}{
 The formula is well defined and computable. The question §3.5 asks of any
 estimator is whether it lands on the truth *on average*.
 
-**The issue.** This estimator is biased low. The die shows it directly:
-its true variance is $\sigma^2 = \frac{35}{12} \approx 2.92$ (§3.1).
-Enumerate all $6^3 = 216$ equally likely 3-roll samples, apply the
-formula to each, and average the 216 results: the average is
+**The issue.** This estimator is biased low. The die shows it directly,
+because for the die both sides can be computed: the truth is
+$\sigma^2 = \frac{35}{12} \approx 2.92$ from the faces, and the estimator's
+average comes from enumeration. Enumerate all $6^3 = 216$ equally likely
+3-roll samples, apply the formula to each, and average the 216 results: the
+average is
 $\frac{35}{18} \approx 1.94$, a third short of $2.92$. So
 $\mathbb{E}[\hat\sigma^2] \neq \sigma^2$: by the definition at the top of
 §3.5 this estimator has nonzero bias, a systematic miss that no amount of
