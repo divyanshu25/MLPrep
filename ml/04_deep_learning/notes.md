@@ -1040,9 +1040,13 @@ $$
 L_{\text{aux}} = \alpha \, E \sum_{i=1}^{E} f_i\, \bar p_i
 $$
 
-which is minimized when both distributions are uniform ($=1$ at
-$f_i = \bar p_i = 1/E$); the differentiable $\bar p_i$ factor carries the
-gradient that nudges the router toward balance. Plus capacity factors: each
+which equals $1$ under uniform routing ($f_i = \bar p_i = 1/E$) and $E$
+under total collapse onto one expert ($f = \bar p = 1$ there). The $f_i$
+are counts and carry no gradient; the $\bar p_i$ do, and
+$\partial L_{\text{aux}}/\partial \bar p_i = \alpha E f_i$ is largest
+for the most-used expert, so the update lowers the router's probability
+on whichever experts are currently overloaded, which is the direction
+toward balance. $\alpha$ is small, $0.01$ is typical. Plus capacity factors: each
 expert takes at most $c \cdot T/E$ tokens per batch, overflow tokens get
 dropped (skip the MLP via the residual stream).
 
@@ -1056,6 +1060,16 @@ parameters means lower loss (the scaling-law arithmetic - module 7), and
 MoE is the only known way to buy parameters without buying FLOPs.
 Mixtral, DeepSeek-V3, and reportedly GPT-4-class models all take this
 trade.
+
+Two consequences that interviewers probe. **Decode is not $E/k$ times
+cheaper.** Module 7's decode arithmetic is bandwidth-bound: every step
+reads the weights it uses, batched requests route to different experts,
+so most of the $E$ experts' weights are read per step and the cost tracks
+total size, not active size. The FLOP saving shows up in training and in
+compute-bound prefill, much less in decode. **Fine-tuning is fragile.**
+With few tokens the router's decisions shift and experts see uneven
+data; common practice freezes the router, or fine-tunes with LoRA on the
+attention weights only.
 
 Trap: experts are routed *per token, per layer*, and do **not** cleanly
 specialize into human-legible topics ("the math expert") - observed
@@ -1210,26 +1224,71 @@ $$
 q(x_t \mid x_{t-1}) = \mathcal{N}\big(\sqrt{1 - \beta_t}\; x_{t-1},\; \beta_t I\big)
 $$
 
-Composing Gaussians gives a closed-form jump to any noise level: with
-$\bar\alpha_t = \prod_{s\le t}(1 - \beta_s)$,
+Each step scales the previous sample by $\sqrt{1-\beta_t}$ and adds
+fresh noise of variance $\beta_t$. Two such steps compose into one
+Gaussian, so every step can be jumped in closed form. Write
+$\alpha_t = 1 - \beta_t$ and $\bar\alpha_t = \prod_{s \le t} \alpha_s$, and
+suppose $x_{t-1} = \sqrt{\bar\alpha_{t-1}}\, x_0 + \sqrt{1 - \bar\alpha_{t-1}}\; \varepsilon'$
+(true at $t - 1 = 1$ by definition). Substitute into the step:
+
+$$
+x_t = \sqrt{\alpha_t}\Big(\sqrt{\bar\alpha_{t-1}}\, x_0 + \sqrt{1 - \bar\alpha_{t-1}}\; \varepsilon'\Big) + \sqrt{\beta_t}\; \varepsilon''
+= \sqrt{\bar\alpha_t}\, x_0 + \underbrace{\sqrt{\alpha_t(1 - \bar\alpha_{t-1})}\; \varepsilon' + \sqrt{\beta_t}\; \varepsilon''}_{\text{two independent Gaussians}}
+$$
+
+The mean coefficient is $\sqrt{\alpha_t \bar\alpha_{t-1}} = \sqrt{\bar\alpha_t}$.
+The two noise terms are independent, so their variances add (module 1,
+§3.1):
+
+$$
+\alpha_t(1 - \bar\alpha_{t-1}) + \beta_t = \alpha_t - \bar\alpha_t + (1 - \alpha_t) = 1 - \bar\alpha_t
+$$
+
+So the induction closes, and for every $t$:
 
 $$
 x_t = \sqrt{\bar\alpha_t}\, x_0 + \sqrt{1 - \bar\alpha_t}\; \varepsilon,
 \qquad \varepsilon \sim \mathcal{N}(0, I)
 $$
 
-By $t = T$, $\bar\alpha_T \approx 0$: pure standard normal, all structure
-gone. Generation = learning to run this film backwards, starting from
-noise you *can* sample.
+Any noise level can be produced from $x_0$ in one draw, which is what
+makes training cheap: no need to simulate the chain. The signal
+coefficient $\sqrt{\bar\alpha_t}$ falls from 1 toward 0. With the
+original linear schedule, $\beta_t$ from $10^{-4}$ to $0.02$ over
+$T = 1000$ steps, $\bar\alpha_T = \prod_t (1 - \beta_t) \approx e^{-\sum_t \beta_t} = e^{-10.05} \approx 4 \times 10^{-5}$:
+by $t = T$ the sample is standard normal to four decimal places, all
+structure gone. Generation is learning to run this process backwards,
+starting from noise you *can* sample.
 
-**The objective.** Learn a reverse chain $p_\theta(x_{t-1}\mid x_t)$ as
-small Gaussian steps (for small $\beta_t$ the true reversal is
-near-Gaussian). This is a latent-variable model - in fact a **hierarchical
-VAE whose encoder is fixed** to the noising process, which is exactly why
-it dodges the VAE's posterior pathologies: there's nothing to learn on the
-inference side. Writing the ELBO for it and simplifying (with a
-convenient reweighting of terms), essentially everything reduces to a
-**noise-prediction regression**:
+**The objective, and where the noise-prediction loss comes from.** Learn
+a reverse chain $p_\theta(x_{t-1}\mid x_t)$ as small Gaussian steps (for
+small $\beta_t$ the true reversal is near-Gaussian). This is a
+latent-variable model, a **hierarchical VAE whose encoder is fixed** to
+the noising process, which is why it avoids the VAE's posterior
+pathologies: nothing is learned on the inference side. Its ELBO (§8.1) is
+a sum over $t$ of KL terms, one per step, and each one simplifies in
+three moves:
+
+- **The target is Gaussian with a known mean.** Conditioned on both $x_t$
+  and the clean $x_0$, the true reverse step $q(x_{t-1} \mid x_t, x_0)$ is
+  Gaussian (Bayes rule on two Gaussians), with variance
+  $\tilde\beta_t = \frac{1 - \bar\alpha_{t-1}}{1 - \bar\alpha_t}\beta_t$ and a
+  mean $\tilde\mu_t(x_t, x_0)$ that is a fixed linear combination of $x_t$
+  and $x_0$.
+- **KL between two Gaussians of equal variance is a squared distance.**
+  Model the reverse step as $\mathcal{N}(\mu_\theta(x_t, t), \tilde\beta_t I)$;
+  then the KL term for step $t$ is
+  $\frac{1}{2\tilde\beta_t}\|\tilde\mu_t(x_t, x_0) - \mu_\theta(x_t, t)\|^2$.
+  The loss is a regression on the mean.
+- **Predict the noise instead of the mean.** From the closed form,
+  $x_0 = (x_t - \sqrt{1 - \bar\alpha_t}\,\varepsilon)/\sqrt{\bar\alpha_t}$.
+  Substitute this into $\tilde\mu_t$ and the mean becomes a fixed function
+  of $x_t$ and $\varepsilon$ alone. Parameterize $\mu_\theta$ the same
+  way, with a network $\varepsilon_\theta(x_t, t)$ in place of
+  $\varepsilon$, and the two means differ only in
+  $\varepsilon - \varepsilon_\theta$, with a $t$-dependent constant in
+  front. DDPM drops that constant (it reweights the timesteps, and the
+  unweighted version trains better), leaving
 
 $$
 L_{\text{simple}} = \mathbb{E}_{x_0,\, t,\, \varepsilon}
@@ -1237,12 +1296,27 @@ L_{\text{simple}} = \mathbb{E}_{x_0,\, t,\, \varepsilon}
 $$
 
 In words: noise a real example to a random level $t$, ask the network
-which noise was added, penalize with MSE. Intuition for why that's enough:
-predicting the noise = predicting the direction back toward the data;
-sampling runs $t = T \to 1$, each step subtracting a bit of predicted
-noise (plus fresh noise for stochasticity), walking noise into data. The
-one network is shared across all $t$ - at high noise it fixes global
-structure, at low noise it fixes fine detail.
+which noise was added, penalize with MSE. The one network is shared
+across all $t$; at high noise it fixes global structure, at low noise it
+fixes fine detail.
+
+**Sampling.** Invert the parameterization above. Given $x_t$, the
+predicted noise gives the model's estimate of the reverse-step mean, and
+a fresh draw supplies the step's variance:
+
+$$
+x_{t-1} = \frac{1}{\sqrt{\alpha_t}}\Big(x_t - \frac{\beta_t}{\sqrt{1 - \bar\alpha_t}}\; \varepsilon_\theta(x_t, t)\Big) + \sqrt{\tilde\beta_t}\; z,
+\qquad z \sim \mathcal{N}(0, I)
+$$
+
+run from $t = T$ (pure noise) down to $t = 1$ (no noise added on the last
+step). Each step removes a little of the predicted noise and rescales, so
+$T$ network evaluations walk noise into data. Predicting the noise is
+predicting the direction back toward the data: up to a scale,
+$\varepsilon_\theta$ estimates $-\nabla_{x_t} \log q(x_t)$, the **score**,
+which is the connection to score matching and to the ODE samplers (DDIM
+and successors) that take the same path in tens of steps instead of
+a thousand.
 
 **Why diffusion beat GANs:** (1) the loss is stable supervised
 regression - trains with ordinary tools, scales, and the loss curve means

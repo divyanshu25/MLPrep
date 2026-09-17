@@ -68,3 +68,14 @@ re-retrieval is a miss you'll repeat in the room.
 | [`mock_protocol.md`](mock_protocol.md) | Partner script, blind problem draw, printable scoresheet, solo-recording fallback |
 | [`communication_drills.md`](communication_drills.md) | The 5 sentence templates + 3 narration drills for the Communication axis |
 | [`taper.md`](taper.md) | The last 7 days: what to do, what to refuse to do, and why |
+
+## The rounds that are not technical
+
+`behavioral.md` covers the three rounds the `ml/` track does not: the
+behavioral interview (six prepared stories in the STAR shape, a question
+bank, what loses points), the project deep-dive that research labs weight
+most heavily (a ten-slide structure and the questions the panel will ask),
+and the values and safety conversation that Anthropic treats as a gate
+(what it assesses, how to prepare a view that is your own). All three
+reward the same specificity the technical rounds do, and none can be
+improvised.
