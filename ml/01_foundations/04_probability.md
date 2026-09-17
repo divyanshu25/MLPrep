@@ -766,9 +766,10 @@ have appeared and this question needs both at once:
 
 - **Variance, computed from known probabilities.** The die's
   $\sigma^2 \approx 2.92$ came from its six equally likely faces (§3.1),
-  the Bernoulli's $p(1-p)$ from its two outcomes (§3.4), and
-  $\mathrm{Var}(\bar X) = \sigma^2/n$ from those. Every one started from a
-  distribution that was given.
+  the Bernoulli's $p(1-p)$ from its two outcomes (§3.4), and the 3-roll
+  average's $\mathrm{Var}(\bar X) = \frac{8.76}{9} \approx 0.97$ from the
+  die's $2.92$ (§3.5). Every one started from a distribution that was
+  given.
 - **Estimation, running from data to a number.** The coin's
   $\hat p = h/n$ (§3.3) and the die's $\bar X$ (§3.5) are formulas applied
   to a sample. Both estimate a *mean*.
@@ -802,8 +803,10 @@ Replace each with the only sample version available, one at a time:
   over the $n$ draws in hand:
   $\mathbb{E}[\,\cdot\,] \to \frac{1}{n}\sum_i (\,\cdot\,)$.
 - The unknown $\mu$ becomes the sample mean
-  $\bar X = \frac{1}{n}\sum_i X_i$, which §3.5 opened by showing is an
-  unbiased estimate of it.
+  $\bar X = \frac{1}{n}\sum_i X_i$. §3.5 showed this is unbiased for the
+  die; the same linearity step works for any distribution, since each draw
+  has mean $\mu$:
+  $\mathbb{E}[\bar X] = \frac{1}{n}(\mu + \dots + \mu) = \mu$.
 
 Both substitutions together produce the natural estimator:
 
@@ -913,7 +916,7 @@ Take expectations of both sides, one term at a time:
   $\mathbb{E}[(X_i - \mu)^2] = \sigma^2$ (the definition of variance,
   §3.1), and there are $n$ of them.
 - $\mathbb{E}[(\bar X - \mu)^2] = \mathrm{Var}(\bar X)$: since
-  $\mathbb{E}[\bar X] = \mu$ (shown at the top of §3.5), this expression is
+  $\mathbb{E}[\bar X] = \mu$ (just above), this expression is
   the expected squared distance of $\bar X$ from its own mean, which is the
   definition of $\mathrm{Var}(\bar X)$. Its value comes from the same two
   steps as the 3-roll computation earlier in §3.5, now for general $n$,
