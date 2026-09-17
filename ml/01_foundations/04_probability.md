@@ -774,8 +774,9 @@ have appeared and this question needs both at once:
   $\hat p = h/n$ (§3.3) and the die's $\bar X$ (§3.5) are formulas applied
   to a sample. Both estimate a *mean*.
 
-The question above wants a variance, like the first group, out of data
-alone, like the second.
+Neither kind answers the question: the variance calculations all needed the
+probabilities, and the estimators all produced a mean. What is missing is a
+variance computed from a sample, which is what this subsection builds.
 
 Start from the quantity being estimated. §3.1 defined the variance of one
 draw as the expected squared distance from the mean:
