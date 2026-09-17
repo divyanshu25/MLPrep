@@ -758,6 +758,10 @@ two, $\mathrm{Bias}^2 + \mathrm{Var}$.*
 
 #### Estimating a variance from data (Bessel's correction)
 
+So far §3.5's definitions have been applied to one estimator, the die mean
+$\bar X$, whose bias came out zero. Here is an estimator whose bias does
+not, along with the correction that removes it.
+
 **The task.** Someone hands you three rolls, $2, 6, 3$, and says nothing
 about the die. How spread out is the thing that produced them?
 
