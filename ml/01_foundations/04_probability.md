@@ -756,7 +756,7 @@ the cloud's center sits from the bullseye; variance is how scattered the cloud
 is. The decomposition above says the expected squared miss is exactly those
 two, $\mathrm{Bias}^2 + \mathrm{Var}$.*
 
-#### Why the 1/n sample variance is biased (Bessel's correction)
+#### Estimating a variance from data (Bessel's correction)
 
 **The task.** Someone hands you three rolls, $2, 6, 3$, and says nothing
 about the die. How spread out is the thing that produced them?
