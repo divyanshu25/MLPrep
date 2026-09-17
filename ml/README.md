@@ -25,6 +25,7 @@ uv run jupyter execute ml/03_neural_networks/micrograd_plus.ipynb   # any notebo
 | 6 | [ML Systems](06_ml_systems/notes.md) | The design-interview framework; recsys/fraud/search walkthroughs with real numbers; training/serving skew; drift and monitoring; latency and hardware back-of-envelope math |
 | 7 | [The LLM Stack](07_llm_stack/notes.md) | Chinchilla scaling laws with $C=6ND$ derived; the 16-bytes/param training-memory arithmetic and ZeRO/TP/PP; RLHF→DPO derived step by step, GRPO; LoRA/QLoRA math; inference (KV cache, speculative decoding proved exact, FlashAttention, vLLM); LLM evals |
 | 8 | [Interview Drills](08_interview_drills/README.md) | Timed practice in the formats labs actually use: a transformer with 7 planted bugs to find in 45 min (+ KV-cache extension), 10 timed coding drills, a rapid-fire definitions quiz, 12 debugging-scenario cards |
+| 9 | [Reinforcement Learning](09_reinforcement_learning/notes.md) | MDPs and the Bellman equations derived from $G_t = r_{t+1} + \gamma G_{t+1}$; value and policy iteration with the contraction proof; MC vs TD, Q-learning vs SARSA; the policy gradient theorem and baseline lemma derived, REINFORCE by hand; the bridge to PPO's ratio and GRPO's group baseline; bandits (UCB, Thompson) |
 
 Each module directory contains:
 
