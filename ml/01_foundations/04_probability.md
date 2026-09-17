@@ -14,9 +14,9 @@ $$\mathbb{E}[aX + bY] = a\,\mathbb{E}[X] + b\,\mathbb{E}[Y]$$
 
 This holds *even when $X$ and $Y$ are dependent*, because both sides are the
 same weighted sum with its terms grouped differently. This chapter uses it
-repeatedly: the variance identity just below, the Binomial mean
-$\mathbb{E} = np$ (§3.4), and the unbiasedness of the sample mean,
-$\mathbb{E}[\bar x] = \mu$ (§3.5), are each a single application of it.
+repeatedly: the variance identity just below, the Binomial mean $np$
+(§3.4), and the unbiasedness of the sample mean,
+$\mathbb{E}[\bar X] = \mu$ (§3.5), are each a single application of it.
 
 Products are different. In general $\mathbb{E}[XY] \neq
 \mathbb{E}[X]\,\mathbb{E}[Y]$; equality needs **independence**
@@ -36,7 +36,7 @@ The identity: expand $(X-\mu)^2 = X^2 - 2\mu X + \mu^2$, apply linearity to
 get $\mathbb{E}[X^2] - 2\mu\,\mathbb{E}[X] + \mu^2$, and use
 $\mathbb{E}[X] = \mu$ to collapse the last two terms into $-\mu^2$. Die:
 $\mathbb{E}[X^2] = 91/6 \approx 15.17$, so
-$\mathrm{Var} = 15.17 - 3.5^2 = 15.17 - 12.25 \approx 2.92$.
+$\mathrm{Var}(X) = 15.17 - 3.5^2 = 15.17 - 12.25 \approx 2.92$.
 
 #### Two scaling rules
 
@@ -419,7 +419,7 @@ Concretely, with the prediction at 300k: a sale at 310k has the density of
 $\varepsilon = +10$k, a sale at 295k the density of $\varepsilon = -5$k,
 and a Gaussian centered at 0 makes values near the prediction probable and
 far ones improbable. Now $p_\theta(y \mid x)$ exists, and the recipe from
-the classifier case runs unchanged: take $-\log p(y \mid x)$ per example
+the classifier case runs unchanged: take $-\log p_\theta(y \mid x)$ per example
 and minimize the sum. The choice of noise density decides which loss comes
 out:
 
@@ -430,7 +430,7 @@ out:
   $\frac{1}{\sqrt{2\pi\sigma^2}}$ contributes $+\tfrac12 \log(2\pi\sigma^2)$
   and the exponential contributes its exponent with the sign flipped:
 
-  $$-\log p(y \mid x) = \frac{(y - f_\theta(x))^2}{2\sigma^2}
+  $$-\log p_\theta(y \mid x) = \frac{(y - f_\theta(x))^2}{2\sigma^2}
   + \underbrace{\tfrac{1}{2}\log(2\pi\sigma^2)}_{\text{no } \theta \text{ inside: a constant}}$$
 
   Minimizing this over $\theta$ is minimizing the squared error: MLE under
@@ -438,7 +438,7 @@ out:
 - **Laplace noise**, density $\frac{1}{2b} e^{-|\varepsilon| / b}$. The same
   two steps give
 
-  $$-\log p(y \mid x) = \frac{|y - f_\theta(x)|}{b} + \log(2b)$$
+  $$-\log p_\theta(y \mid x) = \frac{|y - f_\theta(x)|}{b} + \log(2b)$$
 
   an absolute error plus a constant: MLE under Laplace noise is **L1
   loss**.
@@ -514,8 +514,8 @@ is the **Bernoulli($p$)** distribution:
 
 $$P(X = 1) = p, \qquad P(X = 0) = 1 - p$$
 
-Each flip of §3.3's coin is one draw from it. Its mean and variance follow
-from §3.1's definitions:
+Each flip of §3.3's coin is one **draw** from it: one observation of the
+random variable. Its mean and variance follow from §3.1's definitions:
 
 - **Mean.** Each value times its probability, summed:
 
@@ -564,21 +564,23 @@ Three things built from it:
 
 - **Count the 1s.** Add $n$ independent Bernoullis,
   $X_1 + \dots + X_n$: the sum is the *number of successes* in $n$ tries,
-  and its distribution is called the **Binomial**. §3.1's rules give its
-  mean and variance at once: $\mathbb{E} = np$ by linearity,
-  $\mathrm{Var} = np(1 - p)$ by additivity over independent draws. (§3.3's
-  coin data, $h$ heads in $n$ flips, was one Binomial draw.)
+  and its distribution is called the **Binomial**. Writing
+  $S = X_1 + \dots + X_n$ for that sum, §3.1's rules give its mean and
+  variance at once: $\mathbb{E}[S] = np$ by linearity,
+  $\mathrm{Var}(S) = np(1 - p)$ by additivity over independent draws.
+  (§3.3's coin data, $h$ heads in $n$ flips, was one Binomial draw.)
 - **Model a binary label.** A classifier that outputs "spam with
   probability 0.9" is modeling the label as Bernoulli($0.9$): it claims
-  $P(y = 1 \mid x) = 0.9$ and $P(y = 0 \mid x) = 0.1$. Write
-  $\hat{p} = p_\theta(1 \mid x)$ for the model's output on input $x$ and
-  $y \in \{0, 1\}$ for the true label. The probability the model assigns
-  to the observed label is $\hat{p}$ when $y = 1$ and $1 - \hat{p}$ when
-  $y = 0$. Taking $-\log$ of that probability, as §3.3 does for every
-  model, and writing both cases in one line (the factor $y$ keeps its
-  term only when $y = 1$, the factor $1 - y$ only when $y = 0$):
+  $p_\theta(1 \mid x) = 0.9$ and $p_\theta(0 \mid x) = 0.1$, in §3.3's
+  notation for a model's distribution. Write $\hat y = p_\theta(1 \mid x)$
+  for the model's output on input $x$, and $y \in \{0, 1\}$ for the true
+  label. The probability the model assigns to the observed label is
+  $\hat y$ when $y = 1$ and $1 - \hat y$ when $y = 0$. Taking $-\log$ of
+  that probability, as §3.3 does for every model, and writing both cases
+  in one line (the factor $y$ keeps its term only when $y = 1$, the factor
+  $1 - y$ only when $y = 0$):
 
-  $$-\log P(y \mid x) = -\big[\, y \log \hat{p} + (1 - y) \log(1 - \hat{p}) \,\big]$$
+  $$-\log p_\theta(y \mid x) = -\big[\, y \log \hat y + (1 - y) \log(1 - \hat y) \,\big]$$
 
   This is the **binary cross-entropy** loss for one example. Training
   with it is MLE under the Bernoulli label model: the two-class case of
@@ -651,7 +653,7 @@ is.
 
 The concrete instance to keep in mind, continuing §3.1's die (true mean
 $\theta = 3.5$): estimate the mean by rolling 3 times and averaging,
-$\hat\theta = \bar x = \frac{1}{3}(x_1 + x_2 + x_3)$. Different samples give
+$\hat\theta = \bar X = \frac{1}{3}(X_1 + X_2 + X_3)$. Different samples give
 different estimates:
 
 - rolls $2, 6, 3 \;\rightarrow\; \hat\theta = 3.67$
@@ -661,8 +663,19 @@ different estimates:
 The formula is fixed, but its output depends on which random sample was
 drawn. So $\hat\theta$ is itself a random variable, and everything from §3.1
 applies to it: it has an expectation $\mathbb{E}[\hat\theta]$ (the average
-estimate over all possible samples) and a variance. That gives two separate
-ways an estimator can be bad:
+estimate over all possible samples) and a variance.
+
+Two cases of the same letter separate these two roles, and the rest of the
+chapter keeps them apart:
+
+- $X_1, \dots, X_n$ are the draws *before* they land, and
+  $\bar X = \frac{1}{n}\sum_i X_i$ is their average. These are random
+  variables, so $\mathbb{E}[\cdot]$ and $\mathrm{Var}(\cdot)$ apply to them.
+- $x_1, \dots, x_n$ are the numbers one particular sample produced, and
+  $\bar x$ is their average. These are fixed numbers, such as the rolls
+  $2, 6, 3$ with $\bar x = 3.67$.
+
+Being a random variable gives $\hat\theta$ two separate ways to be bad:
 
 $$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
   \mathrm{Var} = \mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big]$$
@@ -670,12 +683,12 @@ $$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
 - **Bias** compares the *average* estimate to the truth. If it is nonzero,
   the miss is systematic: even averaging the estimates from thousands of
   fresh samples would not land on $\theta$. The die estimator has zero bias:
-  by §3.1's linearity, $\mathbb{E}[\bar x] = \frac{1}{3}(3.5 + 3.5 + 3.5) = 3.5 = \theta$.
+  by §3.1's linearity, $\mathbb{E}[\bar X] = \frac{1}{3}(3.5 + 3.5 + 3.5) = 3.5 = \theta$.
 - **Var** is §3.1's variance applied to the random variable $\hat\theta$:
   how much the estimate jumps around its own average from sample to sample.
   The three estimates above ranged from 2.33 to 4.67; that spread is what
   Var measures. Its exact value comes from applying §3.1's two scaling rules
-  to $\bar x = \frac{1}{3}(X_1 + X_2 + X_3)$, one rule at a time:
+  to $\bar X = \frac{1}{3}(X_1 + X_2 + X_3)$, one rule at a time:
   - Variances of independent draws add, and one roll has variance $2.92$
     (§3.1). So $\mathrm{Var}(X_1 + X_2 + X_3) = 2.92 + 2.92 + 2.92 = 8.76$.
   - A constant factor comes out squared:
@@ -746,7 +759,7 @@ two, $\mathrm{Bias}^2 + \mathrm{Var}$.*
 #### Why the 1/n sample variance is biased (Bessel's correction)
 
 **The task.** Everything so far estimated a *mean* from a sample. Now
-estimate a *variance*: given $n$ draws $x_1, \dots, x_n$, how spread out is
+estimate a *variance*: given $n$ draws $X_1, \dots, X_n$, how spread out is
 the distribution they came from?
 
 Start from the quantity being estimated. §3.1 defined the variance of one
@@ -769,12 +782,12 @@ Replace each with the only sample version available, one at a time:
 - The expectation over all draws becomes the average over the $n$ draws in
   hand: $\mathbb{E}[\,\cdot\,] \to \frac{1}{n}\sum_i (\,\cdot\,)$.
 - The unknown $\mu$ becomes the sample mean
-  $\bar x = \frac{1}{n}\sum_i x_i$, which §3.5 opened by showing is an
+  $\bar X = \frac{1}{n}\sum_i X_i$, which §3.5 opened by showing is an
   unbiased estimate of it.
 
 Both substitutions together produce the natural estimator:
 
-$$\hat\sigma^2 = \frac{1}{n}\sum_i (x_i - \bar x)^2$$
+$$\hat\sigma^2 = \frac{1}{n}\sum_i (X_i - \bar X)^2$$
 
 Applied to the rolls $2, 6, 3$: the sample mean is $\bar x = \frac{11}{3}$,
 the three distances from it are $-\frac{5}{3}, \frac{7}{3}, -\frac{2}{3}$,
@@ -796,25 +809,25 @@ $\mathbb{E}[\hat\sigma^2] \neq \sigma^2$: by the definition at the top of
 resampling repairs.
 
 **The diagnosis.** $\sigma^2$ is defined through deviations from $\mu$, but
-the estimator measures deviations from $\bar x$. So first relate the two
-kinds of deviation. For a single term, add and subtract $\bar x$ (the same
+the estimator measures deviations from $\bar X$. So first relate the two
+kinds of deviation. For a single term, add and subtract $\bar X$ (the same
 move as the decomposition above):
 
-$$x_i - \mu = (x_i - \bar x) + (\bar x - \mu)$$
+$$X_i - \mu = (X_i - \bar X) + (\bar X - \mu)$$
 
-Square it and sum over $i$. The factor $(\bar x - \mu)$ is the same number
+Square it and sum over $i$. The factor $(\bar X - \mu)$ is the same number
 for every $i$, so in the cross term it comes out of the sum, and its square
 appears $n$ times:
 
-$$\sum_i (x_i - \mu)^2 = \sum_i (x_i - \bar x)^2
-  + 2(\bar x - \mu)\sum_i (x_i - \bar x) + n(\bar x - \mu)^2$$
+$$\sum_i (X_i - \mu)^2 = \sum_i (X_i - \bar X)^2
+  + 2(\bar X - \mu)\sum_i (X_i - \bar X) + n(\bar X - \mu)^2$$
 
-The remaining sum in the middle term is zero by the definition of $\bar x$:
-$\sum_i (x_i - \bar x) = \sum_i x_i - n\bar x = n\bar x - n\bar x = 0$
+The remaining sum in the middle term is zero by the definition of $\bar X$:
+$\sum_i (X_i - \bar X) = \sum_i X_i - n\bar X = n\bar X - n\bar X = 0$
 (deviations from their own average cancel exactly). Drop it and move
-$n(\bar x - \mu)^2$ to the other side:
+$n(\bar X - \mu)^2$ to the other side:
 
-$$\sum_i (x_i - \bar x)^2 = \sum_i (x_i - \mu)^2 - n(\bar x - \mu)^2$$
+$$\sum_i (X_i - \bar X)^2 = \sum_i (X_i - \mu)^2 - n(\bar X - \mu)^2$$
 
 Check on the die rolls $2, 6, 3$ ($\mu = 3.5$, $\bar x = \frac{11}{3}$, so
 $\bar x - \mu = \frac{1}{6}$). The left side is the sum of squared
@@ -828,16 +841,16 @@ $$8.75 - 0.08 \approx 8.67$$
 equal to the left side.
 
 The identity already settles the *direction* of the bias. The subtracted
-term $n(\bar x - \mu)^2$ is a square, so it is never negative:
+term $n(\bar X - \mu)^2$ is a square, so it is never negative:
 
-$$\sum_i (x_i - \bar x)^2 \;\le\; \sum_i (x_i - \mu)^2$$
+$$\sum_i (X_i - \bar X)^2 \;\le\; \sum_i (X_i - \mu)^2$$
 
-Deviations measured from $\bar x$ never sum to more than deviations
+Deviations measured from $\bar X$ never sum to more than deviations
 measured from $\mu$, and they are strictly smaller whenever
-$\bar x \neq \mu$, which is almost always. The reason is that $\bar x$ is
+$\bar X \neq \mu$, which is almost always. The reason is that $\bar X$ is
 the *minimizer*: measure the same sample from a general point $c$ and the
-total $\sum_i (x_i - c)^2$ is a parabola in $c$, bottoming out at
-$c = \bar x$.
+total $\sum_i (X_i - c)^2$ is a parabola in $c$, bottoming out at
+$c = \bar X$.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 220" role="img" aria-label="The sum of squared deviations of the rolls 2, 6 and 3 from a point c, plotted against c: a parabola with its minimum at c equal to x bar, so the value at c equal to mu is higher by n times x bar minus mu squared" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -874,32 +887,32 @@ which is what taking expectations answers.
 
 Take expectations of both sides, one term at a time:
 
-- $\mathbb{E}\big[\sum_i (x_i - \mu)^2\big] = n\sigma^2$: each term is
-  $\mathbb{E}[(x_i - \mu)^2] = \sigma^2$ (the definition of variance,
+- $\mathbb{E}\big[\sum_i (X_i - \mu)^2\big] = n\sigma^2$: each term is
+  $\mathbb{E}[(X_i - \mu)^2] = \sigma^2$ (the definition of variance,
   §3.1), and there are $n$ of them.
-- $\mathbb{E}[(\bar x - \mu)^2] = \mathrm{Var}(\bar x)$: since
-  $\mathbb{E}[\bar x] = \mu$ (shown at the top of §3.5), this expression is
-  the expected squared distance of $\bar x$ from its own mean, which is the
-  definition of $\mathrm{Var}(\bar x)$. Its value comes from the same two
+- $\mathbb{E}[(\bar X - \mu)^2] = \mathrm{Var}(\bar X)$: since
+  $\mathbb{E}[\bar X] = \mu$ (shown at the top of §3.5), this expression is
+  the expected squared distance of $\bar X$ from its own mean, which is the
+  definition of $\mathrm{Var}(\bar X)$. Its value comes from the same two
   steps as the 3-roll computation earlier in §3.5, now for general $n$,
-  applied to $\bar x = \frac{1}{n}(X_1 + \dots + X_n)$:
+  applied to $\bar X = \frac{1}{n}(X_1 + \dots + X_n)$:
   - Variances of independent draws add, and each draw has variance
     $\sigma^2$, so $\mathrm{Var}(X_1 + \dots + X_n) = n\sigma^2$. (Die,
     $n = 3$: $3 \cdot 2.92 = 8.76$.)
   - The constant factor $\frac{1}{n}$ comes out squared, so
-    $\mathrm{Var}(\bar x) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$.
+    $\mathrm{Var}(\bar X) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$.
     (Die: $\frac{8.76}{9} \approx 0.97$.)
 
 So:
 
-$$\mathbb{E}\Big[\sum_i (x_i - \bar x)^2\Big] = n\sigma^2 - \sigma^2 = (n-1)\,\sigma^2$$
+$$\mathbb{E}\Big[\sum_i (X_i - \bar X)^2\Big] = n\sigma^2 - \sigma^2 = (n-1)\,\sigma^2$$
 
 **The fix.** The sum of squared deviations averages $(n-1)\sigma^2$. The
 last step is to divide by a constant and see what each choice of divisor
 does to the expectation (the constant moves outside by linearity):
 
 - **Divide by $n$** (the estimator under study):
-  $\mathbb{E}\big[\frac{1}{n}\sum_i (x_i - \bar x)^2\big] = \frac{1}{n}(n-1)\sigma^2 = \frac{n-1}{n}\sigma^2$.
+  $\mathbb{E}\big[\frac{1}{n}\sum_i (X_i - \bar X)^2\big] = \frac{1}{n}(n-1)\sigma^2 = \frac{n-1}{n}\sigma^2$.
   This is less than $\sigma^2$, so
   $\mathrm{Bias} = \frac{n-1}{n}\sigma^2 - \sigma^2 = -\frac{\sigma^2}{n}$:
   a systematic underestimate. For the 3-roll die estimator this predicts an
@@ -907,30 +920,30 @@ does to the expectation (the constant moves outside by linearity):
   exactly the number the enumeration at the start of this subsection
   produced.
 - **Divide by $n-1$ instead**:
-  $\mathbb{E}\big[\frac{1}{n-1}\sum_i (x_i - \bar x)^2\big] = \frac{1}{n-1}(n-1)\sigma^2 = \sigma^2$,
+  $\mathbb{E}\big[\frac{1}{n-1}\sum_i (X_i - \bar X)^2\big] = \frac{1}{n-1}(n-1)\sigma^2 = \sigma^2$,
   exactly. Zero bias. Choosing $n-1$ as the divisor is **Bessel's
   correction**.
 
 **Why the shortfall is exactly one $\sigma^2$.** Three readings of the same
 fact:
 
-- **The accounting.** The identity says the sum measured from $\bar x$
-  falls short of the sum measured from $\mu$ by $n(\bar x - \mu)^2$. In
+- **The accounting.** The identity says the sum measured from $\bar X$
+  falls short of the sum measured from $\mu$ by $n(\bar X - \mu)^2$. In
   expectation that shortfall is
-  $n \cdot \mathrm{Var}(\bar x) = n \cdot \frac{\sigma^2}{n} = \sigma^2$,
+  $n \cdot \mathrm{Var}(\bar X) = n \cdot \frac{\sigma^2}{n} = \sigma^2$,
   one draw's worth of variance, whatever $n$ is.
-- **The cause.** $\bar x$ is computed from the same sample it is then
-  subtracted from, so it sits closer to these particular $x_i$ than $\mu$
+- **The cause.** $\bar X$ is computed from the same sample it is then
+  subtracted from, so it sits closer to its own sample's draws than $\mu$
   does. The figure above is this statement: the estimator reads the bottom
   of the parabola, not its value at $\mu$.
-- **Degrees of freedom.** The $n$ deviations $x_i - \bar x$ are not free to
+- **Degrees of freedom.** The $n$ deviations $X_i - \bar X$ are not free to
   take any values: the diagnosis showed they satisfy one linear constraint,
-  $\sum_i (x_i - \bar x) = 0$. Any $n - 1$ of them determine the last, so
+  $\sum_i (X_i - \bar X) = 0$. Any $n - 1$ of them determine the last, so
   the sample supplies $n - 1$ independent deviations, not $n$. Dividing by
   $n - 1$ averages over the number actually present.
 
 The $n = 1$ case shows all three at once. A single draw gives
-$\bar x = x_1$, so its one deviation is $x_1 - \bar x = 0$:
+$\bar X = X_1$, so its one deviation is $X_1 - \bar X = 0$:
 
 - The $1/n$ estimator returns $\hat\sigma^2 = 0$, claiming the
   distribution has no spread on the evidence of one draw.
@@ -986,9 +999,9 @@ decomposition says how the error moves across it:
   <path d="M 50 170 Q 195 170 340 36.7" fill="none" stroke="#f59e0b" stroke-width="2"/>
   <path d="M 50 36.7 Q 195 170 340 36.7" fill="none" stroke="#6366f1" stroke-width="2.5"/>
   <circle cx="195" cy="103.3" r="3.5" fill="#6366f1"/>
-  <text x="195" y="90" text-anchor="middle" fill="#6366f1" font-weight="600">Bias² + Variance</text>
+  <text x="195" y="90" text-anchor="middle" fill="#6366f1" font-weight="600">Bias² + Var</text>
   <text x="72" y="120" fill="#10b981">Bias²</text>
-  <text x="318" y="120" text-anchor="end" fill="#f59e0b">Variance</text>
+  <text x="318" y="120" text-anchor="end" fill="#f59e0b">Var</text>
   <text x="52" y="18" fill="currentColor" fill-opacity="0.7">error</text>
   <text x="50" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">simple</text>
   <text x="195" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">model flexibility</text>
@@ -997,8 +1010,8 @@ decomposition says how the error moves across it:
 </div>
 
 *Error contributions as model flexibility grows: $\mathrm{Bias}^2$ falls,
-because the model class can express more; Variance rises, because the fit
-can follow more of its sample's noise. Their sum is smallest at an
+because the model class can express more; $\mathrm{Var}$ rises, because the
+fit can follow more of its sample's noise. Their sum is smallest at an
 intermediate flexibility (the dot). This is the tradeoff the subsection
 title names.*
 
@@ -1007,13 +1020,13 @@ The standard interventions, stated as which term each one moves:
 - **Regularization** limits how closely the fit can follow the particular
   training set: variance drops, and some bias is accepted in exchange.
 - **More data** lowers variance directly, the same mechanism as
-  $\mathrm{Var}(\bar x) = \sigma^2 / n$ shrinking with $n$.
+  $\mathrm{Var}(\bar X) = \sigma^2 / n$ shrinking with $n$.
 - **Bagging** trains several high-variance models on resampled data and
-  averages their predictions: averaging cancels variance (the $\bar x$
+  averages their predictions: averaging cancels variance (the $\bar X$
   mechanism again) while leaving bias roughly unchanged.
 
 For a model's test error, the decomposition gains one term:
-$\text{Bias}^2 + \text{Variance} + \text{irreducible noise}$. The new term
+$\mathrm{Bias}^2 + \mathrm{Var} + \text{irreducible noise}$. The new term
 is the noise $\varepsilon$ in the target itself (§3.3): even a perfect
 model of the true relationship cannot predict the noise draw added to the
 test label. The full derivation is in the evaluation module.
@@ -1021,7 +1034,7 @@ test label. The full derivation is in the evaluation module.
 ## 3.6 Central limit theorem - the $\sqrt{n}$ intuition
 
 Why this section: almost every number used to train or evaluate a model is
-an average over a sample. $\bar x$ estimating a mean (§3.5), a test-set
+an average over a sample. $\bar X$ estimating a mean (§3.5), a test-set
 accuracy (an average of per-example 0/1 scores), a minibatch gradient (an
 average of per-example gradients). This section answers the two questions that apply to all of
 them:
@@ -1029,8 +1042,10 @@ them:
 - **How far off is the average?** An average computed from a random sample
   is itself a random variable (§3.5), so it has a standard deviation: the
   typical distance between the average you computed and the true mean. This
-  section computes it, $\sigma / \sqrt{n}$, which is the error bar on every
-  number computed from a sample.
+  section computes it, $\sigma / \sqrt{n}$. A standard deviation that
+  belongs to an *estimate* rather than to a single draw is called a
+  **standard error**, and it is the error bar on every number computed
+  from a sample.
 - **What distribution does the average follow?** Approximately Gaussian, no
   matter which distribution the individual draws came from. That is the
   **central limit theorem (CLT)**, and it is the theorem §3.4 leaned on
@@ -1038,10 +1053,9 @@ them:
 
 Both answers need the setup pinned down first.
 
-A **draw** is one observation of a random variable: one die roll, one coin
-flip, one sampled data point. Take $n$ of them, $X_1, \dots, X_n$. They are
-**i.i.d.** (independent and identically distributed) when two conditions
-hold:
+Take $n$ draws (§3.4), $X_1, \dots, X_n$: one die roll, one coin flip, one
+sampled data point, $n$ times over. They are **i.i.d.** (independent and
+identically distributed) when two conditions hold:
 
 - **Identically distributed**: every draw comes from the same distribution,
   so each one has the same mean $\mu$ and the same variance $\sigma^2$.
@@ -1051,22 +1065,22 @@ hold:
   cards from a deck without replacement does not: each card dealt changes
   what the next draw can be.
 
-Average the $n$ draws: $\bar X_n = \frac1n \sum X_i$. Two facts, both
+Average the $n$ draws: $\bar X = \frac{1}{n}\sum_i X_i$. Two facts, both
 familiar from §3.5 (each follows from §3.1's rules):
 
-- $\mathbb{E}[\bar X_n] = \mu$ (linearity) - unbiased.
-- $\mathrm{Var}(\bar X_n) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$
+- $\mathbb{E}[\bar X] = \mu$ (linearity) - unbiased.
+- $\mathrm{Var}(\bar X) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$
   (independence → variances add; the $\frac1n$ comes out squared).
 
-Take the square root of that variance: the standard deviation of $\bar X_n$
+Take the square root of that variance: the standard deviation of $\bar X$
 is $\sigma/\sqrt{n}$. It falls toward zero as $n$ grows - the **law of
 large numbers**, with a rate attached. The rate is the practical part: the
 $\sqrt{n}$ in the denominator means halving your error bar needs 4× the
 data. The CLT adds the
-shape: not only does $\bar X_n$ concentrate, its distribution becomes **Gaussian**,
+shape: not only does $\bar X$ concentrate, its distribution becomes **Gaussian**,
 *regardless of the original distribution*:
 
-$$\frac{\bar X_n - \mu}{\sigma / \sqrt{n}} \to \mathcal{N}(0, 1)$$
+$$\frac{\bar X - \mu}{\sigma / \sqrt{n}} \to \mathcal{N}(0, 1)$$
 
 This equation makes a strong claim: the individual draws $X_i$ can come
 from *any* distribution (die rolls, exponentials, anything with a mean and
@@ -1074,7 +1088,7 @@ a variance), and the distribution of their average still turns Gaussian.
 Watch it happen. Start from a
 deliberately non-Gaussian distribution, the exponential (density $e^{-x}$,
 mean $\mu = 1$): highest at zero, long tail to the right, no left tail at
-all. The three panels show the distribution of the average $\bar X_n$ as
+all. The three panels show the distribution of the average $\bar X$ as
 $n$ grows:
 
 <div style="margin:1.25rem 0">
@@ -1110,7 +1124,7 @@ $n$ grows:
 </svg>
 </div>
 
-*The distribution of $\bar X_n$ for averages of $n$ exponential draws
+*The distribution of $\bar X$ for averages of $n$ exponential draws
 (curves scaled to matching heights). Both of the section's answers are
 visible: the curve narrows around $\mu = 1$ (that is $\sigma/\sqrt{n}$),
 and the lopsided shape becomes a symmetric bell (that is the CLT).*
@@ -1220,7 +1234,7 @@ new draw repeats the slide-and-add, and repeating it has three effects:
 middling total, few produce an extreme one) is the triangle's counting
 argument, applied to small continuous nudges instead of dice.
 `probability_demos.ipynb` tracks the process numerically: the skewness of
-$\bar X_n$ falls toward 0 and its standard deviation matches
+$\bar X$ falls toward 0 and its standard deviation matches
 $\sigma/\sqrt{n}$.
 
 Three places this gets used daily in ML:
@@ -1233,10 +1247,10 @@ Three places this gets used daily in ML:
 - **Error bars on test accuracy.** Each test example scores 1 (correct) or
   0 (wrong): a Bernoulli draw (§3.4) with unknown true accuracy $p$. The
   variance of one score, from §3.1's identity
-  $\mathrm{Var}(X) = \mathbb{E}[X^2] - (\mathbb{E}[X])^2$: a 0/1 score
+  $\mathrm{Var}(X) = \mathbb{E}[X^2] - \mu^2$: a 0/1 score
   satisfies $X^2 = X$ (because $0^2 = 0$ and $1^2 = 1$), so
   $\mathbb{E}[X^2] = \mathbb{E}[X] = p$, giving
-  $\mathrm{Var} = p - p^2 = p(1-p)$. Reported accuracy is the mean of $n$
+  $\mathrm{Var}(X) = p - p^2 = p(1-p)$. Reported accuracy is the mean of $n$
   such draws, so its standard deviation is $\sqrt{p(1-p)} / \sqrt{n}$.
   With $n = 1000$ test examples and accuracy near 90%:
   $\sqrt{0.9 \cdot 0.1 / 1000} \approx 0.009$, an error bar of about
