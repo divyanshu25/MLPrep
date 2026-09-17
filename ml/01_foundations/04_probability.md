@@ -1,5 +1,20 @@
 # Probability & statistics for ML
 
+Why this chapter: three routine ML tasks depend on the probability here.
+
+- **Choosing a loss.** Cross-entropy, MSE and L1 are not conventions. Each
+  is the negative log-likelihood of a specific probabilistic model of the
+  target (§3.3, §3.4), and knowing which model a loss assumes tells you when
+  it is the wrong loss.
+- **Reading a number computed from data.** A test accuracy, a minibatch
+  gradient and a sample mean are all averages over a random sample, so each
+  comes with an error bar of $\sigma/\sqrt{n}$ and an approximately Gaussian
+  shape (§3.6). A 0.5% improvement measured on 1,000 test examples sits
+  inside that bar.
+- **Judging a fitted model.** Bias and variance (§3.5) name the two ways an
+  estimator, or a trained model, misses the truth, and the tradeoff between
+  them is what regularization, more data and bagging each move.
+
 ## 3.1 Random variables, expectation, variance
 
 A **random variable** is a number attached to a random outcome: a die roll is
@@ -30,28 +45,49 @@ $$\mathbb{E}[XY] = \sum_{x,y} x\,y\,P(x)\,P(y) = \Big(\sum_x x\,P(x)\Big)\Big(\s
 **Variance** is the expected squared distance from the mean, the standard
 measure of spread ($\mu$ is shorthand for $\mathbb{E}[X]$):
 
-$$\mathrm{Var}(X) = \mathbb{E}[(X - \mu)^2] = \mathbb{E}[X^2] - \mu^2$$
+$$\mathrm{Var}(X) = \mathbb{E}[(X - \mu)^2]$$
 
-The identity: expand $(X-\mu)^2 = X^2 - 2\mu X + \mu^2$, apply linearity to
-get $\mathbb{E}[X^2] - 2\mu\,\mathbb{E}[X] + \mu^2$, and use
-$\mathbb{E}[X] = \mu$ to collapse the last two terms into $-\mu^2$. Die:
-$\mathbb{E}[X^2] = 91/6 \approx 15.17$, so
-$\mathrm{Var}(X) = 15.17 - 3.5^2 = 15.17 - 12.25 \approx 2.92$.
+A second form is easier to compute. Expand the square and apply linearity
+term by term; $\mu$ is a constant, so it comes out of each expectation, and
+$\mathbb{E}[X] = \mu$ collapses the middle term:
+
+$$\mathbb{E}[(X-\mu)^2] = \mathbb{E}[X^2 - 2\mu X + \mu^2]
+  = \mathbb{E}[X^2] - 2\mu\,\mathbb{E}[X] + \mu^2
+  = \mathbb{E}[X^2] - 2\mu^2 + \mu^2 = \mathbb{E}[X^2] - \mu^2$$
+
+For the die:
+
+$$\mathbb{E}[X^2] = \tfrac{1}{6}(1 + 4 + 9 + 16 + 25 + 36) = \tfrac{91}{6} \approx 15.17$$
+
+$$\mathrm{Var}(X) = 15.17 - 3.5^2 = 15.17 - 12.25 \approx 2.92$$
 
 #### Two scaling rules
 
-**Scaling by a constant.** $\mathrm{Var}(aX) = \mathbb{E}[(aX - a\mu)^2] =
-a^2\, \mathbb{E}[(X-\mu)^2] = a^2\, \mathrm{Var}(X)$. Variance carries
-squared units, so the constant comes out squared.
+**Scaling by a constant.** By linearity $aX$ has mean $a\mu$, so its
+deviation from its mean is $aX - a\mu = a(X - \mu)$, and
 
-**Adding independent variables.** Expand the definition for $X + Y$:
+$$\mathrm{Var}(aX) = \mathbb{E}\big[(a(X - \mu))^2\big]
+  = a^2\,\mathbb{E}[(X-\mu)^2] = a^2\,\mathrm{Var}(X)$$
 
-$$\mathrm{Var}(X + Y) = \mathbb{E}\big[((X - \mu_X) + (Y - \mu_Y))^2\big]
-= \mathrm{Var}(X) + \mathrm{Var}(Y) + 2\,\mathbb{E}[(X-\mu_X)(Y-\mu_Y)]$$
+Variance carries squared units, so the constant comes out squared.
 
-The last term is the **covariance**. Under independence it is zero: multiply
-out $(X-\mu_X)(Y-\mu_Y)$ and apply the product rule above -
-$\mathbb{E}[XY] - \mu_X \mu_Y = 0$. So for independent variables,
+**Adding independent variables.** Write $u = X - \mu_X$ and $v = Y - \mu_Y$
+for the two deviations. By linearity $X + Y$ has mean $\mu_X + \mu_Y$, so
+its deviation is $u + v$. Expand $(u + v)^2 = u^2 + 2uv + v^2$ and take
+expectations term by term:
+
+$$\mathrm{Var}(X + Y) = \mathbb{E}[u^2] + 2\,\mathbb{E}[uv] + \mathbb{E}[v^2]
+  = \mathrm{Var}(X) + 2\,\mathbb{E}[(X-\mu_X)(Y-\mu_Y)] + \mathrm{Var}(Y)$$
+
+The middle expectation is the **covariance** of $X$ and $Y$. Multiply it
+out and apply linearity, with $\mu_X$ and $\mu_Y$ constants:
+
+$$\mathbb{E}[(X-\mu_X)(Y-\mu_Y)]
+  = \mathbb{E}[XY] - \mu_Y\,\mathbb{E}[X] - \mu_X\,\mathbb{E}[Y] + \mu_X\mu_Y
+  = \mathbb{E}[XY] - \mu_X\mu_Y$$
+
+Under independence the product rule above gives
+$\mathbb{E}[XY] = \mu_X\mu_Y$, so the covariance is $0$ and
 
 $$\mathrm{Var}(X + Y) = \mathrm{Var}(X) + \mathrm{Var}(Y)$$
 
@@ -77,7 +113,7 @@ Check it by counting, on a die: $A$ = "roll is even" $= \{2, 4, 6\}$, $B$ =
 "roll is at least 4" $= \{4, 5, 6\}$. Given $B$, three equally likely
 outcomes remain, and $A$ holds for two of them (4 and 6), so the answer must
 be $2/3$. The formula agrees: $P(A \cap B) = P(\{4, 6\}) = 2/6$, $P(B) =
-3/6$, ratio $= 2/3$. ✓
+3/6$, ratio $= 2/3$, the same answer.
 
 There is nothing to prove in the equation above: it is the *definition* of
 $P(A \mid B)$. The die check only confirms that the definition gives the
@@ -96,8 +132,6 @@ $$P(A \mid B)\, P(B) = P(B \mid A)\, P(A)$$
 Divide both sides by $P(B)$:
 
 $$P(A \mid B) = \frac{P(B \mid A)\, P(A)}{P(B)}$$
-
-The derivation is complete: two applications of the definition.
 
 Each factor has a name. Read them with $A$ = a hypothesis and $B$ = the
 observed evidence (concrete values from the disease example below):
@@ -142,7 +176,7 @@ Not 99%. The prior (the rarity of the disease) dominates because the false
 positives come from a pool 99 times larger than the sick pool (9,900 vs
 100). In ML terms: this is precision under class imbalance - exactly why
 accuracy is a useless metric for rare-event detection and why a 99%-accurate
-fraud model can be garbage.
+fraud model can be useless.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 130" role="img" aria-label="Among 10,000 people the positive tests split into 99 true positives from the sick group and 495 false positives from the healthy group, so a positive test means only about 17 percent chance of being sick" style="max-width:430px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -246,8 +280,16 @@ you observe $h$ heads in $n$ flips. The log-likelihood of that data is
 
 $$\log L(p) = h \log p + (n - h)\log(1-p)$$
 
-Differentiate and set to zero: $\frac{h}{p} = \frac{n-h}{1-p}$, so
-$\hat p = h/n$ - the empirical frequency. (Verified numerically in
+Differentiate with respect to $p$ and set the derivative to zero:
+
+$$\frac{d}{dp}\log L(p) = \frac{h}{p} - \frac{n-h}{1-p} = 0$$
+
+Multiply through by $p(1-p)$: $h(1-p) = (n-h)\,p$, so $h - hp = np - hp$,
+so $h = np$, and
+
+$$\hat p = \frac{h}{n}$$
+
+the empirical frequency. (Verified numerically in
 `probability_demos.ipynb`.)
 
 <div style="margin:1.25rem 0">
@@ -401,14 +443,17 @@ the model gives to the observed target. But a regression model's output is a
 single number, $f_\theta(x) = 300$k, and one number is not a distribution:
 it does not say how probable a sale at 310k or at 295k would be, so there is
 nothing to take the likelihood of. The noise assumption supplies the missing
-distribution. One new word first: the noise is a *continuous* quantity, and
-for a continuous quantity no single exact value has positive probability
-(the chance of a gap of exactly 10,000.000... is zero). Probabilities are
+distribution.
+
+One new word first. The noise is a *continuous* quantity, and for a
+continuous quantity no single exact value has positive probability (the
+chance of a gap of exactly 10,000.000... is zero). Probabilities are
 instead described by a **density** $p_\varepsilon$: the chance that
-$\varepsilon$ lands within a small window of width $h$ around a value $t$
-is approximately $p_\varepsilon(t) \cdot h$. A density is probability per
-unit of $\varepsilon$; where it is high, nearby values are likely. Assume
-the noise's density is known - say, a Gaussian centered at 0. Since
+$\varepsilon$ lands within a small window of width $w$ around a value $t$
+is approximately $p_\varepsilon(t) \cdot w$. A density is probability per
+unit of $\varepsilon$; where it is high, nearby values are likely.
+
+Assume the noise's density is known, say a Gaussian centered at 0. Since
 $y = f_\theta(x) + \varepsilon$, observing the value $y$ means the noise
 draw came out to exactly $\varepsilon = y - f_\theta(x)$, so the
 probability of $y$ is the noise density at that value:
@@ -611,10 +656,10 @@ reasons it is the default:
 
    Across many apartments, which totals come up often?
 
-   - **Near zero: common.** The nudges only need to roughly cancel, and
-     many combinations do.
-   - **Around $+15$k: rare.** Nearly all 20 nudges would have to point the
-     same way at once.
+   - **Near zero: common.** The contributions only need to roughly cancel,
+     and many combinations do.
+   - **Around $+15$k: rare.** Nearly all 20 contributions would have to
+     point the same way at once.
 
    So totals pile up near the middle and thin out toward the extremes: a
    bell. §3.6's CLT makes this a theorem - the sum of many small
@@ -1081,8 +1126,6 @@ them:
   **central limit theorem (CLT)**, and it is the theorem §3.4 leaned on
   when it argued that sums of many small effects are bell-shaped.
 
-Both answers need the setup pinned down first.
-
 Take $n$ draws (§3.4), $X_1, \dots, X_n$: one die roll, one coin flip, one
 sampled data point, $n$ times over. They are **i.i.d.** (independent and
 identically distributed) when two conditions hold:
@@ -1115,8 +1158,7 @@ $$\frac{\bar X - \mu}{\sigma / \sqrt{n}} \to \mathcal{N}(0, 1)$$
 This equation makes a strong claim: the individual draws $X_i$ can come
 from *any* distribution (die rolls, exponentials, anything with a mean and
 a variance), and the distribution of their average still turns Gaussian.
-Watch it happen. Start from a
-deliberately non-Gaussian distribution, the exponential (density $e^{-x}$,
+A concrete case: start from a deliberately non-Gaussian distribution, the exponential (density $e^{-x}$,
 mean $\mu = 1$): highest at zero, long tail to the right, no left tail at
 all. The three panels show the distribution of the average $\bar X$ as
 $n$ grows:
@@ -1260,9 +1302,10 @@ new draw repeats the slide-and-add, and repeating it has three effects:
   Gaussians gives another Gaussian, so once the shape reaches the bell,
   further draws have nothing left to change.
 
-§3.4's cancellation argument (many combinations of nudges produce a
-middling total, few produce an extreme one) is the triangle's counting
-argument, applied to small continuous nudges instead of dice.
+§3.4's cancellation argument (many combinations of small contributions
+produce a middling total, few produce an extreme one) is the triangle's
+counting argument, applied to small continuous contributions instead of
+dice.
 `probability_demos.ipynb` tracks the process numerically: the skewness of
 $\bar X$ falls toward 0 and its standard deviation matches
 $\sigma/\sqrt{n}$.
@@ -1285,7 +1328,7 @@ Three places this gets used daily in ML:
   With $n = 1000$ test examples and accuracy near 90%:
   $\sqrt{0.9 \cdot 0.1 / 1000} \approx 0.009$, an error bar of about
   $\pm 0.9\%$. A claimed "0.5% improvement" measured on such a test set is
-  smaller than the error bar: it could be sampling luck.
+  smaller than the error bar: it is within sampling noise.
 - **Confidence intervals and A/B tests** report ranges like "$\pm 2$
   standard errors". The 2 comes from the Gaussian shape the CLT guarantees:
   95% of a Gaussian's probability lies within 2 standard deviations of its
