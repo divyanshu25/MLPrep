@@ -177,6 +177,7 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .toc-link:hover { color:var(--text-strong); background:var(--panel2); }
   .doc-outline .toc-link.active { color:var(--accent-text); border-left-color:var(--accent); font-weight:600; }
   .toc-link.lvl3 { padding-left:1.5rem; }
+  .toc-link.lvl4 { padding-left:2.5rem; font-size:12px; }
   @media (min-width:1280px) {
     .doc-wrap.has-outline { padding-right:17rem; }
     .doc-wrap.has-outline .doc-outline { display:block; position:fixed; top:4.5rem; right:1rem;
@@ -1023,16 +1024,24 @@ function docNavKeys(nav) {
    (or null) so the caller can disconnect it on route cleanup. */
 function buildOutline(rootEl, wrapEl, scrollRoot) {
   const seen = {};
-  const hs = Array.from(rootEl.querySelectorAll('h2, h3'));
+  const hs = Array.from(rootEl.querySelectorAll('h2, h3, h4'));
+  /* KaTeX emits a MathML layer (with the LaTeX source as an annotation) next
+     to its HTML layer, so textContent of a heading with math repeats the
+     formula; drop that layer before slugifying. */
+  const plainText = h => {
+    const c = h.cloneNode(true);
+    c.querySelectorAll('.katex-mathml').forEach(n => n.remove());
+    return c.textContent;
+  };
   hs.forEach(h => {
-    const s = slugify(h.textContent);
+    const s = slugify(plainText(h));
     const n = (seen[s] || 0) + 1; seen[s] = n;
     h.id = n > 1 ? s + '-' + n : s;
   });
   if (hs.length < 3) return null;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const links = hs.map(h =>
-    `<a href="#${h.id}" data-target="${h.id}" class="toc-link${h.tagName === 'H3' ? ' lvl3' : ''}">${esc(h.textContent)}</a>`).join('');
+    `<a href="#${h.id}" data-target="${h.id}" class="toc-link ${h.tagName.toLowerCase().replace('h', 'lvl')}">${h.innerHTML}</a>`).join('');
   const rail = document.createElement('nav');
   rail.className = 'doc-outline';
   rail.setAttribute('aria-label', 'On this page');
