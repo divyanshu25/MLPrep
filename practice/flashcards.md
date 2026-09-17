@@ -1,11 +1,13 @@
 # Rapid-Recall Flashcards
 
-~200 cards distilled from the interview-question banks at the end of each
-`ml/` module's notes plus the invariants in `dsa/`, and the genuinely
-missing topics mined from the DeepMindPrep Anki deck in `prepcards/`
-(sections 1-4, 9 gained cards; section 11 is new) - the answers you must
-produce in ≤15 seconds, because in a live round anything slower reads as
-not-known. Protocol: answer **out loud** before unfolding; a hesitation counts
+~225 cards distilled from the interview-question banks at the end of each
+`ml/` module's notes plus the invariants in `dsa/`, and the genuinely missing
+topics mined from the DeepMindPrep Anki deck in `prepcards/` (sections 1-4, 9
+gained cards from that deck; sections 1, 4 and 11 grew again with information
+theory, hypothesis testing, MoE, diffusion and the RL derivations of ml/09) -
+the answers you must produce in ≤15 seconds, because in a live round anything
+slower reads as not-known.
+Protocol: answer **out loud** before unfolding; a hesitation counts
 as a miss. Track deck passes in the queue (`cards:<section>` items). The same
 deck in plain text: [`anki.tsv`](anki.tsv) (File → Import in Anki, tab-separated).
 
@@ -164,6 +166,65 @@ w ← w − H⁻¹∇L: jump to the minimum of the local quadratic. Needs the n�
 </details>
 
 ---
+**Q:** Entropy, cross-entropy and KL in one identity?
+<details><summary>A</summary>
+
+H(q,p) = H(q) + KL(q‖p). Cross-entropy is the loss, the entropy of the labels is its floor, KL is the excess; KL ≥ 0 from log x ≤ x − 1 (Gibbs' inequality).
+</details>
+
+**Q:** Why can a label-smoothed training loss never reach 0?
+<details><summary>A</summary>
+
+The floor is H(q). For q = [0.9, 0.05, 0.05] that is 0.394 nats; one-hot labels have H(q) = 0, so only they can reach 0.
+</details>
+
+**Q:** KL(q‖p) vs KL(p‖q): which does MLE minimize, which does RLHF use, and what does each do?
+<details><summary>A</summary>
+
+MLE minimizes KL(data‖model): the covering direction, so the model spreads over every mode. RLHF penalizes KL(π_θ‖π_ref): the reverse direction, charged where the policy puts mass the reference would not, so it sharpens without wandering.
+</details>
+
+**Q:** Entropy of N(μ, σ²), and why it is the maximum?
+<details><summary>A</summary>
+
+½ log(2πeσ²), independent of μ. For any p with the same mean and variance, H(p, g) = H(g) (the cross-entropy only uses E[(x−μ)²] = σ²), so KL(p‖g) ≥ 0 gives H(p) ≤ H(g).
+</details>
+
+**Q:** Mutual information in one line?
+<details><summary>A</summary>
+
+I(X;Y) = KL(p(x,y)‖p(x)p(y)) = H(X) − H(X|Y): how far the joint is from independence; zero exactly when X and Y are independent.
+</details>
+
+**Q:** What is a p-value, and what is it not?
+<details><summary>A</summary>
+
+P(data at least this extreme | H0). It is not P(H0 | data); turning one into the other needs a prior and Bayes rule, and a team testing many long shots will find most of its p < 0.05 results are false positives.
+</details>
+
+**Q:** Two-proportion z-test in one line?
+<details><summary>A</summary>
+
+z = (p̂_B − p̂_A) / sqrt(p̂(1−p̂)(1/n_A + 1/n_B)) with p̂ the pooled rate under H0; |z| > 1.96 means two-sided p < 0.05. Derived from Bernoulli variance p(1−p)/n plus additivity of independent variances.
+</details>
+
+**Q:** Sample size for an A/B test at α = 0.05 and power 0.8?
+<details><summary>A</summary>
+
+n ≈ 2 · 2.8² · p(1−p) / δ² per group, where 2.8 = 1.96 + 0.84. Detecting a 0.2-point lift on a 2.2% base rate needs about 84,000 users per group.
+</details>
+
+**Q:** Two ways to fool yourself with p-values?
+<details><summary>A</summary>
+
+Multiple comparisons: 20 tests at 0.05 give a 64% chance of at least one false positive (fix: one primary metric, or Bonferroni α/m). Peeking: stopping the first time p dips under 0.05 is many tests disguised as one (fix: fix n in advance, or a sequential test).
+</details>
+
+**Q:** Comparing two models on the same test set: which test, and why not the obvious one?
+<details><summary>A</summary>
+
+Paired (McNemar): only the examples the models disagree on count, z = (b − c)/sqrt(b + c). The independent-proportions test is wrong because both accuracies were computed on the same examples and are not independent.
+</details>
 
 ## 2. Classical ML (ml/02)
 
@@ -554,6 +615,47 @@ Transfer: reuse task-A representations for task B (pretrain → fine-tune). Doma
 </details>
 
 ---
+**Q:** Mixture of experts in one line, and what it decouples?
+<details><summary>A</summary>
+
+The FFN is replaced by E experts and a router (linear + softmax + top-k) sends each token to k of them. Parameter count scales with E, per-token FLOPs with k. Mixtral 8x7B: 47B total, about 13B active.
+</details>
+
+**Q:** Routing collapse, and the loss that prevents it?
+<details><summary>A</summary>
+
+Nothing stops the router sending every token to one expert, which then trains more and wins (rich-get-richer). Auxiliary loss E · Σ f_i P_i (f = routed fraction, P = mean router probability): equals 1 under uniform routing, E under collapse; its gradient flows through P_i and lowers the probability on overloaded experts.
+</details>
+
+**Q:** Why is MoE decode not E/k times cheaper than a dense model of the same total size?
+<details><summary>A</summary>
+
+Decode is memory-bandwidth-bound: all experts must be resident, and batched requests read most of the weights per step, so cost tracks total size. The FLOP saving shows up in training and compute-bound prefill.
+</details>
+
+**Q:** Diffusion closed form for x_t from x_0, and the one-line variance argument?
+<details><summary>A</summary>
+
+x_t = √ᾱ_t x_0 + √(1−ᾱ_t) ε with ᾱ_t = Π(1−β_s). Induction step: independent Gaussian noises add in variance, α_t(1−ᾱ_{t−1}) + β_t = 1 − ᾱ_t. Linear schedule to T = 1000 gives ᾱ_T ≈ 4e−5.
+</details>
+
+**Q:** Where does the noise-prediction loss ‖ε − ε_θ‖² come from?
+<details><summary>A</summary>
+
+The ELBO's per-step KL between two Gaussians of equal variance is a squared difference of means; the true reverse mean is linear in x_t and x_0, and substituting x_0 = (x_t − √(1−ᾱ_t) ε)/√ᾱ_t turns it into ε − ε_θ up to a t-dependent weight, which DDPM drops.
+</details>
+
+**Q:** DDPM sampling step?
+<details><summary>A</summary>
+
+x_{t−1} = (1/√α_t)(x_t − β_t/√(1−ᾱ_t) · ε_θ(x_t, t)) + √β̃_t · z, from t = T down to 1. ε_θ is proportional to minus the score ∇ log q(x_t), which is the link to DDIM and ODE samplers that take tens of steps.
+</details>
+
+**Q:** Classifier-free guidance?
+<details><summary>A</summary>
+
+Train the conditional denoiser with the condition randomly dropped, so one network is both conditional and unconditional; at sampling use ε = ε(∅) + w(ε(c) − ε(∅)) with w > 1. Higher w: tighter prompt adherence, less diversity.
+</details>
 
 ## 5. Evaluation & metrics (ml/05)
 
@@ -1191,7 +1293,7 @@ The index map (i,j) → (j, n−1−i) factors into transpose then reverse each 
 
 ---
 
-## 11. RL basics (from the DeepMindPrep deck)
+## 11. Reinforcement learning (ml/09)
 
 The one cluster of the 238-card Anki deck in `prepcards/` with no notes
 module behind it - enough RL vocabulary to survive an interview detour.
@@ -1248,4 +1350,58 @@ The data came from behavior policy μ but you want values under π: reweight eac
 <details><summary>A</summary>
 
 With probability ε act randomly, otherwise greedily. GLIE: keep visiting every state-action forever but let ε → 0 - the condition under which MC control converges to the optimal policy.
+</details>
+
+**Q:** Why discount future rewards?
+<details><summary>A</summary>
+
+So the return converges (bounded by r_max/(1−γ)), to set a horizon of about 1/(1−γ) steps (γ = 0.99 is roughly 100), and for the recursion G_t = r_{t+1} + γ G_{t+1} that every Bellman equation is built on.
+</details>
+
+**Q:** Why does value iteration converge?
+<details><summary>A</summary>
+
+The Bellman operator is a γ-contraction in the max norm: one sweep shrinks the largest distance to the fixed point by at least a factor γ, so the iterates converge geometrically and the fixed point is unique.
+</details>
+
+**Q:** The TD error, and what the TD target is?
+<details><summary>A</summary>
+
+δ = r + γ V(s′) − V(s). The target r + γ V(s′) is the Bellman equation's right side evaluated on one sampled transition: unbiased with the true V^π, biased while V is still an estimate (bootstrapping), low variance either way.
+</details>
+
+**Q:** Policy gradient theorem in four steps?
+<details><summary>A</summary>
+
+J = Σ_τ p_θ(τ) R(τ); use ∇p = p ∇log p to get E[∇log p_θ(τ) R(τ)]; log p_θ(τ) = Σ_t log π_θ(a_t|s_t) plus dynamics terms with no θ, which vanish; result E[Σ_t ∇log π_θ(a_t|s_t) R(τ)] (REINFORCE).
+</details>
+
+**Q:** The baseline lemma, and what it buys?
+<details><summary>A</summary>
+
+E_a[∇log π(a|s) b(s)] = b(s) ∇ Σ_a π(a|s) = b(s) ∇1 = 0, so subtracting any state-only baseline leaves the gradient unbiased and lowers variance. Best b ≈ V(s), giving the advantage A = Q − V.
+</details>
+
+**Q:** Gradient of log π for a softmax policy, on a bandit?
+<details><summary>A</summary>
+
+∇_θ log π(a) = e_a − π (one-hot of the chosen action minus the probability vector). At π = [0.5, 0.5], pulling arm 1 for reward 1 gives an update ∝ [0.5, −0.5]; with baseline 0.5 it is [0.25, −0.25].
+</details>
+
+**Q:** PPO's ratio and GRPO's baseline, from first principles?
+<details><summary>A</summary>
+
+The ratio π_θ/π_old is the importance weight that lets samples from an older policy estimate the current gradient; clipping to [1−ε, 1+ε] removes the incentive to move past where the reweighting is trustworthy. GRPO drops the critic and uses the group's mean reward as the baseline, normalized by its standard deviation: the baseline lemma with b estimated from samples.
+</details>
+
+**Q:** The deadly triad, and DQN's two fixes?
+<details><summary>A</summary>
+
+Bootstrapping, off-policy data and function approximation together can diverge. DQN: a replay buffer (decorrelates updates) and a frozen target network (the target stops chasing itself).
+</details>
+
+**Q:** UCB's bonus term, and where it comes from?
+<details><summary>A</summary>
+
+Pull the arm maximizing r̄_a + sqrt(2 ln t / n_a). The bonus is a confidence interval on the arm's mean, width ∝ 1/√n_a, so the agent is optimistic about under-explored arms and stops once their intervals fall below the leader.
 </details>

@@ -12,6 +12,7 @@ taught here - every concept lives in an earlier module. What's new is the clock.
 | [`buggy_transformer.ipynb`](buggy_transformer.ipynb) | The flagship drill: a working transformer LM with 7 planted bugs. Open it in the study app or JupyterLab, run all cells, then find and fix the bugs cell by cell before adding KV caching. |
 | [`buggy_transformer_solutions.md`](buggy_transformer_solutions.md) | Bug-by-bug solutions, the KV-cache implementation, and the general debugging playbook. **Do not open until done.** |
 | [`drills.md`](drills.md) | 10 timed implementation drills with full reference solutions folded away. |
+| [`probability_puzzles.md`](probability_puzzles.md) | 15 stats-round puzzles (expected values, Bayes with counts, Markov chains on states, symmetry), each solved by naming the tool first; five minutes each, answers folded. |
 | [`rapid_fire_quiz.md`](rapid_fire_quiz.md) | 40 rapid-fire definition questions, DeepMind style. |
 | [`debugging_scenarios.md`](debugging_scenarios.md) | 12 production-debugging scenario cards: symptom → diagnosis tree. |
 

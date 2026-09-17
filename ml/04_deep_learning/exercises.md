@@ -614,3 +614,93 @@ $\mu, \sigma$ gives a low-variance gradient (unlike the
 score-function/REINFORCE alternative, which needs no reparameterization
 but is high-variance).
 </details>
+
+---
+
+## Exercise 16 (medium) - The diffusion closed form, and reading a schedule
+
+(a) Starting from $q(x_t \mid x_{t-1}) = \mathcal{N}(\sqrt{1-\beta_t}\,x_{t-1}, \beta_t I)$,
+prove by induction that $x_t = \sqrt{\bar\alpha_t}\,x_0 + \sqrt{1-\bar\alpha_t}\,\varepsilon$
+with $\bar\alpha_t = \prod_{s \le t}(1 - \beta_s)$. Show the variance step
+explicitly.
+
+(b) For the linear schedule $\beta_t$ from $10^{-4}$ to $0.02$ over
+$T = 1000$ steps, estimate $\bar\alpha_T$, and $\bar\alpha_t$ at $t = 100$
+and $t = 500$. At which of these can a viewer still recognize the image?
+
+(c) Why does training never need to simulate the chain step by step?
+
+<details><summary>Solution</summary>
+
+(a) Assume $x_{t-1} = \sqrt{\bar\alpha_{t-1}}x_0 + \sqrt{1-\bar\alpha_{t-1}}\,\varepsilon'$.
+Then $x_t = \sqrt{\alpha_t}\,x_{t-1} + \sqrt{\beta_t}\,\varepsilon''$ has
+mean coefficient $\sqrt{\alpha_t\bar\alpha_{t-1}} = \sqrt{\bar\alpha_t}$ and
+noise variance $\alpha_t(1-\bar\alpha_{t-1}) + \beta_t = \alpha_t - \bar\alpha_t + 1 - \alpha_t = 1 - \bar\alpha_t$,
+since independent Gaussian noises add in variance. A Gaussian with that
+mean and variance is $\sqrt{\bar\alpha_t}x_0 + \sqrt{1-\bar\alpha_t}\,\varepsilon$.
+
+(b) $\log\bar\alpha_T = \sum_t \log(1-\beta_t) \approx -\sum_t \beta_t$
+for small $\beta_t$. The linear schedule's sum is
+$1000 \cdot (10^{-4} + 0.02)/2 = 10.05$, so
+$\bar\alpha_T \approx e^{-10.05} \approx 4 \times 10^{-5}$ (exact product:
+$4.0 \times 10^{-5}$). At $t = 100$ the sum of the first 100 betas is
+about $0.11$, so $\bar\alpha_{100} \approx 0.90$: signal coefficient
+$\sqrt{0.90} = 0.95$, noise coefficient $0.32$; clearly recognizable. At
+$t = 500$, $\bar\alpha_{500} \approx 0.079$: signal $0.28$, noise $0.96$;
+barely, if at all. Most of the perceptual destruction happens in the
+middle of the schedule, which is why later schedules (cosine) spread it
+out.
+
+(c) The closed form gives $x_t$ from $x_0$ in one draw of $\varepsilon$,
+for any $t$. Training samples $(x_0, t, \varepsilon)$, forms $x_t$
+directly, and regresses $\varepsilon_\theta(x_t, t)$ onto $\varepsilon$.
+The chain is only ever run at sampling time.
+</details>
+
+---
+
+## Exercise 17 (easy-medium) - Mixture-of-experts arithmetic
+
+Mixtral 8x7B: 32 layers, $d = 4096$, feed-forward width $14336$, SwiGLU
+experts (three weight matrices each), $E = 8$ experts per layer, top-$2$
+routing.
+
+(a) Parameters per expert, and in all experts across the model.
+
+(b) Expert parameters touched per token. Why is the model described as
+"47B total, 13B active"?
+
+(c) A colleague says an 8-expert top-2 MoE should be 4 times cheaper to
+serve than a dense model of the same total size. Give the two reasons
+that is wrong for decode.
+
+(d) The load-balancing loss is $E\sum_i f_i P_i$. Evaluate it for uniform
+routing and for total collapse, and explain why it has a gradient at all
+given that the $f_i$ are counts.
+
+<details><summary>Solution</summary>
+
+(a) One expert: $3 \cdot 4096 \cdot 14336 \approx 1.76 \times 10^8$, about
+176M. All experts: $32 \cdot 8 \cdot 176\text{M} \approx 45$B. With
+attention and embeddings the total is about 47B.
+
+(b) Per token, 2 experts per layer: $32 \cdot 2 \cdot 176\text{M} \approx 11.3$B,
+plus the shared attention parameters, about 13B active. Every token's
+forward pass uses roughly 13B of the 47B, which is the compute of a 13B
+dense model.
+
+(c) First, module 7's decode arithmetic: decode is memory-bandwidth-bound,
+and every step must read the weights it uses. With batched requests
+routing to different experts, most or all 47B of weights get read per
+step, so bandwidth cost tracks total size, not active size. Second, all
+47B must be resident in accelerator memory regardless, so the model needs
+the memory footprint of a 47B model. MoE's FLOP saving shows up in
+training and in compute-bound prefill, much less in decode.
+
+(d) Uniform: $f_i = P_i = 1/E$, loss $= E \cdot E \cdot (1/E)^2 = 1$.
+Collapse onto one expert: $f = P = 1$ there, $0$ elsewhere, loss $= E$.
+The $f_i$ carry no gradient, but each $P_i$ is a mean of softmax outputs
+and does; $\partial \mathcal{L}/\partial P_i = E f_i$ is largest for the
+most-used expert, so the router is pushed to lower its probability on
+whichever experts are currently overloaded.
+</details>
