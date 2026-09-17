@@ -745,13 +745,48 @@ two, $\mathrm{Bias}^2 + \mathrm{Var}$.*
 
 #### Why the 1/n sample variance is biased (Bessel's correction)
 
-**The task.** §3.1 defined the variance of one draw through the true mean:
-$\sigma^2 = \mathbb{E}[(X - \mu)^2]$. To estimate it from a sample of $n$
-draws, replace both unknowns with their sample versions: the expectation
-becomes an average over the draws, and $\mu$ (unknown) becomes $\bar x$.
-That double substitution produces the natural estimator
+**The task.** Everything so far estimated a *mean* from a sample. Now
+estimate a *variance*: given $n$ draws $x_1, \dots, x_n$, how spread out is
+the distribution they came from?
+
+Start from the quantity being estimated. §3.1 defined the variance of one
+draw as the expected squared distance from the mean, written $\sigma^2$
+here (the same object as $\mathrm{Var}(X)$; $\sigma^2$ is the standard
+symbol once it plays the role of an unknown to be estimated):
+
+$$\sigma^2 = \mathbb{E}\big[(X - \mu)^2\big], \qquad \mu = \mathbb{E}[X]$$
+
+Read the right side as the recipe it is: take a draw $X$, measure how far
+it lands from the mean $\mu$, square that distance, and average over all
+possible draws. Neither of those two operations is available from a sample:
+
+- $\mathbb{E}[\cdot]$ averages over *all possible* draws, weighted by their
+  probabilities. A sample has only $n$ actual draws.
+- $\mu$ is the true mean, which is unknown. The die's $\mu = 3.5$ is known
+  only because the distribution is known; that is the situation this
+  section assumes away.
+
+Replace each with the only sample version available, one at a time:
+
+- The expectation over all draws becomes the average over the $n$ draws in
+  hand: $\mathbb{E}[\,\cdot\,] \to \frac{1}{n}\sum_i (\,\cdot\,)$.
+- The unknown $\mu$ becomes the sample mean
+  $\bar x = \frac{1}{n}\sum_i x_i$, which §3.5 opened by showing is an
+  unbiased estimate of it.
+
+Both substitutions together produce the natural estimator:
 
 $$\hat\sigma^2 = \frac{1}{n}\sum_i (x_i - \bar x)^2$$
+
+Applied to the rolls $2, 6, 3$: the sample mean is $\bar x = \frac{11}{3}$,
+the three distances from it are $-\frac{5}{3}, \frac{7}{3}, -\frac{2}{3}$,
+and averaging their squares gives
+
+$$\hat\sigma^2 = \frac{1}{3}\left[\left(\tfrac{5}{3}\right)^2 + \left(\tfrac{7}{3}\right)^2 + \left(\tfrac{2}{3}\right)^2\right]
+  = \frac{1}{3} \cdot \frac{78}{9} = \frac{26}{9} \approx 2.89$$
+
+The formula is well defined and computable. The question §3.5 asks of any
+estimator is whether it lands on the truth *on average*.
 
 **The issue.** This estimator is biased low. The die shows it directly:
 its true variance is $\sigma^2 = \frac{35}{12} \approx 2.92$ (§3.1).
@@ -783,10 +818,15 @@ $n(\bar x - \mu)^2$ to the other side:
 
 $$\sum_i (x_i - \bar x)^2 = \sum_i (x_i - \mu)^2 - n(\bar x - \mu)^2$$
 
-Check on the die rolls $2, 6, 3$ from above ($\mu = 3.5$, $\bar x = \frac{11}{3}$,
-so $\bar x - \mu = \frac{1}{6}$): the left side is
-$\left(\frac{5}{3}\right)^2 + \left(\frac{7}{3}\right)^2 + \left(\frac{2}{3}\right)^2 = \frac{78}{9} \approx 8.67$;
-the right side is $8.75 - 3 \cdot \left(\frac{1}{6}\right)^2 = 8.75 - 0.08 \approx 8.67$,
+Check on the die rolls $2, 6, 3$ ($\mu = 3.5$, $\bar x = \frac{11}{3}$, so
+$\bar x - \mu = \frac{1}{6}$). The left side is the sum of squared
+deviations computed above, $\frac{78}{9} \approx 8.67$. The right side
+measures the same rolls from $\mu = 3.5$ instead, giving
+$1.5^2 + 2.5^2 + 0.5^2 = 8.75$, then subtracts
+$3 \cdot \left(\frac{1}{6}\right)^2 \approx 0.08$:
+
+$$8.75 - 0.08 \approx 8.67$$
+
 equal to the left side. The identity already shows the direction of the bias:
 the subtracted term $n(\bar x - \mu)^2$ is never negative, so deviations
 measured from $\bar x$ always sum to less than (or at most equal to)
