@@ -74,9 +74,9 @@ If $L$ depends on $z$, and $z$ depends on $x$, then
 
 $$\frac{\partial L}{\partial x} = \frac{\partial L}{\partial z} \cdot \frac{\partial z}{\partial x}$$
 
-Read it as a recipe: *"the gradient flowing into a node equals the gradient flowing
-out of it, times the node's own local derivative."* Every backward rule in every
-autograd engine is one instance of this sentence.
+In words: *the gradient flowing into a node equals the gradient flowing out of it,
+times the node's own local derivative.* Every backward rule in every autograd
+engine is one instance of this.
 
 ### The computational-graph view
 

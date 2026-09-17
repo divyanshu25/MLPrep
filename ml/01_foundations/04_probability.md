@@ -750,15 +750,13 @@ estimate a *variance*: given $n$ draws $x_1, \dots, x_n$, how spread out is
 the distribution they came from?
 
 Start from the quantity being estimated. §3.1 defined the variance of one
-draw as the expected squared distance from the mean, written $\sigma^2$
-here (the same object as $\mathrm{Var}(X)$; $\sigma^2$ is the standard
-symbol once it plays the role of an unknown to be estimated):
+draw as the expected squared distance from the mean:
 
 $$\sigma^2 = \mathbb{E}\big[(X - \mu)^2\big], \qquad \mu = \mathbb{E}[X]$$
 
-Read the right side as the recipe it is: take a draw $X$, measure how far
-it lands from the mean $\mu$, square that distance, and average over all
-possible draws. Neither of those two operations is available from a sample:
+The right side is built from two operations: squaring the distance
+$X - \mu$ from the true mean, and taking the expectation over draws.
+Neither is available from a sample:
 
 - $\mathbb{E}[\cdot]$ averages over *all possible* draws, weighted by their
   probabilities. A sample has only $n$ actual draws.
@@ -827,10 +825,52 @@ $3 \cdot \left(\frac{1}{6}\right)^2 \approx 0.08$:
 
 $$8.75 - 0.08 \approx 8.67$$
 
-equal to the left side. The identity already shows the direction of the bias:
-the subtracted term $n(\bar x - \mu)^2$ is never negative, so deviations
-measured from $\bar x$ always sum to less than (or at most equal to)
-deviations measured from $\mu$.
+equal to the left side.
+
+The identity already settles the *direction* of the bias. The subtracted
+term $n(\bar x - \mu)^2$ is a square, so it is never negative:
+
+$$\sum_i (x_i - \bar x)^2 \;\le\; \sum_i (x_i - \mu)^2$$
+
+Deviations measured from $\bar x$ never sum to more than deviations
+measured from $\mu$, and they are strictly smaller whenever
+$\bar x \neq \mu$, which is almost always. The reason is that $\bar x$ is
+the *minimizer*: measure the same sample from a general point $c$ and the
+total $\sum_i (x_i - c)^2$ is a parabola in $c$, bottoming out at
+$c = \bar x$.
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 400 220" role="img" aria-label="The sum of squared deviations of the rolls 2, 6 and 3 from a point c, plotted against c: a parabola with its minimum at c equal to x bar, so the value at c equal to mu is higher by n times x bar minus mu squared" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <text x="200" y="18" text-anchor="middle" fill="#6366f1" font-weight="600">Σᵢ (xᵢ − c)², for the rolls 2, 6, 3</text>
+  <line x1="44" y1="32" x2="44" y2="190" stroke="currentColor" opacity="0.5"/>
+  <line x1="44" y1="190" x2="356" y2="190" stroke="currentColor" opacity="0.5"/>
+  <path d="M 50 40 Q 190 280 330 40" fill="none" stroke="#6366f1" stroke-width="2"/>
+  <line x1="44" y1="124.7" x2="190" y2="124.7" stroke="#f59e0b" opacity="0.6" stroke-dasharray="4 4"/>
+  <line x1="44" y1="160" x2="190" y2="160" stroke="#10b981" opacity="0.6" stroke-dasharray="4 4"/>
+  <line x1="114" y1="124.7" x2="114" y2="190" stroke="#f59e0b" opacity="0.6" stroke-dasharray="4 4"/>
+  <line x1="190" y1="160" x2="190" y2="190" stroke="#10b981" opacity="0.6" stroke-dasharray="4 4"/>
+  <line x1="190" y1="124.7" x2="190" y2="160" stroke="#f43f5e" stroke-width="1.5"/>
+  <line x1="186" y1="124.7" x2="194" y2="124.7" stroke="#f43f5e" stroke-width="1.5"/>
+  <line x1="186" y1="160" x2="194" y2="160" stroke="#f43f5e" stroke-width="1.5"/>
+  <text x="190" y="116" text-anchor="middle" fill="#f43f5e" font-size="10.5">n(x̄ − μ)² = 0.08</text>
+  <circle cx="114" cy="124.7" r="3.5" fill="#f59e0b"/>
+  <circle cx="190" cy="160" r="3.5" fill="#10b981"/>
+  <text x="40" y="128.7" text-anchor="end" fill="#f59e0b" font-size="11">8.75</text>
+  <text x="40" y="164" text-anchor="end" fill="#10b981" font-size="11">8.67</text>
+  <text x="114" y="206" text-anchor="middle" fill="#f59e0b">μ = 3.5</text>
+  <text x="190" y="206" text-anchor="middle" fill="#10b981">x̄ ≈ 3.67</text>
+  <text x="364" y="194" fill="currentColor">c</text>
+</svg>
+</div>
+
+*The sum of squared deviations of one sample from a point $c$. The minimum
+sits at $c = \bar x$, where the estimator measures from, so the value at
+the true mean $c = \mu$ is higher by exactly $n(\bar x - \mu)^2$. The
+vertical scale is zoomed to the region around the minimum.*
+
+So $\hat\sigma^2$ is computed from the smallest sum of squared deviations
+the sample admits. The remaining question is how much is lost on average,
+which is what taking expectations answers.
 
 Take expectations of both sides, one term at a time:
 
@@ -871,14 +911,31 @@ does to the expectation (the constant moves outside by linearity):
   exactly. Zero bias. Choosing $n-1$ as the divisor is **Bessel's
   correction**.
 
-Where did one whole $\sigma^2$ go? The identity says the sum measured from
-$\bar x$ falls short of the sum measured from $\mu$ by $n(\bar x - \mu)^2$,
-and in expectation that shortfall is
-$n \cdot \mathrm{Var}(\bar x) = n \cdot \frac{\sigma^2}{n} = \sigma^2$:
-exactly one draw's worth of variance. The cause: $\bar x$ was computed from
-the same sample it is then subtracted from, so it sits closer to these
-particular $x_i$ than $\mu$ does, and the measured deviations come out
-systematically too small.
+**Why the shortfall is exactly one $\sigma^2$.** Three readings of the same
+fact:
+
+- **The accounting.** The identity says the sum measured from $\bar x$
+  falls short of the sum measured from $\mu$ by $n(\bar x - \mu)^2$. In
+  expectation that shortfall is
+  $n \cdot \mathrm{Var}(\bar x) = n \cdot \frac{\sigma^2}{n} = \sigma^2$,
+  one draw's worth of variance, whatever $n$ is.
+- **The cause.** $\bar x$ is computed from the same sample it is then
+  subtracted from, so it sits closer to these particular $x_i$ than $\mu$
+  does. The figure above is this statement: the estimator reads the bottom
+  of the parabola, not its value at $\mu$.
+- **Degrees of freedom.** The $n$ deviations $x_i - \bar x$ are not free to
+  take any values: the diagnosis showed they satisfy one linear constraint,
+  $\sum_i (x_i - \bar x) = 0$. Any $n - 1$ of them determine the last, so
+  the sample supplies $n - 1$ independent deviations, not $n$. Dividing by
+  $n - 1$ averages over the number actually present.
+
+The $n = 1$ case shows all three at once. A single draw gives
+$\bar x = x_1$, so its one deviation is $x_1 - \bar x = 0$:
+
+- The $1/n$ estimator returns $\hat\sigma^2 = 0$, claiming the
+  distribution has no spread on the evidence of one draw.
+- Bessel's divisor $n - 1 = 0$ returns $0/0$, undefined, which is the right
+  answer: one draw carries no information about spread.
 
 #### The tradeoff in ML terms
 
