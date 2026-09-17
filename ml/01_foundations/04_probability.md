@@ -758,37 +758,49 @@ two, $\mathrm{Bias}^2 + \mathrm{Var}$.*
 
 #### Why the 1/n sample variance is biased (Bessel's correction)
 
-**The task.** Variances have been computed several times already, but always
-from a distribution whose probabilities were known in advance: the die's
-$\sigma^2 = \frac{35}{12} \approx 2.92$ from its six equally likely faces
-(§3.1), the Bernoulli's $p(1-p)$ from its two outcomes (§3.4),
-$\mathrm{Var}(\bar X) = \sigma^2/n$ from those (§3.5). The *estimators* so
-far ran the other way, from data to a number, and both of them estimated a
-mean: the coin's $\hat p = h/n$ (§3.3) and the die's $\bar X$ (§3.5).
+**The task.** Someone hands you three rolls, $2, 6, 3$, and says nothing
+about the die. How spread out is the thing that produced them?
 
-This subsection estimates a variance from data: given $n$ draws
-$X_1, \dots, X_n$ and no knowledge of the distribution behind them, how
-spread out is it?
+Nothing so far answers that, because two different kinds of computation
+have appeared and this question needs both at once:
+
+- **Variance, computed from known probabilities.** The die's
+  $\sigma^2 \approx 2.92$ came from its six equally likely faces (§3.1),
+  the Bernoulli's $p(1-p)$ from its two outcomes (§3.4), and
+  $\mathrm{Var}(\bar X) = \sigma^2/n$ from those. Every one started from a
+  distribution that was given.
+- **Estimation, running from data to a number.** The coin's
+  $\hat p = h/n$ (§3.3) and the die's $\bar X$ (§3.5) are formulas applied
+  to a sample. Both estimate a *mean*.
+
+The question above wants a variance, like the first group, out of data
+alone, like the second.
 
 Start from the quantity being estimated. §3.1 defined the variance of one
 draw as the expected squared distance from the mean:
 
 $$\sigma^2 = \mathbb{E}\big[(X - \mu)^2\big], \qquad \mu = \mathbb{E}[X]$$
 
-The right side is built from two operations: squaring the distance
-$X - \mu$ from the true mean, and taking the expectation over draws.
-Neither is available from a sample:
+That definition is computable when the distribution is known. For the die,
+with $\mu = 3.5$ and probability $\frac{1}{6}$ on every face:
 
-- $\mathbb{E}[\cdot]$ averages over *all possible* draws, weighted by their
-  probabilities. A sample has only $n$ actual draws.
-- $\mu$ is the true mean, which is unknown. The die's $\mu = 3.5$ is known
-  only because the distribution is known; that is the situation this
-  section assumes away.
+$$\sigma^2 = \tfrac{1}{6}\Big[(1 - 3.5)^2 + (2 - 3.5)^2 + \dots + (6 - 3.5)^2\Big]
+  = \tfrac{1}{6} \cdot \tfrac{35}{2} = \tfrac{35}{12} \approx 2.92$$
+
+Now look at what that computation used, and what the three rolls give you
+instead:
+
+- It weighted **all six faces** by their probabilities. Three rolls supply
+  three numbers, some faces missing and $6$ appearing once rather than
+  $\frac{1}{6}$ of the time.
+- It subtracted **$\mu = 3.5$**, a number known only because the die was
+  known. Whoever handed over the rolls did not hand over $\mu$.
 
 Replace each with the only sample version available, one at a time:
 
-- The expectation over all draws becomes the average over the $n$ draws in
-  hand: $\mathbb{E}[\,\cdot\,] \to \frac{1}{n}\sum_i (\,\cdot\,)$.
+- The probability-weighted average over all faces becomes the plain average
+  over the $n$ draws in hand:
+  $\mathbb{E}[\,\cdot\,] \to \frac{1}{n}\sum_i (\,\cdot\,)$.
 - The unknown $\mu$ becomes the sample mean
   $\bar X = \frac{1}{n}\sum_i X_i$, which §3.5 opened by showing is an
   unbiased estimate of it.
