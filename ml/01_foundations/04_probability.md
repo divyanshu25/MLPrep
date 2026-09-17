@@ -1333,3 +1333,337 @@ Three places this gets used daily in ML:
   standard errors". The 2 comes from the Gaussian shape the CLT guarantees:
   95% of a Gaussian's probability lies within 2 standard deviations of its
   mean.
+
+## 3.7 Information theory: what the cross-entropy number means
+
+Why this section: §3.3 showed that cross-entropy is the right loss, but not
+what its value means. A training loss of 1.97 nats, a "KL penalty" in RLHF
+(module 7), the floor a smoothed-label loss never crosses, the claim in
+§3.4 that the Gaussian is the maximum-entropy distribution: all of these are
+one small set of definitions, and each follows from the one before.
+
+#### Surprise and entropy
+
+Assign each outcome a **surprise** of $-\log p$, where $p$ is its
+probability. Three properties make this the only sensible choice:
+
+- A certain outcome ($p = 1$) has surprise $-\log 1 = 0$.
+- Rarer outcomes have larger surprise, without bound as $p \to 0$.
+- Two independent outcomes have probability $pq$, and
+  $-\log(pq) = -\log p - \log q$: their surprises add.
+
+Natural logs give **nats**; base-2 logs give **bits**. This file uses nats
+unless stated, since that is what `torch` losses report;
+$1 \text{ nat} = 1/\ln 2 \approx 1.44$ bits.
+
+The **entropy** of a distribution is its expected surprise, §3.1's
+expectation applied to $-\log p(X)$:
+
+$$H(p) = \mathbb{E}[-\log p(X)] = -\sum_x p(x)\log p(x)$$
+
+- Fair die: every face has $p = \tfrac{1}{6}$, so
+  $H = -\sum_x \tfrac{1}{6}\log\tfrac{1}{6} = \log 6 \approx 1.79$ nats, or $2.58$ bits.
+- Fair coin: $H = \log 2$ nats $= 1$ bit.
+- Coin with $p = 0.9$: $H = -(0.9\log 0.9 + 0.1\log 0.1) \approx 0.325$ nats
+  $= 0.469$ bits. Less uncertain than the fair coin, so less entropy.
+
+For a coin, entropy as a function of $p$ has the same shape as §3.4's
+variance parabola, for the same reason: both measure how unpredictable one
+draw is.
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 380 200" role="img" aria-label="Entropy of a coin in bits plotted against its heads probability p: zero at p equals 0 and 1, maximum of one bit at p equals one half" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <text x="180" y="22" text-anchor="middle" fill="#6366f1" font-weight="600">H(p) of a coin, in bits</text>
+  <line x1="40" y1="160" x2="332" y2="160" stroke="currentColor" opacity="0.5"/>
+  <line x1="40" y1="160" x2="40" y2="30" stroke="currentColor" opacity="0.5"/>
+  <line x1="180" y1="160" x2="180" y2="40" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
+  <line x1="40" y1="40" x2="180" y2="40" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
+  <polyline points="40.0,160.0 45.6,143.0 51.2,130.9 56.8,120.7 62.4,111.7 68.0,103.7 73.6,96.5 79.2,89.9 84.8,83.9 90.4,78.4 96.0,73.4 101.6,68.8 107.2,64.6 112.8,60.8 118.4,57.3 124.0,54.2 129.6,51.5 135.2,49.0 140.8,46.9 146.4,45.0 152.0,43.5 157.6,42.2 163.2,41.2 168.8,40.6 174.4,40.1 180.0,40.0 185.6,40.1 191.2,40.6 196.8,41.2 202.4,42.2 208.0,43.5 213.6,45.0 219.2,46.9 224.8,49.0 230.4,51.5 236.0,54.2 241.6,57.3 247.2,60.8 252.8,64.6 258.4,68.8 264.0,73.4 269.6,78.4 275.2,83.9 280.8,89.9 286.4,96.5 292.0,103.7 297.6,111.7 303.2,120.7 308.8,130.9 314.4,143.0 320.0,160.0" fill="none" stroke="#6366f1" stroke-width="2"/>
+  <circle cx="180" cy="40" r="3.5" fill="#6366f1"/>
+  <circle cx="292" cy="103.7" r="3.5" fill="#f59e0b"/>
+  <text x="286" y="122" text-anchor="end" fill="#f59e0b" font-size="10.5">p = 0.9: 0.47 bits</text>
+  <text x="40" y="178" text-anchor="middle" fill="currentColor">0</text>
+  <text x="180" y="178" text-anchor="middle" fill="currentColor">1/2</text>
+  <text x="320" y="178" text-anchor="middle" fill="currentColor">1</text>
+  <text x="344" y="164" fill="currentColor">p</text>
+  <text x="34" y="44" text-anchor="end" fill="currentColor">1</text>
+</svg>
+</div>
+
+*Entropy of one coin flip as $p$ sweeps from 0 to 1. The fair coin is the
+hardest to predict and carries the most entropy, exactly one bit.*
+
+#### Cross-entropy and KL divergence
+
+Now two distributions over the same outcomes: $q$, the truth, and $p$, a
+model of it. The **cross-entropy** is the expected surprise when outcomes
+are drawn from $q$ but scored by $p$:
+
+$$H(q, p) = \mathbb{E}_{x \sim q}[-\log p(x)] = -\sum_x q(x)\log p(x)$$
+
+This is §3.3's loss: there $q$ was the one-hot label and $p$ the model's
+softmax output. The **KL divergence** is the extra surprise caused by
+scoring with the wrong distribution:
+
+$$\mathrm{KL}(q \,\|\, p) = \sum_x q(x)\log\frac{q(x)}{p(x)}$$
+
+Split the log, $\log\frac{q}{p} = \log q - \log p$, and the sum separates
+into two pieces already defined:
+
+$$\mathrm{KL}(q \,\|\, p) = \sum_x q(x)\log q(x) - \sum_x q(x)\log p(x)
+  = -H(q) + H(q, p)$$
+
+$$H(q, p) = H(q) + \mathrm{KL}(q \,\|\, p)$$
+
+Check on numbers, $q = [0.5, 0.5]$ and $p = [0.9, 0.1]$:
+
+- $H(q) = \log 2 = 0.693$
+- $\mathrm{KL}(q\|p) = 0.5\log\frac{0.5}{0.9} + 0.5\log\frac{0.5}{0.1} = 0.5(-0.588) + 0.5(1.609) = 0.511$
+- $H(q, p) = -(0.5\log 0.9 + 0.5\log 0.1) = 1.204 = 0.693 + 0.511$
+
+#### KL is never negative, and everything that follows from it
+
+The one inequality this section needs is $\log x \le x - 1$ for every
+$x > 0$: the line $x - 1$ is tangent to $\log x$ at $x = 1$ and lies above
+it everywhere else. (Proof: $f(x) = x - 1 - \log x$ has $f(1) = 0$,
+$f'(x) = 1 - 1/x$, which is zero only at $x = 1$, and $f''(x) = 1/x^2 > 0$,
+so $x = 1$ is the minimum and $f \ge 0$.) Apply it inside $-\mathrm{KL}$
+with $x = p/q$:
+
+$$-\mathrm{KL}(q \,\|\, p) = \sum_x q(x)\log\frac{p(x)}{q(x)}
+  \;\le\; \sum_x q(x)\Big(\frac{p(x)}{q(x)} - 1\Big)
+  = \sum_x p(x) - \sum_x q(x) = 1 - 1 = 0$$
+
+So $\mathrm{KL}(q\|p) \ge 0$, with equality only when $p = q$ (the tangent
+line touches only at $x = 1$, i.e. $p(x) = q(x)$ everywhere). This is
+**Gibbs' inequality**, and three facts used daily are corollaries:
+
+- **The loss has a floor.** From the identity, $H(q, p) \ge H(q)$: the
+  cross-entropy can never go below the entropy of the labels, and reaches
+  it only when the model reproduces $q$ exactly. With one-hot labels
+  $H(q) = 0$, so the floor is 0. With label smoothing
+  $q = [0.9, 0.05, 0.05]$ the floor is
+  $H(q) = -(0.9\log 0.9 + 2 \cdot 0.05\log 0.05) \approx 0.394$ nats, which
+  is why a smoothed training loss plateaus above zero even when the model
+  is right on every example.
+- **The uniform distribution has the most entropy.** Let $u$ be uniform
+  over $K$ outcomes, $u(x) = 1/K$. Then
+  $\mathrm{KL}(q\|u) = \sum_x q(x)\log q(x) - \sum_x q(x)\log\tfrac{1}{K} = -H(q) + \log K \ge 0$,
+  so $H(q) \le \log K$ for every $q$, with equality only at $q = u$. The
+  die's $\log 6$ is the most any six-outcome variable can have.
+- **KL is not symmetric.** Swap the two distributions above:
+  $\mathrm{KL}(p\|q) = 0.9\log\frac{0.9}{0.5} + 0.1\log\frac{0.1}{0.5} = 0.368 \ne 0.511$.
+  The direction matters in practice. Minimizing $\mathrm{KL}(q\|p)$ over $p$
+  charges heavily wherever $q$ has mass and $p$ does not (the
+  $\log\frac{q}{p}$ blows up), so $p$ spreads to cover all of $q$.
+  Minimizing $\mathrm{KL}(p\|q)$ charges wherever $p$ has mass and $q$ does
+  not, so $p$ concentrates on one mode of $q$ and ignores the rest.
+
+#### Where these appear in ML
+
+- **MLE minimizes a KL.** Let $q$ be the data distribution and $p_\theta$
+  the model. The average negative log-likelihood over $n$ samples is a
+  sample average of $-\log p_\theta(x)$ under $q$, so by §3.6 it
+  approximates $H(q, p_\theta) = H(q) + \mathrm{KL}(q\|p_\theta)$. The first
+  term has no $\theta$ in it. So maximizing likelihood is choosing the
+  model closest to the data in $\mathrm{KL}(q\|p_\theta)$: the covering
+  direction, which is why an MLE-trained model spreads probability over
+  every mode the data has.
+- **RLHF's KL penalty** (module 7, §3.2) is $\mathrm{KL}(\pi_\theta\|\pi_{ref})$,
+  the other direction: the fine-tuned policy is charged wherever it puts
+  mass the reference would not, so it can sharpen but not wander.
+- **Knowledge distillation** trains a student on $H(p_{teacher}, p_{student})$
+  instead of one-hot labels: the floor is now $H(p_{teacher}) > 0$, and the
+  student learns the teacher's uncertainty, not just its argmax.
+
+#### Mutual information
+
+For two random variables, how much does knowing one tell you about the
+other? Compare the joint distribution to what it would be under
+independence:
+
+$$I(X; Y) = \mathrm{KL}\big(p(x, y) \,\|\, p(x)\,p(y)\big) = \sum_{x, y} p(x, y)\log\frac{p(x, y)}{p(x)\,p(y)}$$
+
+By Gibbs' inequality $I \ge 0$, and $I = 0$ exactly when
+$p(x, y) = p(x)p(y)$, which is §3.1's definition of independence. Splitting
+the log as before gives the reading in terms of entropies:
+
+$$I(X; Y) = H(X) - H(X \mid Y)$$
+
+the uncertainty in $X$ minus what remains once $Y$ is known. In ML it
+appears as the quantity feature selection ranks by, and as what the InfoNCE
+contrastive loss (module 4) is a lower bound on.
+
+#### Entropy of a Gaussian, and why it is the maximum
+
+For a density the sum becomes an integral, $H(p) = -\int p(x)\log p(x)\,dx$.
+For $\mathcal{N}(\mu, \sigma^2)$, §3.4 already computed $-\log p(x)$, so
+take its expectation and use $\mathbb{E}[(X - \mu)^2] = \sigma^2$:
+
+$$H = \mathbb{E}\Big[\frac{(X-\mu)^2}{2\sigma^2} + \tfrac{1}{2}\log(2\pi\sigma^2)\Big]
+  = \frac{\sigma^2}{2\sigma^2} + \tfrac{1}{2}\log(2\pi\sigma^2)
+  = \tfrac{1}{2}\log(2\pi e\sigma^2)$$
+
+It grows with $\sigma$ and does not depend on $\mu$: shifting a bell does
+not change how unpredictable it is. For $\sigma = 2$, $H \approx 2.11$ nats.
+
+This also proves §3.4's second reason for the Gaussian. Take *any* density
+$p$ with mean $\mu$ and variance $\sigma^2$, and let $g$ be the Gaussian
+with the same two numbers. The cross-entropy $H(p, g)$ needs only
+$\mathbb{E}_p[(X-\mu)^2] = \sigma^2$, which $p$ shares with $g$, so the
+computation above goes through unchanged and $H(p, g) = H(g)$. Then Gibbs:
+
+$$0 \le \mathrm{KL}(p \,\|\, g) = H(p, g) - H(p) = H(g) - H(p)$$
+
+So $H(p) \le H(g)$: among all distributions with a given mean and variance,
+the Gaussian has the largest entropy. Assuming Gaussian noise when only the
+mean and variance are known is assuming nothing beyond those two numbers.
+
+## 3.8 Hypothesis tests: is the difference real?
+
+Why this section: §3.6 gave every sample average an error bar. Interviews
+ask the follow-up question. Model A scores 91.2% and model B 90.5% on the
+same 1,000 test examples; is A better? Variant B of a checkout page
+converts 2.3% of 50,000 users against 2.1% for variant A; ship it? A
+hypothesis test turns the error bar into a yes-or-no procedure with a
+number attached, and the vocabulary (null hypothesis, p-value, power) is
+expected at every company.
+
+#### The procedure
+
+- **State the null hypothesis** $H_0$: there is no real difference, and the
+  observed gap is sampling noise. Everything below is computed *assuming*
+  $H_0$ is true.
+- **Compute the test statistic**: the observed gap divided by its standard
+  error under $H_0$, $z = \text{gap} / \mathrm{SE}$. It counts how many
+  standard errors the gap is from zero. By §3.6's CLT, $z$ is
+  approximately $\mathcal{N}(0, 1)$ when $H_0$ holds.
+- **Compute the p-value**: the probability, under $H_0$, of a gap at least
+  as large as the one observed, in either direction:
+  $p = P(|Z| \ge |z|)$ for $Z \sim \mathcal{N}(0,1)$.
+- **Decide** by comparing to a threshold $\alpha$ chosen in advance,
+  conventionally $0.05$: if $p < \alpha$, reject $H_0$ and call the
+  difference **statistically significant**.
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 400 190" role="img" aria-label="Standard normal curve with both tails beyond plus and minus 2.16 shaded; the shaded area is the two-sided p-value of 0.031" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <text x="200" y="22" text-anchor="middle" fill="#6366f1" font-weight="600">distribution of z under H₀</text>
+  <polygon points="291.8,148.4 296.1,150.7 300.3,152.6 304.6,154.2 308.8,155.5 313.1,156.5 317.3,157.3 321.6,158.0 325.8,158.5 330.1,158.9 334.3,159.2 338.6,159.4 342.8,159.6 347.1,159.7 351.3,159.8 355.6,159.9 359.8,159.9 364.1,159.9 368.3,160.0 370.0,160 291.8,160" fill="#f43f5e" fill-opacity="0.35" stroke="none"/>
+  <polygon points="108.2,148.4 103.9,150.7 99.7,152.6 95.5,154.2 91.2,155.5 86.9,156.5 82.7,157.3 78.4,158.0 74.2,158.5 69.9,158.9 65.7,159.2 61.4,159.4 57.2,159.6 52.9,159.7 48.7,159.8 44.4,159.9 40.2,159.9 35.9,159.9 31.7,160.0 30.0,160 108.2,160" fill="#f43f5e" fill-opacity="0.35" stroke="none"/>
+  <polyline points="30.0,160.0 34.2,159.9 38.5,159.9 42.8,159.9 47.0,159.8 51.2,159.7 55.5,159.6 59.8,159.5 64.0,159.3 68.2,159.0 72.5,158.7 76.8,158.2 81.0,157.6 85.2,156.9 89.5,155.9 93.8,154.7 98.0,153.3 102.3,151.5 106.5,149.4 110.8,146.8 115.0,143.8 119.2,140.3 123.5,136.3 127.8,131.8 132.0,126.7 136.2,121.1 140.5,115.1 144.8,108.6 149.0,101.7 153.2,94.6 157.5,87.4 161.8,80.2 166.0,73.1 170.2,66.3 174.5,60.0 178.8,54.4 183.0,49.5 187.2,45.6 191.5,42.7 195.8,40.9 200.0,40.3 204.2,40.9 208.5,42.7 212.8,45.6 217.0,49.5 221.2,54.4 225.5,60.0 229.8,66.3 234.0,73.1 238.2,80.2 242.5,87.4 246.8,94.6 251.0,101.7 255.2,108.6 259.5,115.1 263.8,121.1 268.0,126.7 272.2,131.8 276.5,136.3 280.8,140.3 285.0,143.8 289.2,146.8 293.5,149.4 297.8,151.5 302.0,153.3 306.2,154.7 310.5,155.9 314.8,156.9 319.0,157.6 323.2,158.2 327.5,158.7 331.8,159.0 336.0,159.3 340.2,159.5 344.5,159.6 348.8,159.7 353.0,159.8 357.2,159.9 361.5,159.9 365.8,159.9 370.0,160.0" fill="none" stroke="#6366f1" stroke-width="2"/>
+  <line x1="30" y1="160" x2="370" y2="160" stroke="currentColor" opacity="0.5"/>
+  <line x1="291.8" y1="160" x2="291.8" y2="70" stroke="#f43f5e" stroke-dasharray="4 4"/>
+  <line x1="108.2" y1="160" x2="108.2" y2="70" stroke="#f43f5e" stroke-dasharray="4 4"/>
+  <text x="200" y="176" text-anchor="middle" fill="currentColor">0</text>
+  <text x="291.8" y="176" text-anchor="middle" fill="#f43f5e">z = 2.16</text>
+  <text x="108.2" y="176" text-anchor="middle" fill="#f43f5e">−2.16</text>
+  <text x="300" y="64" fill="#f43f5e" font-size="10.5">shaded: p = 0.031</text>
+</svg>
+</div>
+
+*The A/B test below lands at $z = 2.16$. The p-value is the shaded area,
+the probability that noise alone would push $z$ that far from zero in
+either direction.*
+
+#### Two proportions, derived
+
+Both opening questions compare two rates. Write $\hat p_A = k_A / n_A$ and
+$\hat p_B = k_B / n_B$ for the observed rates. Each is a Bernoulli sample
+mean (§3.4, §3.6), so each has variance $p(1-p)/n$, and the two are
+computed from separate users, so they are independent and §3.1's additivity
+gives the variance of their difference:
+
+$$\mathrm{Var}(\hat p_B - \hat p_A) = \frac{p_B(1-p_B)}{n_B} + \frac{p_A(1-p_A)}{n_A}$$
+
+Under $H_0$ the two true rates are the same number $p$, estimated by
+pooling all the successes: $\hat p = (k_A + k_B)/(n_A + n_B)$. The
+standard error and the statistic are
+
+$$\mathrm{SE} = \sqrt{\hat p(1-\hat p)\Big(\frac{1}{n_A} + \frac{1}{n_B}\Big)},
+  \qquad z = \frac{\hat p_B - \hat p_A}{\mathrm{SE}}$$
+
+**The A/B test.** $n_A = n_B = 50{,}000$, rates $0.021$ and $0.023$. Pooled
+$\hat p = 0.022$, so
+
+$$\mathrm{SE} = \sqrt{0.022 \cdot 0.978 \cdot \tfrac{2}{50{,}000}} \approx 0.000928,
+  \qquad z = \frac{0.002}{0.000928} \approx 2.16$$
+
+Two-sided p-value: $P(|Z| \ge 2.16) \approx 0.031 < 0.05$. Statistically
+significant, with the caveats below.
+
+**The two models.** The naive computation treats the accuracies as
+independent rates:
+
+$$\mathrm{SE} = \sqrt{\tfrac{0.912 \cdot 0.088}{1000} + \tfrac{0.905 \cdot 0.095}{1000}} \approx 0.0129,
+  \qquad z = \frac{0.007}{0.0129} \approx 0.54, \qquad p \approx 0.59$$
+
+Nowhere near significant: a 0.7-point gap on 1,000 examples is within
+noise, as §3.6's error bar already suggested. This computation is also the
+wrong one in detail, because both models were scored on the *same* 1,000
+examples, so the two accuracies are not independent. The paired version
+(McNemar's test) uses only the examples the models disagree on: if A is
+right and B wrong on $b$ examples and the reverse on $c$, then under $H_0$
+each disagreement is a fair coin and $z = (b - c)/\sqrt{b + c}$. For a
+7-example gap to be significant, $b - c = 7$ needs
+$\sqrt{b + c} \le 7/1.96$, i.e. at most 12 disagreements in total. With
+hundreds of disagreements, as is typical, the gap is noise.
+
+#### What a p-value is not
+
+The p-value is $P(\text{data at least this extreme} \mid H_0)$. It is not
+$P(H_0 \mid \text{data})$, the probability that there is no real effect.
+Turning the first into the second is §3.2's problem: it needs a prior on
+how often tested changes are real, and Bayes rule. A team that tests many
+long-shot ideas will find that most of its $p < 0.05$ results are false
+positives, exactly as most positive tests in §3.2's rare-disease example
+were false positives. The p-value on its own cannot tell you which case
+you are in.
+
+#### Errors, power and sample size
+
+Two ways the decision can go wrong:
+
+- **Type I error**: rejecting $H_0$ when it is true, a false positive. Its
+  probability is $\alpha$ by construction: under $H_0$, $p < \alpha$
+  happens $\alpha$ of the time.
+- **Type II error**: failing to reject $H_0$ when a real effect of size
+  $\delta$ exists, a miss. Its probability is called $\beta$, and
+  $1 - \beta$ is the test's **power**.
+
+Power is what decides sample size. To reject at $\alpha = 0.05$ the
+observed gap must exceed $1.96\,\mathrm{SE}$. For a real effect $\delta$ to
+clear that bar 80% of the time, $\delta$ must sit $0.84\,\mathrm{SE}$ above
+it (the 80th percentile of a Gaussian is $0.84$ standard deviations above
+its mean). So the requirement is
+$\delta \ge (1.96 + 0.84)\,\mathrm{SE} = 2.8\,\mathrm{SE}$. With
+$\mathrm{SE} \approx \sqrt{2p(1-p)/n}$ for equal groups, solve for $n$:
+
+$$n \;\ge\; \frac{2 \cdot 2.8^2 \cdot p(1-p)}{\delta^2} \quad\text{per group}$$
+
+For the checkout test, $p \approx 0.022$ and the lift worth detecting is
+$\delta = 0.002$:
+
+$$n \ge \frac{2 \cdot 7.84 \cdot 0.022 \cdot 0.978}{0.002^2} \approx 84{,}000 \text{ per group}$$
+
+The test above ran 50,000 per group, so it was underpowered for the effect
+it found. It happened to reach $p = 0.031$, but a test at that size would
+miss a real 0.2-point lift more often than it caught it, and the lifts it
+does catch are biased upward, since only the samples that happened to
+overshoot clear the bar.
+
+#### Two ways to fool yourself
+
+- **Multiple comparisons.** Test 20 metrics at $\alpha = 0.05$ and, even if
+  nothing is real, the chance at least one comes out significant is
+  $1 - 0.95^{20} \approx 0.64$. Either decide the one primary metric in
+  advance, or divide $\alpha$ by the number of tests (Bonferroni).
+- **Peeking.** Checking the p-value daily and stopping the first time it
+  dips under $0.05$ is many tests disguised as one, and inflates the false
+  positive rate the same way. Fix the sample size in advance from the power
+  calculation, or use a sequential test designed for repeated looks.
+
+Confidence intervals say the same thing in a form that also conveys size:
+the 95% interval for the gap is $\text{gap} \pm 1.96\,\mathrm{SE}$, and it
+excludes 0 exactly when the two-sided $p < 0.05$. For the A/B test that is
+$0.002 \pm 0.0018$, so the lift is somewhere between $0.02$ and $0.38$
+points: significant, and still almost unknown in size.
