@@ -260,6 +260,66 @@ literally the geometry of corners. In $d$ dimensions the L1 ball's corners
 and edges lie on coordinate subspaces (many weights exactly zero), and
 contact on them is the norm, not the exception.
 
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 580 240" role="img" aria-label="Two panels. Left: the L1 budget is a diamond with corners on the axes; the smallest loss contour around the optimum (2, 0.8) touches it at the corner (1, 0), where w2 is zero. Right: the L2 budget is a disk; the contour touches it at (0.93, 0.37), where both weights are nonzero." style="max-width:600px;width:100%;height:auto;font-size:11px;font-family:inherit">
+  <defs>
+    <marker id="q5-ax" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" fill-opacity="0.5"/></marker>
+  </defs>
+  <g fill="currentColor" text-anchor="middle" font-size="12">
+    <text x="140" y="14">L1 budget: |w&#8321;| + |w&#8322;| &#8804; 1</text>
+    <text x="430" y="14">L2 budget: w&#8321;&#178; + w&#8322;&#178; &#8804; 1</text>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.5">
+    <line x1="15" y1="150" x2="268" y2="150" marker-end="url(#q5-ax)"/>
+    <line x1="85" y1="212" x2="85" y2="30" marker-end="url(#q5-ax)"/>
+    <line x1="305" y1="150" x2="558" y2="150" marker-end="url(#q5-ax)"/>
+    <line x1="375" y1="212" x2="375" y2="30" marker-end="url(#q5-ax)"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.7">
+    <text x="258" y="166">w&#8321;</text>
+    <text x="93" y="38">w&#8322;</text>
+    <text x="548" y="166">w&#8321;</text>
+    <text x="383" y="38">w&#8322;</text>
+  </g>
+  <polygon points="140,150 85,95 30,150 85,205" fill="#6366f1" fill-opacity="0.15" stroke="#6366f1" stroke-width="1.5"/>
+  <circle cx="375" cy="150" r="55" fill="#6366f1" fill-opacity="0.15" stroke="#6366f1" stroke-width="1.5"/>
+  <g fill="none" stroke="#10b981" stroke-width="1.5">
+    <circle cx="195" cy="106" r="70.4"/>
+    <circle cx="485" cy="106" r="63.5"/>
+  </g>
+  <g fill="none" stroke="#10b981" stroke-dasharray="3 3">
+    <circle cx="195" cy="106" r="33"/>
+    <circle cx="485" cy="106" r="33"/>
+  </g>
+  <g fill="currentColor">
+    <circle cx="195" cy="106" r="3.5"/>
+    <circle cx="485" cy="106" r="3.5"/>
+  </g>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="195" y="96">(2, 0.8)</text>
+    <text x="485" y="96">(2, 0.8)</text>
+  </g>
+  <g stroke="#f43f5e" stroke-opacity="0.7">
+    <line x1="140" y1="156" x2="140" y2="216"/>
+    <line x1="426.1" y1="136" x2="426.1" y2="216"/>
+  </g>
+  <g fill="#f43f5e">
+    <circle cx="140" cy="150" r="4.5"/>
+    <circle cx="426.1" cy="129.6" r="4.5"/>
+  </g>
+  <g fill="#f43f5e" text-anchor="middle">
+    <text x="140" y="230">(1, 0): w&#8322; = 0 exactly</text>
+    <text x="426" y="230">(0.93, 0.37): both nonzero</text>
+  </g>
+</svg>
+</div>
+
+*The simplest case: loss $\|w - (2, 0.8)\|^2$, whose contours are circles
+around $(2, 0.8)$ (green; dashed is a smaller level), with budget $t = 1$.
+Left: the smallest contour that reaches the diamond touches it at the corner
+$(1, 0)$, so $w_2 = 0$ exactly. Right: it touches the disk at
+$(2, 0.8)/\|(2, 0.8)\| = (0.93, 0.37)$, both weights shrunk, neither zero.*
+
 **Calculus view (1-D, concrete).** Minimize $f(w) = (w - a)^2 + \lambda|w|$.
 For $w > 0$: $f' = 2(w - a) + \lambda = 0 \Rightarrow w = a - \lambda/2$.
 Valid only if $a > \lambda/2$. Symmetrically for $w<0$. Otherwise the optimum
