@@ -274,26 +274,37 @@ spikes or NaN mean exploding.
 
 <details><summary>Model answer</summary>
 
-Expand the square, $w^\top X^\top X w - 2y^\top X w + y^\top y$, and
-differentiate term by term with $\nabla(w^\top A w) = 2Aw$ and
-$\nabla(c^\top w) = c$:
+Start with one feature: fit $y \approx wx$ through the points $(1, 1)$,
+$(2, 2)$, $(3, 2)$. The loss is the sum of squared errors, and its
+derivative is ordinary calculus:
 
-$$\nabla_w \|Xw - y\|^2 = 2X^\top(Xw - y)$$
+$$L(w) = \sum_i (w x_i - y_i)^2, \qquad \frac{dL}{dw} = 2\sum_i x_i\,(w x_i - y_i)$$
 
-Setting it to zero gives the normal equations $X^\top X w = X^\top y$: the
-closed-form least-squares solution. In code, solve the system rather than
-forming the inverse:
+Set it to zero and solve:
+
+$$w = \frac{\sum_i x_i y_i}{\sum_i x_i^2} = \frac{1 + 4 + 6}{1 + 4 + 9} = \frac{11}{14} \approx 0.786$$
+
+The matrix formula is the same computation. Stack the $x_i$ as the rows of
+$X$ and the $y_i$ into $y$:
 
 ```python
-w = np.linalg.solve(X.T @ X, X.T @ y)
+err  = X @ w - y        # one error per data point
+grad = 2 * X.T @ err    # sum of x_i * error_i: one number per weight
 ```
 
-**If asked:**
+So $\nabla_w \|Xw - y\|^2 = 2X^\top(Xw - y)$, and with many features $X$
+simply has more columns. Setting it to zero gives the normal equations,
+$X^\top X\, w = X^\top y$, the matrix version of
+$w = \sum x_i y_i / \sum x_i^2$:
 
-- *Geometric meaning?* $X^\top(y - Xw) = 0$: the residual is perpendicular
-  to every column of $X$, so $Xw$ is the projection of $y$ onto their span.
-- *What if $X^\top X$ is singular?* Collinear features. Ridge solves
-  $(X^\top X + \lambda I)\,w = X^\top y$, invertible for any $\lambda > 0$.
+```python
+w = np.linalg.solve(X.T @ X, X.T @ y)    # 0.786
+```
+
+**If asked:** *What if $X^\top X$ is not invertible?* That happens when
+features are copies or combinations of each other. Ridge adds $\lambda I$:
+$(X^\top X + \lambda I)\,w = X^\top y$ always has a solution for
+$\lambda > 0$.
 </details>
 
 ## Probability & statistics
