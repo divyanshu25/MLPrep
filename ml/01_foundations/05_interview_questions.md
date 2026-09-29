@@ -231,91 +231,38 @@ backward line above does 4,096 multiplications.
 
 <details><summary>Model answer</summary>
 
-Start with the smallest deep network: a chain of layers that each hold one
-number, $z_l = w_l h_{l-1}$ and $h_l = f(z_l)$. The chain rule from the top
-back to the input is a product with one factor per layer:
+Take a chain of layers that each hold one number, $z_l = w_l h_{l-1}$ and
+$h_l = f(z_l)$. The chain rule back to the input multiplies one factor per
+layer:
 
 $$\frac{\partial h_D}{\partial h_0} = \prod_{l=1}^{D} w_l\, f'(z_l)$$
 
-A product of $D$ numbers is exponential in $D$. Factors slightly below 1
-make it vanish, factors slightly above 1 make it explode:
+A product of many factors is exponential in depth:
 
 ```python
-0.9 ** 50      # 0.005
-1.1 ** 50      # 117
-0.25 ** 10     # 1e-6   ten sigmoid layers: sigmoid's slope is at most 0.25
+0.9 ** 50      # 0.005   vanishes
+1.1 ** 50      # 117     explodes
+0.25 ** 10     # 1e-6    ten sigmoids: sigmoid's slope is at most 0.25
 ```
 
-In a real network each factor is a matrix, and the backward step through
-one layer is `g = W.T @ (g * f'(z))`. What matters is how much that step
-scales the length of `g`. Measure it on 50 ReLU layers of width 512, with
-weights drawn at three different scales:
+In a real network each factor is a matrix, `W.T @ (g * f'(z))`, and the
+gradient's length behaves the same way. An RNN reuses exactly the same $W$
+at every time step; the tanh slope varies per step but is at most 1, so if
+$W$'s largest singular value is below 1, the gradient is guaranteed to
+vanish over a long sequence.
 
-```python
-def grad_ratio(gain, depth=50, width=512):
-    h, layers = np.random.randn(width), []
-    for _ in range(depth):                        # forward
-        W = np.random.randn(width, width) * gain / np.sqrt(width)
-        z = W @ h
-        h = np.maximum(0, z)
-        layers.append((W, z))
-    g = np.random.randn(width)                    # gradient arriving at the top
-    top = np.linalg.norm(g)
-    for W, z in reversed(layers):                 # backward: one factor per layer
-        g = W.T @ (g * (z > 0))
-    return np.linalg.norm(g) / top                # size at layer 1 relative to the top
+Fixes, each keeping the factor near 1:
 
-grad_ratio(1.0)           # ~3e-8   vanishes
-grad_ratio(np.sqrt(2))    # ~0.5    stays near 1
-grad_ratio(2.0)           # ~3e7    explodes
-```
+- Kaiming/Xavier init: weight scale chosen so each factor is about 1 at the start
+- ReLU: slope 1 where active, instead of sigmoid's 0.25 at most
+- LayerNorm/BatchNorm: activations stay at unit scale during training
+- Residual connections: $h + F(h)$ has factor $I + \partial F/\partial h$, so an identity path always exists
+- LSTM forget gate near 1: the same identity path, through time
+- Gradient clipping: limits explosion only
 
-The numbers follow from the factor. ReLU zeroes about half the entries, so
-each backward step scales the gradient by about $\text{gain}/\sqrt{2}$:
-$(1/\sqrt{2})^{50} \approx 3 \times 10^{-8}$ and
-$(\sqrt{2})^{50} \approx 3 \times 10^{7}$.
-
-A recurrent net, $h_t = \tanh(W h_{t-1} + U x_t)$, is the same product taken
-over time steps. The weight matrix $W$ is exactly the same at every step.
-The factor is not, because it includes the tanh slope at that step:
-
-```python
-g = W.T @ (g * (1 - h_t**2))    # backward through step t; 1 - h_t**2 is tanh' at step t
-```
-
-The slope $1 - h_t^2$ depends on the input at step $t$, so it changes from
-step to step, but it is never above 1. So each step scales the gradient by
-at most $\sigma_{\max}(W)$, the largest singular value of $W$. If
-$\sigma_{\max}(W) = 0.95$, then after 100 steps the gradient is at most
-$0.95^{100} \approx 0.006$ of its size: vanishing is guaranteed. If
-$\sigma_{\max}(W) > 1$, exploding is possible but not guaranteed, because
-the tanh slopes can still shrink the product.
-
-Each fix acts on the factor:
-
-- **Initialization.** Choose the scale so each factor is about 1 at the
-  start: gain $\sqrt{2}$ for ReLU (Kaiming, the middle line above), Xavier
-  for tanh.
-- **Activation.** ReLU's slope is 1 where it is active; sigmoid's is at most
-  0.25.
-- **Normalization** (LayerNorm, BatchNorm). Rescales activations at every
-  layer, so the factors stay near 1 throughout training, not only at
-  initialization.
-- **Residual connections.** $h_l = h_{l-1} + F(h_{l-1})$ makes the factor
-  $I + \partial F/\partial h$. The gradient then has a path that is
-  multiplied by the identity at every layer, so it reaches layer 1 even when
-  the $\partial F/\partial h$ terms are small.
-- **LSTM gating.** Along the cell state $c_t = f_t \odot c_{t-1} + \dots$
-  the factor is the forget gate $f_t$, which the network can keep near 1:
-  the recurrent version of the residual path.
-- **Gradient clipping.** If $\|g\|$ exceeds a threshold, rescale $g$ to that
-  threshold. It keeps one exploding gradient from producing a huge weight
-  update, and does nothing for vanishing.
-
-**If asked:** *How would you detect it?* Log the gradient norm of each layer
-during training, as `grad_ratio` does. Vanishing shows as early layers with
-norms orders of magnitude below the late layers; exploding shows as loss
-spikes or NaN.
+**If asked:** *How do you detect it?* Log each layer's gradient norm.
+Early layers orders of magnitude below late ones means vanishing; loss
+spikes or NaN mean exploding.
 </details>
 
 ---
