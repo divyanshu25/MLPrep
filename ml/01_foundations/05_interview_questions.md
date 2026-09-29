@@ -245,8 +245,11 @@ A product of many factors is exponential in depth:
 0.25 ** 10     # 1e-6    ten sigmoids: sigmoid's slope is at most 0.25
 ```
 
-In a real network each factor is a matrix, `W.T @ (g * f'(z))`, and the
-gradient's length behaves the same way. An RNN reuses exactly the same $W$
+In a real network, a layer is $z = W h_{\text{prev}}$, $h = f(z)$, and the
+backward step through it is `W.T @ (g * f'(z))`: take the upstream
+gradient $g = \partial L/\partial h$, multiply elementwise by the
+activation's slope $f'(z)$, then by $W^\top$. That is the matrix version
+of $w_l f'(z_l)$, and the gradient's length behaves the same way. An RNN reuses exactly the same $W$
 at every time step; the tanh slope varies per step but is at most 1, so if
 $W$'s largest singular value is below 1, the gradient is guaranteed to
 vanish over a long sequence.
