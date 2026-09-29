@@ -273,9 +273,23 @@ grad_ratio(2.0)           # ~3e7    explodes
 The numbers follow from the factor. ReLU zeroes about half the entries, so
 each backward step scales the gradient by about $\text{gain}/\sqrt{2}$:
 $(1/\sqrt{2})^{50} \approx 3 \times 10^{-8}$ and
-$(\sqrt{2})^{50} \approx 3 \times 10^{7}$. A recurrent net is the same
-product over time steps, with the same $W$ at every step, so the factor is
-roughly the same each step: 0.95 per step over 100 steps gives 0.006.
+$(\sqrt{2})^{50} \approx 3 \times 10^{7}$.
+
+A recurrent net, $h_t = \tanh(W h_{t-1} + U x_t)$, is the same product taken
+over time steps. The weight matrix $W$ is exactly the same at every step.
+The factor is not, because it includes the tanh slope at that step:
+
+```python
+g = W.T @ (g * (1 - h_t**2))    # backward through step t; 1 - h_t**2 is tanh' at step t
+```
+
+The slope $1 - h_t^2$ depends on the input at step $t$, so it changes from
+step to step, but it is never above 1. So each step scales the gradient by
+at most $\sigma_{\max}(W)$, the largest singular value of $W$. If
+$\sigma_{\max}(W) = 0.95$, then after 100 steps the gradient is at most
+$0.95^{100} \approx 0.006$ of its size: vanishing is guaranteed. If
+$\sigma_{\max}(W) > 1$, exploding is possible but not guaranteed, because
+the tanh slopes can still shrink the product.
 
 Each fix acts on the factor:
 
