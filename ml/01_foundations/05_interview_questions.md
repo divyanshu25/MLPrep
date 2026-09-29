@@ -231,26 +231,77 @@ backward line above does 4,096 multiplications.
 
 <details><summary>Model answer</summary>
 
-The backward pass multiplies the gradient by one factor (a Jacobian) per
-layer. Repeated multiplication is exponential:
+Start with the smallest deep network: a chain of layers that each hold one
+number, $z_l = w_l h_{l-1}$ and $h_l = f(z_l)$. The chain rule from the top
+back to the input is a product with one factor per layer:
+
+$$\frac{\partial h_D}{\partial h_0} = \prod_{l=1}^{D} w_l\, f'(z_l)$$
+
+A product of $D$ numbers is exponential in $D$. Factors slightly below 1
+make it vanish, factors slightly above 1 make it explode:
 
 ```python
-0.9 ** 50      # 0.005   factors slightly below 1, 50 layers: vanishes
-1.1 ** 50      # 117     factors slightly above 1: explodes
-0.25 ** 10     # 1e-6    ten sigmoids; 0.25 is the largest sigmoid slope
+0.9 ** 50      # 0.005
+1.1 ** 50      # 117
+0.25 ** 10     # 1e-6   ten sigmoid layers: sigmoid's slope is at most 0.25
 ```
 
-An RNN applies the same weight matrix at every time step, so over a long
-sequence it is the same repeated product.
+In a real network each factor is a matrix, and the backward step through
+one layer is `g = W.T @ (g * f'(z))`. What matters is how much that step
+scales the length of `g`. Measure it on 50 ReLU layers of width 512, with
+weights drawn at three different scales:
 
-Fixes:
+```python
+def grad_ratio(gain, depth=50, width=512):
+    h, layers = np.random.randn(width), []
+    for _ in range(depth):                        # forward
+        W = np.random.randn(width, width) * gain / np.sqrt(width)
+        z = W @ h
+        h = np.maximum(0, z)
+        layers.append((W, z))
+    g = np.random.randn(width)                    # gradient arriving at the top
+    top = np.linalg.norm(g)
+    for W, z in reversed(layers):                 # backward: one factor per layer
+        g = W.T @ (g * (z > 0))
+    return np.linalg.norm(g) / top                # size at layer 1 relative to the top
 
-- residual connections: $h + F(h)$ has Jacobian $I + \partial F/\partial h$,
-  so there is always a path with factor 1
-- Xavier/Kaiming initialization and normalization layers: factors near 1
-- ReLU instead of sigmoid: slope 1 on the active side
-- gradient clipping (explosion only)
-- LSTM gating: a forget gate near 1 carries the gradient along the cell state
+grad_ratio(1.0)           # ~3e-8   vanishes
+grad_ratio(np.sqrt(2))    # ~0.5    stays near 1
+grad_ratio(2.0)           # ~3e7    explodes
+```
+
+The numbers follow from the factor. ReLU zeroes about half the entries, so
+each backward step scales the gradient by about $\text{gain}/\sqrt{2}$:
+$(1/\sqrt{2})^{50} \approx 3 \times 10^{-8}$ and
+$(\sqrt{2})^{50} \approx 3 \times 10^{7}$. A recurrent net is the same
+product over time steps, with the same $W$ at every step, so the factor is
+roughly the same each step: 0.95 per step over 100 steps gives 0.006.
+
+Each fix acts on the factor:
+
+- **Initialization.** Choose the scale so each factor is about 1 at the
+  start: gain $\sqrt{2}$ for ReLU (Kaiming, the middle line above), Xavier
+  for tanh.
+- **Activation.** ReLU's slope is 1 where it is active; sigmoid's is at most
+  0.25.
+- **Normalization** (LayerNorm, BatchNorm). Rescales activations at every
+  layer, so the factors stay near 1 throughout training, not only at
+  initialization.
+- **Residual connections.** $h_l = h_{l-1} + F(h_{l-1})$ makes the factor
+  $I + \partial F/\partial h$. The gradient then has a path that is
+  multiplied by the identity at every layer, so it reaches layer 1 even when
+  the $\partial F/\partial h$ terms are small.
+- **LSTM gating.** Along the cell state $c_t = f_t \odot c_{t-1} + \dots$
+  the factor is the forget gate $f_t$, which the network can keep near 1:
+  the recurrent version of the residual path.
+- **Gradient clipping.** If $\|g\|$ exceeds a threshold, rescale $g$ to that
+  threshold. It keeps one exploding gradient from producing a huge weight
+  update, and does nothing for vanishing.
+
+**If asked:** *How would you detect it?* Log the gradient norm of each layer
+during training, as `grad_ratio` does. Vanishing shows as early layers with
+norms orders of magnitude below the late layers; exploding shows as loss
+spikes or NaN.
 </details>
 
 ---
