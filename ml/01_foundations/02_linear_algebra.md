@@ -216,34 +216,38 @@ that is a general fact:
 **a symmetric matrix always has a full set of orthogonal eigenvectors with real
 eigenvalues** (the spectral theorem).
 
-Why eigenvectors are useful. In ordinary coordinates
-$A$ mixes its inputs: writing $v = [x, y]$,
+**Why eigenvectors are useful.** In ordinary coordinates $A$ mixes its
+inputs. For $x = [x_1, x_2]$,
 
-$$Av = \begin{bmatrix} 2x + y \\ x + 2y \end{bmatrix} \tag{1.5b}$$
+$$Ax = \begin{bmatrix} 2x_1 + x_2 \\ x_1 + 2x_2 \end{bmatrix} \tag{1.5b}$$
 
-so each output entry needs *both* input entries - the coordinates are coupled,
-and it's hard to see what repeated applications of $A$ will do. Now reuse the
-recipe argument from §1.4 (equations 1.4b and 1.4c), but with the eigenvectors
-as the ingredients instead of $e_1, e_2$. Any vector is some amount of
-$v_1 = [1,1]$ plus some amount of $v_2 = [1,-1]$:
+Every output entry depends on both input entries, so it is hard to see what
+applying $A$ ten or a hundred times would do.
+
+Describe $x$ a different way: as an amount of each eigenvector,
+$v_1 = [1, 1]$ (eigenvalue 3) and $v_2 = [1, -1]$ (eigenvalue 1).
 
 $$x = c_1 v_1 + c_2 v_2 \tag{1.5c}$$
 
-and linearity lets $A$ process each ingredient separately - but eigen-ingredients
-are the ones $A$ merely scales:
+For example, $x = [3, 1] = 2\,[1, 1] + 1\,[1, -1]$, so $c_1 = 2$ and $c_2 = 1$.
 
-$$Ax = c_1 (A v_1) + c_2 (A v_2) = 3 c_1 v_1 + 1 \cdot c_2 v_2 \tag{1.5d}$$
+$A$ is linear (§1.4), so it can be applied to each piece separately. It
+multiplies $v_1$ by 3 and leaves $v_2$ unchanged:
 
-Read that off. The pair of amounts $(c_1, c_2)$ is $x$ described in the
-eigenbasis - its **eigen-coordinates**; the two words name the same numbers,
-and this file uses them interchangeably. In eigen-coordinates the map is
-just $(c_1, c_2) \to (3c_1, c_2)$.
-Multiply the first coordinate by 3, leave the second alone, done - no mixing
-between coordinates at all. *That* is what "$A$ becomes a diagonal matrix in the
-eigenbasis" means: same machine, better axes. Along those axes the map is
-nothing but an independent stretch $\lambda_i$ per axis, which is why questions
-like "what does $A^{100}$ do?" become trivial ($c_1$ gets $3^{100}$, $c_2$ stays
-put).
+$$Ax = c_1 (A v_1) + c_2 (A v_2) = 3 c_1 v_1 + c_2 v_2 \tag{1.5d}$$
+
+For $x = [3, 1]$: $Ax = 6\,[1, 1] + 1\,[1, -1] = [7, 5]$. Equation (1.5b) gives
+the same result: $[2 \cdot 3 + 1,\ 3 + 2 \cdot 1] = [7, 5]$.
+
+The amounts $(c_1, c_2)$ are called the **eigen-coordinates** of $x$: its
+coordinates when the eigenvectors are used as the axes (the **eigenbasis**).
+In eigen-coordinates, $A$ only does $(c_1, c_2) \to (3c_1, c_2)$: multiply the
+first coordinate by 3 and leave the second unchanged. Neither coordinate
+affects the other. This is what "$A$ is a diagonal matrix in the eigenbasis"
+means.
+
+Repeated application is now simple. Each application multiplies $c_1$ by 3
+again, so $A^{100} x = 3^{100} c_1 v_1 + c_2 v_2$.
 
 Notice the *shape* of what we just did, because the next section reuses it.
 Computing $Ax$ was a three-step procedure:
