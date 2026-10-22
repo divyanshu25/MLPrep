@@ -308,8 +308,8 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   </a>
   <div class="flex items-center gap-1 text-sm" id="nav-tabs">
     <a href="#/today"    data-tab="today"    class="nav-tab">Today<span id="today-badge" class="nav-badge" hidden></span></a>
+    <a href="#/ml"       data-tab="ml"       class="nav-tab">ML</a>
     <a href="#/coding"   data-tab="coding"   class="nav-tab">Coding</a>
-    <a href="#/notes"    data-tab="notes"    class="nav-tab">Notes</a>
     <a href="#/cards"    data-tab="cards"    class="nav-tab">Cards</a>
   </div>
   <div class="ml-auto flex items-center gap-3 text-xs text-mut tnum" id="nav-progress"></div>
@@ -532,7 +532,9 @@ function route() {
   const app = $('#app');
   app.scrollTop = 0;
   const docPath = (() => { try { return decodeURIComponent(h.replace(/^#\/(notes|nb|lab)\/?/, '')); } catch (e) { return ''; } })();
-  const tab = /^#\/(lab|nb|notes)/.test(h) ? (docPath.startsWith('dsa/') ? 'coding' : 'notes')
+  const tab = /^#\/(lab|nb|notes)/.test(h)
+              ? (docPath.startsWith('dsa/') ? 'coding' : docPath.startsWith('practice/') ? 'today' : 'ml')
+            : h.startsWith('#/ml') ? 'ml'
             : h.startsWith('#/cards') ? 'cards'
             : h.startsWith('#/problem') || h.startsWith('#/coding') ? 'coding' : 'today';
   $$('#nav-tabs a').forEach(a => a.className =
@@ -542,6 +544,7 @@ function route() {
   else if (h.startsWith('#/lab/')) viewLab(app, decodeURIComponent(h.slice('#/lab/'.length)));
   else if (h.startsWith('#/nb/')) viewNb(app, decodeURIComponent(h.slice('#/nb/'.length)));
   else if (h.startsWith('#/notes')) viewNotes(app, h.slice('#/notes'.length).replace(/^\//, ''));
+  else if (h.startsWith('#/ml')) viewNotes(app, '');
   else if (h.startsWith('#/cards')) viewCards(app, h.slice('#/cards'.length).replace(/^\//, ''));
   else if (h.startsWith('#/problems') || h.startsWith('#/coding')) viewProblems(app);
   else viewToday(app);   // #/today + fallback for unknown hashes
@@ -721,6 +724,7 @@ async function viewToday(app) {
   const nOpened = trackedFiles.filter(f => opened[f.path]).length;
   const solved = ps.filter(p => p.status === 'solved').length;
   const decks = new Set(cards.map(c => c.slug)).size;
+  const guides = tree.filter(g => g.group === 'practice').flatMap(g => g.folders.flatMap(f => f.files));
   const studied = Object.keys(store.get(CARD_LAST, {})).length;
 
   const upTile = (href, i, icon, label, title, sub, cta) => `
@@ -797,7 +801,7 @@ async function viewToday(app) {
                    lastEntry.title, `${lastEntry.folderTitle} · opened ${ago(last.t)}`, 'Resume')
           : firstRead
           ? upTile(docHash(firstRead), 1, bigIcon(ICON.doc), 'Start reading', firstRead.title, firstRead.folderTitle, 'Open')
-          : upTile('#/notes', 1, bigIcon(ICON.doc), 'Notes', 'Library', 'Every module, in reading order', 'Browse')}
+          : upTile('#/ml', 1, bigIcon(ICON.doc), 'Machine Learning', 'All modules', 'Every module, in reading order', 'Browse')}
         ${nextP
           ? upTile('#/problem/' + encodeURIComponent(nextP.id), 3, bigIcon(ICON.practice),
                    nextP.status === 'attempted' ? 'Re-attempt cold' : 'Next problem',
@@ -809,14 +813,30 @@ async function viewToday(app) {
       </div>
     </section>
 
-    <section>
+    <section class="mb-10">
       <h2 class="sec-title mb-3">Progress</h2>
       <div class="card !rounded-2xl overflow-hidden grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-line">
-        ${ringStat(nOpened, trackedFiles.length, 'notes and notebooks opened', '#/notes')}
+        ${ringStat(nOpened, trackedFiles.length, 'notes and notebooks opened', '#/ml')}
         ${ringStat(solved, ps.length, 'problems solved', '#/coding')}
         ${ringStat(studied, decks, 'flashcard decks studied', '#/cards')}
       </div>
     </section>
+    ${guides.length ? `
+    <section>
+      <div class="flex items-baseline gap-3 mb-3">
+        <h2 class="sec-title">Interview guides</h2>
+        <span class="text-[13px] text-mut">behavioral rounds, mock interviews, the last week</span>
+      </div>
+      <div class="card !rounded-2xl overflow-hidden divide-y divide-line">
+        ${guides.map((f, j) => `
+        <a href="${docHash(f)}" class="flex items-center gap-3 px-4 py-3 hover:bg-panel2">
+          <span class="badge-num !w-8 !h-8 !rounded-lg" style="${tint(j)}">${KIND_ICON.read}</span>
+          <span class="flex-1 min-w-0 text-[14px] font-medium text-zinc-100 truncate">${esc(f.title)}</span>
+          ${opened[f.path] ? `<span class="text-mut opacity-60" title="Opened before">${ICON.check}</span>` : ''}
+          <span class="text-mut inline-flex">${ICON.chevR}</span>
+        </a>`).join('')}
+      </div>
+    </section>` : ''}
   </div>`;
 
   $$('#due-list [data-log]').forEach(b => b.addEventListener('click', async () => {
@@ -1314,7 +1334,8 @@ const docHash = e => (/\.(py|ipynb)$/.test(e.path) && !e.path.endsWith('problems
    modHref (optional) links the module segment, e.g. to the module's notes. */
 function crumbRow(nav, path, title, extras, modHref, lead) {
   const parts = path.split('/');
-  const mod = nav.entry ? nav.entry.folderTitle
+  const mod = path.startsWith('practice/') ? 'Interview guides'
+            : nav.entry ? nav.entry.folderTitle
             : folderTitle(parts.length > 1 ? parts[parts.length - 2] : parts[0]);
   const sep = `<span class="text-mut opacity-50 inline-flex" aria-hidden="true">${ICON.chevR}</span>`;
   const pager = [['Previous', nav.prev, '[', ICON.chevL], ['Next', nav.next, ']', ICON.chevR]]
@@ -1326,9 +1347,9 @@ function crumbRow(nav, path, title, extras, modHref, lead) {
   return `
   <div class="flex items-center gap-x-1.5 gap-y-1 text-[13px] mb-6 min-w-0">
     ${lead || ''}
-    ${path.startsWith('dsa/')
-      ? '<a href="#/coding" class="text-mut hover:text-accent shrink-0">Coding</a>'
-      : '<a href="#/notes" class="text-mut hover:text-accent shrink-0">Notes</a>'}
+    ${path.startsWith('dsa/') ? '<a href="#/coding" class="text-mut hover:text-accent shrink-0">Coding</a>'
+      : path.startsWith('practice/') ? '<a href="#/today" class="text-mut hover:text-accent shrink-0">Today</a>'
+      : '<a href="#/ml" class="text-mut hover:text-accent shrink-0">ML</a>'}
     ${sep}
     ${modHref
       ? `<a href="${modHref}" class="text-mut hover:text-accent shrink-0" title="Module notes">${esc(mod)}</a>`
@@ -1461,7 +1482,7 @@ const TINTS = [['#5e5ce6', '#8e8cff'], ['#0a84ff', '#5ac8fa'], ['#30b0c7', '#64d
                ['#ff9f0a', '#ffc94d'], ['#ff375f', '#ff7a93'], ['#af52de', '#d58cff'], ['#ff6b35', '#ffa15c'],
                ['#5856d6', '#30b0c7'], ['#64748b', '#94a3b8'], ['#a2845e', '#c9a97f']];
 const tint = i => `background:linear-gradient(135deg, ${TINTS[i % TINTS.length][0]}, ${TINTS[i % TINTS.length][1]})`;
-const GROUP_LABEL = { ml: 'Machine Learning', dsa: 'Coding patterns', practice: 'Practice system' };
+const GROUP_LABEL = { ml: 'Machine Learning', dsa: 'Coding patterns', practice: 'Interview guides' };
 const MODULE_BLURBS = {
   'ml/01_foundations': 'Linear algebra, calculus and probability, derived from scratch',
   'ml/02_classical_ml': 'Regression, regularization, SVMs, trees, clustering and PCA',
@@ -1486,7 +1507,7 @@ function markOpened(path, title, module) {
   const o = store.get(OPENED_KEY, {}); o[path] = Date.now(); store.set(OPENED_KEY, o);
   const rec = { path, title, module, t: Date.now() };
   store.set(LAST_KEY, rec);   // Today resumes the last file anywhere
-  store.set(LAST_KEY + (path.startsWith('dsa/') ? '.coding' : '.notes'), rec);   // each tab its own
+  store.set(LAST_KEY + (path.startsWith('dsa/') ? '.coding' : path.startsWith('practice/') ? '.guides' : '.notes'), rec);   // each tab its own
 }
 function ago(t) {
   const s = (Date.now() - t) / 1000;
@@ -1532,7 +1553,7 @@ function sidebarHtml(tree, path) {
   const label = GROUP_LABEL[g.group] || folderTitle(g.group);
   return `<aside class="sb" aria-label="${esc(label)} contents">
     <div class="px-3 pt-3 pb-2">
-      <a href="${g.group === 'dsa' ? '#/coding' : '#/notes'}" class="inline-flex items-center gap-1 text-[12px] text-mut hover:text-accent mb-1.5">${ICON.chevL}<span>${g.group === 'dsa' ? 'Coding' : 'Notes'}</span></a>
+      <a href="${({ dsa: '#/coding', practice: '#/today' })[g.group] || '#/ml'}" class="inline-flex items-center gap-1 text-[12px] text-mut hover:text-accent mb-1.5">${ICON.chevL}<span>${({ dsa: 'Coding', practice: 'Today' })[g.group] || 'ML'}</span></a>
       <div class="text-[15px] font-semibold tracking-tight text-zinc-100 px-0.5 mb-2">${esc(label)}</div>
       <label class="sb-filter">${ICON.search}<input id="sb-q" type="search" placeholder="Filter" autocomplete="off" spellcheck="false"></label>
     </div>
@@ -1592,12 +1613,11 @@ async function viewNotes(app, encodedPath) {
     try { tree = await getTree(); }
     catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
     if (epoch !== routeEpoch) return;
-    tree = tree.filter(g => g.group !== 'dsa');
+    tree = tree.filter(g => g.group === 'ml');
     const opened = store.get(OPENED_KEY, {});
     const last = store.get(LAST_KEY + '.notes', null);
     const lastEntry = last && docNav(tree, last.path).entry;
-    let grp = store.get('mlprep.notes.group', 'ml');
-    if (!tree.some(g => g.group === grp)) grp = tree[0] && tree[0].group;
+    const grp = 'ml';
 
     const counts = files => {
       const ks = files.map(fileKind);
@@ -1647,12 +1667,8 @@ async function viewNotes(app, encodedPath) {
       <div class="max-w-5xl mx-auto px-6 py-10">
         <div class="flex items-end justify-between gap-4 flex-wrap mb-7">
           <div>
-            <h1 class="page-title">Notes</h1>
-            <p class="text-[14px] text-mut mt-1">Read the notes, run the notebooks, then do the practice set.</p>
-          </div>
-          <div class="seg" role="tablist" aria-label="Track">
-            ${tree.map(x => `<button role="tab" data-g="${esc(x.group)}" aria-selected="${x.group === grp}"
-                class="${x.group === grp ? 'on' : ''}">${esc(GROUP_LABEL[x.group] || folderTitle(x.group))}</button>`).join('')}
+            <h1 class="page-title">Machine Learning</h1>
+            <p class="text-[14px] text-mut mt-1">Nine modules in reading order. In each: read the notes, run the notebooks, then do the practice set.</p>
           </div>
         </div>
         ${lastEntry ? `
@@ -1678,9 +1694,6 @@ async function viewNotes(app, encodedPath) {
         </div>`}
         <p class="text-[12px] text-mut mt-10 text-center">Reading history and checklist ticks are saved in this browser only.</p>
       </div>`;
-      $$('.seg button').forEach(b => b.addEventListener('click', () => {
-        grp = b.dataset.g; store.set('mlprep.notes.group', grp); draw();
-      }));
     };
     draw();
     return;
