@@ -123,8 +123,8 @@ Check: $f(x) = x^\top A x$ with the given numbers: $Ax = [4, 6]^\top$, so
 $f = 1\cdot4 + 2\cdot6 = 16$. And
 $(A + A^\top)x = \begin{bmatrix} 4 & 1 \\ 1 & 6 \end{bmatrix}
 \begin{bmatrix}1\\2\end{bmatrix} = [6, 13]^\top$.
-Numerical check (see `gradients_from_scratch.ipynb`): wiggling $x_1$ by $10^{-5}$
-changes $f$ at rate $\approx 6$; wiggling $x_2$, at rate $\approx 13$. ✓
+Numerical check (see `gradients_from_scratch.ipynb`): changing $x_1$ by $10^{-5}$
+changes $f$ at rate $\approx 6$; changing $x_2$, at rate $\approx 13$.
 
 This form is everywhere: quadratic losses, Gaussians ($x^\top \Sigma^{-1} x$ in the
 exponent), second-order Taylor expansions ($\frac12 \delta^\top H \delta$).
@@ -154,9 +154,9 @@ Set to zero → normal equations $X^\top X \, w^* = X^\top y$, so
 $w^* = (X^\top X)^{-1} X^\top y$ when $X^\top X$ is invertible.
 
 It fails when $X^\top X$ is singular (or nearly so): fewer samples than features
-($n < d$), or collinear/duplicated features. Fixes: ridge regularization  - 
-minimize $\|Xw - y\|^2 + \lambda \|w\|^2$, giving
-$w^* = (X^\top X + \lambda I)^{-1} X^\top y$, always invertible for $\lambda > 0$  - 
+($n < d$), or collinear/duplicated features. Fixes: ridge regularization
+(minimize $\|Xw - y\|^2 + \lambda \|w\|^2$, giving
+$w^* = (X^\top X + \lambda I)^{-1} X^\top y$, always invertible for $\lambda > 0$),
 or the pseudo-inverse via SVD, or just gradient descent (which is also the only
 practical option when $d$ is large, since inversion costs $O(d^3)$).
 </details>

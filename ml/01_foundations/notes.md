@@ -9,21 +9,22 @@ transformer, a diffusion model - is built out of exactly three ingredients:
 3. **Probability**: how we *justify* the loss function we're improving
    (likelihood).
 
-If you deeply understand these three, "backprop through a transformer" stops
-being opaque and becomes bookkeeping.
+With these three in hand, "backprop through a transformer" is a sequence of
+chain-rule steps you can carry out by hand.
 
 Read in this order:
 
 1. [Linear algebra for ML](02_linear_algebra.md) - vectors as data, the dot
    product as similarity and projection, matrix multiplication two ways,
-   eigenvectors and the eigendecomposition, and the SVD with low-rank
-   compression.
+   eigenvectors and the eigendecomposition, the SVD with low-rank
+   compression, and norms.
 2. [Calculus for ML](03_calculus.md) - the derivative as local sensitivity,
    the chain rule as the whole of backprop, gradients of vector expressions,
    and Jacobians.
 3. [Probability & statistics for ML](04_probability.md) - expectation and
    variance, Bayes rule, maximum likelihood (why cross-entropy is the loss),
-   bias and variance of estimators, and the central limit theorem.
+   bias and variance of estimators, the central limit theorem, information
+   theory (entropy, cross-entropy, KL), and hypothesis tests.
 4. [Interview questions & exit checklist](05_interview_questions.md) - model
    answers to fifteen standard questions, and the checklist to clear before
    moving to the next module.

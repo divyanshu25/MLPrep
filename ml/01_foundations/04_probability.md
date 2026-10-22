@@ -631,7 +631,9 @@ Three things built from it:
   with it is MLE under the Bernoulli label model: the two-class case of
   §3.3's derivation.
 - **Randomize a network (dropout).** Dropout keeps each unit with
-  probability $p$ and zeroes it otherwise. Each keep/drop decision is
+  probability $p$ and zeroes it otherwise. (Frameworks usually quote the
+  drop probability instead: PyTorch's `nn.Dropout(0.1)` drops with
+  probability 0.1, which is keep probability $p = 0.9$ here.) Each keep/drop decision is
   one Bernoulli($p$) draw, so a layer's mask is a vector of independent
   Bernoulli($p$) draws, and by the Binomial mean above a layer of $n$
   units keeps $np$ of them on average.
@@ -1318,21 +1320,18 @@ Three places this gets used daily in ML:
   $1/\sqrt{\text{batch size}}$: quadrupling the batch halves the gradient
   noise.
 - **Error bars on test accuracy.** Each test example scores 1 (correct) or
-  0 (wrong): a Bernoulli draw (§3.4) with unknown true accuracy $p$. The
-  variance of one score, from §3.1's identity
-  $\mathrm{Var}(X) = \mathbb{E}[X^2] - \mu^2$: a 0/1 score
-  satisfies $X^2 = X$ (because $0^2 = 0$ and $1^2 = 1$), so
-  $\mathbb{E}[X^2] = \mathbb{E}[X] = p$, giving
-  $\mathrm{Var}(X) = p - p^2 = p(1-p)$. Reported accuracy is the mean of $n$
-  such draws, so its standard deviation is $\sqrt{p(1-p)} / \sqrt{n}$.
+  0 (wrong): a Bernoulli draw (§3.4) with unknown true accuracy $p$, so
+  one score has variance $p(1-p)$ (derived in §3.4). Reported accuracy is
+  the mean of $n$ such draws, so its standard deviation is
+  $\sqrt{p(1-p)} / \sqrt{n}$.
   With $n = 1000$ test examples and accuracy near 90%:
   $\sqrt{0.9 \cdot 0.1 / 1000} \approx 0.009$, an error bar of about
   $\pm 0.9\%$. A claimed "0.5% improvement" measured on such a test set is
   smaller than the error bar: it is within sampling noise.
 - **Confidence intervals and A/B tests** report ranges like "$\pm 2$
   standard errors". The 2 comes from the Gaussian shape the CLT guarantees:
-  95% of a Gaussian's probability lies within 2 standard deviations of its
-  mean.
+  about 95% of a Gaussian's probability lies within 2 standard deviations of
+  its mean (95.4%; exactly 95% at 1.96, the value §3.8 uses).
 
 ## 3.7 Information theory: what the cross-entropy number means
 
@@ -1646,10 +1645,11 @@ $\delta = 0.002$:
 $$n \ge \frac{2 \cdot 7.84 \cdot 0.022 \cdot 0.978}{0.002^2} \approx 84{,}000 \text{ per group}$$
 
 The test above ran 50,000 per group, so it was underpowered for the effect
-it found. It happened to reach $p = 0.031$, but a test at that size would
-miss a real 0.2-point lift more often than it caught it, and the lifts it
-does catch are biased upward, since only the samples that happened to
-overshoot clear the bar.
+it found. It happened to reach $p = 0.031$, but at that size the gap sits
+$0.002 / 0.000928 \approx 2.16$ standard errors from zero, so the power is
+$P(Z > 1.96 - 2.16) \approx 58\%$: a real 0.2-point lift would be missed
+about 4 times in 10. And the lifts such a test does catch are biased upward,
+since only the samples that happened to overshoot clear the bar.
 
 #### Two ways to fool yourself
 
