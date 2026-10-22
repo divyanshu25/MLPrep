@@ -8,7 +8,7 @@
 <script>
 if (window.tailwind) tailwind.config = { theme: { extend: {
   colors: { base:'var(--base)', panel:'var(--panel)', panel2:'var(--panel2)', line:'var(--line)',
-            accent:'#ffa116', good:'#2cbb5d', warn:'var(--warn)', bad:'#ef4743',
+            accent:'var(--accent)', good:'#2cbb5d', warn:'var(--warn)', bad:'#ef4743',
             mut:'var(--mut)' },
   // text-* utilities use WCAG-safe per-theme colors; bg-* and border-* keep the vivid values
   textColor: { accent:'var(--accent-text)', good:'var(--good-text)', bad:'var(--bad-text)' },
@@ -30,27 +30,30 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
      Light = Apple white base + pure-white cards + hairline borders;
      dark = near-black base + elevated panels (elevation, not shadows). */
   :root {
-    --base:#fbfbfd; --panel:#ffffff; --panel2:#f2f2f4; --line:rgba(0,0,0,.08);
-    --warn:#c98f0a; --mut:#6b7280; --text:#1d1d1f; --text-strong:#111113;
-    --code-bg:#f4f4f6; --code-border:rgba(0,0,0,.07); --code-text:#b45309;
-    --pre-bg:#f6f7f9; --pre-text:#24292f; --th-bg:#fbfbfd;
-    --quote:#57606a; --details-bg:#fafafc; --scroll:#d1d5db; --dot-todo:#c8cdd4;
-    --accent-text:#b45309; --good-text:#15803d; --bad-text:#b91c1c;
-    --accent:#ffa116;
-    --nav-bg:rgba(251,251,253,.78);
-    --shadow-card:0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.05);
-    --fill:rgba(118,118,128,.12); --sb-bg:#f5f5f7; --sel-bg:rgba(255,161,22,.16);
+    --base:#f5f5f7; --panel:#ffffff; --panel2:#f2f2f4; --line:rgba(0,0,0,.08);
+    --warn:#b25f00; --mut:#6e6e73; --text:#1d1d1f; --text-strong:#1d1d1f;
+    --code-bg:rgba(0,0,0,.045); --code-border:rgba(0,0,0,.05); --code-text:#3a3a3c;
+    --pre-bg:#f5f5f7; --pre-text:#1d1d1f; --th-bg:#f5f5f7;
+    --quote:#515154; --details-bg:#f5f5f7; --scroll:#c7c7cc; --dot-todo:#c7c7cc;
+    --accent:#0071e3; --accent-hover:#0077ed; --accent-text:#0066cc;
+    --good-text:#1d8a3e; --bad-text:#d70015;
+    --nav-bg:rgba(255,255,255,.76);
+    --shadow-card:0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.05);
+    --card-border:transparent; --reader-bg:#ffffff;
+    --fill:rgba(118,118,128,.12); --sb-bg:#f5f5f7; --sel-bg:rgba(0,113,227,.11);
   }
   html.dark {
-    --base:#0d0d0f; --panel:#1c1c1f; --panel2:#26262b; --line:rgba(255,255,255,.09);
-    --warn:#ffc01e; --mut:#9ca3af; --text:#e6e6ea; --text-strong:#f5f5f7;
-    --code-bg:#26262b; --code-border:rgba(255,255,255,.1); --code-text:#fbbf24;
-    --pre-bg:#141416; --pre-text:#d4d4d8; --th-bg:#202024;
-    --quote:#a1a1aa; --details-bg:#202023; --scroll:#3f3f46; --dot-todo:#52525b;
-    --accent:#ffa116; --accent-text:#ffa116; --good-text:#2cbb5d; --bad-text:#ef4743;
-    --nav-bg:rgba(13,13,15,.72);
+    --base:#0b0b0c; --panel:#1c1c1e; --panel2:#2c2c2e; --line:rgba(255,255,255,.09);
+    --warn:#ffb340; --mut:#98989d; --text:#f2f2f7; --text-strong:#ffffff;
+    --code-bg:rgba(255,255,255,.08); --code-border:rgba(255,255,255,.06); --code-text:#e5e5ea;
+    --pre-bg:#161618; --pre-text:#e5e5ea; --th-bg:#1c1c1e;
+    --quote:#aeaeb2; --details-bg:#1c1c1e; --scroll:#48484a; --dot-todo:#48484a;
+    --accent:#0a84ff; --accent-hover:#409cff; --accent-text:#409cff;
+    --good-text:#30d158; --bad-text:#ff453a;
+    --nav-bg:rgba(22,22,24,.72);
     --shadow-card:none;
-    --fill:rgba(118,118,128,.24); --sb-bg:#161618; --sel-bg:rgba(255,161,22,.2);
+    --card-border:rgba(255,255,255,.07); --reader-bg:#0b0b0c;
+    --fill:rgba(118,118,128,.24); --sb-bg:#141416; --sel-bg:rgba(10,132,255,.22);
   }
   /* Only #app and inner panes scroll: the page shell itself is locked so nothing
      (hidden helpers, momentum chaining) can scroll past the end of the content. */
@@ -61,7 +64,8 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
          -webkit-font-smoothing:antialiased; }
   .overflow-y-auto { overscroll-behavior-y: contain; }
   /* type scale helpers */
-  .page-title { font-size:1.75rem; line-height:1.15; font-weight:700; letter-spacing:-.022em; color:var(--text-strong); }
+  .page-title { font-size:2rem; line-height:1.12; font-weight:700; letter-spacing:-.028em; color:var(--text-strong); }
+  .sec-title { font-size:20px; line-height:1.25; font-weight:650; letter-spacing:-.018em; color:var(--text-strong); }
   .tnum { font-variant-numeric:tabular-nums; }
   .microlabel { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; }
   /* legacy fixed-shade classes → semantic theme colors */
@@ -87,6 +91,13 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .nav-tab { padding:.35rem .85rem; border-radius:9999px; color:var(--mut); font-weight:500; }
   .nav-tab:hover { color:var(--text-strong); background:var(--panel2); }
   .nav-tab { display:inline-flex; align-items:center; white-space:nowrap; }
+  .nav-search { align-items:center; gap:.45rem; height:2rem; padding:0 .45rem 0 .7rem; border-radius:9px;
+                background:var(--fill); color:var(--mut); font-size:13px; min-width:11rem; }
+  .nav-search:hover { color:var(--text); }
+  .nav-kbd { margin-left:auto; font:500 11px ui-monospace,Menlo,monospace; padding:.1rem .35rem; border-radius:5px;
+             background:var(--panel); color:var(--mut); }
+  .nav-icon { display:grid; place-items:center; width:2rem; height:2rem; border-radius:9px; color:var(--mut); }
+  .nav-icon:hover { background:var(--fill); color:var(--text-strong); }
   @media (max-width:639.98px) { .nav-tab { padding:.35rem .5rem; font-size:14px; } }
   @media (max-width:399.98px) { .nav-brand { display:none !important; } }
   .nav-tab.active { background:var(--panel2); color:var(--text-strong); font-weight:600; }
@@ -95,14 +106,14 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .btn { display:inline-flex; align-items:center; gap:.4rem; border-radius:8px; font-size:.875rem;
          font-weight:500; padding:.42rem .9rem; border:1px solid transparent; cursor:pointer; }
   .btn:disabled { opacity:.45; cursor:default; }
-  .btn-primary { background:var(--accent); color:#1d1d1f; font-weight:600; }
-  .btn-primary:hover:not(:disabled) { background:#ffab2e; }
+  .btn-primary { background:var(--accent); color:#fff; font-weight:600; }
+  .btn-primary:hover:not(:disabled) { background:var(--accent-hover); }
   .btn-secondary { background:var(--panel); border-color:var(--line); color:var(--text); }
   .btn-secondary:hover:not(:disabled) { background:var(--panel2); }
   .btn-text { padding:.3rem .55rem; border-radius:6px; background:none; }
   .btn-text:hover:not(:disabled) { background:var(--panel2); }
   /* raised card surface */
-  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow-card); }
+  .card { background:var(--panel); border:1px solid var(--card-border); border-radius:12px; box-shadow:var(--shadow-card); }
   /* toolbar fields: one consistent height */
   .field { height:2.25rem; background:var(--panel); border:1px solid var(--line); border-radius:8px;
            padding:0 .7rem; font-size:.875rem; color:var(--text); }
@@ -132,18 +143,16 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .nb-ed .CodeMirror { height:auto; border:none; background:transparent; }
   /* markdown body: comfortable reading measure */
   .md { line-height:1.7; font-size:.9375rem; }
-  .md h1 { font-size:1.45rem; font-weight:700; letter-spacing:-.015em; margin:1.2rem 0 .8rem; color:var(--text-strong); }
-  .md h2 { font-size:1.17rem; font-weight:700; letter-spacing:-.01em; margin:1.6rem 0 .6rem; color:var(--text-strong);
-           border-bottom:1px solid var(--line); padding-bottom:.3rem; }
-  .md h3 { font-size:1.02rem; font-weight:600; margin:1.2rem 0 .5rem; color:var(--text-strong); }
-  .md h4 { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.07em;
-           margin:2rem 0 .6rem; color:var(--text-strong);
-           border-left:3px solid var(--accent); padding-left:.6rem; }
+  .md h1 { font-size:2rem; line-height:1.15; font-weight:700; letter-spacing:-.028em; margin:.3rem 0 1.1rem; color:var(--text-strong); }
+  .md h2 { font-size:1.4rem; line-height:1.25; font-weight:650; letter-spacing:-.02em; margin:2.4rem 0 .7rem; color:var(--text-strong); }
+  .md h3 { font-size:1.12rem; line-height:1.3; font-weight:650; letter-spacing:-.012em; margin:1.8rem 0 .5rem; color:var(--text-strong); }
+  .md h4 { font-size:15px; font-weight:650; letter-spacing:-.008em; margin:1.7rem 0 .45rem; color:var(--text-strong); }
   .md p { margin:.55rem 0; }
   .md ul, .md ol { margin:.55rem 0 .55rem 1.4rem; }
   .md ul { list-style:disc; } .md ol { list-style:decimal; }
   .md li { margin:.22rem 0; }
-  .md a { color:var(--accent-text); text-decoration:underline; text-underline-offset:2px; }
+  .md a { color:var(--accent-text); text-decoration:none; }
+  .md a:hover { text-decoration:underline; text-underline-offset:2px; }
   .md code { background:var(--code-bg); border:1px solid var(--code-border); border-radius:4px;
              padding:.08rem .3rem; font-size:.85em; font-family:ui-monospace,Menlo,monospace; color:var(--code-text); }
   .md pre { background:var(--pre-bg); border:1px solid var(--code-border); border-radius:10px;
@@ -157,14 +166,14 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .md th, .md td { border:1px solid var(--code-border); padding:.4rem .7rem; text-align:left; vertical-align:top; }
   .md th { background:var(--th-bg); color:var(--text-strong); }
   /* blockquote Note/Constraints callouts: quiet, accent hairline, muted text */
-  .md blockquote { border-left:2px solid var(--accent); padding:.1rem 0 .1rem .95rem;
+  .md blockquote { border-left:3px solid var(--fill); padding:.1rem 0 .1rem .95rem;
                    color:var(--quote); margin:.9rem 0; font-size:.9rem; }
   .md blockquote strong { color:var(--text); }
   .md details { background:var(--details-bg); border:1px solid var(--code-border); border-radius:10px;
                 padding:.5rem .9rem; margin:.6rem 0; }
   .md summary { cursor:pointer; color:var(--accent-text); font-weight:600; }
   .md hr { border-color:var(--line); margin:1.4rem 0; }
-  .md input[type=checkbox] { accent-color:#ffa116; width:.95rem; height:.95rem; margin-right:.35rem; }
+  .md input[type=checkbox] { accent-color:var(--accent); width:.95rem; height:.95rem; margin-right:.35rem; }
   .md img { max-width:100%; }
   /* inline SVG diagrams read as figures: centered, with a compact muted caption below */
   .md div:has(> svg) { text-align:center; margin:1.6rem auto .4rem; }
@@ -205,7 +214,7 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .seg button.on { background:var(--panel); color:var(--text-strong); font-weight:600;
                    box-shadow:0 1px 2px rgba(0,0,0,.1), 0 0 0 .5px rgba(0,0,0,.05); }
   html.dark .seg button.on { background:#48484d; }
-  .tile { display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line);
+  .tile { display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--card-border);
           border-radius:16px; padding:1.1rem 1.15rem 1rem; box-shadow:var(--shadow-card);
           transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
   .tile:not(.no-lift):hover { transform:translateY(-2px);
@@ -218,6 +227,11 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .btn-lg { padding:.62rem 1.3rem; font-size:15px; border-radius:12px; }
   .kbd { font:600 11px ui-monospace,Menlo,monospace; padding:.05rem .35rem; margin-left:.45rem;
          border-radius:5px; border:1px solid currentColor; opacity:.55; }
+  .grade-miss svg { color:var(--bad-text); } .grade-pass svg { color:var(--good-text); }
+  .grade-miss:hover:not(:disabled) { background:rgba(255,59,48,.08) !important; }
+  .grade-pass:hover:not(:disabled) { background:rgba(52,199,89,.1) !important; }
+  .toc-sum { list-style:none; } .toc-sum::-webkit-details-marker { display:none; }
+  .toc-sum .chev { transition:transform .15s ease; } .doc-toc[open] .toc-sum .chev { transform:rotate(90deg); }
   .toast { position:fixed; left:50%; bottom:1.5rem; transform:translateX(-50%); z-index:60; max-width:min(92vw, 36rem);
            display:flex; align-items:center; gap:.75rem; padding:.6rem .6rem .6rem 1rem; border-radius:14px;
            border:1px solid var(--line); box-shadow:0 10px 30px rgba(0,0,0,.14); font-size:13.5px; color:var(--text); }
@@ -241,7 +255,7 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
         flex-direction:column; background:var(--sb-bg); border-right:1px solid var(--line);
         transform:translateX(-100%); visibility:hidden; transition:transform .22s ease, visibility .22s; }
   .doc-wrap.sb-open .sb { transform:none; visibility:visible; }
-  .doc-wrap { transition:padding .22s ease; }
+  .doc-wrap { transition:padding .22s ease; background:var(--reader-bg); min-height:100%; }
   @media (min-width:1024px) { .doc-wrap.sb-open { padding-left:16.5rem; } }
   .sb-backdrop { display:none; }
   @media (max-width:1023.98px) {
@@ -252,7 +266,7 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .sb-scroll { position:relative; flex:1; overflow-y:auto; overscroll-behavior:contain; padding:.25rem .6rem 2rem; }
   .sb-filter { display:flex; align-items:center; gap:.4rem; height:1.9rem; padding:0 .55rem;
                border-radius:8px; background:var(--fill); color:var(--mut); }
-  .sb-filter:focus-within { box-shadow:0 0 0 3px rgba(255,161,22,.35); }
+  .sb-filter:focus-within { box-shadow:0 0 0 3px rgba(0,113,227,.28); }
   .sb-filter input { flex:1; min-width:0; background:transparent; border:none; outline:none;
                      font-size:13px; color:var(--text); }
   .sb-mod > summary { list-style:none; display:flex; align-items:center; gap:.35rem; padding:.34rem .45rem;
@@ -275,7 +289,7 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .flip .face { grid-area:1/1; -webkit-backface-visibility:hidden; backface-visibility:hidden; }
   .flip .back { transform:rotateY(180deg); }
   /* roving keyboard highlight on the problems table */
-  tr.rove, .prow.rove { outline:2px solid var(--accent); outline-offset:-2px; background:rgba(255,161,22,.06); }
+  tr.rove, .prow.rove { outline:2px solid var(--accent); outline-offset:-2px; background:rgba(0,113,227,.05); }
   ::-webkit-scrollbar { width:10px; height:10px; }
   ::-webkit-scrollbar-thumb { background:var(--scroll); border-radius:6px; }
   ::-webkit-scrollbar-track { background:transparent; }
@@ -288,6 +302,8 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
 
 <nav class="frost h-14 flex items-center gap-3 sm:gap-6 px-3 sm:px-5 border-b border-line sticky top-0 z-20">
   <a href="#/today" class="nav-brand flex items-center gap-2 font-semibold text-[15px] tracking-tight text-zinc-100">
+    <span class="w-6 h-6 rounded-[7px] grid place-items-center text-white text-[12px] font-bold"
+          style="background:linear-gradient(135deg,#0a84ff,#5e5ce6)" aria-hidden="true">M</span>
     <span>MLPrep</span>
   </a>
   <div class="flex items-center gap-1 text-sm" id="nav-tabs">
@@ -297,10 +313,11 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
     <a href="#/cards"    data-tab="cards"    class="nav-tab">Cards</a>
   </div>
   <div class="ml-auto flex items-center gap-3 text-xs text-mut tnum" id="nav-progress"></div>
-  <button id="palette-hint" class="btn btn-secondary !px-2.5 !py-1 text-xs text-mut hidden sm:inline-flex"
-          title="Jump to any problem, note, or deck" onclick="openPalette()">⌘K</button>
-  <button id="theme-toggle" class="btn btn-secondary !px-2.5 !py-1 text-sm"
-          title="Toggle light / dark theme"></button>
+  <button id="palette-hint" class="nav-search hidden sm:inline-flex"
+          title="Jump to any problem, note, or deck" onclick="openPalette()">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.25"/><path d="M10.25 10.25l3.5 3.5"/></svg>
+    <span>Search</span><span class="nav-kbd">⌘K</span></button>
+  <button id="theme-toggle" class="nav-icon" title="Toggle light / dark appearance" aria-label="Toggle appearance"></button>
 </nav>
 
 <main id="app" class="h-[calc(100vh-3.5rem)] overflow-y-auto"></main>
@@ -482,7 +499,9 @@ window.addEventListener('hashchange', route);
 function syncTheme() {
   const dark = document.documentElement.classList.contains('dark');
   const btn = $('#theme-toggle');
-  if (btn) btn.textContent = dark ? '☀️' : '🌙';
+  if (btn) btn.innerHTML = dark
+    ? '<svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.06 1.06M11.54 11.54l1.06 1.06M3.4 12.6l1.06-1.06M11.54 4.46l1.06-1.06"/></svg>'
+    : '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 9.6A5.75 5.75 0 0 1 6.4 2.5a5.75 5.75 0 1 0 7.1 7.1z"/></svg>';
   if (window._cm) window._cm.setOption('theme', dark ? 'material-darker' : 'default');
 }
 window.addEventListener('load', () => {
@@ -737,8 +756,12 @@ async function viewToday(app) {
         <span class="block text-[12px] text-mut truncate"><span class="font-mono">${esc(r.item_id)}</span> · every ${r.interval_days} ${r.interval_days === '1' ? 'day' : 'days'}
           ${late > 0 ? `· <span class="text-warn">${late} ${late === 1 ? 'day' : 'days'} overdue</span>` : ''}</span>
       </span>
-      <button class="btn soft-bad text-bad font-semibold !py-1.5" data-log="fail" title="Missed: the interval resets to 1 day">Missed</button>
-      <button class="btn soft-good text-good font-semibold !py-1.5" data-log="pass" title="Recalled cold: the interval doubles">Recalled</button>
+      <span class="flex items-center gap-2 shrink-0">
+        <button class="btn btn-secondary grade-miss !py-1.5" data-log="fail" title="Missed: the interval resets to 1 day">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>Missed</button>
+        <button class="btn btn-secondary grade-pass !py-1.5" data-log="pass" title="Recalled cold: the interval doubles">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Recalled</button>
+      </span>
     </div>`;
   }).join('');
 
@@ -751,18 +774,23 @@ async function viewToday(app) {
 
     <section class="mb-10">
       <div class="flex items-baseline gap-3 mb-3">
-        <h2 class="text-[17px] font-semibold tracking-tight text-zinc-100">Review queue</h2>
+        <h2 class="sec-title">Review queue</h2>
         <span class="text-[13px] text-mut tnum">${q.due_count ? `${q.due_count} due` : 'nothing due'}${q.reviewed_today ? ` · ${q.reviewed_today} done today` : ''}</span>
       </div>
       ${q.due_count ? `
       <div class="card !rounded-2xl overflow-hidden divide-y divide-line" id="due-list">${dueRows}</div>
       <p class="text-[12px] text-mut mt-2.5">Attempt each one cold from its source, then grade it. Recalled doubles the
         interval (up to 16 days); Missed resets it to 1 day. Same queue as <span class="font-mono">practice/review.py</span>.</p>`
-      : `<div class="card !rounded-2xl px-5 py-6 text-[14px] text-mut">Nothing due today. Do a mixed review of the flashcards or an interleaved problem instead.</div>`}
+      : `<div class="card !rounded-2xl px-6 py-8 flex flex-col items-center text-center">
+          <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" class="mb-3"><circle cx="20" cy="20" r="19" fill="#34c759"/>
+            <path d="M12 20.5l5.5 5.5L28.5 14.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="text-[17px] font-semibold text-zinc-100">All caught up</div>
+          <div class="text-[14px] text-mut mt-1 max-w-md">Nothing in the review queue is due today. A mixed flashcard review or an interleaved problem keeps retrieval going.</div>
+        </div>`}
     </section>
 
     <section class="mb-10">
-      <h2 class="text-[17px] font-semibold tracking-tight text-zinc-100 mb-3">Up next</h2>
+      <h2 class="sec-title mb-3">Up next</h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         ${lastEntry
           ? upTile(docHash(lastEntry), 1, bigIcon(KIND_ICON[fileKind(lastEntry).kind]), 'Continue reading',
@@ -782,7 +810,7 @@ async function viewToday(app) {
     </section>
 
     <section>
-      <h2 class="text-[17px] font-semibold tracking-tight text-zinc-100 mb-3">Progress</h2>
+      <h2 class="sec-title mb-3">Progress</h2>
       <div class="card !rounded-2xl overflow-hidden grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-line">
         ${ringStat(nOpened, trackedFiles.length, 'notes and notebooks opened', '#/notes')}
         ${ringStat(solved, ps.length, 'problems solved', '#/coding')}
@@ -894,7 +922,7 @@ async function viewProblems(app) {
     <div id="ptable"></div>
   </div>`;
   if (dsaFiles.has('dsa/README.md')) $('#ptable').insertAdjacentHTML('beforebegin', `
-    <a href="#/notes/${encodeURIComponent('dsa/README.md')}" class="flex items-center gap-3 px-4 py-3 mb-7 rounded-xl border border-line hover:bg-panel2">
+    <a href="#/notes/${encodeURIComponent('dsa/README.md')}" class="card flex items-center gap-3 px-4 py-3 mb-7 !rounded-xl hover:bg-panel2">
       <span class="text-accent inline-flex">${ICON.doc}</span>
       <span class="text-[14px] min-w-0 truncate"><span class="font-semibold text-zinc-100">Start here</span>
         <span class="text-mut"> · how each company's coding round works, and the practice protocol</span></span>
@@ -1026,14 +1054,18 @@ async function viewProblem(app, pid) {
         <pre class="mt-2 text-xs font-mono overflow-x-auto bg-[var(--pre-bg)] text-[var(--pre-text)] border border-[var(--code-border)] rounded-lg p-3">${esc(p.helpers)}</pre>
       </details>` : ''}
 
-      <div class="space-y-3 border-t border-line pt-4">
-        <div>
-          <button id="btn-hint" class="btn btn-text text-warn text-sm font-medium">Hint - key insight</button>
-          <span class="text-xs text-mut ml-1 italic">stuck? try 10 more minutes first - the struggle is the training signal</span>
-          <div id="hint-box" class="hidden mt-2 p-3.5 rounded-xl soft-warn text-sm md rise"></div>
+      <div class="border-t border-line pt-5">
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="btn-hint" class="btn btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="text-warn"><path d="M6 12.5h4M6.5 14.5h3M8 1.5a4.5 4.5 0 0 0-2.6 8.2c.4.3.6.7.6 1.2v.6h4v-.6c0-.5.2-.9.6-1.2A4.5 4.5 0 0 0 8 1.5z"/></svg>
+            Show hint</button>
+          <button id="btn-sol" class="btn btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="text-mut"><path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg>
+            Reference solution</button>
         </div>
+        <p class="text-[12px] text-mut mt-2">Stuck? Give it 10 more minutes first: the struggle is the training signal.</p>
+        <div id="hint-box" class="hidden mt-3 p-3.5 rounded-xl soft-warn text-sm md rise"></div>
         <div>
-          <button id="btn-sol" class="btn btn-text text-bad text-sm font-medium">Reference solution</button>
           <div id="sol-confirm" class="hidden mt-2 p-3.5 rounded-xl soft-bad text-sm rise">
             Opening the solution converts this problem into a worked example - you'll need a cold
             re-attempt in a couple of days for it to count. It will be marked "attempted" until you
@@ -1370,8 +1402,8 @@ function buildOutline(rootEl, wrapEl, scrollRoot) {
   wrapEl.appendChild(rail);
   wrapEl.classList.add('has-outline');
   const det = document.createElement('details');
-  det.className = 'doc-toc card !rounded-lg px-4 py-2.5 mb-5';
-  det.innerHTML = `<summary class="cursor-pointer microlabel text-mut select-none">Contents</summary>
+  det.className = 'doc-toc mb-6 border-b border-line pb-3';
+  det.innerHTML = `<summary class="toc-sum cursor-pointer select-none inline-flex items-center gap-1.5 text-[13px] font-medium text-mut hover:text-zinc-100"><span class="chev inline-flex">${ICON.chevR}</span>On this page</summary>
     <div class="mt-2 pb-1">${links}</div>`;
   rootEl.parentNode.insertBefore(det, rootEl);
   wrapEl.querySelectorAll('.toc-link').forEach(a => a.addEventListener('click', ev => {
@@ -1634,7 +1666,7 @@ async function viewNotes(app, encodedPath) {
           <span class="btn btn-primary shrink-0">Resume</span>
         </a>` : ''}
         ${overview ? overview.files.map(f => `
-        <a href="${docHash(f)}" class="flex items-center gap-3 px-4 py-3 mb-6 rounded-xl border border-line hover:bg-panel2">
+        <a href="${docHash(f)}" class="card flex items-center gap-3 px-4 py-3 mb-6 !rounded-xl hover:bg-panel2">
           <span class="text-accent inline-flex">${ICON.doc}</span>
           <span class="text-[14px] min-w-0 truncate"><span class="font-semibold text-zinc-100">Start here</span>
             <span class="text-mut"> · ${esc(f.title)}</span></span>
@@ -2247,7 +2279,7 @@ async function viewCards(app, slug) {
                  missedCards.length ? `${missedCards.length} to review again` : 'Cards you miss collect here',
                  !missedCards.length)}
       </div>
-      <h2 class="text-[12px] font-semibold uppercase tracking-wider text-mut mb-3">Decks</h2>
+      <h2 class="sec-title mb-3">Decks</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${sections.map(deckTile).join('')}</div>
     </div>`;
     return;
