@@ -369,6 +369,33 @@ def queue_log(item_id, source_path, result):
         return {"logged": True, "row": row}
 
 
+def queue_undo(item_id, prev):
+    """Reverse one grade made today: put the queue row back exactly as it
+    was before (prev, as the client last saw it) and drop that day's log
+    line for the item. Backs the app's Undo after Missed / Recalled."""
+    if not isinstance(prev, dict) or prev.get("item_id") != item_id or \
+            not all(isinstance(prev.get(c), str) and "\t" not in prev[c] and "\n" not in prev[c]
+                    for c in QUEUE_COLS):
+        return {"undone": False, "reason": "need the previous row for this item"}
+    with _queue_lock:
+        rows = queue_load()
+        row = next((r for r in rows if r["item_id"] == item_id), None)
+        if row is None:
+            return {"undone": False, "reason": "item not in queue"}
+        row.update({c: prev[c] for c in QUEUE_COLS})
+        queue_save(rows)
+        if LOG.exists():
+            lines = LOG.read_text().splitlines()
+            t = date.today().isoformat()
+            for i in range(len(lines) - 1, 0, -1):
+                parts = lines[i].split("\t")
+                if len(parts) == len(LOG_COLS) and parts[0] == t and parts[1] == item_id:
+                    del lines[i]
+                    LOG.write_text("\n".join(lines) + "\n")
+                    break
+        return {"undone": True, "row": row}
+
+
 def queue_snapshot():
     rows = queue_load()
     today = date.today()
@@ -1545,6 +1572,11 @@ class Handler(BaseHTTPRequestHandler):
                 if not item or result not in ("pass", "fail"):
                     return self._err(400, "need item_id and result pass|fail")
                 self._json(queue_log(item, body.get("source_path", ""), result))
+            elif u.path == "/api/log/undo":
+                item = body.get("item_id", "")
+                if not item:
+                    return self._err(400, "need item_id and row")
+                self._json(queue_undo(item, body.get("row")))
             else:
                 self._err(404, "not found")
         except Exception as e:
