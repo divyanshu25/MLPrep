@@ -2,7 +2,7 @@
 
 ## 2.1 The derivative is local sensitivity
 
-Forget limits-as-ritual. The derivative answers one concrete question:
+The derivative answers one concrete question:
 **if I change the input by a small amount, how much does the output change?**
 
 $$f'(x) \approx \frac{f(x + h) - f(x)}{h} \quad \text{for tiny } h$$
@@ -115,7 +115,7 @@ $$\frac{dz}{dx} = 3, \qquad \frac{dy}{dz} = 2z = 12, \qquad
 \frac{dy}{dx} = 12 \cdot 3 = 36$$
 
 Check without the chain rule: $y = (3x)^2 = 9x^2$, so $y' = 18x = 36$ at
-$x = 2$, matching the chain-rule result. ✓
+$x = 2$, matching the chain-rule result.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 170" role="img" aria-label="Pipeline x to z to y: forward pass computes values left to right, backward pass multiplies local rates of change right to left giving dy/dx = 12 times 3 = 36" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -295,8 +295,9 @@ $L$ directly gives the same $2w + 3$.
 path arrives back at $w$: $1 \cdot 4$ through $u$ and $1 \cdot 3$ through $v$.
 They add: $\partial L / \partial w = 7$, matching $2w + 3$ at $w = 2$.*
 
-That is all the math in backprop. Every exotic layer - attention, layernorm,
-convolutions - just needs its local derivative; the chain rule does the rest.
+Those two rules, multiply along a path and add across paths, are all the
+math backprop uses. Every layer type (attention, layernorm, convolution) only
+has to supply its local derivative.
 
 #### Why walk the graph backward?
 
@@ -434,7 +435,7 @@ derivatives one at a time:
 Numeric check of the third, $A = [[1, 2], [3, 4]]$: written out,
 $x^\top A x = x_1^2 + 5 x_1 x_2 + 4 x_2^2$, whose partials are
 $[2 x_1 + 5 x_2,\; 5 x_1 + 8 x_2]$ - exactly $(A + A^\top) x$ with
-$A + A^\top = [[2, 5], [5, 8]]$. ✓
+$A + A^\top = [[2, 5], [5, 8]]$.
 
 The summary to memorize:
 
@@ -539,7 +540,7 @@ $2 X^\top r = 2\,[1 \cdot 2 + 3 \cdot 7,\; 2 \cdot 2 + 4 \cdot 7] = [46, 64]$,
 matching the finite-difference gradient of $L$.
 
 Shape check: $X^\top$ is $d \times n$, $r$ is $n \times 1$, result
-$d \times 1$ = the shape of $w$. ✓ **The gradient of a scalar loss always has
+$d \times 1$ = the shape of $w$. **The gradient of a scalar loss always has
 the same shape as the thing you're differentiating with respect to** - the
 single most useful debugging rule in matrix calculus. Setting
 $\nabla_w L = 0$ gives the normal equations $X^\top X w = X^\top y$, i.e. the
@@ -576,7 +577,7 @@ zoomed in at a point, the nonlinear layer behaves like the linear map $J$.
 Check: $f(x_1, x_2) = [x_1^2,\; x_1 x_2]$ at $(2, 3)$, so
 $J = [[2x_1, 0], [x_2, x_1]] = [[4, 0], [3, 2]]$. Step $\delta = [0.01, 0]$:
 exact $f(2.01, 3) = [4.0401,\; 6.03]$; predicted
-$f(2, 3) + J\delta = [4 + 0.04,\; 6 + 0.03] = [4.04,\; 6.03]$. ✓
+$f(2, 3) + J\delta = [4 + 0.04,\; 6 + 0.03] = [4.04,\; 6.03]$.
 
 #### Chain rule for vectors: Jacobians multiply
 
@@ -733,6 +734,8 @@ subtraction.*
 
 The backward signal is a product of
 many Jacobians; if their singular values are systematically $< 1$ or $> 1$, the product
-shrinks or blows up exponentially with depth. Residual connections fix this by making
-each layer's Jacobian $\approx I + \text{small}$, so products stay near $I$.
+shrinks or blows up exponentially with depth. Residual connections help by making
+each layer's Jacobian $I + \partial F / \partial h$: the product then always
+contains a path through the identity terms, so some gradient reaches every layer
+unchanged.
 

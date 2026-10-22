@@ -8,8 +8,8 @@ year built. A word in a transformer is a vector of 768 learned numbers.
 
 The "arrow" picture is still useful for one reason: it gives us geometry. Once data
 points are vectors, we can ask geometric questions: *how long is it? how similar are
-two points? what direction does it point?* Those questions turn out to be the entire
-substrate of ML.
+two points? what direction does it point?* Length, similarity and direction are the
+operations the rest of this chapter builds on.
 
 ## 1.2 Dot product = similarity = projection
 
@@ -463,17 +463,17 @@ standing side by side as columns. Then:
   multiply both sides by $Q^{-1}$ to get $c = Q^{-1}x$.
   Here $Q^{-1} = \tfrac{1}{2}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
   Check: $Q^{-1} \begin{bmatrix} 3 \\ 1 \end{bmatrix} = \begin{bmatrix} 2 \\ 1 \end{bmatrix}$,
-  the amounts step 1 found. ✓
+  the amounts step 1 found.
 - **Step 2 is "multiply by $\Lambda = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$".**
   A diagonal matrix multiplies coordinate $i$ by $\lambda_i$, nothing else.
-  Check: $\Lambda \begin{bmatrix} 2 \\ 1 \end{bmatrix} = \begin{bmatrix} 6 \\ 1 \end{bmatrix}$. ✓
+  Check: $\Lambda \begin{bmatrix} 2 \\ 1 \end{bmatrix} = \begin{bmatrix} 6 \\ 1 \end{bmatrix}$.
 - **Step 3 is "multiply by $Q$".** Step 2 handed over the *scaled* amounts
   $\Lambda c = \begin{bmatrix} 6 \\ 1 \end{bmatrix}$. Multiplying by $Q$
   turns amounts back into an ordinary vector, by the same blend rule as
   step 1: each amount multiplies its own column of $Q$ (its eigenvector),
   and the results add.
   Check: $Q \begin{bmatrix} 6 \\ 1 \end{bmatrix} = 6 \begin{bmatrix} 1 \\ 1 \end{bmatrix} + 1 \begin{bmatrix} 1 \\ -1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$:
-  exactly the rebuild in numbered step 3, and the final answer $Ax$. ✓
+  exactly the rebuild in numbered step 3, and the final answer $Ax$.
 
 The intuition for the three factors: they split $A$'s job into *translate,
 act, translate back*.
@@ -544,8 +544,11 @@ $$A = Q \Lambda Q^{-1} \tag{1.6a}$$
 This formula is the **eigendecomposition** of $A$. Multiplying the three matrices
 out returns exactly $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$.
 
-(When $A$ is symmetric, the eigenvectors are orthogonal, $Q$ is a pure
-rotation, and $Q^{-1} = Q^\top$.)
+(When $A$ is symmetric, the eigenvectors are orthogonal. Scale each to unit
+length and $Q$ becomes an orthogonal matrix, a rotation possibly combined
+with a reflection, whose inverse is its transpose: $Q^{-1} = Q^\top$. The
+unscaled $Q$ above has columns of length $\sqrt{2}$, which is why its
+inverse carried the factor $\tfrac{1}{2}$.)
 
 Two limitations.
 
@@ -554,8 +557,10 @@ Two limitations.
   $v$ - which requires the two sides to have the same number of entries.
   For a rectangular $A$, $Av$ and $v$ have different lengths, and the
   equation cannot even be written down.
-- **Clean axes need $A$ symmetric.** Only then does the spectral theorem
-  guarantee orthogonal eigenvectors, making $Q$ a rotation.
+- **Clean axes need $A$ symmetric.** For a symmetric $A$ the spectral
+  theorem guarantees orthogonal eigenvectors, so $Q$ (with unit columns) is
+  a rotation. A general square matrix can have skewed eigenvectors, or too
+  few of them (the shear below).
 
 A real data matrix ($n$ houses × $d$ features) is neither.
 
@@ -772,7 +777,7 @@ any: every step operates on $B^\top B$, which is square and symmetric.
    $u_1$ equal $v_1$?" is no longer a well-formed question. The
    orthogonality check:
 
-   $$u_1 \cdot u_2 = \frac{0 - 1 + 1}{\sqrt{12}} = 0 \; ✓$$
+   $$u_1 \cdot u_2 = \frac{0 - 1 + 1}{\sqrt{12}} = 0$$
 
 Assemble the results into the three matrices: the $u_i$ stand side by side as
 the columns of $U$, the $\sigma_i$ sit on $\Sigma$'s diagonal, and the
@@ -805,7 +810,7 @@ direction it lands on. $v_2$ answers the same question among the directions
 perpendicular to $v_1$, and so on. The SVD is a ranking of input directions by
 how much $A$ stretches them.
 
-Two quick checks:
+Three checks:
 
 - The symmetric $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ from §1.5
   stretches $[1,1]$ by 3 and $[1,-1]$ by 1 - so those are its $v$'s, they land
@@ -1056,5 +1061,6 @@ $\|A\|_F = \sqrt{\sum_{ij} a_{ij}^2}$.
 
 Two things every norm gives you for free: a **distance** between vectors,
 $\|a - b\|$, and a **normalization**, $x / \|x\|$, which rescales $x$ to
-length 1 - the core move inside cosine similarity (§1.2) and LayerNorm. The
+length 1 - the core move inside cosine similarity (§1.2), and, after
+subtracting the mean and up to a constant factor, inside LayerNorm. The
 one-line contrast to keep for interviews: *L2 shrinks, L1 selects.*
