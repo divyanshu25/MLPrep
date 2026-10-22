@@ -758,14 +758,13 @@ async function viewToday(app) {
       <span class="flex-1 min-w-[14rem]">
         ${href ? `<a href="${href}" class="text-[14px] font-medium text-zinc-100 hover:text-accent">${esc(t)}</a>`
                : `<span class="text-[14px] font-medium text-zinc-100">${esc(t)}</span>`}
-        <span class="block text-[12px] text-mut truncate"><span class="font-mono">${esc(r.item_id)}</span> · every ${r.interval_days} ${r.interval_days === '1' ? 'day' : 'days'}
-          ${late > 0 ? `· <span class="text-warn">${late} ${late === 1 ? 'day' : 'days'} overdue</span>` : ''}</span>
+        <span class="block text-[12px] text-mut truncate"><span class="font-mono">${esc(r.item_id)}</span> · ${late > 0 ? `<span class="text-warn">due ${late === 1 ? 'yesterday' : late + ' days ago'}</span>` : 'due today'}</span>
       </span>
       <span class="flex items-center gap-2 shrink-0">
-        <button class="btn btn-secondary grade-miss !py-1.5" data-log="fail" title="Missed: the interval resets to 1 day">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>Missed</button>
-        <button class="btn btn-secondary grade-pass !py-1.5" data-log="pass" title="Recalled cold: the interval doubles">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Recalled</button>
+        <button class="btn btn-secondary grade-miss !py-1.5" data-log="fail" title="It comes back tomorrow">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>Didn't get it</button>
+        <button class="btn btn-secondary grade-pass !py-1.5" data-log="pass" title="It comes back later; the gap doubles each time, up to 16 days">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Got it</button>
       </span>
     </div>`;
   }).join('');
@@ -779,18 +778,19 @@ async function viewToday(app) {
 
     <section class="mb-10">
       <div class="flex items-baseline gap-3 mb-3">
-        <h2 class="sec-title">Review queue</h2>
-        <span class="text-[13px] text-mut tnum">${q.due_count ? `${q.due_count} due` : 'nothing due'}${q.reviewed_today ? ` · ${q.reviewed_today} done today` : ''}</span>
+        <h2 class="sec-title">Review</h2>
+        <span class="text-[13px] text-mut tnum">${q.due_count ? `${q.due_count} for today` : 'nothing for today'}${q.reviewed_today ? ` · ${q.reviewed_today} done` : ''}</span>
       </div>
+      <p class="text-[14px] text-mut -mt-1 mb-3">Things you got wrong before. Try each one again without looking at the answer, then mark how it went.</p>
       ${q.due_count ? `
       <div class="card !rounded-2xl overflow-hidden divide-y divide-line" id="due-list">${dueRows}</div>
-      <p class="text-[12px] text-mut mt-2.5">Attempt each one cold from its source, then grade it. Recalled doubles the
-        interval (up to 16 days); Missed resets it to 1 day. Same queue as <span class="font-mono">practice/review.py</span>.</p>`
+      <p class="text-[12px] text-mut mt-2.5"><b>Got it</b>: it comes back later, and the wait doubles each time (2, 4, 8, then 16 days).
+        <b>Didn't get it</b>: it comes back tomorrow.</p>`
       : `<div class="card !rounded-2xl px-6 py-8 flex flex-col items-center text-center">
           <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" class="mb-3"><circle cx="20" cy="20" r="19" fill="#34c759"/>
             <path d="M12 20.5l5.5 5.5L28.5 14.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <div class="text-[17px] font-semibold text-zinc-100">All caught up</div>
-          <div class="text-[14px] text-mut mt-1 max-w-md">Nothing in the review queue is due today. A mixed flashcard review or an interleaved problem keeps retrieval going.</div>
+          <div class="text-[14px] text-mut mt-1 max-w-md">Nothing to review today. A mixed flashcard review or a new problem is a good use of the time.</div>
         </div>`}
     </section>
 
@@ -809,7 +809,7 @@ async function viewToday(app) {
                    humanName(nextP.name), `${nextP.folder_title} · ${nextP.difficulty} · ${nextP.time_box_min} min`, 'Solve')
           : upTile('#/coding', 3, bigIcon(ICON.practice), 'Problems', 'All solved', 'Switch to Interleaved for a cold pass', 'Open')}
         ${missedN
-          ? upTile('#/cards/missed', 5, ICON.redo, 'Flashcards', `${missedN} missed ${missedN === 1 ? 'card' : 'cards'}`, 'Review the cards you missed last time', 'Review')
+          ? upTile('#/cards/missed', 5, ICON.redo, 'Flashcards', `${missedN} ${missedN === 1 ? 'card' : 'cards'} to retry`, "Cards you didn't get last time", 'Retry')
           : upTile('#/cards/mixed', 5, ICON.shuffle, 'Flashcards', 'Mixed review', '20 random cards from every deck', 'Start')}
       </div>
     </section>
@@ -854,8 +854,8 @@ async function viewToday(app) {
       if (!res.logged) toast(`Not recorded: ${esc(res.reason || 'no change')}`);
       else if (r) {
         const days = +res.row.interval_days;
-        toast(`<b>${b.dataset.log === 'pass' ? 'Recalled' : 'Missed'}</b> · ${esc(itemTitle(r))}
-               <span class="text-mut">· back in ${days} ${days === 1 ? 'day' : 'days'}</span>`, async () => {
+        toast(`<b>${b.dataset.log === 'pass' ? 'Got it' : "Didn't get it"}</b> · ${esc(itemTitle(r))}
+               <span class="text-mut">· back ${days === 1 ? 'tomorrow' : `in ${days} days`}</span>`, async () => {
           await api('/api/log/undo', { item_id: item, row: r });
           problemsCache = null; updateNavProgress();
           if (location.hash === '' || location.hash.startsWith('#/today')) viewToday(app);
@@ -891,7 +891,7 @@ function viewReset(app) {
     <p class="text-[14px] text-mut mb-6">This clears what this browser remembers. It cannot be undone.</p>
     <div class="card !rounded-2xl overflow-hidden divide-y divide-line mb-6 text-[14px]">
       <div class="px-4 py-3"><div class="font-semibold text-zinc-100 mb-1">Cleared</div>
-        <div class="text-mut">Problem statuses and code drafts, reading history and Continue reading, flashcard scores and missed cards, checklist ticks, problem timers.</div></div>
+        <div class="text-mut">Problem statuses and code drafts, reading history and Continue reading, flashcard scores and cards to retry, checklist ticks, problem timers.</div></div>
       <div class="px-4 py-3"><div class="font-semibold text-zinc-100 mb-1">Kept</div>
         <div class="text-mut">Light or dark appearance, the sidebar setting, and the review queue in <span class="font-mono text-[12px]">practice/queue.tsv</span>.</div></div>
     </div>
@@ -2274,8 +2274,8 @@ async function viewNb(app, path) {
 /* Flashcards. Landing: two quick actions (a mixed review drawn from every
    deck, and the cards missed before) above a grid of deck tiles, each with
    its last score. Study: one card at a time with a progress bar; the card
-   flips in place to the answer, then "Missed" / "Got it" grade it. Misses
-   persist across sessions (browser-only) and feed the Missed deck. */
+   flips in place to the answer, then "Didn't get it" / "Got it" grade it. Misses
+   persist across sessions (browser-only) and feed the Cards to retry deck. */
 const CARD_LAST = 'mlprep.cards.last', CARD_MISSED = 'mlprep.cards.missed';
 const cardKey = c => c.slug + '#' + c.n;
 function parseSection(s) {
@@ -2335,8 +2335,8 @@ async function viewCards(app, slug) {
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
         ${action('#/cards/mixed', ICON.shuffle, 1, 'Mixed review',
                  `${MIXED_N} random cards from all ${sections.length} decks`)}
-        ${action('#/cards/missed', ICON.redo, 5, 'Missed cards',
-                 missedCards.length ? `${missedCards.length} to review again` : 'Cards you miss collect here',
+        ${action('#/cards/missed', ICON.redo, 5, 'Cards to retry',
+                 missedCards.length ? `${missedCards.length} you didn't get last time` : "Cards you mark \"Didn't get it\" show up here",
                  !missedCards.length)}
       </div>
       <h2 class="sec-title mb-3">Decks</h2>
@@ -2347,13 +2347,13 @@ async function viewCards(app, slug) {
 
   let deck, deckName;
   if (slug === 'mixed') { deck = shuffled(cards).slice(0, MIXED_N); deckName = 'Mixed review'; }
-  else if (slug === 'missed') { deck = missedCards; deckName = 'Missed cards'; }
+  else if (slug === 'missed') { deck = missedCards; deckName = 'Cards to retry'; }
   else { deck = cards.filter(c => c.slug === slug); deckName = deck.length ? parseSection(deck[0].section).name : ''; }
   if (!deck.length) {
     app.innerHTML = slug === 'missed'
       ? `<div class="max-w-md mx-auto px-6 py-16 text-center rise">
-          <h1 class="page-title mb-2">No missed cards</h1>
-          <p class="text-[14px] text-mut mb-6">Cards you mark Missed collect here for another pass.</p>
+          <h1 class="page-title mb-2">Nothing to retry</h1>
+          <p class="text-[14px] text-mut mb-6">Cards you mark "Didn't get it" show up here for another try.</p>
           <a href="#/cards" class="btn btn-primary btn-lg">All decks</a></div>`
       : errBox(new Error('unknown deck: ' + slug));
     return;
@@ -2366,7 +2366,7 @@ async function viewCards(app, slug) {
     const el = $('#c-actions');
     if (!el) return;
     el.innerHTML = state.flipped
-      ? `<button id="c-miss" class="btn btn-lg soft-bad text-bad font-semibold">Missed<span class="kbd">1</span></button>
+      ? `<button id="c-miss" class="btn btn-lg soft-bad text-bad font-semibold">Didn't get it<span class="kbd">1</span></button>
          <button id="c-got" class="btn btn-lg soft-good text-good font-semibold">Got it<span class="kbd">2</span></button>`
       : `<button id="c-show" class="btn btn-lg btn-primary">Show answer<span class="kbd">Space</span></button>`;
     if (state.flipped) {
@@ -2407,7 +2407,7 @@ async function viewCards(app, slug) {
         </div>
       </div>
       <div id="c-actions" class="mt-6 flex justify-center gap-3"></div>
-      <p class="text-center text-[12px] text-mut mt-5">Grade yourself before flipping back: recognizing an answer is not the same as recalling it.</p>
+      <p class="text-center text-[12px] text-mut mt-5">Be honest: if you needed to see the answer, choose Didn't get it.</p>
     </div>`;
     fixMdLinks($('#card'), 'practice/flashcards.md');
     $('#card').onclick = e => { if (!e.target.closest('a')) flip(); };
@@ -2426,10 +2426,10 @@ async function viewCards(app, slug) {
         <text x="74" y="83" text-anchor="middle" font-size="26" font-weight="700" fill="currentColor"
               class="tnum">${state.got}/${N}</text>
       </svg>
-      <h1 class="page-title mb-1">${miss ? 'Deck complete' : 'Every card recalled'}</h1>
-      <p class="text-[14px] text-mut mb-7">${esc(deckName)} · ${miss ? miss + ' missed' : 'no misses'}</p>
+      <h1 class="page-title mb-1">${miss ? 'Deck complete' : 'You got every card'}</h1>
+      <p class="text-[14px] text-mut mb-7">${esc(deckName)} · ${miss ? `${miss} to retry` : 'you got every card'}</p>
       <div class="flex gap-3 justify-center flex-wrap mb-8">
-        ${miss ? `<button id="c-retry" class="btn btn-primary btn-lg">Review ${miss} missed</button>` : ''}
+        ${miss ? `<button id="c-retry" class="btn btn-primary btn-lg">Retry ${miss} ${miss === 1 ? 'card' : 'cards'}</button>` : ''}
         <button id="c-restart" class="btn ${miss ? 'btn-secondary' : 'btn-primary'} btn-lg">Study again</button>
         <a href="#/cards" class="btn btn-text btn-lg text-mut">All decks</a>
       </div>
