@@ -39,6 +39,7 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
     --accent:#ffa116;
     --nav-bg:rgba(251,251,253,.78);
     --shadow-card:0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.05);
+    --fill:rgba(118,118,128,.12); --sb-bg:#f5f5f7; --sel-bg:rgba(255,161,22,.16);
   }
   html.dark {
     --base:#0d0d0f; --panel:#1c1c1f; --panel2:#26262b; --line:rgba(255,255,255,.09);
@@ -49,6 +50,7 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
     --accent:#ffa116; --accent-text:#ffa116; --good-text:#2cbb5d; --bad-text:#ef4743;
     --nav-bg:rgba(13,13,15,.72);
     --shadow-card:none;
+    --fill:rgba(118,118,128,.24); --sb-bg:#161618; --sel-bg:rgba(255,161,22,.2);
   }
   /* Only #app and inner panes scroll: the page shell itself is locked so nothing
      (hidden helpers, momentum chaining) can scroll past the end of the content. */
@@ -84,6 +86,9 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
            backdrop-filter:saturate(180%) blur(20px); }
   .nav-tab { padding:.35rem .85rem; border-radius:9999px; color:var(--mut); font-weight:500; }
   .nav-tab:hover { color:var(--text-strong); background:var(--panel2); }
+  .nav-tab { display:inline-flex; align-items:center; white-space:nowrap; }
+  @media (max-width:639.98px) { .nav-tab { padding:.35rem .5rem; font-size:14px; } }
+  @media (max-width:399.98px) { .nav-brand { display:none !important; } }
   .nav-tab.active { background:var(--panel2); color:var(--text-strong); font-weight:600; }
   /* button hierarchy: one filled accent primary per screen, quiet bordered
      secondaries, quiet text buttons for progressive disclosure. */
@@ -178,15 +183,99 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .doc-outline .toc-link.active { color:var(--accent-text); border-left-color:var(--accent); font-weight:600; }
   .toc-link.lvl3 { padding-left:1.5rem; }
   .toc-link.lvl4 { padding-left:2.5rem; font-size:12px; }
+  /* the rail needs room: from 1280px without the sidebar, from 1440px with it */
   @media (min-width:1280px) {
-    .doc-wrap.has-outline { padding-right:17rem; }
-    .doc-wrap.has-outline .doc-outline { display:block; position:fixed; top:4.5rem; right:1rem;
-      width:15rem; max-height:calc(100vh - 6rem); overflow-y:auto; overscroll-behavior:contain;
-      padding-bottom:1rem; }
-    .doc-toc { display:none; }
+    .doc-wrap.has-outline:not(.sb-open) { padding-right:17rem; }
+    .doc-wrap.has-outline:not(.sb-open) .doc-outline { display:block; }
+    .doc-wrap:not(.sb-open) .doc-toc { display:none; }
   }
+  @media (min-width:1440px) {
+    .doc-wrap.has-outline.sb-open { padding-right:17rem; }
+    .doc-wrap.has-outline.sb-open .doc-outline { display:block; }
+    .doc-wrap.sb-open .doc-toc { display:none; }
+  }
+  .doc-outline { position:fixed; top:4.5rem; right:1rem; width:15rem; max-height:calc(100vh - 6rem);
+                 overflow-y:auto; overscroll-behavior:contain; padding-bottom:1rem; }
+  /* ---- library surfaces (Notes and Cards landings), Apple-style ----
+     tiles: large radius, soft shadow, 2px lift on hover; segmented control for
+     top-level groups; tinted number badges like app icons; thin meters. */
+  .seg { display:inline-flex; gap:2px; padding:2px; border-radius:9px; background:var(--fill); }
+  .seg button { padding:.3rem .95rem; border-radius:7px; font-size:13px; font-weight:500; color:var(--mut); }
+  .seg button:hover { color:var(--text-strong); }
+  .seg button.on { background:var(--panel); color:var(--text-strong); font-weight:600;
+                   box-shadow:0 1px 2px rgba(0,0,0,.1), 0 0 0 .5px rgba(0,0,0,.05); }
+  html.dark .seg button.on { background:#48484d; }
+  .tile { display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line);
+          border-radius:16px; padding:1.1rem 1.15rem 1rem; box-shadow:var(--shadow-card);
+          transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+  .tile:not(.no-lift):hover { transform:translateY(-2px);
+          box-shadow:0 2px 6px rgba(0,0,0,.06), 0 14px 32px rgba(0,0,0,.09); }
+  html.dark .tile:not(.no-lift):hover { border-color:rgba(255,255,255,.2); }
+  .badge-num { width:2.3rem; height:2.3rem; border-radius:10px; display:grid; place-items:center;
+               font-weight:700; font-size:15px; color:#fff; flex-shrink:0; }
+  .meter { height:4px; border-radius:2px; background:var(--fill); overflow:hidden; }
+  .meter > i { display:block; height:100%; border-radius:2px; background:var(--accent); transition:width .3s ease; }
+  .btn-lg { padding:.62rem 1.3rem; font-size:15px; border-radius:12px; }
+  .kbd { font:600 11px ui-monospace,Menlo,monospace; padding:.05rem .35rem; margin-left:.45rem;
+         border-radius:5px; border:1px solid currentColor; opacity:.55; }
+  .toast { position:fixed; left:50%; bottom:1.5rem; transform:translateX(-50%); z-index:60; max-width:min(92vw, 36rem);
+           display:flex; align-items:center; gap:.75rem; padding:.6rem .6rem .6rem 1rem; border-radius:14px;
+           border:1px solid var(--line); box-shadow:0 10px 30px rgba(0,0,0,.14); font-size:13.5px; color:var(--text); }
+  @keyframes toast-in { from { opacity:0; transform:translate(-50%, 8px); } to { opacity:1; transform:translate(-50%, 0); } }
+  .toast { animation:toast-in .2s ease both; }
+  /* segments share one width (HIG: equal segments read as one balanced control) */
+  .seg { display:inline-grid; grid-auto-flow:column; grid-auto-columns:1fr; }
+  .seg button { text-align:center; white-space:nowrap; }
+  .nav-badge { display:inline-grid; place-items:center; min-width:1.15rem; height:1.15rem; padding:0 .3rem;
+               margin-left:.35rem; border-radius:9999px; background:#ff3b30; color:#fff;
+               font-size:11px; font-weight:700; line-height:1; vertical-align:1px; }
+  .nav-badge[hidden] { display:none; }
+  /* pop-up button: a select that looks like a quiet bordered pill with a chevron */
+  .popup { appearance:none; -webkit-appearance:none; height:2.25rem; padding:0 2rem 0 .8rem; border-radius:9px;
+           border:1px solid var(--line); background:var(--panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 16 16' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E") no-repeat right .7rem center;
+           font-size:13px; font-weight:500; color:var(--text); cursor:pointer; }
+  .popup:hover { background-color:var(--panel2); }
+  /* ---- reader sidebar: two levels (module > file), hideable, persistent
+     selection; below 1024px it opens as an overlay drawer instead ---- */
+  .sb { position:fixed; top:3.5rem; left:0; bottom:0; width:16.5rem; z-index:15; display:flex;
+        flex-direction:column; background:var(--sb-bg); border-right:1px solid var(--line);
+        transform:translateX(-100%); visibility:hidden; transition:transform .22s ease, visibility .22s; }
+  .doc-wrap.sb-open .sb { transform:none; visibility:visible; }
+  .doc-wrap { transition:padding .22s ease; }
+  @media (min-width:1024px) { .doc-wrap.sb-open { padding-left:16.5rem; } }
+  .sb-backdrop { display:none; }
+  @media (max-width:1023.98px) {
+    .doc-wrap.sb-open .sb-backdrop { display:block; position:fixed; inset:3.5rem 0 0 0;
+      background:rgba(0,0,0,.28); z-index:14; }
+    .sb { box-shadow:0 12px 40px rgba(0,0,0,.18); }
+  }
+  .sb-scroll { position:relative; flex:1; overflow-y:auto; overscroll-behavior:contain; padding:.25rem .6rem 2rem; }
+  .sb-filter { display:flex; align-items:center; gap:.4rem; height:1.9rem; padding:0 .55rem;
+               border-radius:8px; background:var(--fill); color:var(--mut); }
+  .sb-filter:focus-within { box-shadow:0 0 0 3px rgba(255,161,22,.35); }
+  .sb-filter input { flex:1; min-width:0; background:transparent; border:none; outline:none;
+                     font-size:13px; color:var(--text); }
+  .sb-mod > summary { list-style:none; display:flex; align-items:center; gap:.35rem; padding:.34rem .45rem;
+                      border-radius:7px; font-size:13px; font-weight:600; color:var(--text-strong); cursor:pointer; }
+  .sb-mod > summary::-webkit-details-marker { display:none; }
+  .sb-mod > summary:hover { background:var(--fill); }
+  .sb-mod > summary .chev { color:var(--mut); transition:transform .15s ease; display:inline-flex; }
+  .sb-mod[open] > summary .chev { transform:rotate(90deg); }
+  .sb-item { display:flex; align-items:center; gap:.5rem; padding:.3rem .5rem .3rem 1.6rem; margin:1px 0;
+             border-radius:7px; font-size:13px; color:var(--text); }
+  .sb-item.top { padding-left:.5rem; }
+  .sb-item:hover { background:var(--fill); }
+  .sb-item .ic { color:var(--mut); display:inline-flex; flex-shrink:0; }
+  .sb-item.sel { background:var(--sel-bg); color:var(--text-strong); font-weight:600; }
+  .sb-item.sel .ic { color:var(--accent-text); }
+  /* ---- flashcard: two faces stacked in one grid cell, rotated in 3D ---- */
+  .flip { perspective:1600px; }
+  .flip-inner { display:grid; transform-style:preserve-3d; transition:transform .5s cubic-bezier(.2,.7,.2,1); }
+  .flip.is-flipped .flip-inner { transform:rotateY(180deg); }
+  .flip .face { grid-area:1/1; -webkit-backface-visibility:hidden; backface-visibility:hidden; }
+  .flip .back { transform:rotateY(180deg); }
   /* roving keyboard highlight on the problems table */
-  tr.rove { outline:2px solid var(--accent); outline-offset:-2px; background:rgba(255,161,22,.06); }
+  tr.rove, .prow.rove { outline:2px solid var(--accent); outline-offset:-2px; background:rgba(255,161,22,.06); }
   ::-webkit-scrollbar { width:10px; height:10px; }
   ::-webkit-scrollbar-thumb { background:var(--scroll); border-radius:6px; }
   ::-webkit-scrollbar-track { background:transparent; }
@@ -197,17 +286,18 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
 <div id="offline-banner" style="display:none;background:#7c2d12;color:#fed7aa;padding:8px 16px;
      font:13px system-ui;border-bottom:1px solid #9a3412;"></div>
 
-<nav class="frost h-14 flex items-center gap-6 px-5 border-b border-line sticky top-0 z-20">
-  <a href="#/problems" class="flex items-center gap-2 font-semibold text-[15px] tracking-tight text-zinc-100">
+<nav class="frost h-14 flex items-center gap-3 sm:gap-6 px-3 sm:px-5 border-b border-line sticky top-0 z-20">
+  <a href="#/today" class="nav-brand flex items-center gap-2 font-semibold text-[15px] tracking-tight text-zinc-100">
     <span>MLPrep</span>
   </a>
   <div class="flex items-center gap-1 text-sm" id="nav-tabs">
-    <a href="#/problems" data-tab="problems" class="nav-tab">Problems</a>
+    <a href="#/today"    data-tab="today"    class="nav-tab">Today<span id="today-badge" class="nav-badge" hidden></span></a>
+    <a href="#/coding"   data-tab="coding"   class="nav-tab">Coding</a>
     <a href="#/notes"    data-tab="notes"    class="nav-tab">Notes</a>
     <a href="#/cards"    data-tab="cards"    class="nav-tab">Cards</a>
   </div>
   <div class="ml-auto flex items-center gap-3 text-xs text-mut tnum" id="nav-progress"></div>
-  <button id="palette-hint" class="btn btn-secondary !px-2.5 !py-1 text-xs text-mut"
+  <button id="palette-hint" class="btn btn-secondary !px-2.5 !py-1 text-xs text-mut hidden sm:inline-flex"
           title="Jump to any problem, note, or deck" onclick="openPalette()">⌘K</button>
   <button id="theme-toggle" class="btn btn-secondary !px-2.5 !py-1 text-sm"
           title="Toggle light / dark theme"></button>
@@ -299,9 +389,27 @@ async function api(path, body) {
   if (!parsed) throw new Error('Unexpected non-JSON response from ' + path);
   return data;
 }
+/* toast: one at a time, bottom center, optional Undo; disappears after 8 s */
+function toast(html, onUndo) {
+  const old = document.getElementById('toast');
+  if (old) old.remove();
+  const el = document.createElement('div');
+  el.id = 'toast';
+  el.setAttribute('role', 'status');
+  el.className = 'toast frost';
+  el.innerHTML = `<span class="min-w-0 truncate">${html}</span>${onUndo ? '<button class="btn btn-text text-accent font-semibold !py-1">Undo</button>' : ''}`;
+  document.body.appendChild(el);
+  const t = setTimeout(() => el.remove(), 8000);
+  if (onUndo) el.querySelector('button').onclick = async () => {
+    clearTimeout(t);
+    el.querySelector('button').disabled = true;
+    try { await onUndo(); el.remove(); }
+    catch (e) { el.querySelector('span').textContent = 'Undo failed: ' + e.message; }
+  };
+}
 const errBox = e => `<div class="m-6 p-4 rounded-xl soft-bad text-bad text-sm rise">
   <b>Error:</b> ${esc(e.message || e)}
-  <a href="#/problems" class="ml-3 underline hover:opacity-80"
+  <a href="#/coding" class="ml-3 underline hover:opacity-80"
      onclick="if (history.length > 1) { event.preventDefault(); history.back(); }">← back</a></div>`;
 const spinner = msg => `<div class="p-10 text-center text-mut text-sm animate-pulse">${esc(msg || 'Loading…')}</div>`;
 
@@ -401,13 +509,13 @@ function route() {
   routeEpoch++;
   window._cm = null;   // detached editors must not be re-themed by the toggle
   if (cleanup) { try { cleanup(); } catch (e) {} cleanup = null; }
-  const h = location.hash || '#/problems';
+  const h = location.hash || '#/today';
   const app = $('#app');
   app.scrollTop = 0;
-  const tab = h.startsWith('#/lab') ? 'notes'
-            : h.startsWith('#/nb') ? 'notes'
-            : h.startsWith('#/notes') ? 'notes'
-            : h.startsWith('#/cards') ? 'cards' : 'problems';
+  const docPath = (() => { try { return decodeURIComponent(h.replace(/^#\/(notes|nb|lab)\/?/, '')); } catch (e) { return ''; } })();
+  const tab = /^#\/(lab|nb|notes)/.test(h) ? (docPath.startsWith('dsa/') ? 'coding' : 'notes')
+            : h.startsWith('#/cards') ? 'cards'
+            : h.startsWith('#/problem') || h.startsWith('#/coding') ? 'coding' : 'today';
   $$('#nav-tabs a').forEach(a => a.className =
     'nav-tab' + (a.dataset.tab === tab ? ' active' : ''));
   updateNavProgress();
@@ -416,7 +524,8 @@ function route() {
   else if (h.startsWith('#/nb/')) viewNb(app, decodeURIComponent(h.slice('#/nb/'.length)));
   else if (h.startsWith('#/notes')) viewNotes(app, h.slice('#/notes'.length).replace(/^\//, ''));
   else if (h.startsWith('#/cards')) viewCards(app, h.slice('#/cards'.length).replace(/^\//, ''));
-  else viewProblems(app);   // #/problems + fallback for unknown hashes
+  else if (h.startsWith('#/problems') || h.startsWith('#/coding')) viewProblems(app);
+  else viewToday(app);   // #/today + fallback for unknown hashes
 }
 
 /* ------------------------------------------------- global keys + palette */
@@ -540,127 +649,317 @@ async function openPalette() {
 }
 
 async function updateNavProgress() {
+  /* the Today tab carries a badge with the number of review-queue items due */
   try {
-    const ps = await getProblems();
-    const solved = ps.filter(p => p.status === 'solved').length;
-    $('#nav-progress').innerHTML = `
-      <span class="tnum">${solved}/${ps.length} solved</span>
-      <div class="w-28 h-1.5 bg-panel2 rounded-full overflow-hidden">
-        <div class="h-full bg-good transition-all" style="width:${ps.length ? 100 * solved / ps.length : 0}%"></div>
-      </div>`;
-  } catch (e) { /* nav progress is decorative */ }
+    const q = await api('/api/queue');
+    const b = $('#today-badge');
+    if (b) { b.hidden = !q.due_count; b.textContent = q.due_count; b.title = q.due_count + ' due for review'; }
+  } catch (e) { /* the badge is informational */ }
 }
 
+
+/* ------------------------------------------------------------ view: today */
+/* The home screen answers "what should I do now?" in priority order:
+   1. the spaced-repetition queue (practice/queue.tsv) items due today,
+      gradable in place (POST /api/log, same doubling rule as review.py);
+   2. one next step per area: resume reading, the next problem (cold
+      re-attempts before new ones), flashcards (missed first);
+   3. honest progress per area. No streaks or points: the study loop is
+      retrieval, and the screen only reports it. */
+function queueHref(r) {
+  if (r.item_id.startsWith('app:')) return '#/problem/' + encodeURIComponent(r.item_id.slice(4));
+  return r.source_path ? docHash({ path: r.source_path }) : null;
+}
+async function viewToday(app) {
+  const epoch = routeEpoch;
+  app.innerHTML = spinner('Loading today…');
+  let q, ps, tree, cards;
+  try {
+    [q, ps, tree, cards] = await Promise.all([api('/api/queue'), getProblems(),
+      getTree().catch(() => []), getCards().catch(() => [])]);
+  } catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
+  if (epoch !== routeEpoch) return;
+
+  const today = new Date();
+  const dateLabel = today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  const daysLate = r => Math.round((Date.parse(q.today) - Date.parse(r.due)) / 86400000);
+  const opened = store.get(OPENED_KEY, {});
+  const last = store.get(LAST_KEY, null);
+  const lastEntry = last && docNav(tree, last.path).entry;
+
+  /* next problem: an attempted one (needs a cold re-attempt) first, else the
+     first unsolved one in pattern order */
+  const nextP = ps.find(p => p.status === 'attempted') || ps.find(p => p.status === 'todo');
+  const missedN = cards.filter(c => store.get(CARD_MISSED, {})[cardKey(c)]).length;
+  const firstRead = (() => {
+    for (const g of tree) for (const f of g.folders) for (const x of f.files)
+      if (!opened[x.path] && fileKind(x).kind === 'read') return { ...x, folderTitle: f.title };
+    return null;
+  })();
+
+  /* progress per area */
+  const trackedFiles = tree.flatMap(g => g.folders.flatMap(f => f.files)).filter(f => fileKind(f).kind !== 'ref');
+  const nOpened = trackedFiles.filter(f => opened[f.path]).length;
+  const solved = ps.filter(p => p.status === 'solved').length;
+  const decks = new Set(cards.map(c => c.slug)).size;
+  const studied = Object.keys(store.get(CARD_LAST, {})).length;
+
+  const upTile = (href, i, icon, label, title, sub, cta) => `
+    <a href="${href}" class="tile">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="badge-num !w-9 !h-9" style="${tint(i)}">${icon}</span>
+        <span class="text-[12px] font-medium text-mut">${label}</span>
+      </div>
+      <div class="text-[16px] font-semibold tracking-tight leading-snug text-zinc-100">${esc(title)}</div>
+      <div class="text-[13px] text-mut mt-1 leading-snug">${esc(sub)}</div>
+      <div class="mt-auto pt-4 text-[13px] font-semibold text-accent inline-flex items-center gap-1">${cta}${ICON.chevR}</div>
+    </a>`;
+  const ringStat = (done, total, label, href) => `
+    <a href="${href}" class="flex items-center gap-3.5 px-4 py-3.5 hover:bg-panel2">
+      ${ringSvg(done, total, 44, 5)}
+      <span><span class="block text-[17px] font-bold tnum text-zinc-100 leading-tight">${done}<span class="text-[13px] font-medium text-mut"> of ${total}</span></span>
+        <span class="block text-[12px] text-mut">${label}</span></span>
+    </a>`;
+
+  const fileTitle = Object.fromEntries(tree.flatMap(g => g.folders.flatMap(f =>
+    f.files.map(x => [x.path, x.name === 'problems.py' ? `${f.title} problems` : x.title]))));
+  const pById = Object.fromEntries(ps.map(p => [p.id, p]));
+  const itemTitle = r => r.item_id.startsWith('app:') && pById[r.item_id.slice(4)]
+    ? humanName(pById[r.item_id.slice(4)].name)
+    : fileTitle[r.source_path] || r.item_id;
+  const dueRows = q.due_today.map(r => {
+    const href = queueHref(r), late = daysLate(r), t = itemTitle(r);
+    return `
+    <div class="flex items-center flex-wrap gap-x-3 gap-y-2 px-4 py-3" data-item="${esc(r.item_id)}">
+      <span class="flex-1 min-w-[14rem]">
+        ${href ? `<a href="${href}" class="text-[14px] font-medium text-zinc-100 hover:text-accent">${esc(t)}</a>`
+               : `<span class="text-[14px] font-medium text-zinc-100">${esc(t)}</span>`}
+        <span class="block text-[12px] text-mut truncate"><span class="font-mono">${esc(r.item_id)}</span> · every ${r.interval_days} ${r.interval_days === '1' ? 'day' : 'days'}
+          ${late > 0 ? `· <span class="text-warn">${late} ${late === 1 ? 'day' : 'days'} overdue</span>` : ''}</span>
+      </span>
+      <button class="btn soft-bad text-bad font-semibold !py-1.5" data-log="fail" title="Missed: the interval resets to 1 day">Missed</button>
+      <button class="btn soft-good text-good font-semibold !py-1.5" data-log="pass" title="Recalled cold: the interval doubles">Recalled</button>
+    </div>`;
+  }).join('');
+
+  app.innerHTML = `
+  <div class="max-w-5xl mx-auto px-6 py-10">
+    <div class="mb-8">
+      <div class="text-[13px] font-medium text-mut">${esc(dateLabel)}</div>
+      <h1 class="page-title">Today</h1>
+    </div>
+
+    <section class="mb-10">
+      <div class="flex items-baseline gap-3 mb-3">
+        <h2 class="text-[17px] font-semibold tracking-tight text-zinc-100">Review queue</h2>
+        <span class="text-[13px] text-mut tnum">${q.due_count ? `${q.due_count} due` : 'nothing due'}${q.reviewed_today ? ` · ${q.reviewed_today} done today` : ''}</span>
+      </div>
+      ${q.due_count ? `
+      <div class="card !rounded-2xl overflow-hidden divide-y divide-line" id="due-list">${dueRows}</div>
+      <p class="text-[12px] text-mut mt-2.5">Attempt each one cold from its source, then grade it. Recalled doubles the
+        interval (up to 16 days); Missed resets it to 1 day. Same queue as <span class="font-mono">practice/review.py</span>.</p>`
+      : `<div class="card !rounded-2xl px-5 py-6 text-[14px] text-mut">Nothing due today. Do a mixed review of the flashcards or an interleaved problem instead.</div>`}
+    </section>
+
+    <section class="mb-10">
+      <h2 class="text-[17px] font-semibold tracking-tight text-zinc-100 mb-3">Up next</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        ${lastEntry
+          ? upTile(docHash(lastEntry), 1, bigIcon(KIND_ICON[fileKind(lastEntry).kind]), 'Continue reading',
+                   lastEntry.title, `${lastEntry.folderTitle} · opened ${ago(last.t)}`, 'Resume')
+          : firstRead
+          ? upTile(docHash(firstRead), 1, bigIcon(ICON.doc), 'Start reading', firstRead.title, firstRead.folderTitle, 'Open')
+          : upTile('#/notes', 1, bigIcon(ICON.doc), 'Notes', 'Library', 'Every module, in reading order', 'Browse')}
+        ${nextP
+          ? upTile('#/problem/' + encodeURIComponent(nextP.id), 3, bigIcon(ICON.practice),
+                   nextP.status === 'attempted' ? 'Re-attempt cold' : 'Next problem',
+                   humanName(nextP.name), `${nextP.folder_title} · ${nextP.difficulty} · ${nextP.time_box_min} min`, 'Solve')
+          : upTile('#/coding', 3, bigIcon(ICON.practice), 'Problems', 'All solved', 'Switch to Interleaved for a cold pass', 'Open')}
+        ${missedN
+          ? upTile('#/cards/missed', 5, ICON.redo, 'Flashcards', `${missedN} missed ${missedN === 1 ? 'card' : 'cards'}`, 'Review the cards you missed last time', 'Review')
+          : upTile('#/cards/mixed', 5, ICON.shuffle, 'Flashcards', 'Mixed review', '20 random cards from every deck', 'Start')}
+      </div>
+    </section>
+
+    <section>
+      <h2 class="text-[17px] font-semibold tracking-tight text-zinc-100 mb-3">Progress</h2>
+      <div class="card !rounded-2xl overflow-hidden grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-line">
+        ${ringStat(nOpened, trackedFiles.length, 'notes and notebooks opened', '#/notes')}
+        ${ringStat(solved, ps.length, 'problems solved', '#/coding')}
+        ${ringStat(studied, decks, 'flashcard decks studied', '#/cards')}
+      </div>
+    </section>
+  </div>`;
+
+  $$('#due-list [data-log]').forEach(b => b.addEventListener('click', async () => {
+    const rowEl = b.closest('[data-item]'), item = rowEl.dataset.item;
+    const r = q.due_today.find(x => x.item_id === item);
+    rowEl.querySelectorAll('button').forEach(x => x.disabled = true);
+    try {
+      const res = await api('/api/log', { item_id: item, result: b.dataset.log, source_path: r ? r.source_path : '' });
+      problemsCache = null;   // app: items change problem status
+      updateNavProgress();
+      viewToday(app);
+      /* grading is immediate; an accidental tap is reversible for a few seconds */
+      if (!res.logged) toast(`Not recorded: ${esc(res.reason || 'no change')}`);
+      else if (r) {
+        const days = +res.row.interval_days;
+        toast(`<b>${b.dataset.log === 'pass' ? 'Recalled' : 'Missed'}</b> · ${esc(itemTitle(r))}
+               <span class="text-mut">· back in ${days} ${days === 1 ? 'day' : 'days'}</span>`, async () => {
+          await api('/api/log/undo', { item_id: item, row: r });
+          problemsCache = null; updateNavProgress();
+          if (location.hash === '' || location.hash.startsWith('#/today')) viewToday(app);
+        });
+      }
+    } catch (e) {
+      rowEl.querySelectorAll('button').forEach(x => x.disabled = false);
+      rowEl.insertAdjacentHTML('beforeend', `<span class="text-[12px] text-bad">${esc(e.message)}</span>`);
+    }
+  }));
+}
 
 /* ---------------------------------------------------- view: problem list */
 const filt = { q: '', folder: 'all', diff: 'all', status: 'all' };
 
+/* status glyphs in the SF Symbols idiom: filled check, half circle, empty ring */
+const STATUS_ICON = {
+  solved: '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="8" fill="#2cbb5d"/><path d="M5.4 9.3l2.4 2.4 4.9-5.1" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  attempted: '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="7.25" fill="none" stroke="var(--warn)" stroke-width="1.5"/><path d="M9 1.75a7.25 7.25 0 0 1 0 14.5z" fill="var(--warn)"/></svg>',
+  todo: '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="7.25" fill="none" stroke="var(--dot-todo)" stroke-width="1.5"/></svg>',
+};
+/* two_sum -> "Two Sum"; class names such as LRUCache stay as written */
+const humanName = n => /^[a-z0-9_]+$/.test(n)
+  ? n.split('_').filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ') : n;
+const folderNum = f => +((String(f).match(/^(\d+)_/) || [])[1] || 0);
+/* small progress ring used in page headers */
+function ringSvg(done, total, size = 52, stroke = 6) {
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r, f = total ? done / total : 0;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true">
+    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--fill)" stroke-width="${stroke}"/>
+    ${done ? `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="#2cbb5d" stroke-width="${stroke}"
+      stroke-linecap="round" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/>` : ''}
+  </svg>`;
+}
+
 async function viewProblems(app) {
   const epoch = routeEpoch;
   app.innerHTML = spinner('Loading problems…');
-  let ps;
-  try { ps = await getProblems(); } catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
+  let ps, tree;
+  try { [ps, tree] = await Promise.all([getProblems(), getTree().catch(() => [])]); }
+  catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
   if (epoch !== routeEpoch) return;
-  const interleave = !!store.get('mlprep.interleave', false);
+  const inter = !!store.get('mlprep.interleave', false);
+  /* the coding track's reading files: dsa/README plus each pattern's notes and drills */
+  const dsaFiles = new Set(tree.filter(g => g.group === 'dsa')
+    .flatMap(g => g.folders.flatMap(f => f.files.map(x => x.path))));
+  const patLinks = f => [['notes.md', 'Notes', ICON.doc], ['drills.md', 'Drills', ICON.practice]]
+    .filter(([n]) => dsaFiles.has(`dsa/${f}/${n}`))
+    .map(([n, label, ic]) => `<a href="#/notes/${encodeURIComponent(`dsa/${f}/${n}`)}"
+        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[13px] font-medium text-accent hover:bg-panel2">${ic}${label}</a>`)
+    .join('');
   const folders = [...new Map(ps.map(p => [p.folder, p.folder_title])).entries()];
-
-  const chips = folders.map(([f, title]) => {
-    const all = ps.filter(p => p.folder === f);
-    const s = all.filter(p => p.status === 'solved').length;
-    return `<span class="px-2.5 py-0.5 rounded-full border text-[11px] tnum
-      ${s === all.length ? 'text-good border-good/40 bg-good/10' : 'text-mut border-line bg-panel'}">${esc(title)} ${s}/${all.length}</span>`;
-  }).join(' ');
   const solved = ps.filter(p => p.status === 'solved').length;
+  const cap = s => s[0].toUpperCase() + s.slice(1);
+  const seg = (attr, cur, opts) => opts.map(([v, label]) =>
+    `<button data-${attr}="${v}" class="${cur === v ? 'on' : ''}" aria-pressed="${cur === v}">${label}</button>`).join('');
 
   app.innerHTML = `
-  <div class="max-w-6xl mx-auto p-6">
-    <div class="flex items-end justify-between flex-wrap gap-3 mb-2">
-      <h1 class="page-title">Problems</h1>
-      <div class="flex items-center gap-1.5 flex-wrap">${chips}</div>
+  <div class="max-w-5xl mx-auto px-6 py-10">
+    <div class="flex items-end justify-between gap-4 flex-wrap mb-7">
+      <div>
+        <h1 class="page-title">Coding</h1>
+        <p class="text-[14px] text-mut mt-1">${folders.length} patterns. For each: read the notes, do the timed drills on paper, then solve the ${ps.length} problems here; the tests decide.</p>
+      </div>
+      <div class="flex items-center gap-3" title="${solved} of ${ps.length} solved">
+        ${ringSvg(solved, ps.length)}
+        <div><div class="text-[20px] font-bold tnum leading-tight text-zinc-100">${solved}<span class="text-[14px] font-medium text-mut"> of ${ps.length}</span></div>
+          <div class="text-[12px] text-mut">solved</div></div>
+      </div>
     </div>
-    <div class="h-1.5 bg-panel2 rounded-full overflow-hidden mb-6">
-      <div class="h-full bg-good transition-all" style="width:${ps.length ? 100 * solved / ps.length : 0}%"></div>
-    </div>
-    <div class="flex items-center gap-2 flex-wrap mb-4 text-sm">
-      <input id="f-q" placeholder="Search title / name…" value="${esc(filt.q)}"
-        class="field w-64 outline-none">
-      <select id="f-folder" class="field ${interleave ? 'hidden' : ''}">
-        <option value="all">All patterns</option>
-        ${folders.map(([f, t]) => `<option value="${esc(f)}" ${filt.folder === f ? 'selected' : ''}>${esc(t)}</option>`).join('')}
-      </select>
-      <select id="f-diff" class="field">
-        <option value="all">All difficulties</option>
-        ${['easy', 'medium', 'hard'].map(d => `<option value="${d}" ${filt.diff === d ? 'selected' : ''}>${d[0].toUpperCase() + d.slice(1)}</option>`).join('')}
-      </select>
-      <select id="f-status" class="field">
-        <option value="all">Any status</option>
-        ${['todo', 'attempted', 'solved'].map(s => `<option value="${s}" ${filt.status === s ? 'selected' : ''}>${s[0].toUpperCase() + s.slice(1)}</option>`).join('')}
-      </select>
-      <label class="ml-auto flex items-center gap-2 cursor-pointer select-none h-9 px-3 rounded-lg border
-        ${interleave ? 'border-accent/60 bg-accent/10 text-accent' : 'border-transparent text-mut hover:border-line'}"
-        title="Interleaving hides the pattern labels and shuffles topics (stable per day) - deciding WHICH pattern applies is the interview skill, and labeled lists decide it for you.">
-        <input id="f-inter" type="checkbox" class="accent-[#ffa116]" ${interleave ? 'checked' : ''}>
-        <span class="font-medium">Interleave mode</span>
-      </label>
+    <div class="flex items-center gap-x-3 gap-y-2 flex-wrap mb-7">
+      <div class="seg" role="group" aria-label="Order">
+        ${seg('v', inter ? 'inter' : 'pattern', [['pattern', 'By pattern'], ['inter', 'Interleaved']])}
+      </div>
+      <label class="sb-filter !h-9 w-56">${ICON.search}<input id="f-q" type="search" placeholder="Search problems" value="${esc(filt.q)}"
+        autocomplete="off" spellcheck="false"></label>
+      <div class="flex items-center gap-2 flex-wrap ml-auto">
+        <select id="f-diff" class="popup" aria-label="Difficulty">
+          ${[['all', 'Any difficulty'], ['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard']]
+            .map(([v, l]) => `<option value="${v}" ${filt.diff === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <select id="f-status" class="popup" aria-label="Status">
+          ${[['all', 'Any status'], ['todo', 'To do'], ['attempted', 'Attempted'], ['solved', 'Solved']]
+            .map(([v, l]) => `<option value="${v}" ${filt.status === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      </div>
     </div>
     <div id="ptable"></div>
   </div>`;
+  if (dsaFiles.has('dsa/README.md')) $('#ptable').insertAdjacentHTML('beforebegin', `
+    <a href="#/notes/${encodeURIComponent('dsa/README.md')}" class="flex items-center gap-3 px-4 py-3 mb-7 rounded-xl border border-line hover:bg-panel2">
+      <span class="text-accent inline-flex">${ICON.doc}</span>
+      <span class="text-[14px] min-w-0 truncate"><span class="font-semibold text-zinc-100">Start here</span>
+        <span class="text-mut"> · how each company's coding round works, and the practice protocol</span></span>
+      <span class="ml-auto text-mut inline-flex">${ICON.chevR}</span>
+    </a>`);
 
   let rove = -1, shown = [];
+  const row = p => `
+    <a href="#/problem/${esc(p.id)}" class="prow flex items-center gap-3 px-4 py-3 hover:bg-panel2">
+      <span class="shrink-0 inline-flex" title="${STATUS_TITLE[p.status]}">${STATUS_ICON[p.status]}</span>
+      <span class="flex-1 min-w-0">
+        <span class="flex items-center gap-2">
+          <span class="text-[14px] font-medium text-zinc-100 truncate">${esc(humanName(p.name))}</span>
+          ${p.kind === 'class' ? '<span class="text-[10px] text-mut border border-line rounded px-1 py-px">class</span>' : ''}
+        </span>
+        <span class="block text-[13px] text-mut truncate">${esc(p.statement_first_line)}</span>
+      </span>
+      <span class="diff-pill ${p.difficulty} shrink-0">${p.difficulty}</span>
+      <span class="hidden sm:block text-[12px] text-mut tnum w-12 text-right shrink-0">${p.time_box_min} min</span>
+      <span class="text-mut shrink-0 inline-flex">${ICON.chevR}</span>
+    </a>`;
+  const group = items => `<div class="card !rounded-2xl overflow-hidden divide-y divide-line">${items.map(row).join('')}</div>`;
   const renderTable = () => {
-    const inter = !!store.get('mlprep.interleave', false);
     let list = ps.filter(p =>
-      (filt.q === '' || (p.statement_first_line + ' ' + p.name).toLowerCase().includes(filt.q.toLowerCase())) &&
-      (inter || filt.folder === 'all' || p.folder === filt.folder) &&
+      (filt.q === '' || (p.statement_first_line + ' ' + p.name + ' ' + humanName(p.name)).toLowerCase().includes(filt.q.toLowerCase())) &&
       (filt.diff === 'all' || p.difficulty === filt.diff) &&
       (filt.status === 'all' || p.status === filt.status));
-    list = inter ? dailyShuffle(list) : list;
-    shown = list; rove = -1;
-    $('#ptable').innerHTML = `
-    <div class="card overflow-hidden">
-    <table class="w-full text-sm">
-      <thead><tr class="text-mut microlabel">
-        <th class="px-4 pt-3.5 pb-2.5 text-left w-14 font-semibold">Status</th>
-        <th class="px-4 pt-3.5 pb-2.5 text-left font-semibold">Title</th>
-        ${inter ? '' : '<th class="px-4 pt-3.5 pb-2.5 text-left w-56 font-semibold">Pattern</th>'}
-        <th class="px-4 pt-3.5 pb-2.5 text-left w-28 font-semibold">Difficulty</th>
-        <th class="px-4 pt-3.5 pb-2.5 text-left w-24 font-semibold">Time box</th>
-      </tr></thead>
-      <tbody>
-      ${list.map(p => `
-        <tr class="border-t border-line hover:bg-panel2 cursor-pointer"
-            onclick="location.hash='#/problem/${esc(p.id)}'">
-          <td class="px-4 py-3"><span class="sdot inline-block w-2.5 h-2.5 rounded-full ${STATUS_DOT[p.status]}"
-              title="${STATUS_TITLE[p.status]}"></span></td>
-          <td class="px-4 py-3">
-            <div class="font-medium">
-              <a href="#/problem/${esc(p.id)}" class="text-zinc-100 hover:text-accent"
-                 onclick="event.stopPropagation()">${esc(p.name)}</a>
-              <span class="text-[10px] text-mut border border-line rounded px-1 py-px ml-1.5">${p.kind}</span></div>
-            <div class="text-[13px] text-mut truncate max-w-xl">${esc(p.statement_first_line)}</div>
-          </td>
-          ${inter ? '' : `<td class="px-4 py-3 text-mut text-[13px]">${esc(p.folder_title)}</td>`}
-          <td class="px-4 py-3 ${DIFF_CLS[p.difficulty]} capitalize text-[13px] font-medium">${p.difficulty}</td>
-          <td class="px-4 py-3 text-mut tnum text-[13px]">${p.time_box_min} min</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
-    ${list.length ? '' : '<div class="p-10 text-center text-mut text-sm">No problems match these filters.</div>'}
-    </div>
-    <p class="text-xs text-mut mt-3 tnum">${list.length} shown · ${inter
-      ? 'Interleave on: labels hidden, order reshuffles daily - name the pattern out loud before you open a problem.'
-      : 'Tip: once a folder feels comfortable, switch on Interleave - recognizing the pattern unprompted is the actual interview skill.'}</p>`;
+    if (inter) list = dailyShuffle(list);
+    const sections = inter ? [] : folders.map(([f, title]) => {
+      const all = ps.filter(p => p.folder === f), items = list.filter(p => p.folder === f);
+      if (!items.length) return null;
+      const s = all.filter(p => p.status === 'solved').length, n = folderNum(f);
+      return { items, html: `
+      <section class="mb-9">
+        <div class="flex items-center gap-3 mb-3 flex-wrap">
+          <span class="badge-num !w-8 !h-8 !rounded-lg !text-[13px]" style="${tint(Math.max(0, n - 1))}">${n || ''}</span>
+          <h2 class="text-[17px] font-semibold tracking-tight text-zinc-100">${esc(title)}</h2>
+          <span class="flex items-center gap-0.5">${patLinks(f)}</span>
+          <span class="ml-auto flex items-center gap-2.5 text-[12px] text-mut tnum">${s} of ${all.length} solved
+            <span class="meter w-20 inline-block"><i style="width:${all.length ? Math.round(100 * s / all.length) : 0}%;background:#2cbb5d"></i></span></span>
+        </div>
+        ${group(items)}
+      </section>` };
+    }).filter(Boolean);
+    shown = inter ? list : sections.flatMap(x => x.items);
+    rove = -1;
+    $('#ptable').innerHTML = (list.length
+      ? (inter ? group(list) : sections.map(x => x.html).join(''))
+      : '<div class="card !rounded-2xl p-10 text-center text-mut text-sm">No problems match these filters.</div>') + `
+      <p class="text-[12px] text-mut mt-4 text-center tnum">${list.length} shown · ${inter
+        ? 'Interleaved: pattern labels hidden, order reshuffles daily. Name the pattern out loud before you open a problem.'
+        : 'Once a pattern feels comfortable, switch to Interleaved: recognizing the pattern unprompted is the interview skill.'}
+        Keys: j / k to move, Enter to open, / to search.</p>`;
   };
   renderTable();
   $('#f-q').oninput = e => { filt.q = e.target.value; renderTable(); };
-  $('#f-folder').onchange = e => { filt.folder = e.target.value; renderTable(); };
   $('#f-diff').onchange = e => { filt.diff = e.target.value; renderTable(); };
   $('#f-status').onchange = e => { filt.status = e.target.value; renderTable(); };
-  $('#f-inter').onchange = e => { store.set('mlprep.interleave', e.target.checked); route(); };
+  $$('[data-v]').forEach(b => b.addEventListener('click', () => {
+    store.set('mlprep.interleave', b.dataset.v === 'inter'); route();
+  }));
 
   /* j/k roving highlight, Enter opens, / focuses search */
   const setRove = i => {
-    const rows = $$('#ptable tbody tr');
+    const rows = $$('#ptable .prow');
     if (!rows.length) return;
     i = Math.max(0, Math.min(i, rows.length - 1));
     rows.forEach(r => r.classList.remove('rove'));
@@ -688,10 +987,18 @@ async function viewProblems(app) {
 async function viewProblem(app, pid) {
   const epoch = routeEpoch;
   app.innerHTML = spinner('Loading problem…');
-  let p;
-  try { p = await api('/api/problem?id=' + encodeURIComponent(pid)); }
+  let p, all;
+  try { [p, all] = await Promise.all([api('/api/problem?id=' + encodeURIComponent(pid)), getProblems().catch(() => [])]); }
   catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
   if (epoch !== routeEpoch) return;
+  /* previous / next within the list order (pattern by pattern) */
+  const at = all.findIndex(x => x.id === p.id);
+  const pPrev = at > 0 ? all[at - 1] : null, pNext = at >= 0 && at < all.length - 1 ? all[at + 1] : null;
+  const pLink = (x, ic, dir, key) => x
+    ? `<a href="#/problem/${esc(x.id)}" class="btn btn-text text-mut !px-2 !py-1.5" title="${esc(dir + ': ' + humanName(x.name))}  (${key})"
+         aria-label="${esc(dir + ': ' + humanName(x.name))}">${ic}</a>`
+    : `<span class="btn btn-text !px-2 !py-1.5 opacity-25" aria-hidden="true">${ic}</span>`;
+  const crumbSep = `<span class="text-mut opacity-50 inline-flex" aria-hidden="true">${ICON.chevR}</span>`;
 
   const draftKey = 'mlprep.draft.problem.' + p.id;
   const tKey = 'mlprep.t0.' + p.id;
@@ -699,12 +1006,19 @@ async function viewProblem(app, pid) {
   <div class="flex h-full">
     <section class="w-1/2 overflow-y-auto border-r border-line p-6">
       <div class="max-w-[65ch]">
-      <div class="flex items-center gap-2.5 flex-wrap mb-1.5">
-        <h1 class="text-[1.35rem] font-bold tracking-tight text-zinc-100">${esc(p.name)}</h1>
-        <span class="diff-pill ${p.difficulty}">${p.difficulty}</span>
-        <span class="text-[10px] text-mut border border-line rounded px-1.5 py-px">${p.kind}</span>
+      <div class="flex items-center gap-x-1.5 text-[13px] mb-5 min-w-0">
+        <a href="#/coding" class="text-mut hover:text-accent shrink-0">Coding</a>${crumbSep}
+        <a href="#/notes/${encodeURIComponent('dsa/' + p.folder + '/notes.md')}" class="text-mut hover:text-accent shrink-0"
+           title="Pattern notes">${esc(p.folder_title)}</a>${crumbSep}
+        <span class="text-zinc-100 font-medium truncate min-w-0">${esc(humanName(p.name))}</span>
+        <div class="ml-auto flex items-center gap-0.5 shrink-0 pl-2">${pLink(pPrev, ICON.chevL, 'Previous', 'Alt+[')}${pLink(pNext, ICON.chevR, 'Next', 'Alt+]')}</div>
       </div>
-      <div class="text-[13px] text-mut mb-5">${esc(p.folder_title)} · <span class="font-mono text-xs">${esc(p.source_path)}</span></div>
+      <div class="flex items-center gap-2.5 flex-wrap mb-1.5">
+        <h1 class="text-[1.5rem] font-bold tracking-tight text-zinc-100">${esc(humanName(p.name))}</h1>
+        <span class="diff-pill ${p.difficulty}">${p.difficulty}</span>
+      </div>
+      <div class="text-[13px] text-mut mb-5">Implement <span class="font-mono text-[12px] text-zinc-100">${esc(p.name)}</span>
+        (${p.kind}) · <span class="font-mono text-[12px]">${esc(p.source_path)}</span></div>
       <div class="md mb-6">${md(p.statement)}</div>
       ${p.helpers ? `
       <details class="mb-6 card !rounded-lg px-4 py-2.5">
@@ -949,6 +1263,7 @@ function slugify(t) {
 function docNav(tree, path) {
   const flat = [];
   (tree || []).forEach(g => g.folders.forEach(f => f.files.forEach(x =>
+    x.path.endsWith('/problems.py') && x.path !== path ? null :   // duplicated by the Coding tab's problems
     flat.push({ path: x.path, title: x.title, folder: f.name,
                 folderTitle: f.title || folderTitle(f.name) }))));
   const i = flat.findIndex(e => e.path === path);
@@ -965,27 +1280,30 @@ const docHash = e => (/\.(py|ipynb)$/.test(e.path) && !e.path.endsWith('problems
 /* One compact location row: Notes / module / filename. The document's own H1
    is the only title on the page; the full title lives in the leaf's tooltip.
    modHref (optional) links the module segment, e.g. to the module's notes. */
-function crumbRow(nav, path, title, extras, modHref) {
+function crumbRow(nav, path, title, extras, modHref, lead) {
   const parts = path.split('/');
   const mod = nav.entry ? nav.entry.folderTitle
             : folderTitle(parts.length > 1 ? parts[parts.length - 2] : parts[0]);
-  const short = t => t.length > 26 ? t.slice(0, 24).trimEnd() + '…' : t;
-  const pager = [['Previous', nav.prev, '[', t => '← ' + t], ['Next', nav.next, ']', t => t + ' →']]
-    .map(([dir, e, key, fmt]) => e
-      ? `<a href="${docHash(e)}" class="btn btn-text text-mut !px-2 text-xs whitespace-nowrap"
-           title="${esc(dir + ': ' + e.title)} (${key})">${esc(fmt(short(e.title)))}</a>`
-      : '')
+  const sep = `<span class="text-mut opacity-50 inline-flex" aria-hidden="true">${ICON.chevR}</span>`;
+  const pager = [['Previous', nav.prev, '[', ICON.chevL], ['Next', nav.next, ']', ICON.chevR]]
+    .map(([dir, e, key, ic]) => e
+      ? `<a href="${docHash(e)}" class="btn btn-text text-mut !px-2 !py-1.5" aria-label="${esc(dir + ': ' + e.title)}"
+           title="${esc(dir + ': ' + e.title)}  (${key})">${ic}</a>`
+      : `<span class="btn btn-text !px-2 !py-1.5 opacity-25" aria-hidden="true">${ic}</span>`)
     .join('');
   return `
-  <div class="flex items-center gap-x-2 gap-y-1 flex-wrap text-[13px] mb-6">
-    <a href="#/notes" class="text-mut hover:text-accent">Notes</a>
-    <span class="text-mut opacity-50" aria-hidden="true">/</span>
+  <div class="flex items-center gap-x-1.5 gap-y-1 text-[13px] mb-6 min-w-0">
+    ${lead || ''}
+    ${path.startsWith('dsa/')
+      ? '<a href="#/coding" class="text-mut hover:text-accent shrink-0">Coding</a>'
+      : '<a href="#/notes" class="text-mut hover:text-accent shrink-0">Notes</a>'}
+    ${sep}
     ${modHref
-      ? `<a href="${modHref}" class="text-mut hover:text-accent" title="Module notes">${esc(mod)}</a>`
-      : `<span class="text-mut">${esc(mod)}</span>`}
-    <span class="text-mut opacity-50" aria-hidden="true">/</span>
-    <span class="font-mono text-[12px] text-zinc-100" title="${esc(title)}">${esc(parts[parts.length - 1])}</span>
-    <div class="ml-auto flex items-center gap-1 shrink-0">${extras || ''}${pager}</div>
+      ? `<a href="${modHref}" class="text-mut hover:text-accent shrink-0" title="Module notes">${esc(mod)}</a>`
+      : `<span class="text-mut shrink-0">${esc(mod)}</span>`}
+    ${sep}
+    <span class="text-zinc-100 font-medium truncate min-w-0" title="${esc(path)}">${esc(title)}</span>
+    <div class="ml-auto flex items-center gap-0.5 shrink-0 pl-2">${extras || ''}${pager}</div>
   </div>`;
 }
 /* end-of-document pager: full-title prev/next, keyboard hint in between;
@@ -995,16 +1313,19 @@ function crumbRow(nav, path, title, extras, modHref) {
 function docFooter(nav) {
   const card = (label, e, right, key, text) => e
     ? `<a href="${docHash(e)}" title="${esc(e.title)} (${key})"
-         class="card flex-1 min-w-0 px-4 py-3 hover:border-accent ${right ? 'text-right' : ''}">
-        <div class="microlabel text-mut mb-0.5">${label}</div>
-        <div class="text-sm font-medium text-zinc-100 truncate">${esc(text || e.title)}</div>
+         class="tile !flex-row items-center gap-3 flex-1 min-w-0 !px-4 !py-3.5 ${right ? 'text-right justify-end' : ''}">
+        ${right ? '' : `<span class="text-mut shrink-0">${ICON.chevL}</span>`}
+        <span class="min-w-0">
+          <span class="block text-[12px] text-mut mb-0.5">${label}</span>
+          <span class="block text-[14px] font-semibold text-zinc-100 truncate">${esc(text || e.title)}</span>
+        </span>
+        ${right ? `<span class="text-mut shrink-0">${ICON.chevR}</span>` : ''}
       </a>`
     : '<span class="flex-1"></span>';
   const crosses = nav.next && nav.entry && nav.next.folder !== nav.entry.folder;
-  return `<div class="mt-10 flex gap-3">
-    ${card('← Previous', nav.prev, false, '[')}
-    ${card(crosses ? 'Next module →' : 'Next →', nav.next, true, ']',
-           crosses ? nav.next.folderTitle : null)}
+  return `<div class="mt-12 flex gap-3">
+    ${card('Previous', nav.prev, false, '[')}
+    ${card(crosses ? 'Next module' : 'Next', nav.next, true, ']', crosses ? nav.next.folderTitle : null)}
   </div>`;
 }
 /* [ / ] navigate prev/next; ignored while typing in an editor or field */
@@ -1071,69 +1392,265 @@ function buildOutline(rootEl, wrapEl, scrollRoot) {
   return io;
 }
 
+/* ---- shared library chrome: icons, file kinds, reading history, sidebar ----
+   Icons are drawn in the SF Symbols idiom: 16-unit grid, round caps, 1.35
+   stroke, currentColor, so they follow the theme and the selection tint. */
+const svgI = (body, size = 15) => `<svg width="${size}" height="${size}" viewBox="0 0 16 16" fill="none"
+  stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+const ICON = {
+  doc: svgI('<path d="M9.5 1.75H4.25a.75.75 0 0 0-.75.75v11a.75.75 0 0 0 .75.75h7.5a.75.75 0 0 0 .75-.75V4.75z"/><path d="M9.5 1.75v3h3"/><path d="M5.75 8.25h4.5M5.75 10.75h3"/>'),
+  run: svgI('<rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2"/><path d="M6.5 6v4l3.25-2z" fill="currentColor" stroke="none"/>'),
+  practice: svgI('<path d="M10.75 2.25l3 3-7.5 7.5H3.25v-3z"/><path d="M9.25 3.75l3 3"/>'),
+  ref: svgI('<path d="M2.25 3.25h4A1.75 1.75 0 0 1 8 5v8.5a1.25 1.25 0 0 0-1.25-1.25h-4.5z"/><path d="M13.75 3.25h-4A1.75 1.75 0 0 0 8 5v8.5a1.25 1.25 0 0 1 1.25-1.25h4.5z"/>'),
+  chevR: svgI('<path d="M6 3.5L10.5 8 6 12.5"/>', 12),
+  chevL: svgI('<path d="M10 3.5L5.5 8 10 12.5"/>', 12),
+  sidebar: svgI('<rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2"/><path d="M6 2.75v10.5"/>', 16),
+  search: svgI('<circle cx="7" cy="7" r="4.25"/><path d="M10.25 10.25l3.5 3.5"/>', 13),
+  check: svgI('<path d="M3.5 8.5l3 3 6-7"/>', 12),
+  shuffle: svgI('<path d="M2 4.5h2.5c3.5 0 3.5 7 7 7H14"/><path d="M2 11.5h2.5c1.4 0 2.2-1.1 2.9-2.5M9.6 7c.7-1.4 1.5-2.5 2.9-2.5H14"/><path d="M12.25 2.75L14 4.5l-1.75 1.75M12.25 9.75L14 11.5l-1.75 1.75"/>', 20),
+  redo: svgI('<path d="M13 5.5A5.5 5.5 0 1 0 13.5 9"/><path d="M13.25 2v3.75H9.5"/>', 20),
+};
+const bigIcon = s => s.replace(/width="\d+" height="\d+"/, 'width="19" height="19"');
+const KIND_ICON = { read: ICON.doc, run: ICON.run, practice: ICON.practice, ref: ICON.ref };
+/* what a file is for, from its name: read, run (notebook), practice, reference */
+function fileKind(f) {
+  const n = (f.name || f.path.split('/').pop()).toLowerCase();
+  const href = docHash(f);
+  if (n.endsWith('.ipynb') || (n.endsWith('.py') && n !== 'problems.py'))
+    return { kind: 'run', label: 'Notebook', href };
+  if (n.includes('solution') || n === 'problems.py')
+    return { kind: 'ref', label: 'Reference', href, quiet: true,
+             hint: n === 'problems.py' ? 'Full solutions. Drill these from the Problems tab instead.' : '' };
+  if (n === 'exercises.md' || n === 'drills.md') return { kind: 'practice', label: 'Practice', href };
+  return { kind: 'read', label: 'Reading', href };
+}
+/* tinted badges, one hue per position, like a row of app icons */
+const TINTS = [['#5e5ce6', '#8e8cff'], ['#0a84ff', '#5ac8fa'], ['#30b0c7', '#64d2ff'], ['#28a745', '#5ad27a'],
+               ['#ff9f0a', '#ffc94d'], ['#ff375f', '#ff7a93'], ['#af52de', '#d58cff'], ['#ff6b35', '#ffa15c'],
+               ['#5856d6', '#30b0c7'], ['#64748b', '#94a3b8'], ['#a2845e', '#c9a97f']];
+const tint = i => `background:linear-gradient(135deg, ${TINTS[i % TINTS.length][0]}, ${TINTS[i % TINTS.length][1]})`;
+const GROUP_LABEL = { ml: 'Machine Learning', dsa: 'Coding patterns', practice: 'Practice system' };
+const MODULE_BLURBS = {
+  'ml/01_foundations': 'Linear algebra, calculus and probability, derived from scratch',
+  'ml/02_classical_ml': 'Regression, regularization, SVMs, trees, clustering and PCA',
+  'ml/03_neural_networks': 'Backprop by hand, initialization, optimizers and normalization',
+  'ml/04_deep_learning': 'CNNs, RNNs, attention, and a GPT trained in the notebook',
+  'ml/05_evaluation': 'Metrics from the confusion matrix, ROC/AUC, calibration, validation',
+  'ml/06_ml_systems': 'The design interview, recommender and fraud walkthroughs, monitoring',
+  'ml/07_llm_stack': 'Scaling laws, training memory, RLHF and DPO, LoRA, inference',
+  'ml/08_interview_drills': 'Timed drills in the formats labs use, including the buggy transformer',
+  'ml/09_reinforcement_learning': 'Bellman equations, TD learning, policy gradients, PPO and GRPO',
+  'dsa/01_arrays_strings_hashing': 'Hashing, two pointers, sliding windows, prefix sums, intervals',
+  'dsa/02_binary_search': 'Loop invariants, and binary search on the answer',
+  'dsa/03_stacks_queues_linked_lists': 'Monotonic stacks, deques, pointer surgery, LRU cache',
+  'dsa/04_trees_and_heaps': 'The tree template, traversals, BSTs, LCA and heaps',
+  'dsa/05_graphs': 'BFS, DFS, topological sort, union-find, Dijkstra',
+  'dsa/06_dp_greedy_backtracking': 'The DP method, classic state families, backtracking, greedy',
+  'dsa/07_bits_math_matrix': 'Bit manipulation, math patterns, matrix simulation',
+};
+/* reading history (browser-only): which files were opened, and the last one */
+const OPENED_KEY = 'mlprep.opened', LAST_KEY = 'mlprep.lastdoc', SB_KEY = 'mlprep.sidebar';
+function markOpened(path, title, module) {
+  const o = store.get(OPENED_KEY, {}); o[path] = Date.now(); store.set(OPENED_KEY, o);
+  const rec = { path, title, module, t: Date.now() };
+  store.set(LAST_KEY, rec);   // Today resumes the last file anywhere
+  store.set(LAST_KEY + (path.startsWith('dsa/') ? '.coding' : '.notes'), rec);   // each tab its own
+}
+function ago(t) {
+  const s = (Date.now() - t) / 1000;
+  if (s < 90) return 'just now';
+  if (s < 3600) return Math.round(s / 60) + ' min ago';
+  if (s < 86400) return Math.round(s / 3600) + ' h ago';
+  const d = Math.round(s / 86400);
+  return d === 1 ? 'yesterday' : d + ' days ago';
+}
+const groupOf = (tree, path) =>
+  (tree || []).find(g => g.folders.some(f => f.files.some(x => x.path === path)));
+/* Sidebar for a reading page: the current group's modules as disclosure
+   groups (only the current module open), files with a kind icon, the current
+   file highlighted, a check on files already opened, and a filter field. */
+function sidebarHtml(tree, path) {
+  const g = groupOf(tree, path);
+  if (!g) return '';
+  const opened = store.get(OPENED_KEY, {});
+  /* inside its module group a title need not repeat the module name:
+     "Foundations: exercises (easy → hard)" reads as "Exercises (easy → hard)" */
+  const shortTitle = (t, mod) => {
+    if (!mod) return t;
+    const m = t.match(new RegExp('^' + mod.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[:\\-–]\\s*(.+)$', 'i'));
+    return m ? m[1].charAt(0).toUpperCase() + m[1].slice(1) : t;
+  };
+  const item = (f, top, mod) => {
+    const k = fileKind(f), sel = f.path === path, label = shortTitle(f.title, mod);
+    return `<a href="${k.href}" class="sb-item ${top ? 'top' : ''} ${sel ? 'sel' : ''} ${k.quiet ? 'opacity-70' : ''}"
+       data-q="${esc((f.title + ' ' + f.name).toLowerCase())}" title="${esc(k.hint || f.title)}"
+       ${sel ? 'aria-current="page"' : ''}>
+      <span class="ic">${KIND_ICON[k.kind]}</span><span class="truncate flex-1">${esc(label)}</span>
+      ${opened[f.path] && !sel ? `<span class="text-mut opacity-60" title="Opened before">${ICON.check}</span>` : ''}</a>`;
+  };
+  const single = g.folders.length === 1;
+  const listed = fo => fo.files.filter(f => !f.path.endsWith('/problems.py'));
+  const body = g.folders.map(fo => ({ ...fo, files: listed(fo) })).map(fo => {
+    if (fo.name === 'overview' || single) return fo.files.map(f => item(f, true)).join('');
+    const here = fo.files.some(x => x.path === path);
+    return `<details class="sb-mod" data-init="${here ? 1 : 0}" ${here ? 'open' : ''}>
+      <summary><span class="chev">${ICON.chevR}</span><span class="truncate">${esc(fo.title || folderTitle(fo.name))}</span></summary>
+      ${fo.files.map(f => item(f, false, fo.title || folderTitle(fo.name))).join('')}</details>`;
+  }).join('');
+  const label = GROUP_LABEL[g.group] || folderTitle(g.group);
+  return `<aside class="sb" aria-label="${esc(label)} contents">
+    <div class="px-3 pt-3 pb-2">
+      <a href="${g.group === 'dsa' ? '#/coding' : '#/notes'}" class="inline-flex items-center gap-1 text-[12px] text-mut hover:text-accent mb-1.5">${ICON.chevL}<span>${g.group === 'dsa' ? 'Coding' : 'Notes'}</span></a>
+      <div class="text-[15px] font-semibold tracking-tight text-zinc-100 px-0.5 mb-2">${esc(label)}</div>
+      <label class="sb-filter">${ICON.search}<input id="sb-q" type="search" placeholder="Filter" autocomplete="off" spellcheck="false"></label>
+    </div>
+    <nav class="sb-scroll">${body}</nav>
+  </aside><div class="sb-backdrop"></div>`;
+}
+/* Wire the sidebar inside wrap: initial open state (remembered on wide
+   screens, closed on narrow ones), the toggle buttons, the backdrop, the
+   filter, and scrolling the current file into view. */
+function mountSidebar(wrap) {
+  const sb = wrap.querySelector('.sb');
+  if (!sb) { wrap.querySelectorAll('[data-sb-toggle]').forEach(b => b.remove()); return; }
+  const wide = () => window.matchMedia('(min-width:1024px)').matches;
+  wrap.classList.toggle('sb-open', wide() && store.get(SB_KEY, true));
+  const setOpen = open => {
+    wrap.classList.toggle('sb-open', open);
+    if (wide()) store.set(SB_KEY, open);
+  };
+  wrap.querySelectorAll('[data-sb-toggle]').forEach(b =>
+    b.addEventListener('click', () => setOpen(!wrap.classList.contains('sb-open'))));
+  const bd = wrap.querySelector('.sb-backdrop');
+  if (bd) bd.addEventListener('click', () => setOpen(false));
+  const scroller = sb.querySelector('.sb-scroll'), sel = sb.querySelector('.sb-item.sel');
+  if (sel) scroller.scrollTop = Math.max(0, sel.offsetTop - scroller.clientHeight / 3);
+  const q = sb.querySelector('#sb-q');
+  const apply = () => {
+    const s = q.value.trim().toLowerCase();
+    scroller.querySelectorAll(':scope > .sb-item').forEach(a =>
+      a.style.display = !s || a.dataset.q.includes(s) ? '' : 'none');
+    scroller.querySelectorAll('.sb-mod').forEach(d => {
+      const modHit = s && d.querySelector('summary').textContent.toLowerCase().includes(s);
+      let any = false;
+      d.querySelectorAll('.sb-item').forEach(a => {
+        const hit = !s || modHit || a.dataset.q.includes(s);
+        a.style.display = hit ? '' : 'none';
+        any = any || hit;
+      });
+      d.style.display = any ? '' : 'none';
+      d.open = s ? any : d.dataset.init === '1';
+    });
+  };
+  q.addEventListener('input', apply);
+  q.addEventListener('keydown', e => { if (e.key === 'Escape') { q.value = ''; apply(); q.blur(); } });
+}
+const sbToggleBtn = `<button data-sb-toggle class="btn btn-text text-mut !px-1.5 -ml-1.5" title="Show or hide the sidebar" aria-label="Toggle sidebar">${ICON.sidebar}</button>`;
+
 async function viewNotes(app, encodedPath) {
   const epoch = routeEpoch;
   const current = encodedPath ? decodeURIComponent(encodedPath) : null;
 
   if (!current) {
-    /* landing: each module as a guided path in reading order:
-       read the notes, run the notebooks, then practice the exercises */
+    /* landing, a library: a segmented control picks the track (ML, Coding,
+       Practice); "Continue reading" resumes the last file; each module is a
+       tile with what it covers, what it contains, and how much was opened. */
     app.innerHTML = spinner('Loading curriculum…');
-    let tree, mods;
-    try { [tree, mods] = await Promise.all([getTree(), getNotebooks().catch(() => [])]); }
+    let tree;
+    try { tree = await getTree(); }
     catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
     if (epoch !== routeEpoch) return;
+    tree = tree.filter(g => g.group !== 'dsa');
+    const opened = store.get(OPENED_KEY, {});
+    const last = store.get(LAST_KEY + '.notes', null);
+    const lastEntry = last && docNav(tree, last.path).entry;
+    let grp = store.get('mlprep.notes.group', 'ml');
+    if (!tree.some(g => g.group === grp)) grp = tree[0] && tree[0].group;
 
-    const blurbs = {}, folderTitles = {};
-    mods.forEach(m => {
-      folderTitles[m.folder] = m.folder_title;
-      m.notebooks.forEach(nb => { blurbs[nb.path] = nb.blurb || ''; });
-    });
-    const humanize = name => name.replace(/^\d+_/, '').replace(/_/g, ' ')
-      .replace(/\b\w/g, c => c.toUpperCase());
-    const rowMeta = f => {
-      const n = f.name.toLowerCase();
-      if (n.endsWith('.ipynb'))
-        return { tag: 'Run', cls: 'text-good', href: '#/nb/' + encodeURIComponent(f.path) };
-      if (n.includes('solution'))
-        return { tag: 'Solutions', cls: 'text-mut', href: '#/notes/' + encodeURIComponent(f.path), quiet: true };
-      if (n === 'problems.py')
-        return { tag: 'Reference', cls: 'text-mut', href: '#/notes/' + encodeURIComponent(f.path),
-                 quiet: true, hint: 'Full solutions. Drill these from the Problems tab instead.' };
-      if (n === 'exercises.md' || n === 'drills.md')
-        return { tag: 'Practice', cls: 'text-warn', href: '#/notes/' + encodeURIComponent(f.path) };
-      return { tag: 'Read', cls: 'text-accent', href: '#/notes/' + encodeURIComponent(f.path),
-               anchor: n === 'notes.md' || n === 'readme.md' };
+    const counts = files => {
+      const ks = files.map(fileKind);
+      const n = k => ks.filter(x => x.kind === k).length;
+      return [['read', 'note', 'notes'], ['run', 'notebook', 'notebooks'], ['practice', 'practice set', 'practice sets']]
+        .filter(([k]) => n(k))
+        .map(([k, one, many]) => `<span class="inline-flex items-center gap-1">${KIND_ICON[k]}${n(k)} ${n(k) === 1 ? one : many}</span>`)
+        .join('');
     };
-    app.innerHTML = `
-    <div class="max-w-4xl mx-auto p-8">
-      <h1 class="page-title mb-1">Notes</h1>
-      <div class="text-[13px] text-mut mb-1">Each module in reading order: read the notes, run the notebooks, then practice the exercises.</div>
-      <div class="microlabel text-mut mb-6">checklist ticks in notes save locally in this browser, never to the repo</div>
-      ${tree.map(g => g.folders.map(fo => `
-        <div class="card p-4 mb-4">
-          <div class="flex items-baseline gap-2.5 mb-2">
-            <span class="microlabel text-mut">${esc(g.group)}</span>
-            <span class="font-semibold text-zinc-100">${esc(folderTitles[fo.name] || humanize(fo.name))}</span>
-          </div>
-          ${fo.files.map((f, i) => {
-            const m = rowMeta(f);
-            return `
-            <a href="${m.href}" ${m.hint ? `title="${esc(m.hint)}"` : ''}
-               class="flex items-baseline gap-2.5 px-2.5 py-1.5 -mx-1 rounded-lg hover:bg-panel2 ${m.quiet ? 'opacity-60' : ''}">
-              <span class="microlabel text-mut tnum w-4 shrink-0 text-right">${i + 1}.</span>
-              <span class="microlabel ${m.cls} w-16 shrink-0">${m.tag}</span>
-              <span class="min-w-0">
-                <span class="flex items-baseline gap-2 flex-wrap">
-                  <span class="${m.anchor ? 'font-semibold' : 'font-medium'} text-zinc-100">${esc(f.title)}</span>
-                  ${f.title === f.name ? '' : `<span class="font-mono text-[11px] text-mut">${esc(f.name)}</span>`}
-                </span>
-                ${blurbs[f.path] ? `<span class="block text-[13px] text-mut mt-0.5 truncate">${esc(blurbs[f.path])}</span>` : ''}
-              </span>
-            </a>`;
-          }).join('')}
-        </div>`).join('')).join('')}
+    const modTile = (g, fo, i) => {
+      const ks = fo.files.map(fileKind);
+      const first = fo.files[ks.findIndex(k => k.kind === 'read')] || fo.files[0];
+      const tracked = fo.files.filter((f, j) => ks[j].kind !== 'ref');
+      const done = tracked.filter(f => opened[f.path]).length;
+      const num = (fo.name.match(/^(\d+)_/) || [])[1];
+      return `<a href="${docHash(first)}" class="tile">
+        <div class="flex items-center justify-between mb-4">
+          <span class="badge-num" style="${tint(i)}">${num ? +num : esc((fo.title || '?')[0])}</span>
+          ${done ? `<span class="text-[12px] text-mut tnum">${done} of ${tracked.length} opened</span>` : ''}
+        </div>
+        <div class="text-[17px] font-semibold tracking-tight leading-snug text-zinc-100">${esc(fo.title || folderTitle(fo.name))}</div>
+        <div class="text-[13px] text-mut mt-1 leading-snug">${esc(MODULE_BLURBS[g.group + '/' + fo.name] || '')}</div>
+        <div class="mt-auto pt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-mut">${counts(fo.files)}</div>
+        ${done ? `<div class="meter mt-3"><i style="width:${Math.round(100 * done / tracked.length)}%"></i></div>` : ''}
+      </a>`;
+    };
+    /* a track with a single folder (Practice) is a short list of files:
+       an inset grouped list reads better than a grid of one tile */
+    const insetList = fo => `<div class="card !rounded-2xl overflow-hidden divide-y divide-line">
+      ${fo.files.map((f, j) => {
+        const k = fileKind(f);
+        return `<a href="${k.href}" class="flex items-center gap-3 px-4 py-3 hover:bg-panel2" title="${esc(k.hint || f.title)}">
+          <span class="badge-num !w-8 !h-8 !rounded-lg" style="${tint(j)}">${KIND_ICON[k.kind]}</span>
+          <span class="flex-1 min-w-0 text-[14px] font-medium text-zinc-100 truncate">${esc(f.title)}</span>
+          ${opened[f.path] ? `<span class="text-mut opacity-60" title="Opened before">${ICON.check}</span>` : ''}
+          <span class="text-mut">${ICON.chevR}</span>
+        </a>`;
+      }).join('')}
     </div>`;
+
+    const draw = () => {
+      const g = tree.find(x => x.group === grp);
+      if (!g) { app.innerHTML = errBox(new Error('no notes found')); return; }
+      const overview = g.folders.find(f => f.name === 'overview');
+      const modules = g.folders.filter(f => f.name !== 'overview');
+      app.innerHTML = `
+      <div class="max-w-5xl mx-auto px-6 py-10">
+        <div class="flex items-end justify-between gap-4 flex-wrap mb-7">
+          <div>
+            <h1 class="page-title">Notes</h1>
+            <p class="text-[14px] text-mut mt-1">Read the notes, run the notebooks, then do the practice set.</p>
+          </div>
+          <div class="seg" role="tablist" aria-label="Track">
+            ${tree.map(x => `<button role="tab" data-g="${esc(x.group)}" aria-selected="${x.group === grp}"
+                class="${x.group === grp ? 'on' : ''}">${esc(GROUP_LABEL[x.group] || folderTitle(x.group))}</button>`).join('')}
+          </div>
+        </div>
+        ${lastEntry ? `
+        <a href="${docHash(lastEntry)}" class="tile !flex-row items-center gap-4 mb-8">
+          <span class="badge-num !w-11 !h-11 !rounded-xl" style="${tint(1)}">${bigIcon(KIND_ICON[fileKind(lastEntry).kind])}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-[12px] font-medium text-mut">Continue reading</span>
+            <span class="block text-[16px] font-semibold text-zinc-100 truncate">${esc(lastEntry.title)}</span>
+            <span class="block text-[13px] text-mut truncate">${esc(lastEntry.folderTitle)} · opened ${ago(last.t)}</span>
+          </span>
+          <span class="btn btn-primary shrink-0">Resume</span>
+        </a>` : ''}
+        ${overview ? overview.files.map(f => `
+        <a href="${docHash(f)}" class="flex items-center gap-3 px-4 py-3 mb-6 rounded-xl border border-line hover:bg-panel2">
+          <span class="text-accent inline-flex">${ICON.doc}</span>
+          <span class="text-[14px] min-w-0 truncate"><span class="font-semibold text-zinc-100">Start here</span>
+            <span class="text-mut"> · ${esc(f.title)}</span></span>
+          <span class="ml-auto text-mut inline-flex">${ICON.chevR}</span>
+        </a>`).join('') : ''}
+        ${modules.length === 1 ? insetList(modules[0]) : `
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          ${modules.map((fo, i) => modTile(g, fo, i)).join('')}
+        </div>`}
+        <p class="text-[12px] text-mut mt-10 text-center">Reading history and checklist ticks are saved in this browser only.</p>
+      </div>`;
+      $$('.seg button').forEach(b => b.addEventListener('click', () => {
+        grp = b.dataset.g; store.set('mlprep.notes.group', grp); draw();
+      }));
+    };
+    draw();
     return;
   }
 
@@ -1158,10 +1675,12 @@ async function viewNotes(app, encodedPath) {
     : current.endsWith('.py')
     ? `<a href="#/nb/${encodeURIComponent(current)}" class="btn btn-primary !py-1">Open as notebook</a>
        <a href="#/lab/${encodeURIComponent(current)}" class="btn btn-secondary !py-1">Playground</a>` : '';
+  markOpened(current, title, nav.entry ? nav.entry.folderTitle : '');
   app.innerHTML = `
   <div id="doc-wrap" class="doc-wrap">
+    ${sidebarHtml(tree, current)}
     <div class="max-w-[90ch] mx-auto px-6 py-8">
-      ${crumbRow(nav, current, title, '')}
+      ${crumbRow(nav, current, title, '', null, sbToggleBtn)}
       ${extras ? `<div class="flex items-center -mt-3 mb-5">
         <div class="ml-auto flex items-center gap-2">${extras}</div>
       </div>` : ''}
@@ -1169,6 +1688,7 @@ async function viewNotes(app, encodedPath) {
       ${docFooter(nav)}
     </div>
   </div>`;
+  mountSidebar($('#doc-wrap'));
   fixMdLinks($('#md-root'), current);
   const outlineIO = buildOutline($('#md-root'), $('#doc-wrap'), app);
   /* checklists: real checkboxes, state in localStorage per file (UI-only).
@@ -1380,10 +1900,13 @@ async function viewNb(app, path) {
      are comment/docstring blocks that go through proseText() first */
   const fmt = doc.format || 'py';
 
+  markOpened(path, doc.title || (nav.entry && nav.entry.title) || path, nav.entry ? nav.entry.folderTitle : '');
   app.innerHTML = `
+  <div id="doc-wrap" class="doc-wrap">
+  ${sidebarHtml(tree, path)}
   <div class="max-w-4xl mx-auto p-6">
     ${crumbRow(nav, path, doc.title || (nav.entry && nav.entry.title) || path, '',
-      doc.notes ? '#/notes/' + encodeURIComponent(doc.notes) : null)}
+      doc.notes ? '#/notes/' + encodeURIComponent(doc.notes) : null, sbToggleBtn)}
     <div class="flex items-center gap-2 -mt-3 mb-5 text-xs">
       <span class="flex items-center gap-1.5 text-mut"
             title="Kernel state. Edits are session-only; the file on disk is untouched.">
@@ -1402,7 +1925,9 @@ async function viewNb(app, path) {
       <button id="nb-add" class="btn btn-text text-mut text-sm" title="Append an empty scratch cell (this session only)">+ add cell</button>
     </div>
     ${docFooter(nav)}
+  </div>
   </div>`;
+  mountSidebar($('#doc-wrap'));
 
   /* kernel status: dot + label, elapsed ticking while a cell runs */
   let statT = null;
@@ -1654,6 +2179,22 @@ async function viewNb(app, path) {
 }
 
 /* ------------------------------------------------------------ view: cards */
+/* Flashcards. Landing: two quick actions (a mixed review drawn from every
+   deck, and the cards missed before) above a grid of deck tiles, each with
+   its last score. Study: one card at a time with a progress bar; the card
+   flips in place to the answer, then "Missed" / "Got it" grade it. Misses
+   persist across sessions (browser-only) and feed the Missed deck. */
+const CARD_LAST = 'mlprep.cards.last', CARD_MISSED = 'mlprep.cards.missed';
+const cardKey = c => c.slug + '#' + c.n;
+function parseSection(s) {
+  const m = String(s).match(/^(\d+)\.\s*(.*?)\s*(?:\(([^)]*)\))?\s*$/);
+  return m ? { num: +m[1], name: m[2], tag: m[3] || '' } : { num: 0, name: String(s), tag: '' };
+}
+function shuffled(a) {
+  const b = a.slice();
+  for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; }
+  return b;
+}
 async function viewCards(app, slug) {
   const epoch = routeEpoch;
   app.innerHTML = spinner('Loading flashcards…');
@@ -1661,92 +2202,172 @@ async function viewCards(app, slug) {
   try { cards = await getCards(); } catch (e) { if (epoch === routeEpoch) app.innerHTML = errBox(e); return; }
   if (epoch !== routeEpoch) return;
   const sections = [...new Map(cards.map(c => [c.slug, c.section])).entries()];
+  const missedSet = store.get(CARD_MISSED, {});
+  const missedCards = cards.filter(c => missedSet[cardKey(c)]);
+  const MIXED_N = 20;
 
   if (!slug) {
+    const last = store.get(CARD_LAST, {});
+    const action = (href, icon, i, title, sub, off) => `
+      <${off ? 'div' : `a href="${href}"`} class="tile !flex-row items-center gap-4 ${off ? 'no-lift opacity-60' : ''}">
+        <span class="badge-num !w-11 !h-11 !rounded-xl" style="${tint(i)}">${icon}</span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-[15px] font-semibold text-zinc-100">${title}</span>
+          <span class="block text-[13px] text-mut">${sub}</span>
+        </span>
+        ${off ? '' : `<span class="text-mut inline-flex">${ICON.chevR}</span>`}
+      </${off ? 'div' : 'a'}>`;
+    const deckTile = ([s, title], i) => {
+      const p = parseSection(title), n = cards.filter(c => c.slug === s).length, L = last[s];
+      const pct = L ? Math.round(100 * L.got / L.total) : 0;
+      return `<a href="#/cards/${esc(s)}" class="tile">
+        <div class="flex items-center justify-between mb-4">
+          <span class="badge-num" style="${tint(i)}">${p.num || esc(p.name[0])}</span>
+          ${p.tag ? `<span class="font-mono text-[11px] text-mut">${esc(p.tag)}</span>` : ''}
+        </div>
+        <div class="text-[17px] font-semibold tracking-tight leading-snug text-zinc-100">${esc(p.name)}</div>
+        <div class="text-[13px] text-mut mt-1 tnum">${n} cards</div>
+        <div class="mt-auto pt-4">${L ? `
+          <div class="flex justify-between text-[12px] text-mut tnum mb-1.5">
+            <span>Last run: ${L.got} of ${L.total}</span><span>${ago(L.t)}</span></div>
+          <div class="meter"><i style="width:${pct}%;${L.got === L.total ? 'background:#2cbb5d' : ''}"></i></div>`
+          : '<div class="text-[12px] text-mut">Not studied yet</div>'}
+        </div>
+      </a>`;
+    };
     app.innerHTML = `
-    <div class="max-w-3xl mx-auto p-8">
-      <h1 class="page-title mb-1.5">Flashcards</h1>
-      <p class="text-sm text-mut mb-6">${cards.length} cards. Answer <b>out loud</b> before flipping  - 
-        a hesitation counts as a miss. Missed cards are listed at the end of the deck so you can re-run them.</p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        ${sections.map(([s, title]) => {
-          const n = cards.filter(c => c.slug === s).length;
-          return `<a href="#/cards/${esc(s)}" class="card block p-4 hover:border-accent">
-            <div class="font-semibold text-zinc-100">${esc(title)}</div>
-            <div class="text-[13px] text-mut mt-1 tnum">${n} cards</div></a>`;
-        }).join('')}
+    <div class="max-w-5xl mx-auto px-6 py-10">
+      <h1 class="page-title">Flashcards</h1>
+      <p class="text-[14px] text-mut mt-1 mb-7">${cards.length} cards in ${sections.length} decks. Answer out loud
+        before revealing; a hesitation counts as a miss.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+        ${action('#/cards/mixed', ICON.shuffle, 1, 'Mixed review',
+                 `${MIXED_N} random cards from all ${sections.length} decks`)}
+        ${action('#/cards/missed', ICON.redo, 5, 'Missed cards',
+                 missedCards.length ? `${missedCards.length} to review again` : 'Cards you miss collect here',
+                 !missedCards.length)}
       </div>
+      <h2 class="text-[12px] font-semibold uppercase tracking-wider text-mut mb-3">Decks</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${sections.map(deckTile).join('')}</div>
     </div>`;
     return;
   }
 
-  const deck = cards.filter(c => c.slug === slug);
-  if (!deck.length) { app.innerHTML = errBox(new Error('unknown section: ' + slug)); return; }
+  let deck, deckName;
+  if (slug === 'mixed') { deck = shuffled(cards).slice(0, MIXED_N); deckName = 'Mixed review'; }
+  else if (slug === 'missed') { deck = missedCards; deckName = 'Missed cards'; }
+  else { deck = cards.filter(c => c.slug === slug); deckName = deck.length ? parseSection(deck[0].section).name : ''; }
+  if (!deck.length) {
+    app.innerHTML = slug === 'missed'
+      ? `<div class="max-w-md mx-auto px-6 py-16 text-center rise">
+          <h1 class="page-title mb-2">No missed cards</h1>
+          <p class="text-[14px] text-mut mb-6">Cards you mark Missed collect here for another pass.</p>
+          <a href="#/cards" class="btn btn-primary btn-lg">All decks</a></div>`
+      : errBox(new Error('unknown deck: ' + slug));
+    return;
+  }
+  const mixedDeck = slug === 'mixed' || slug === 'missed';
+  let full = deck;
   const state = { i: 0, flipped: false, got: 0, missed: [] };
 
+  const actions = () => {
+    const el = $('#c-actions');
+    if (!el) return;
+    el.innerHTML = state.flipped
+      ? `<button id="c-miss" class="btn btn-lg soft-bad text-bad font-semibold">Missed<span class="kbd">1</span></button>
+         <button id="c-got" class="btn btn-lg soft-good text-good font-semibold">Got it<span class="kbd">2</span></button>`
+      : `<button id="c-show" class="btn btn-lg btn-primary">Show answer<span class="kbd">Space</span></button>`;
+    if (state.flipped) {
+      $('#c-miss').onclick = () => grade('fail');
+      $('#c-got').onclick = () => grade('pass');
+    } else $('#c-show').onclick = flip;
+  };
+  const flip = () => {
+    state.flipped = !state.flipped;
+    const card = $('#card');
+    if (card) card.classList.toggle('is-flipped', state.flipped);
+    actions();
+  };
   const render = () => {
     if (epoch !== routeEpoch) return;   // guard against renders after navigation
-    if (state.i >= deck.length) {
-      app.innerHTML = `
-      <div class="max-w-xl mx-auto p-10 text-center rise">
-        <h1 class="page-title mb-2">Deck complete</h1>
-        <p class="text-sm text-mut mb-5">${esc(deck[0].section)}</p>
-        <div class="text-4xl font-bold tracking-tight tnum mb-1 ${state.missed.length ? 'text-warn' : 'text-good'}">
-          ${state.got}/${deck.length}</div>
-        <p class="text-sm text-mut mb-6">got it - ${state.missed.length} missed
-          ${state.missed.length ? '(listed below - restart the deck to re-run them)' : ''}</p>
-        ${state.missed.length ? `<div class="card text-left text-sm p-4 mb-6">
-          <div class="microlabel text-mut mb-2">Missed</div>
-          <ul class="list-disc ml-5 space-y-1">${state.missed.map(q => `<li>${esc(q)}</li>`).join('')}</ul></div>` : ''}
-        <div class="flex gap-3 justify-center">
-          <button id="c-restart" class="btn btn-secondary">Restart deck</button>
-          <a href="#/cards" class="btn btn-primary">All sections</a>
-        </div>
-      </div>`;
-      $('#c-restart').onclick = () => { state.i = 0; state.flipped = false; state.got = 0; state.missed = []; render(); };
-      return;
-    }
-    const c = deck[state.i];
+    if (state.i >= deck.length) return renderDone();
+    const c = deck[state.i], p = parseSection(c.section);
     app.innerHTML = `
-    <div class="max-w-2xl mx-auto p-8 relative">
-      <div class="flex items-baseline justify-between mb-4">
-        <a href="#/cards" class="text-xs text-mut hover:text-accent">← sections</a>
-        <div class="text-[13px] text-mut">${esc(c.section)} · <b class="text-zinc-200 tnum">${state.i + 1}/${deck.length}</b></div>
+    <div class="max-w-2xl mx-auto px-6 py-8">
+      <div class="flex items-center gap-2 mb-3">
+        <a href="#/cards" class="btn btn-text text-mut !px-1.5 text-[13px]">${ICON.chevL}<span>Decks</span></a>
+        <div class="flex-1 text-center text-[14px] font-semibold text-zinc-100 truncate">${esc(deckName)}</div>
+        <div class="text-[13px] text-mut tnum w-[4.5rem] text-right">${state.i + 1} of ${deck.length}</div>
       </div>
-      <div id="card" class="card rise cursor-pointer select-none ${state.flipped ? '!border-accent/50' : ''}
-           p-9 min-h-[17rem] flex flex-col justify-center" title="click or Space to flip">
-        <div class="microlabel ${state.flipped ? 'text-accent' : 'text-mut'} mb-3">
-          ${state.flipped ? 'Answer' : 'Question'}</div>
-        ${state.flipped
-          ? `<div class="md text-[.95rem]">${md(c.answer)}</div>`
-          : `<div class="text-lg font-medium leading-relaxed text-zinc-100">${esc(c.question)}</div>`}
+      <div class="meter mb-7"><i style="width:${(100 * state.i / deck.length).toFixed(1)}%"></i></div>
+      <div id="card" class="flip rise cursor-pointer select-none ${state.flipped ? 'is-flipped' : ''}"
+           title="Click or press Space to flip">
+        <div class="flip-inner">
+          <div class="face front tile no-lift !rounded-[20px] !p-9 min-h-[18rem] justify-center">
+            <div class="text-[12px] font-medium text-mut mb-4">${mixedDeck ? esc(p.name) : 'Question'}</div>
+            <div class="text-[21px] font-semibold leading-snug tracking-tight text-zinc-100">${esc(c.question)}</div>
+          </div>
+          <div class="face back tile no-lift !rounded-[20px] !p-9 min-h-[18rem]">
+            <div class="text-[12px] font-semibold text-accent mb-1.5">Answer</div>
+            <div class="text-[13px] text-mut mb-4">${esc(c.question)}</div>
+            <div class="md text-[.95rem]">${md(c.answer)}</div>
+          </div>
+        </div>
       </div>
-      <div class="mt-4 flex items-center gap-3 ${state.flipped ? '' : 'invisible'}">
-        <button id="c-miss" class="btn soft-bad text-bad font-semibold">✕ Missed <span class="text-xs opacity-70 font-normal">1</span></button>
-        <button id="c-got" class="btn soft-good text-good font-semibold">✓ Got it <span class="text-xs opacity-70 font-normal">2</span></button>
-        <span class="ml-auto text-[11px] text-mut italic">grade before you flip back - recognition is not recall</span>
-      </div>
+      <div id="c-actions" class="mt-6 flex justify-center gap-3"></div>
+      <p class="text-center text-[12px] text-mut mt-5">Grade yourself before flipping back: recognizing an answer is not the same as recalling it.</p>
     </div>`;
     fixMdLinks($('#card'), 'practice/flashcards.md');
-    $('#card').onclick = () => { state.flipped = !state.flipped; render(); };
-    if (state.flipped) {
-      $('#c-miss').onclick = e => { e.stopPropagation(); grade('fail'); };
-      $('#c-got').onclick = e => { e.stopPropagation(); grade('pass'); };
-    }
+    $('#card').onclick = e => { if (!e.target.closest('a')) flip(); };
+    actions();
   };
-  const grade = (result) => {
-    const c = deck[state.i];
-    if (result === 'pass') state.got++; else state.missed.push(c.question);
-    state.i++; state.flipped = false; render();
+  const renderDone = () => {
+    const N = deck.length, R = 54, C = 2 * Math.PI * R, miss = state.missed.length;
+    app.innerHTML = `
+    <div class="max-w-xl mx-auto px-6 py-12 text-center rise">
+      <svg width="148" height="148" viewBox="0 0 148 148" class="mx-auto mb-5" role="img"
+           aria-label="${state.got} of ${N} recalled">
+        <circle cx="74" cy="74" r="${R}" fill="none" stroke="var(--fill)" stroke-width="12"/>
+        <circle cx="74" cy="74" r="${R}" fill="none" stroke="${miss ? 'var(--accent)' : '#2cbb5d'}" stroke-width="12"
+                stroke-linecap="round" stroke-dasharray="${(C * state.got / N).toFixed(1)} ${C.toFixed(1)}"
+                transform="rotate(-90 74 74)"/>
+        <text x="74" y="83" text-anchor="middle" font-size="26" font-weight="700" fill="currentColor"
+              class="tnum">${state.got}/${N}</text>
+      </svg>
+      <h1 class="page-title mb-1">${miss ? 'Deck complete' : 'Every card recalled'}</h1>
+      <p class="text-[14px] text-mut mb-7">${esc(deckName)} · ${miss ? miss + ' missed' : 'no misses'}</p>
+      <div class="flex gap-3 justify-center flex-wrap mb-8">
+        ${miss ? `<button id="c-retry" class="btn btn-primary btn-lg">Review ${miss} missed</button>` : ''}
+        <button id="c-restart" class="btn ${miss ? 'btn-secondary' : 'btn-primary'} btn-lg">Study again</button>
+        <a href="#/cards" class="btn btn-text btn-lg text-mut">All decks</a>
+      </div>
+      ${miss ? `<div class="card !rounded-2xl text-left overflow-hidden divide-y divide-line">
+        ${state.missed.map(c => `<div class="px-4 py-2.5 text-[13px] text-zinc-100">${esc(c.question)}</div>`).join('')}
+      </div>` : ''}
+    </div>`;
+    const restart = d => { deck = d; state.i = 0; state.flipped = false; state.got = 0; state.missed = []; render(); };
+    if (miss) $('#c-retry').onclick = () => restart(state.missed.slice());
+    $('#c-restart').onclick = () => restart(slug === 'mixed' ? shuffled(cards).slice(0, MIXED_N) : full);
+  };
+  const grade = result => {
+    const c = deck[state.i], m = store.get(CARD_MISSED, {});
+    if (result === 'pass') { state.got++; delete m[cardKey(c)]; }
+    else { state.missed.push(c); m[cardKey(c)] = Date.now(); }
+    store.set(CARD_MISSED, m);
+    state.i++; state.flipped = false;
+    if (state.i >= deck.length && !mixedDeck && deck === full) {
+      const L = store.get(CARD_LAST, {});
+      L[slug] = { got: state.got, total: deck.length, t: Date.now() };
+      store.set(CARD_LAST, L);
+    }
+    render();
   };
   const keyHandler = e => {
     const tag = e.target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A') return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
-    if (e.code === 'Space' || e.key === 'Enter') {
-      e.preventDefault();
-      if (state.i < deck.length) { state.flipped = !state.flipped; render(); }
-    }
+    if (state.i >= deck.length) return;
+    if (e.code === 'Space' || e.key === 'Enter') { e.preventDefault(); flip(); }
     else if (state.flipped && e.key === '1') grade('fail');
     else if (state.flipped && e.key === '2') grade('pass');
   };
