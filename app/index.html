@@ -760,7 +760,7 @@ async function viewToday(app) {
                : `<span class="text-[14px] font-medium text-zinc-100">${esc(t)}</span>`}
         <span class="block text-[12px] text-mut truncate"><span class="font-mono">${esc(r.item_id)}</span> · ${late > 0 ? `<span class="text-warn">due ${late === 1 ? 'yesterday' : late + ' days ago'}</span>` : 'due today'}</span>
       </span>
-      <span class="flex items-center gap-2 shrink-0">
+      <span class="grade-group flex items-center gap-2 shrink-0">
         <button class="btn btn-secondary grade-miss !py-1.5" data-log="fail" title="It comes back tomorrow">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>Didn't get it</button>
         <button class="btn btn-secondary grade-pass !py-1.5" data-log="pass" title="It comes back later; the gap doubles each time, up to 16 days">
@@ -779,7 +779,7 @@ async function viewToday(app) {
     <section class="mb-10">
       <div class="flex items-baseline gap-3 mb-3">
         <h2 class="sec-title">Review</h2>
-        <span class="text-[13px] text-mut tnum">${q.due_count ? `${q.due_count} for today` : 'nothing for today'}${q.reviewed_today ? ` · ${q.reviewed_today} done` : ''}</span>
+        <span id="due-summary" class="text-[13px] text-mut tnum">${q.due_count ? `${q.due_count} for today` : 'nothing for today'}${q.reviewed_today ? ` · ${q.reviewed_today} done` : ''}</span>
       </div>
       <p class="text-[14px] text-mut -mt-1 mb-3">Things you got wrong before. Try each one again without looking at the answer, then mark how it went.</p>
       ${q.due_count ? `
@@ -841,31 +841,49 @@ async function viewToday(app) {
     <p class="text-center mt-12"><a href="#/reset" class="text-[12px] text-mut hover:text-accent">Reset progress…</a></p>
   </div>`;
 
-  $$('#due-list [data-log]').forEach(b => b.addEventListener('click', async () => {
-    const rowEl = b.closest('[data-item]'), item = rowEl.dataset.item;
-    const r = q.due_today.find(x => x.item_id === item);
-    rowEl.querySelectorAll('button').forEach(x => x.disabled = true);
-    try {
-      const res = await api('/api/log', { item_id: item, result: b.dataset.log, source_path: r ? r.source_path : '' });
-      problemsCache = null;   // app: items change problem status
-      updateNavProgress();
-      viewToday(app);
-      /* grading is immediate; an accidental tap is reversible for a few seconds */
-      if (!res.logged) toast(`Not recorded: ${esc(res.reason || 'no change')}`);
-      else if (r) {
-        const days = +res.row.interval_days;
-        toast(`<b>${b.dataset.log === 'pass' ? 'Got it' : "Didn't get it"}</b> · ${esc(itemTitle(r))}
-               <span class="text-mut">· back ${days === 1 ? 'tomorrow' : `in ${days} days`}</span>`, async () => {
+  /* Grading changes only its own row: the row stays where it is and shows
+     the result with an inline Undo. Removing it would slide the next row's
+     buttons under the pointer, and a second click would grade an item that
+     was never attempted. */
+  let doneNow = 0;
+  const summary = () => {
+    const el = $('#due-summary');
+    if (el) el.textContent = `${q.due_count - doneNow} for today` +
+      (q.reviewed_today + doneNow ? ` · ${q.reviewed_today + doneNow} done` : '');
+  };
+  const wire = rowEl => {
+    const grp = rowEl.querySelector('.grade-group'), original = grp.innerHTML;
+    const item = rowEl.dataset.item, r = q.due_today.find(x => x.item_id === item);
+    grp.querySelectorAll('[data-log]').forEach(b => b.addEventListener('click', async () => {
+      grp.querySelectorAll('button').forEach(x => x.disabled = true);
+      try {
+        const res = await api('/api/log', { item_id: item, result: b.dataset.log, source_path: r ? r.source_path : '' });
+        if (!res.logged) {
+          grp.innerHTML = original; wire(rowEl);
+          grp.insertAdjacentHTML('afterbegin', `<span class="text-[12px] text-mut">Not recorded: ${esc(res.reason || 'no change')}</span>`);
+          return;
+        }
+        const pass = b.dataset.log === 'pass', days = +res.row.interval_days;
+        doneNow++; summary(); problemsCache = null; updateNavProgress();
+        rowEl.querySelector('a, span').classList.add('opacity-50');
+        grp.innerHTML = `
+          <span class="text-[13px] font-medium ${pass ? 'text-good' : 'text-bad'}">${pass ? 'Got it' : "Didn't get it"}</span>
+          <span class="text-[12px] text-mut">· back ${days === 1 ? 'tomorrow' : `in ${days} days`}</span>
+          <button class="btn btn-text text-accent font-medium !py-1" data-undo>Undo</button>`;
+        grp.querySelector('[data-undo]').addEventListener('click', async e => {
+          e.currentTarget.disabled = true;
           await api('/api/log/undo', { item_id: item, row: r });
-          problemsCache = null; updateNavProgress();
-          if (location.hash === '' || location.hash.startsWith('#/today')) viewToday(app);
+          doneNow--; summary(); problemsCache = null; updateNavProgress();
+          rowEl.querySelector('a, span').classList.remove('opacity-50');
+          grp.innerHTML = original; wire(rowEl);
         });
+      } catch (e) {
+        grp.innerHTML = original; wire(rowEl);
+        grp.insertAdjacentHTML('afterbegin', `<span class="text-[12px] text-bad">${esc(e.message)}</span>`);
       }
-    } catch (e) {
-      rowEl.querySelectorAll('button').forEach(x => x.disabled = false);
-      rowEl.insertAdjacentHTML('beforeend', `<span class="text-[12px] text-bad">${esc(e.message)}</span>`);
-    }
-  }));
+    }));
+  };
+  $$('#due-list [data-item]').forEach(wire);
 }
 
 /* ------------------------------------------------------------ view: reset */
