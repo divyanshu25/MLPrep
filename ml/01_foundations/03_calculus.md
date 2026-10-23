@@ -2,16 +2,20 @@
 
 ## 2.1 The derivative is local sensitivity
 
-The derivative answers one concrete question:
-**if I change the input by a small amount, how much does the output change?**
+The derivative answers one question: **if the input changes a little, how
+much does the output change?**
 
 $$f'(x) \approx \frac{f(x + h) - f(x)}{h} \quad \text{for tiny } h$$
 
-Take $f(x) = x^2$ at $x = 3$: $f(3) = 9$, $f(3.001) = 9.006001$. Output moved by
-$0.006001$ for an input change of $0.001$ → sensitivity $\approx 6.001 \approx 6 = 2x$.
-The derivative is the **exchange rate between input changes and output changes**.
-Equivalently: zoom in far enough and every smooth function is a straight line;
-$f'$ is that line's slope: $f(x + h) \approx f(x) + f'(x) h$.
+Take $f(x) = x^2$ at $x = 3$: $f(3) = 9$ and $f(3.001) = 9.006001$. The output
+moved $0.006001$ for an input change of $0.001$, a ratio of about 6, which is
+$2x$ at $x = 3$. So the derivative is a rate: output change per unit of input
+change, for small changes.
+
+Another way to see it: zoom in far enough on a smooth curve and it looks like
+a straight line. $f'(x)$ is that line's slope:
+
+$$f(x + h) \approx f(x) + f'(x)\,h$$
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 230" role="img" aria-label="The parabola f(x) = x squared with its tangent line at a point: an input step h moves the output by about f prime of x times h" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -33,79 +37,59 @@ $f'$ is that line's slope: $f(x + h) \approx f(x) + f'(x) h$.
 </svg>
 </div>
 
-*The tangent is what the curve looks like up close. Step $h$ to the right and the
-output rises by about $f'(x)\,h$; the tiny gap between tangent and curve is the
-$O(h^2)$ error that vanishes as you zoom in.*
+*The tangent is what the curve looks like up close. Step $h$ to the right and
+the output rises by about $f'(x)\,h$. The small gap between tangent and curve
+shrinks like $h^2$ as you zoom in.*
 
-This sensitivity reading of the derivative is *the* mental model for training: the
-gradient of the loss w.r.t. a weight says "if I increase this weight by $\epsilon$,
-the loss changes by (gradient) $\times \epsilon$." Gradient descent moves every
-weight in whichever direction lowers the loss, proportional to its sensitivity.
+**Why this matters for training.** The derivative of the loss with respect to
+a weight says: increase this weight by a small $\epsilon$, and the loss changes
+by about (derivative) $\times\ \epsilon$. Gradient descent uses exactly this. It
+moves every weight in the direction that lowers the loss, by an amount
+proportional to that derivative.
 
-**Numerics aside: two ways to estimate a derivative in code.** The formula at the
-top of this section is the **forward** difference $\frac{f(x+h) - f(x)}{h}$. There is a
-better one, the **centered** difference $\frac{f(x+h) - f(x-h)}{2h}$, and here is
-exactly why it is better.
+**Checking derivatives in code: use the centered difference.** The formula
+above is the **forward difference**. The **centered difference**
 
-Taylor's theorem writes $f$ near $x$ as a polynomial in the step $h$:
+$$\frac{f(x+h) - f(x-h)}{2h}$$
 
-$$f(x+h) = f(x) + f'(x)\,h + \tfrac{f''(x)}{2} h^2 + \tfrac{f'''(x)}{6} h^3 + \cdots$$
-$$f(x-h) = f(x) - f'(x)\,h + \tfrac{f''(x)}{2} h^2 - \tfrac{f'''(x)}{6} h^3 + \cdots$$
+is far more accurate for the same $h$. Its error shrinks like $h^2$ (written
+$O(h^2)$), while the forward difference's error shrinks like $h$ ($O(h)$). On
+$f(x) = x^3$ at $x = 1$, where the true derivative is 3:
 
-Note the sign pattern in the second line: replacing $h$ with $-h$ flips the sign of
-every odd power of $h$ and leaves every even power alone.
+| $h$ | forward | error | centered | error |
+|---|---|---|---|---|
+| $0.01$ | $3.0301$ | $0.0301$ | $3.0001$ | $0.0001$ |
+| $0.001$ | $3.003001$ | $0.0030$ | $3.000001$ | $0.000001$ |
 
-*Forward difference*: subtract $f(x)$ from the first line and divide by $h$:
+Shrinking $h$ tenfold makes the forward error 10× smaller and the centered
+error 100× smaller.
 
-$$\frac{f(x+h) - f(x)}{h} = f'(x) + \underbrace{\tfrac{f''(x)}{2} h + \cdots}_{\text{error}}$$
+*Why.* Taylor's theorem writes $f$ near $x$ as a polynomial in the step:
 
-The leading error term is proportional to $h^1$. Shrink $h$ tenfold and the error
-shrinks tenfold. That is what "$O(h)$" means.
+$$f(x \pm h) = f(x) \pm f'(x)\,h + \tfrac{f''(x)}{2} h^2 \pm \tfrac{f'''(x)}{6} h^3 + \cdots$$
 
-*Centered difference*: subtract the second line from the first. Every even-power term
-($f(x)$, the $h^2$ term, the $h^4$ term, ...) appears with the **same** sign in both
-lines, so subtraction cancels it exactly. Every odd-power term appears with opposite
-signs, so subtraction doubles it:
-
-$$f(x+h) - f(x-h) = 2 f'(x)\,h + \tfrac{f'''(x)}{3} h^3 + \cdots$$
-
-Divide by $2h$:
-
-$$\frac{f(x+h) - f(x-h)}{2h} = f'(x) + \underbrace{\tfrac{f'''(x)}{6} h^2 + \cdots}_{\text{error}}$$
-
-The $h^1$ error term is gone - it was killed by the cancellation - and the leading
-error is now proportional to $h^2$. Shrink $h$ tenfold and the error shrinks a
-**hundred**fold. That is "$O(h^2)$".
-
-Check it on $f(x) = x^3$ at $x = 1$, where the true derivative is $3$. With $h = 0.01$:
-
-- forward: $\frac{1.01^3 - 1}{0.01} = 3.0301$, error $0.0301$
-  (matches the prediction $\tfrac{f''}{2} h = \tfrac{6}{2}(0.01) = 0.03$)
-- centered: $\frac{1.01^3 - 0.99^3}{0.02} = 3.0001$, error $0.0001$
-  (matches $\tfrac{f'''}{6} h^2 = \tfrac{6}{6}(0.01)^2 = 0.0001$)
-
-Shrink to $h = 0.001$: the forward error becomes $0.0030$ (10× smaller), the centered
-error becomes $0.000001$ (100× smaller). The centered difference is the standard
-gradient checker, implemented in `gradients_from_scratch.ipynb`.
+The forward difference keeps the $h^2$ term, which becomes an error of
+$\tfrac{f''(x)}{2} h$ after dividing by $h$. In $f(x+h) - f(x-h)$, the even
+powers ($f(x)$, the $h^2$ term, ...) have the same sign on both sides and
+cancel, so the leading error is $\tfrac{f'''(x)}{6} h^2$. For $x^3$ at $x = 1$
+with $h = 0.01$, these predict errors of $\tfrac{6}{2}(0.01) = 0.03$ and
+$\tfrac{6}{6}(0.01)^2 = 0.0001$, matching the table. The centered difference
+is the standard gradient checker, used in `gradients_from_scratch.ipynb`.
 
 ## 2.2 The chain rule: differentiating a pipeline
 
-A neural network computes its loss through a pipeline of steps: weights →
-layer 1 → layer 2 → ... → loss. Training needs $\partial L / \partial w$ for
-every weight $w$, which means differentiating *through* a pipeline. The chain
-rule is the rule for that, and it is the only rule backprop uses. This section
-builds it on the smallest possible pipeline, then scales it up.
+A network computes its loss through a pipeline: weights → layer 1 → layer 2
+→ ... → loss. Training needs $\partial L / \partial w$ for every weight, so it
+needs derivatives through a pipeline. The chain rule gives them:
+**rates multiply along a pipeline.**
 
 #### The rule
 
-The smallest pipeline has two steps: $z = g(x)$, then $y = f(z)$. Change $x$ by
-$\epsilon$. By §2.1, $z$ changes by $g'(x)\,\epsilon$. That change in $z$ then
-changes $y$ by $f'(z)$ times it: $f'(z)\,g'(x)\,\epsilon$. So the rate of $y$
-per unit change of $x$ is the product of the two step rates:
+Take two steps: $z = g(x)$, then $y = f(z)$. Change $x$ by a small $\epsilon$.
+Then $z$ changes by $g'(x)\,\epsilon$, and that change in $z$ changes $y$ by
+$f'(z)$ times as much, $f'(z)\,g'(x)\,\epsilon$. So
 
 $$\frac{dy}{dx} = \frac{dy}{dz} \cdot \frac{dz}{dx}$$
-
-**Rates of change multiply through a pipeline.**
 
 #### Run it with numbers
 
@@ -115,7 +99,7 @@ $$\frac{dz}{dx} = 3, \qquad \frac{dy}{dz} = 2z = 12, \qquad
 \frac{dy}{dx} = 12 \cdot 3 = 36$$
 
 Check without the chain rule: $y = (3x)^2 = 9x^2$, so $y' = 18x = 36$ at
-$x = 2$, matching the chain-rule result.
+$x = 2$.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 170" role="img" aria-label="Pipeline x to z to y: forward pass computes values left to right, backward pass multiplies local rates of change right to left giving dy/dx = 12 times 3 = 36" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -144,57 +128,41 @@ $x = 2$, matching the chain-rule result.
 *Forward (top): compute values left to right. Backward (red): multiply local
 rates right to left.*
 
-#### What dy/dx = 36 means (and what it does not)
+#### What dy/dx = 36 means
 
-It does not mean "step $x$ by 1 and $y$ moves by 36": from $x = 2$ to
+It is a rate for small steps, not the change from a step of 1. From $x = 2$ to
 $x = 3$, $y$ goes from 36 to 81, a change of 45.
 
-To state what it does mean, write the exact change caused by a step of size
-$h$. Call it $\Delta y$ ($\Delta$ is read "delta"; $\Delta y$ = the value
-of $y$ after the step minus the value before):
+The exact change from a step of size $h$ is ($\Delta y$, read "delta y", is the
+value after the step minus the value before):
 
 $$\Delta y = 9(2+h)^2 - 9 \cdot 2^2 = 36h + 9h^2$$
 
-The exact change has two parts:
+The $36h$ is what the derivative predicts. The $9h^2$ is what it misses, and
+that part shrinks much faster:
 
-- $36h$ is the part the derivative predicts. §2.1's approximation
-  $f(x + h) \approx f(x) + f'(x)\,h$ says the change is about
-  $f'(x)\,h = 36h$.
-- $9h^2$ is the part that approximation omits: the formula has no $h^2$
-  term, so everything quadratic in $h$ is dropped, and here that is
-  exactly $9h^2$.
+- $h = 1$: predicted 36, actual 45, missed 9.
+- $h = 0.1$: predicted 3.6, actual 3.69, missed 0.09.
+- $h = 0.01$: predicted 0.36, actual 0.3609, missed 0.0009.
 
-Compare prediction with truth as the step shrinks:
+So $\Delta y / h = 36 + 9h$, which approaches 36 as $h$ shrinks. That limit is
+what $dy/dx = 36$ means. It is also why learning rates are small: the gradient
+predicts the loss well only near the current weights.
 
-- $h = 1$: predicted $36$, actual $45$. Dropped part: $9$.
-- $h = 0.1$: predicted $3.6$, actual $3.69$. Dropped part: $0.09$.
-- $h = 0.01$: predicted $0.36$, actual $0.3609$. Dropped part: $0.0009$.
+#### Backprop: the chain rule over a whole graph
 
-Shrinking the step 10× shrinks the predicted part 10× but the dropped part
-100×, because the dropped part is quadratic in $h$. So the per-unit ratio
+**Backprop finds $\partial L / \partial v$ for every variable $v$ in one
+backward walk: start at the loss and multiply by one local derivative per
+step.**
 
-$$\frac{\Delta y}{h} = 36 + 9h \;\to\; 36 \quad \text{as } h \to 0$$
-
-and that limit is the exact meaning of $\frac{dy}{dx} = 36$: a per-unit
-rate, accurate only for small steps. Gradient descent relies on exactly
-this: the gradient is trustworthy only near the current point, which is why
-learning rates are small.
-
-#### Backprop: the chain rule walked over a whole graph
-
-A network is the same pipeline with more steps and more variables, and
-**backprop** is the chain rule applied to it in an organized way:
-
-1. **Forward pass**: compute and cache every intermediate value.
-2. **Backward pass**: compute the number $\partial L / \partial v$ for every
-   variable $v$ in the graph, walking in reverse order. The walk starts at the
-   output, where $\partial L / \partial L = 1$. Each step back is one
-   application of the chain rule: if $v$ feeds into $u$, then
+1. **Forward pass:** compute and store every intermediate value.
+2. **Backward pass:** start at the loss with $\partial L / \partial L = 1$ and
+   walk the graph in reverse. If $v$ feeds into $u$, then
    $\partial L / \partial v = (\partial L / \partial u) \cdot (\partial u / \partial v)$.
-   The first factor is already known, because $u$ sits later in the graph and
-   the walk visited it first (deep learning libraries call it the *upstream
-   gradient*). The second factor $\partial u / \partial v$ is the node's
-   **local derivative**, the only thing each operation must know how to compute.
+   The first factor is already known, because the walk reached $u$ first;
+   libraries call it the **upstream gradient**. The second factor is the
+   **local derivative** of the operation that computed $u$, and it is the only
+   thing each operation has to provide.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 500 210" role="img" aria-label="Computation graph of L equals (w x plus b) squared: boxes hold the forward value and, in red, the derivative of the loss with respect to that variable; amber edge labels are local derivatives" style="max-width:520px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -245,15 +213,15 @@ $14 = 14 \cdot 1$. $x$ is data, not a parameter, so the walk skips it.*
 
 #### A variable used in two places
 
-The pipeline picture misses one case: a variable that feeds into *two* later
-steps. Then the chain rule produces one term per use, and the terms add:
+If a variable feeds two later steps, it affects the loss along two paths. Each
+path contributes one chain-rule product, and the contributions add:
 
 $$\frac{\partial L}{\partial w} = \frac{\partial L}{\partial u}\,\frac{\partial u}{\partial w} + \frac{\partial L}{\partial v}\,\frac{\partial v}{\partial w}$$
 
-Check it on $L = w^2 + 3w$, which uses the weight $w$ twice ($u = w^2$ and
-$v = 3w$, with $L = u + v$): the path through $u$ contributes $1 \cdot 2w$,
-the path through $v$ contributes $1 \cdot 3$, total $2w + 3$. Differentiating
-$L$ directly gives the same $2w + 3$.
+Check it on $L = w^2 + 3w$, which uses $w$ twice ($u = w^2$, $v = 3w$,
+$L = u + v$). The path through $u$ contributes $1 \cdot 2w$, the path through
+$v$ contributes $1 \cdot 3$, total $2w + 3$, which is the derivative of $L$
+taken directly.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 460 240" role="img" aria-label="Computation graph of L equals w squared plus 3 w at w equals 2: w feeds two paths that both reach L, and the two backward contributions add at w" style="max-width:480px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -295,82 +263,66 @@ $L$ directly gives the same $2w + 3$.
 path arrives back at $w$: $1 \cdot 4$ through $u$ and $1 \cdot 3$ through $v$.
 They add: $\partial L / \partial w = 7$, matching $2w + 3$ at $w = 2$.*
 
-Those two rules, multiply along a path and add across paths, are all the
-math backprop uses. Every layer type (attention, layernorm, convolution) only
-has to supply its local derivative.
+So backprop needs only two rules: **multiply along a path, add across
+paths.** Every layer type (attention, LayerNorm, convolution) only has to
+supply its local derivatives.
 
 #### Why walk the graph backward?
 
-The chain rule can be walked in either direction, and the two directions
-answer different questions.
+Training needs the derivative of one number, the loss, with respect to every
+weight. A backward walk gives all of them at once; a forward walk gives one.
 
-- **Forward walk**: pick *one* weight, say $w_1$, and push its rate left to
-  right through the graph: compute $\partial v / \partial w_1$ for every
-  variable $v$, until $\partial L / \partial w_1$ comes out at the end. One
-  walk answers "how does everything respond to $w_1$?" But training needs
-  $\partial L / \partial w_i$ for *all* $n$ weights, and this walk delivered
-  it for one weight. Getting all of them costs $n$ walks.
-- **Backward walk**: start at the loss and walk right to left, computing
-  $\partial L / \partial v$ for every variable $v$ (the recipe above). One
-  walk answers "how does $L$ respond to everything?" That is exactly the
-  question training asks - and the answer for all $n$ weights comes out of
-  the *single* walk.
+- A **forward walk** picks one weight $w_1$ and pushes its effect left to
+  right, computing $\partial v / \partial w_1$ for every variable $v$. At the
+  end it has $\partial L / \partial w_1$. That is one weight per walk, so $n$
+  weights take $n$ walks.
+- A **backward walk** starts at the loss and computes $\partial L / \partial v$
+  for every variable $v$ (the recipe above). One walk gives the derivative for
+  all $n$ weights.
 
-Each walk costs roughly one pass over the graph. So for a model with a billion
-weights: a billion forward walks, or one backward walk. That asymmetry - many
-inputs, one scalar loss - is why backprop goes backward, and why training
-billion-parameter networks is feasible at all.
+Each walk costs about one pass over the graph. For a billion weights, that is
+a billion forward walks or one backward walk. This is why backprop goes
+backward, and why training large networks is feasible at all.
 
 ## 2.3 Gradients of vector/matrix expressions
 
-A model's loss takes all $n$ weights in at once and returns one number:
-$L(w_1, \dots, w_n)$. The notation for this shape is
-$f : \mathbb{R}^n \to \mathbb{R}$, read "$n$ real numbers in, one real number
-out." The backprop graph in §2.2 becomes one of these once the data $x$ is
-held fixed: $L = (wx + b)^2$ is then a function of the two weights,
-$L(w, b) : \mathbb{R}^2 \to \mathbb{R}$, and the backward walk produced its
-gradient, $[42, 14]$.
+A loss takes all $n$ weights and returns one number, $L(w_1, \dots, w_n)$. (The
+notation $f: \mathbb{R}^n \to \mathbb{R}$ means $n$ numbers in, one number
+out.) The **gradient** lists its sensitivity to each input:
 
-With $n$ inputs there are $n$ separate questions of the §2.1 kind: hold every
-input fixed except $x_i$, change $x_i$ by $\epsilon$, and the output changes by
-$(\partial f / \partial x_i)\,\epsilon$. That per-input sensitivity is the
-**partial derivative** $\partial f / \partial x_i$. The **gradient** collects
-all $n$ of them into a vector:
+$$\nabla f = \left[\frac{\partial f}{\partial x_1}, \dots, \frac{\partial f}{\partial x_n}\right]$$
 
-$$\nabla f = [\partial f / \partial x_1, \dots, \partial f / \partial x_n]$$
+Each entry is a **partial derivative**: hold every other input fixed, change
+$x_i$ alone, and measure the rate as in §2.1. $\nabla$ is read "nabla" or
+"grad".
 
-The symbol $\nabla$ is read "nabla" (or just "grad"); $\nabla f$ is the
-gradient vector of $f$, and it appears in every formula below.
-
-Tiny example: $f(x_1, x_2) = x_1^2 + 3 x_2$ at $(x_1, x_2) = (2, 5)$:
-$\partial f / \partial x_1 = 2 x_1 = 4$, $\partial f / \partial x_2 = 3$, so
-$\nabla f = [4, 3]$. Compare this with the two-use figure in §2.2: same
-formula, but there both terms depended on the *same* variable $w$, so the 4
-and the 3 added into one number. Here $x_1$ and $x_2$ are different inputs,
-so each keeps its own slot in the vector.
+Example: $f(x_1, x_2) = x_1^2 + 3x_2$ at $(2, 5)$ has
+$\partial f / \partial x_1 = 2x_1 = 4$ and $\partial f / \partial x_2 = 3$, so
+$\nabla f = [4, 3]$. The backward walk in §2.2 computed a gradient too: with
+the data $x$ held fixed, $L = (wx + b)^2$ is a function of $w$ and $b$, and its
+gradient is $[42, 14]$.
 
 #### The gradient points straight uphill
 
-Stand at a point and take a small step of length $\epsilon$ in some direction.
-A direction is a unit vector $u$ (so $\|u\| = 1$); the step changes input $i$
-by $\epsilon\, u_i$. Each input contributes its per-input change times its
-sensitivity, and the contributions add (§2.2's add rule, from the
-variable-used-twice subsection), giving the change in $f$ ($\Delta f$, as in
-§2.2's $\Delta y$):
+**The gradient points in the direction where $f$ increases fastest, and its
+length is that fastest rate.** Gradient descent steps along $-\nabla f$,
+straight downhill.
+
+Why: take a small step of length $\epsilon$ in a direction $u$ (a unit vector,
+$\|u\| = 1$). Input $i$ changes by $\epsilon\, u_i$. Each input's change times
+its sensitivity is its contribution, and the contributions add:
 
 $$\Delta f \approx \sum_i \frac{\partial f}{\partial x_i}\, \epsilon\, u_i = \epsilon\, (\nabla f \cdot u)$$
 
-So the direction that raises $f$ fastest is the $u$ that maximizes
-$\nabla f \cdot u$. By the dot-product identity of §1.2,
-$\nabla f \cdot u = \|\nabla f\|\, \|u\| \cos\theta = \|\nabla f\| \cos\theta$,
-which is biggest at $\theta = 0$: $u$ pointing along $\nabla f$ itself.
+By the dot-product identity (§1.2 of the linear algebra notes),
+$\nabla f \cdot u = \|\nabla f\| \cos\theta$, where $\theta$ is the
+angle between $u$ and $\nabla f$. This is largest at $\theta = 0$, when $u$
+points along $\nabla f$, and the rate there is $\|\nabla f\|$.
 
-Check it on $\nabla f = [4, 3]$: stepping along the axis $[1, 0]$ raises $f$
-at rate $4$; along $[0, 1]$, rate $3$; along
-$u = [4, 3] / 5$, rate $4 \cdot \tfrac{4}{5} + 3 \cdot \tfrac{3}{5} = 5 =
-\|\nabla f\|$. The blended direction raises $f$ faster than either axis
-alone. So the gradient is the locally steepest uphill direction, and
-gradient *descent* steps along $-\nabla f$, straight downhill.
+With $\nabla f = [4, 3]$: stepping along $[1, 0]$ raises $f$ at rate 4, along
+$[0, 1]$ at rate 3, and along $[4, 3]/5$ at rate
+$4 \cdot \tfrac{4}{5} + 3 \cdot \tfrac{3}{5} = 5 = \|\nabla f\|$, faster than
+either axis.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 270" role="img" aria-label="Unit circle of candidate step directions for gradient [4,3]: rate 4 along the x axis, 3 along the y axis, 0 perpendicular to the gradient, and 5 along the gradient direction; level lines of f run perpendicular to the gradient" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -403,41 +355,15 @@ gradient *descent* steps along $-\nabla f$, straight downhill.
 </div>
 
 *Candidate steps are the unit directions (dashed circle); here
-$\nabla f = [4, 3]$. By the $\Delta f$ display, the rate along $u$ is
-$\nabla f \cdot u$: 4 along $[1, 0]$, 3 along $[0, 1]$,
-$5 = \|\nabla f\|$ along $\nabla f / \|\nabla f\|$, and 0 perpendicular to
-$\nabla f$ - which is why the level lines of $f$ (faint) run perpendicular to
-the gradient.*
+$\nabla f = [4, 3]$. The rate along $u$ is $\nabla f \cdot u$: 4 along
+$[1, 0]$, 3 along $[0, 1]$, $5 = \|\nabla f\|$ along $\nabla f / \|\nabla f\|$,
+and 0 perpendicular to $\nabla f$. That is why the level lines of $f$ (faint)
+run perpendicular to the gradient.*
 
 #### Three gradient identities cover most of ML
 
-ML losses are built from three recurring expression shapes:
-
-- the **weighted sum** $a^\top x = a_1 x_1 + \dots + a_n x_n$ - every linear
-  model's prediction has this form;
-- the **quadratic form** $x^\top A x = \sum_{i,j} A_{ij}\, x_i x_j$ - the
-  shape of curvature terms like $w^\top H w$ with the Hessian;
-- the **squared norm** $\|x\|^2 = x_1^2 + \dots + x_n^2$ - every squared
-  error and every L2 regularizer.
-
-Their gradients come from writing out components and taking the partial
-derivatives one at a time:
-
-- $f = a_1 x_1 + \dots + a_n x_n$: each $x_i$ appears once, with coefficient
-  $a_i$, so $\partial f / \partial x_i = a_i$. Stack them: $\nabla f = a$.
-- $f = x_1^2 + \dots + x_n^2$: only the $x_i^2$ term involves $x_i$, so
-  $\partial f / \partial x_i = 2 x_i$. Stack them: $\nabla f = 2x$.
-- $f = \sum_{i,j} A_{ij}\, x_i x_j$: the variable $x_k$ appears in the terms
-  with $i = k$ (a row's worth) and the terms with $j = k$ (a column's worth),
-  giving $\partial f / \partial x_k = \sum_j A_{kj} x_j + \sum_i A_{ik} x_i =
-  (Ax)_k + (A^\top x)_k$. Stack them: $\nabla f = (A + A^\top) x$.
-
-Numeric check of the third, $A = [[1, 2], [3, 4]]$: written out,
-$x^\top A x = x_1^2 + 5 x_1 x_2 + 4 x_2^2$, whose partials are
-$[2 x_1 + 5 x_2,\; 5 x_1 + 8 x_2]$ - exactly $(A + A^\top) x$ with
-$A + A^\top = [[2, 5], [5, 8]]$.
-
-The summary to memorize:
+**Shortcut: pretend every vector is a single number, use the 1-D rule, then
+arrange transposes so the shapes match.**
 
 | Expression | Gradient | Same rule in 1-D |
 |---|---|---|
@@ -445,46 +371,63 @@ The summary to memorize:
 | $f(x) = x^\top A x$ | $\nabla f = (A + A^\top)x$ | $ax^2 \to 2ax$ |
 | $f(x) = \|x\|^2 = x^\top x$ | $\nabla f = 2x$ | $x^2 \to 2x$ |
 
-The last column is the memory aid: pretend every vector is a single number,
-differentiate with 1-D rules, and the matrix version is that answer
-with transposes arranged so the shapes work out. ($ax \to a$ means: the 1-D
-version of $a^\top x$ is $ax$, whose derivative is $a$.)
+These three shapes appear everywhere: $a^\top x = a_1 x_1 + \dots + a_n x_n$ is
+a linear model's prediction, $\|x\|^2 = x_1^2 + \dots + x_n^2$ is every squared
+error and L2 penalty, and $x^\top A x = \sum_{i,j} A_{ij}\, x_i x_j$ is a
+curvature term such as $w^\top H w$ with the Hessian.
+
+Each gradient follows from writing out the components and differentiating
+one at a time:
+
+- $a^\top x$: each $x_i$ appears once, with coefficient $a_i$, so
+  $\partial f / \partial x_i = a_i$, and $\nabla f = a$.
+- $\|x\|^2$: only the $x_i^2$ term involves $x_i$, so
+  $\partial f / \partial x_i = 2 x_i$, and $\nabla f = 2x$.
+- $x^\top A x$: $x_k$ appears in the terms with $i = k$ (a row of $A$) and the
+  terms with $j = k$ (a column of $A$), so
+  $\partial f / \partial x_k = \sum_j A_{kj} x_j + \sum_i A_{ik} x_i =
+  (Ax)_k + (A^\top x)_k$, and $\nabla f = (A + A^\top) x$.
+
+Check the third with $A = [[1, 2], [3, 4]]$: written out,
+$x^\top A x = x_1^2 + 5 x_1 x_2 + 4 x_2^2$, whose partials are
+$[2 x_1 + 5 x_2,\; 5 x_1 + 8 x_2]$. That is $(A + A^\top) x$ with
+$A + A^\top = [[2, 5], [5, 8]]$.
 
 #### Worked example: the linear regression gradient
 
+**The result:** for the squared-error loss $L(w) = \|Xw - y\|^2$,
+
+$$\nabla_w L = 2 X^\top (Xw - y)$$
+
+In words: compute every example's error, then for each weight, dot that
+weight's feature column with the errors.
+
 Setup: $X$ is the $n \times d$ data matrix ($n$ examples, $d$ features), $y$
 the $n$ targets, $w$ the $d$ weights. Example $i$'s prediction is row $i$ of
-$X$ dotted with $w$, its error is the **residual**
-$r_i = \sum_j X_{ij} w_j - y_i$, and the loss adds the squared errors:
+$X$ dotted with $w$, and its error is the **residual**
+$r_i = \sum_j X_{ij} w_j - y_i$. The loss adds the squared errors:
 
 $$L(w) = \sum_i r_i^2 = \|Xw - y\|^2$$
 
-Differentiate with respect to one weight $w_k$. Every example's prediction
-uses $w_k$, so $w_k$ reaches the loss through $n$ separate paths, one per
-example:
+Every example's prediction uses weight $w_k$, so $w_k$ reaches the loss
+through $n$ paths, one per example:
 
 $$w_k \to r_1 \to L, \qquad w_k \to r_2 \to L, \qquad \dots, \qquad w_k \to r_n \to L$$
 
-This is §2.2's variable-used-in-two-places situation with $n$ places
-instead of two, and the same add rule applies: one chain-rule contribution
-per path, all summed. Path $i$'s contribution is (sensitivity of $L$ to
-$r_i$) times (sensitivity of $r_i$ to $w_k$):
+By the add rule (§2.2), the derivative is one chain-rule product per path,
+summed:
 
 $$\frac{\partial L}{\partial w_k} = \sum_i \frac{\partial L}{\partial r_i}\,\frac{\partial r_i}{\partial w_k} = \sum_i 2 r_i \cdot X_{ik}$$
 
-The two factors: $\partial L / \partial r_i = 2 r_i$ because $r_i^2$ is the
-only term of the sum containing $r_i$; and $\partial r_i / \partial w_k =
-X_{ik}$ because in $r_i = \sum_j X_{ij} w_j - y_i$ the coefficient of $w_k$
-is $X_{ik}$.
+The two factors: $\partial L / \partial r_i = 2 r_i$, because $r_i^2$ is the
+only term containing $r_i$; and $\partial r_i / \partial w_k = X_{ik}$, the
+coefficient of $w_k$ in $r_i$.
 
-Now read $\sum_i 2 r_i \, X_{ik}$ as a dot product by stacking its
-coefficients:
+The sum $\sum_i X_{ik}\, r_i$ is column $k$ of $X$ dotted with $r$:
 
 $$\frac{\partial L}{\partial w_k}
 = 2\,(X_{1k}\, r_1 + X_{2k}\, r_2 + \dots + X_{nk}\, r_n)
 = 2 \begin{bmatrix} X_{1k} \\ X_{2k} \\ \vdots \\ X_{nk} \end{bmatrix} \cdot r$$
-
-That stack sits inside $X$ as column $k$:
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 480 250" role="img" aria-label="The data matrix X with row i highlighted in green and column k highlighted in indigo: a prediction dots row i with w, a weight's derivative dots column k with r" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -526,97 +469,90 @@ That stack sits inside $X$ as column $k$:
 $X$ (one example) with $w$; a weight's derivative dots a **column** of $X$
 (one feature) with $r$.*
 
-Doing the column-dot for every $k$ at once is the product $X^\top r$. Stack
-the $d$ components:
+Doing the column dot product for every $k$ at once is $X^\top r$, which gives
+the result above:
 
 $$\nabla_w L = 2 X^\top r = 2 X^\top (Xw - y)$$
 
-That column-versus-row switch is the whole reason a transpose appears in
-backward formulas.
+That switch from rows to columns is why a transpose appears in backward
+formulas.
 
-Tiny check: $X = [[1, 2], [3, 4]]$, $y = [1, 0]$, $w = [1, 1]$. Residuals
+Check: $X = [[1, 2], [3, 4]]$, $y = [1, 0]$, $w = [1, 1]$. The residuals are
 $r = [1 + 2 - 1,\; 3 + 4 - 0] = [2, 7]$, and
 $2 X^\top r = 2\,[1 \cdot 2 + 3 \cdot 7,\; 2 \cdot 2 + 4 \cdot 7] = [46, 64]$,
 matching the finite-difference gradient of $L$.
 
-Shape check: $X^\top$ is $d \times n$, $r$ is $n \times 1$, result
-$d \times 1$ = the shape of $w$. **The gradient of a scalar loss always has
-the same shape as the thing you're differentiating with respect to** - the
-single most useful debugging rule in matrix calculus. Setting
-$\nabla_w L = 0$ gives the normal equations $X^\top X w = X^\top y$, i.e. the
-closed-form least-squares solution.
+Shape check: $X^\top$ is $d \times n$ and $r$ is $n \times 1$, so the result is
+$d \times 1$, the shape of $w$. **The gradient of a scalar loss always has the
+same shape as the thing you differentiate with respect to**, the most useful
+debugging rule in matrix calculus. Setting $\nabla_w L = 0$ gives the normal
+equations $X^\top X w = X^\top y$, the closed-form least-squares solution.
 
 ## 2.4 Jacobians: the full sensitivity table
 
-When $f : \mathbb{R}^n \to \mathbb{R}^m$ (vector in, vector out - i.e., a layer), one
-number can't describe sensitivity. The **Jacobian** is the $m \times n$ table of all of
-them: $J_{ij} = \partial f_i / \partial x_j$ - "how much does output $i$ change when I
-change input $j$?"
+A layer takes a vector in and gives a vector out
+($f: \mathbb{R}^n \to \mathbb{R}^m$). Each input can affect each output, so one
+number per input is no longer enough. The **Jacobian** $J$ is the $m \times n$
+table of all of them: $J_{ij} = \partial f_i / \partial x_j$, how much output
+$i$ changes per unit change of input $j$.
 
 #### The Jacobian is the local linear map
 
-What does that table do *as a matrix*? Change the input by a small vector
-$\delta$: all $n$ inputs move at once, input $j$ by $\delta_j$. Changing
-input $j$ alone would change output $i$ by
-$(\partial f_i / \partial x_j)\,\delta_j$ (§2.1, per-input sensitivity),
-and since output $i$ receives one such contribution from every input,
-§2.2's add rule sums them:
+**Near a point, a layer acts like multiplication by its Jacobian:**
+
+$$f(x + \delta) \approx f(x) + J\delta$$
+
+This is §2.1's tangent line $f(x+h) \approx f(x) + f'(x)\,h$ for vectors: the
+Jacobian is the slope of a vector function.
+
+Why: change the inputs by a small vector $\delta$. Output $i$ gets a
+contribution $(\partial f_i / \partial x_j)\,\delta_j$ from each input $j$, and
+the contributions add:
 
 $$\Delta f_i \approx \sum_j \frac{\partial f_i}{\partial x_j}\, \delta_j
 = (\text{row } i \text{ of } J) \cdot \delta$$
 
-Stack the $m$ outputs, and the row-dots become the matrix product $J\delta$:
+Doing this for every output at once is $J\delta$.
 
-$$f(x + \delta) \approx f(x) + J\delta$$
-
-This is §2.1's tangent line $f(x+h) \approx f(x) + f'(x)\,h$ upgraded to
-vectors: near $x$, the layer adds the constant $f(x)$ and applies the matrix
-$J$ to the input change. **The Jacobian is the slope of a vector function** -
-zoomed in at a point, the nonlinear layer behaves like the linear map $J$.
-
-Check: $f(x_1, x_2) = [x_1^2,\; x_1 x_2]$ at $(2, 3)$, so
-$J = [[2x_1, 0], [x_2, x_1]] = [[4, 0], [3, 2]]$. Step $\delta = [0.01, 0]$:
-exact $f(2.01, 3) = [4.0401,\; 6.03]$; predicted
-$f(2, 3) + J\delta = [4 + 0.04,\; 6 + 0.03] = [4.04,\; 6.03]$.
+Check: $f(x_1, x_2) = [x_1^2,\; x_1 x_2]$ at $(2, 3)$ has
+$J = [[2x_1, 0], [x_2, x_1]] = [[4, 0], [3, 2]]$. For the step
+$\delta = [0.01, 0]$, the exact value is $f(2.01, 3) = [4.0401,\; 6.03]$, and
+the prediction is $f(2, 3) + J\delta = [4 + 0.04,\; 6 + 0.03] = [4.04,\; 6.03]$.
 
 #### Chain rule for vectors: Jacobians multiply
 
-Take the two-step pipeline
-again, now with vectors: $z = g(x)$, then $y = f(z)$. The symbol $f \circ g$
-names the whole pipeline as one function, "first $g$, then $f$":
-$(f \circ g)(x) = f(g(x))$.
+**The Jacobian of a pipeline is the product of its steps' Jacobians.** For
+$z = g(x)$, then $y = f(z)$:
 
-Fix a specific input $x_0$ and run the pipeline there: step $g$ operates at
-$x_0$, and step $f$ operates at $z_0 = g(x_0)$. By the previous passage, each
-step near its own operating point behaves like its Jacobian: $g$ like the
-matrix $J_g(x_0)$, $f$ like the matrix $J_f(z_0)$. Now push a small input
-change $\delta$ through: after the first step it becomes $J_g(x_0)\,\delta$,
-and after the second, $J_f(z_0)\, J_g(x_0)\,\delta$. Two linear maps applied
-one after the other are the product of their matrices (§1.4 of the linear
-algebra notes: matrix multiplication *is* composition), so the pipeline's
-Jacobian at $x_0$ is that product:
+$$J_{f \circ g}(x) = J_f(g(x))\, J_g(x)$$
 
-$$J_{f \circ g}(x_0) = J_f(g(x_0))\, J_g(x_0)$$
+Here $f \circ g$ names the whole pipeline, "first $g$, then $f$". Why: a small
+input change $\delta$ becomes $J_g \delta$ after the first step and
+$J_f J_g \delta$ after the second, and applying two matrices in a row is the
+same as multiplying them (§1.4 of the linear algebra notes). Each Jacobian is
+taken where its step actually operates: $J_g$ at $x$, and $J_f$ at
+$z = g(x)$.
 
 #### One layer back in one product: the VJP
 
-Stand at one layer and suppose the sensitivities of
-the loss to the layer's *outputs* are already known (the walk arrives from
-the right): the row vector
+**Backprop moves the loss gradient back through a layer by multiplying it by
+the layer's Jacobian, without ever building the Jacobian.**
+
+Suppose the loss's sensitivities to the layer's outputs are known, as the row
+vector
 $s = [\partial L / \partial \text{out}_1, \dots, \partial L / \partial \text{out}_m]$.
-Input $i$ reaches the loss through every output, one path per output:
+Input $i$ reaches the loss through every output:
 
 $$\text{in}_i \to \text{out}_1 \to L, \qquad \text{in}_i \to \text{out}_2 \to L, \qquad \dots, \qquad \text{in}_i \to \text{out}_m \to L$$
 
-so §2.2's add rule gives one chain-rule contribution per path, summed:
+so the add rule gives one chain-rule product per path, summed:
 
 $$\frac{\partial L}{\partial \text{in}_i} = \sum_j \frac{\partial L}{\partial \text{out}_j}\,\frac{\partial \text{out}_j}{\partial \text{in}_i} = (s\,J)_i$$
 
-So the whole row vector moves one layer back in a single product,
-$s \mapsto s J$, called a **vector–Jacobian product** (VJP). The engineering
-point: $J$ is never stored as a matrix - only the product $sJ$ is ever
-computed. For a hidden layer of width 4096, $J$ would be $4096 \times 4096
-\approx 17$ million numbers *per example*; the VJP gets $sJ$ directly.
+So one layer back is $s \mapsto sJ$, a **vector–Jacobian product** (VJP).
+Frameworks compute $sJ$ directly and never store $J$. For a layer of width
+4096, $J$ would have $4096 \times 4096 \approx 17$ million entries per
+example.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 480 230" role="img" aria-label="One layer drawn as a fully connected graph with two inputs and two outputs: amber edge labels are the Jacobian entries, red numbers at the outputs are the known sensitivities, and each input's sensitivity is the sum over its edges" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -661,36 +597,28 @@ computed. For a hidden layer of width 4096, $J$ would be $4096 \times 4096
 
 *One layer as a graph: every input touches every output. Amber edge labels
 are the local derivatives $\partial \text{out}_j / \partial \text{in}_i$,
-i.e. the entries of $J$ (here $J = [[3, 2], [4, 5]]$). Red at the outputs:
-the known row vector $s = [1, 2]$. Each input's red number is the add-rule
-sum over its edges - $1 \cdot 3 + 2 \cdot 4 = 11$ for in1 - and computing
-both at once is $sJ = [11, 12]$, the VJP.*
+the entries of $J$ (here $J = [[3, 2], [4, 5]]$). Red at the outputs: the
+known row vector $s = [1, 2]$. Each input's red number is the sum over its
+edges, $1 \cdot 3 + 2 \cdot 4 = 11$ for in1, and computing both at once is
+$sJ = [11, 12]$, the VJP.*
 
 #### Three Jacobians worth knowing cold
 
-- **Elementwise ReLU**: $\text{ReLU}(x)_i = \max(0, x_i)$, applied to each
-  entry separately. Output $i$ depends only on input $i$, so $J_{ij} = 0$
-  whenever $i \neq j$: the Jacobian is **diagonal**. The diagonal entry is
-  the derivative of $\max(0, x_i)$: 1 if $x_i > 0$, 0 if $x_i < 0$. (The
-  notation $\mathbb{1}[x_i > 0]$ means exactly that: 1 when the condition
-  holds, 0 otherwise.) So the backward step $s \mapsto sJ$ just zeroes the
-  entries of $s$ where the input was negative: with $x = [0.5, -1.2]$ and
-  $s = [7, 9]$, back goes $[7, 0]$.
-- **Linear layer** $f(x) = Wx$: output $j$ is $\sum_i W_{ji}\, x_i$, so
-  $\partial \text{out}_j / \partial \text{in}_i = W_{ji}$ - the Jacobian *is*
-  $W$. The backward step is $s \mapsto sW$ with $s$ the upstream row vector
-  (written with columns, $s \mapsto W^\top s$ - the same statement
-  transposed).
-- **Softmax** turns logits $z$ into probabilities
-  $p_i = e^{z_i} / \sum_j e^{z_j}$. Every output shares the same denominator,
-  so every output depends on every input, and no entry of $J$ is zero: the
-  Jacobian is **dense**, with no ReLU-style shortcut. The entries are
-  $J_{ij} = p_i(\delta_{ij} - p_j)$, where $\delta_{ij}$ is 1 if $i = j$ and
-  0 otherwise (derived step by step in exercise 9). In practice softmax is
-  immediately followed by the cross-entropy loss, and frameworks
-  differentiate the *combined* function instead of chaining through $J$: the
-  dense Jacobian and the loss's numerically dangerous $1/p_i$ factor cancel,
-  and the whole backward step collapses to $p - y$.
+- **ReLU** passes the gradient where the input was positive and zeroes it
+  elsewhere. $\text{ReLU}(x)_i = \max(0, x_i)$ depends only on $x_i$, so $J$ is
+  diagonal, with 1 where $x_i > 0$ and 0 where $x_i < 0$ (written
+  $\mathbb{1}[x_i > 0]$: 1 when the condition holds, 0 otherwise). With
+  $x = [0.5, -1.2]$ and $s = [7, 9]$, the backward step gives $[7, 0]$.
+- **A linear layer** $f(x) = Wx$ has Jacobian $W$ itself, because output $j$ is
+  $\sum_i W_{ji}\, x_i$. The backward step is $s \mapsto sW$, or $W^\top s$ when
+  $s$ is written as a column.
+- **Softmax**, $p_i = e^{z_i} / \sum_j e^{z_j}$, has a dense Jacobian: every
+  output shares the same denominator, so every output depends on every input.
+  The entries are $J_{ij} = p_i(\delta_{ij} - p_j)$, where $\delta_{ij}$ is 1 if
+  $i = j$ and 0 otherwise (derived in exercise 9). In practice softmax is
+  followed by the cross-entropy loss, and frameworks differentiate the two
+  together. The backward step then collapses to $p - y$, which avoids both the
+  dense Jacobian and the numerically risky $1/p_i$ factor.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 190" role="img" aria-label="Softmax followed by cross-entropy on three classes: forward boxes compute probabilities and the loss; the step-by-step backward path through 1 over p and the dense Jacobian is skipped, replaced by the single fused step p minus y" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -727,15 +655,18 @@ both at once is $sJ = [11, 12]$, the VJP.*
 Forward: $p \approx [.67, .09, .24]$, $L = -\log p_1 \approx 0.41$. The
 step-by-step backward walk would multiply by $1/p_1$ and then by the dense
 $3 \times 3$ Jacobian; the fused step computes
-$\partial L / \partial z = p - y \approx [-.33, .09, .24]$ directly - one
+$\partial L / \partial z = p - y \approx [-.33, .09, .24]$ directly, with one
 subtraction.*
 
 #### Vanishing and exploding gradients
 
-The backward signal is a product of
-many Jacobians; if their singular values are systematically $< 1$ or $> 1$, the product
-shrinks or blows up exponentially with depth. Residual connections help by making
-each layer's Jacobian $I + \partial F / \partial h$: the product then always
-contains a path through the identity terms, so some gradient reaches every layer
-unchanged.
+**The backward signal is multiplied by one Jacobian per layer, so over many
+layers it can shrink or grow exponentially.** If each layer scales it by about
+0.9, fifty layers scale it by $0.9^{50} \approx 0.005$; at about 1.1, by
+$1.1^{50} \approx 117$. Precisely, this happens when the Jacobians' singular
+values (§1.6 of the linear algebra notes) are consistently below or above 1.
 
+Residual connections help. A residual layer computes $h + F(h)$, so its
+Jacobian is $I + \partial F / \partial h$. The product over layers then always
+contains a path through the identity terms, so some gradient reaches every
+layer unchanged.
