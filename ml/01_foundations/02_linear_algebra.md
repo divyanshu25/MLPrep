@@ -888,54 +888,52 @@ $20 \times 10{,}501 = 210{,}020$, about 4% of the original.
 
 ## 1.7 Norms: what "big" means
 
-Three common ML questions each reduce to measuring the size of one vector:
+A **norm** turns a vector into one number: its size. ML needs this
+constantly:
 
-- How far apart are two embeddings $a$ and $b$? Their difference $a - b$
-  is a single vector, and the distance between them is its size:
+- **Distance between embeddings** $a$ and $b$: the size of their difference,
   $\|a - b\|$.
-- How large are a model's weights? (the quantity weight decay controls)
-- Is this gradient exploding? (the quantity gradient clipping checks)
+- **Weight decay:** penalize the size of the weights.
+- **Gradient clipping:** if the gradient's size is above a threshold, scale it
+  down.
 
-Each needs a single number for "how big is this vector." A **norm** is that
-number, and there is more than one useful way to define it.
-
-The notation: $\|x\|$ (double bars) is the size of the vector $x$, with a
-subscript naming which definition of size is in use. Measure the same
-vector $x = [3, -4, 0]$ three ways:
+There is more than one sensible way to measure size. $\|x\|$ (double bars)
+means the size of $x$, and a subscript says which way. Measure
+$x = [3, -4, 0]$ three ways:
 
 - **L2, straight-line length:**
-  $\|x\|_2 = \sqrt{3^2 + (-4)^2 + 0^2} = \sqrt{25} = 5$.
-- **L1, total amount:** $\|x\|_1 = |3| + |{-4}| + |0| = 7$. No diagonal
-  shortcuts: every coordinate counts in full.
-- **L∞, worst coordinate:** $\|x\|_\infty = \max(3, 4, 0) = 4$. Only the
-  biggest entry matters.
+  $\|x\|_2 = \sqrt{3^2 + (-4)^2 + 0^2} = 5$.
+- **L1, sum of the absolute values:** $\|x\|_1 = 3 + 4 + 0 = 7$. This is the
+  distance if you can only walk along the axes.
+- **L∞, the largest entry:** $\|x\|_\infty = \max(3, 4, 0) = 4$.
 
-Same vector; sizes 5, 7, and 4. There is no single "right" size. Each norm is
-the right tool somewhere in ML:
+Same vector, sizes 5, 7 and 4. Each norm suits a different job.
 
-**L2 is the norm of weight decay.** The squared version
-$\|w\|_2^2 = \sum_i w_i^2$ appears everywhere because it is smooth and its
-gradient is plain: $\nabla \|w\|_2^2 = 2w$ (the 1-D check:
-$\frac{d}{dw} w^2 = 2w$). Add it to the loss and each weight feels a pull
-toward zero *proportional to its own size*: big weights are pulled hard, small
-weights barely at all. So everything shrinks smoothly, and almost nothing is
-pushed to exactly zero - the pull weakens as the weight gets small.
+**L2 shrinks every weight a little (weight decay).** Adding
+$\lambda \|w\|_2^2 = \lambda \sum_i w_i^2$ to the loss adds $2\lambda w_i$ to
+each weight's gradient: a pull toward zero proportional to the weight's size.
+Big weights are pulled hard and small weights barely at all, so the pull
+fades as a weight approaches zero. Weights shrink, but almost none reach
+exactly zero.
 
-**L1 is the norm of sparsity.** The derivative of $|w|$ is $+1$ or $-1$: a
-pull toward zero of *constant strength*, no matter how small the weight
-already is. A weight whose contribution to the loss is worth less than that
-constant pull gets driven to exactly $0$ and held there. Why held: at
-$w = 0$, moving in *either* direction raises the penalty at that same
-constant rate, so unless the loss gradient at $0$ is larger than that rate,
-$0$ is where the weight stays. That is the lasso,
-and it is why "L1 selects features." The same conclusion, geometrically.
-The set of all vectors of size at most 1 under a given norm
-($\|x\| \le 1$) is called that norm's **unit ball**;
-the name comes from L2, whose version really is round, but each norm has
-its own shape - the figure below shows L1's is a diamond and L∞'s is a
-square. A constrained optimum lands on the unit ball's surface, and L1's
-diamond has corners exactly on the axes: points where the other
-coordinates are zero.
+**L1 sets some weights to exactly zero (sparsity).** Adding
+$\lambda \|w\|_1 = \lambda \sum_i |w_i|$ adds $+\lambda$ or $-\lambda$ to each
+weight's gradient: a pull of the same strength no matter how small the
+weight is. For a small weight $w = 0.05$ with $\lambda = 0.1$, L2 pulls with
+$2 \cdot 0.1 \cdot 0.05 = 0.01$ while L1 pulls with the full $0.1$. So L1
+keeps pushing small weights all the way to zero. Once a weight is at zero,
+moving it either way costs $\lambda$ per unit, so it stays at zero unless the
+loss gradient for that weight is bigger than $\lambda$. This is the
+**lasso**, and it is why "L1 selects features": the features whose weights
+survive are the selected ones.
+
+**The same thing as a picture.** The set of vectors with size at most 1,
+$\|x\| \le 1$, is that norm's **unit ball**. L2's is a circle, L1's is a
+diamond, and L∞'s is a square (figure below). If the weights must stay inside
+the ball, the best weights are where the loss contours first touch it. The
+diamond's corners stick out along the axes, so that first touch is often a
+corner, where every other coordinate is zero. The circle has no corners, so
+the touch point usually has no zero coordinates.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 170" role="img" aria-label="Unit balls of the L1 norm (a diamond), L2 norm (a circle), and L-infinity norm (a square)" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -955,19 +953,20 @@ coordinates are zero.
 </div>
 
 *Every point with $\|x\| = 1$ under each norm. L1's corners (dots) sit on
-the axes; constrained optima land on corners, zeroing the other coordinate.
-L2's ball is round - no corners, nothing gets zeroed.*
+the axes, where the other coordinate is zero. L2's circle has no corners, so
+nothing is pushed to zero.*
 
-**L∞ is the norm of adversarial examples.** "Change every pixel by at most
-$\epsilon$" describes an L∞ ball of radius $\epsilon$ around the image:
-the constraint caps the worst single coordinate and says nothing about the
-total.
+**L∞ caps the largest change (adversarial examples).** "Change every pixel
+by at most $\epsilon$" means the change $\delta$ satisfies
+$\|\delta\|_\infty \le \epsilon$. It limits the biggest single change and
+allows every pixel to change by up to $\epsilon$ at the same time.
 
-**Frobenius is L2 for matrices:** flatten the matrix and take ordinary L2,
-$\|A\|_F = \sqrt{\sum_{ij} a_{ij}^2}$.
+**Frobenius is L2 for matrices:** flatten the matrix into one long vector and
+take its L2 norm, $\|A\|_F = \sqrt{\sum_{ij} a_{ij}^2}$.
 
-Two things every norm gives you for free: a **distance** between vectors,
-$\|a - b\|$, and a **normalization**, $x / \|x\|$, which rescales $x$ to
-length 1 - the core move inside cosine similarity (§1.2), and, after
-subtracting the mean and up to a constant factor, inside LayerNorm. The
-one-line contrast to keep for interviews: *L2 shrinks, L1 selects.*
+**Two uses of any norm.** Distance: $\|a - b\|$. Normalization: $x / \|x\|$
+rescales $x$ to length 1. Cosine similarity (§1.2) normalizes both vectors
+before taking the dot product, and LayerNorm does the same after subtracting
+the mean (up to a constant factor).
+
+For interviews: *L2 shrinks, L1 selects.*
