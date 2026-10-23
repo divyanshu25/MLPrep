@@ -357,9 +357,13 @@ Why care in ML:
     and each eigenvalue is the curvature along its own direction. Big
     $\lambda$: a steep wall. Small $\lambda$: a nearly flat floor.
   - **The condition number.** The ratio $\lambda_{max}/\lambda_{min}$
-    measures how elongated the bowl is, and an elongated bowl slows
-    gradient descent badly: the gradient points across the narrow valley
-    rather than along it, so the iterates zig-zag (the figures below).
+    measures how stretched the bowl is. A ratio of 1 is a round bowl; a
+    ratio of 100 means one direction is 100 times steeper than another.
+    A stretched bowl slows gradient descent badly. The gradient points
+    mostly across the narrow valley, toward the steep walls, instead of
+    along the valley toward the minimum. So each step overshoots to the
+    opposite wall and makes little progress along the valley, and the path
+    bounces from side to side (the figures below).
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 480 245" role="img" aria-label="A 3D loss bowl over two weights, sliced at three heights colored green, amber, and rose, next to the same bowl seen from above where the slices become contour rings" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -432,10 +436,11 @@ that ring picture is the contour plot used below.*
 
 *Loss contours from above; the dot is the minimum, and ring color is loss
 height (emerald just above the minimum, then amber, then rose). The indigo
-path is gradient descent, and the gradient is perpendicular to the contour
-underfoot: in the round bowl that points at the minimum, in the elongated
-bowl it points across the valley, so descent zig-zags. This picture is why
-momentum and Adam exist.*
+path is gradient descent. Each step moves perpendicular to the contour ring
+at the current point. In the round bowl that direction points at the
+minimum. In the stretched bowl it points across the valley, so each step
+crosses to the opposite wall and the path bounces from side to side. This
+picture is why momentum and Adam exist.*
 
 ## 1.6 SVD: every matrix is rotate → stretch → rotate
 
