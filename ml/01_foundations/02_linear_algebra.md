@@ -291,51 +291,52 @@ just a number.*
 
 Why care in ML:
 
-- **PCA.** Center your data (subtract each feature's mean) and build the
-  **covariance matrix** $C$: entry $C_{ij}$ measures how features $i$ and $j$
-  move together across the dataset - the average of
-  $(\text{feature } i\text{'s deviation}) \times (\text{feature } j\text{'s deviation})$,
-  with each feature's variance on the diagonal. It's symmetric for a trivial
-  reason: $C_{ij} = C_{ji}$ because the two deviations multiply in either order.
-  Symmetric means the spectral theorem applies: $C$ has orthogonal eigenvectors,
-  and the ones with the biggest eigenvalues are the directions along which the
-  data varies most. PCA is literally "rotate into the eigenbasis, keep only the
-  axes with big $\lambda$."
-- **Repeated application.** Work in the eigenbasis and apply $A$ over and over:
-  each component gets multiplied by its own $\lambda_i$ at every step, so after
-  $k$ steps a component has grown (or shrunk) by $\lambda_i^k$. Whatever has
-  $|\lambda| > 1$ grows exponentially and whatever has $|\lambda| < 1$ shrinks
-  toward zero -
-  so $A^k v$ ends up pointing along the largest-$|\lambda|$ eigenvector. Where
-  this appears in ML: an RNN applies the *same* update rule at every timestep,
-  so backprop through $T$ timesteps multiplies the gradient by roughly the same
-  matrix $T$ times - literally the $A^k$ story, which is why RNN gradients
-  explode or vanish over long sequences.
-- **Power iteration and PageRank.** That exponential growth is also an
-  *algorithm*.
-  Want the top eigenvector of some matrix $A$? Start from a random vector and
-  repeat: multiply by $A$, rescale back to unit length. Every multiply grows the
-  component along the biggest-$|\lambda|$ eigenvector faster than all the
-  others, so after enough rounds those others are negligible and the vector has
-  landed on the top eigenvector; the rescaling only keeps the numbers from
-  overflowing. That loop is **power iteration**. **PageRank** is this idea
-  applied to the web:
-  - Build a matrix $A$ from the link structure. A reader on page $i$ is
-    assumed to click one of its outgoing links at random (3 links, each
-    with probability $\frac13$), so entry $(j, i)$ of $A$ is the
+- **PCA.** Picture a cloud of data points shaped like a tilted, stretched
+  ellipse. PCA finds the long axis of that ellipse (the direction in which the
+  data spreads out most), then the next-longest axis, and so on. These axes are
+  the eigenvectors of the covariance matrix.
+  - The **covariance matrix** $C$ records how pairs of features vary together.
+    Center the data first (subtract each feature's mean). Then $C_{ij}$ is the
+    average of (feature $i$'s deviation) $\times$ (feature $j$'s deviation),
+    and the diagonal entry $C_{ii}$ is feature $i$'s variance.
+  - $C$ is symmetric, $C_{ij} = C_{ji}$, because the two deviations give the
+    same product in either order. So the spectral theorem applies and $C$ has
+    orthogonal eigenvectors.
+  - Each eigenvalue is the variance of the data along its eigenvector. PCA
+    keeps the eigenvectors with the largest eigenvalues and drops the rest.
+- **Repeated application.** Apply the same matrix many times and the
+  eigenvector with the largest $|\lambda|$ takes over. Each application
+  multiplies eigen-coordinate $c_i$ by $\lambda_i$, so after $k$ applications
+  it has been multiplied by $\lambda_i^k$. With the $A$ and $x = [3, 1]$ from
+  above, ten applications multiply $c_1$ by $3^{10} = 59{,}049$ and leave $c_2$
+  at 1: $A^{10} x = [118099,\ 118097]$, almost exactly along $v_1 = [1, 1]$.
+  - In general, components with $|\lambda| > 1$ grow exponentially and
+    components with $|\lambda| < 1$ shrink toward zero.
+  - In ML: an RNN uses the same weight matrix $W$ at every timestep, so
+    backprop through $T$ timesteps multiplies the gradient by $W^\top$ (and a
+    tanh slope that varies by step) $T$ times. That is the $A^k$ pattern, and
+    it is why RNN gradients explode or vanish over long sequences.
+- **Power iteration.** The same takeover gives an algorithm for the top
+  eigenvector (the one with the largest $|\lambda|$). Start from a random
+  vector and repeat two steps: multiply by $A$, then rescale to length 1. Each
+  multiplication makes the top component larger relative to all the others, so
+  the vector converges to the top eigenvector. The rescaling only keeps the
+  numbers from overflowing.
+- **PageRank** is power iteration on the web's link graph. The idea: a page is
+  important if a reader who clicks links at random for a long time often ends
+  up on it.
+  - Build $A$ from the links. If page $i$ has 3 outgoing links, a reader on
+    page $i$ clicks each one with probability $\frac13$. Entry $A_{ji}$ is the
     probability that a reader on page $i$ goes to page $j$ next.
-  - Let $p_i$ be the fraction of all readers currently on page $i$. After
-    everyone clicks once, the new fraction on page $j$ is
-    $\sum_i A_{ji}\, p_i$: readers arrive at $j$ from every page that
-    links to it. That sum is entry $j$ of $Ap$. So one round of clicking
-    turns the vector $p$ into the vector $Ap$.
-  - Define a page's importance as its share of readers once this process
-    settles: a $p$ that one more round of clicking does not change,
-    $Ap = p$. That equation says $p$ is an eigenvector of $A$ with
-    eigenvalue $1$.
-  - Google's original ranking computed $p$ by power iteration: start from
-    any spread of readers and keep multiplying by $A$ until the vector
-    stops changing.
+  - Let $p_i$ be the fraction of readers on page $i$. After everyone clicks
+    once, the fraction on page $j$ is $\sum_i A_{ji}\, p_i$, the readers
+    arriving from every page that links to $j$. That sum is entry $j$ of $Ap$,
+    so one round of clicking turns $p$ into $Ap$.
+  - A page's importance is its share of readers once this settles: the $p$
+    that one more round does not change, $Ap = p$. So $p$ is an eigenvector of
+    $A$ with eigenvalue 1.
+  - Google computed $p$ by power iteration: spread the readers evenly, then
+    multiply by $A$ until $p$ stops changing.
 - **Optimization.** In 1-D, the second derivative is curvature: how fast the
   slope changes as you move. A loss over $n$ weights has no single
   curvature - it depends on which direction you move in - and the
