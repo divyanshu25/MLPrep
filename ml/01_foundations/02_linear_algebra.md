@@ -607,27 +607,34 @@ axes are always perpendicular.
 
 #### Part B: the SVD - the same idea for any matrix
 
-The running example has 3 rows and 2 columns, so it takes 2-number inputs to
-3-number outputs:
-
-$$B = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}$$
-
-$Bv = \lambda v$ would set a 3-entry vector equal to a 2-entry one, so $B$ has
-no eigenvectors. The fix: inputs and outputs live in different spaces, so use
-a separate set of perpendicular directions for each.
+**The idea.** Part A described $A$ in three steps: measure the input along
+the eigenvectors, stretch each amount, rebuild along the same eigenvectors.
+The SVD keeps the three steps but lets the input and the output use
+different directions: one set of perpendicular unit directions for inputs
+($v_1, v_2, \dots$) and another for outputs ($u_1, u_2, \dots$). That is
+enough to describe any matrix, even a rectangular one:
 
 $$A = U \Sigma V^\top \tag{1.6b}$$
 
-- **$V^\top$: into input coordinates.** Its rows are perpendicular unit
-  vectors $v_1, v_2, \dots$ in the input space, so entry $i$ of $V^\top x$ is
-  $v_i \cdot x$, the amount of $x$ along $v_i$ (§1.2). This is the job
-  $Q^{-1}$ did.
-- **$\Sigma$: the stretch.** It multiplies amount $i$ by $\sigma_i \ge 0$.
-  These are the **singular values**, numbered largest first. (Σ also changes
-  the length from $d$ to $n$, padding with zeros.)
-- **$U$: rebuild the output.** Its columns are perpendicular unit vectors
-  $u_1, u_2, \dots$ in the output space. Amounts $(a_1, a_2, \dots)$ become
-  $a_1 u_1 + a_2 u_2 + \dots$. This is the job $Q$ did.
+- **$V^\top$ measures the input** along $v_1, v_2, \dots$. Its rows are the
+  $v_i$, so entry $i$ of $V^\top x$ is $v_i \cdot x$, the amount of $x$ along
+  $v_i$ (§1.2). This is the job $Q^{-1}$ did.
+- **$\Sigma$ stretches** amount $i$ by $\sigma_i \ge 0$. These are the
+  **singular values**, numbered largest first. (Σ also changes the length
+  from $d$ to $n$, padding with zeros.)
+- **$U$ rebuilds the output** from the stretched amounts: $(a_1, a_2, \dots)$
+  becomes $a_1 u_1 + a_2 u_2 + \dots$. Its columns are the $u_i$. This is the
+  job $Q$ did.
+
+A matrix whose rows or columns are perpendicular unit vectors is a rotation
+(possibly with a reflection), so $V^\top$ and $U$ are rotations. That gives
+the section title: rotate, stretch, rotate.
+
+In one sentence: $v_1$ is the input direction $A$ stretches most, $\sigma_1$
+is how much, and $u_1$ is the direction it lands on. $v_2$ is the same among
+the directions perpendicular to $v_1$, and so on. For every $i$:
+
+$$A v_i = \sigma_i u_i$$
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 190" role="img" aria-label="A maps the unit circle with directions v1 and v2 to an ellipse with radii sigma1 u1 and sigma2 u2" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -656,32 +663,41 @@ the stretch makes the ellipse (radii $\sigma_1, \sigma_2$), the last
 rotation turns it into place. The inputs $v_1, v_2$ land on
 $\sigma_1 u_1, \sigma_2 u_2$.*
 
-**Finding $V$ and $\Sigma$.** Part A's method needs a square, symmetric
-matrix. $A^\top A$ is both: it is $d \times d$, and
-$(A^\top A)^\top = A^\top A$. Substitute (1.6b) and use $U^\top U = I$:
+The running example has 3 rows and 2 columns:
+
+$$B = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}$$
+
+It takes 2-number inputs to 3-number outputs, so it has no eigenvectors. It
+still has an SVD. Finding it takes two steps: $V$ and $\Sigma$ first, then
+$U$.
+
+**Finding $V$ and $\Sigma$: use $A^\top A$.** The question is which input
+directions $A$ stretches most. The squared length of an output is
+
+$$\|A v\|^2 = (Av) \cdot (Av) = v^\top A^\top A\, v$$
+
+so the $d \times d$ matrix $A^\top A$ records how much $A$ stretches every
+input direction. It is symmetric, $(A^\top A)^\top = A^\top A$, so Part A
+applies: its eigenvectors are perpendicular, and they are the $v_i$. Its
+eigenvalues are the squared stretches $\sigma_i^2$. Substituting (1.6b), with
+$U^\top U = I$, confirms this:
 
 $$A^\top A = V \Sigma^\top U^\top U \Sigma V^\top = V \Sigma^2 V^\top \tag{1.6c}$$
 
-This has the form $Q \Lambda Q^{-1}$ of (1.6a), with $Q = V$ and
-$\Lambda = \Sigma^2$. So the $v_i$ are the eigenvectors of $A^\top A$, and the
-$\sigma_i$ are the square roots of its eigenvalues. The spectral theorem
-(§1.5) makes the $v_i$ perpendicular.
+which is the form $Q \Lambda Q^{-1}$ of (1.6a) with $Q = V$ and
+$\Lambda = \Sigma^2$.
 
-**Finding $U$.** The SVD says $A$ sends each input direction $v_i$ to the
-output direction $u_i$, stretched by $\sigma_i$ (the figure above):
-
-$$A v_i = \sigma_i u_i$$
-
-So to find $u_i$, send $v_i$ through $A$ and shrink the result to length 1.
-That result has length exactly $\sigma_i$, because
-$\|A v_i\|^2 = v_i^\top A^\top A\, v_i = \sigma_i^2$. Dividing by it:
+**Finding $U$: send each $v_i$ through $A$.** Since $A v_i = \sigma_i u_i$,
+the direction $u_i$ is wherever $A$ sends $v_i$, rescaled to length 1. The
+length to divide by is $\sigma_i$, because
+$\|A v_i\|^2 = v_i^\top A^\top A\, v_i = \sigma_i^2$:
 
 $$u_i = \frac{A v_i}{\sigma_i}$$
 
-Step 3 of the recipe below does this with numbers. (For $\sigma_i = 0$,
-$A v_i = 0$ has no direction; fill in any perpendicular unit vectors.) These
-$u_i$ come out perpendicular automatically. For $i \ne j$, use
-$(Ax) \cdot y = x \cdot (A^\top y)$ and then $A^\top A\, v_j = \sigma_j^2 v_j$:
+(For $\sigma_i = 0$, $A v_i = 0$ has no direction; fill in any perpendicular
+unit vectors.) The $u_i$ come out perpendicular to each other automatically.
+For $i \ne j$, use $(Ax) \cdot y = x \cdot (A^\top y)$ and then
+$A^\top A\, v_j = \sigma_j^2 v_j$:
 
 $$u_i \cdot u_j = \frac{(A v_i) \cdot (A v_j)}{\sigma_i \sigma_j}
 = \frac{v_i \cdot (A^\top A\, v_j)}{\sigma_i \sigma_j}
@@ -726,10 +742,7 @@ nonzero $\sigma$. The *full* form pads $U$ to $3 \times 3$ and $\Sigma$ to
 $3 \times 2$; the product is the same.)
 
 None of these steps needed anything special about $B$, so **every matrix has
-an SVD: every linear map is rotate → stretch → rotate.** In words: $v_1$ is
-the input direction $A$ stretches most, $\sigma_1$ is that stretch, and $u_1$
-is where it lands. $v_2$ is the same among directions perpendicular to $v_1$,
-and so on.
+an SVD: every linear map is rotate → stretch → rotate.**
 
 Two checks:
 
@@ -744,17 +757,12 @@ Two checks:
 
 #### Part C: compressing a matrix - why ML cares
 
-A ratings matrix with $n = 10{,}000$ users and $d = 500$ movies holds
-$5{,}000{,}000$ numbers. Can far fewer numbers stand in for almost the same
-matrix?
+**The idea.** The SVD writes a matrix as a sum of simple terms, one per
+singular value, largest first. Keep only the biggest few terms and you keep
+most of the matrix with far fewer numbers.
 
-**Keep the top $k$ of the SVD.** Keep the first $k$ columns of $U$ and $V$
-and the first $k$ singular values: $k(n + d + 1)$ numbers. With $k = 20$ that
-is $20 \times 10{,}501 = 210{,}020$, about 4% of the original. Multiplying the
-three smaller factors gives an approximation of $A$.
-
-**What it loses.** Multiplying $U \Sigma V^\top$ out gives one term per
-singular value:
+**The terms.** Multiplying $U \Sigma V^\top$ out gives one term per singular
+value:
 
 $$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
@@ -769,13 +777,6 @@ means this). Because $u_i$ and $v_i$ are unit vectors, the entries of
 $u_i v_i^\top$ are at most 1 in size, so the size of term $i$ is set by
 $\sigma_i$.
 
-Keeping the top $k$ factors keeps exactly the first $k$ terms:
-
-$$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6e}$$
-
-and drops the terms with the smallest $\sigma$. The loss is small when the
-$\sigma_i$ fall off quickly, which they usually do for real data.
-
 Check (1.6d) on the §1.5 $A$ ($u_i = v_i$, $\sigma_1 = 3$, $\sigma_2 = 1$):
 
 $$3 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
@@ -784,8 +785,22 @@ $$3 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
 + \begin{bmatrix} 0.5 & -0.5 \\ -0.5 & 0.5 \end{bmatrix}
 = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$$
 
-**Can another summary do better?** No. The **Eckart–Young theorem** says
-(1.6e) is the best approximation of $A$ that uses $k$ patterns.
+**Keep the top $k$.** Keeping the first $k$ columns of $U$ and $V$ and the
+first $k$ singular values keeps exactly the first $k$ terms:
+
+$$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6e}$$
+
+The dropped terms are the ones with the smallest $\sigma$, so the loss is
+small when the $\sigma_i$ fall off quickly, which they usually do for real
+data. No other choice of $k$ patterns does better: the **Eckart–Young
+theorem** says (1.6e) is the best approximation of $A$ that uses $k$
+patterns.
+
+**How much it saves.** A ratings matrix with $n = 10{,}000$ users and
+$d = 500$ movies holds $5{,}000{,}000$ numbers. The top $k$ terms store $k$
+columns of length $n$, $k$ columns of length $d$, and $k$ singular values:
+$k(n + d + 1)$ numbers. With $k = 20$ that is
+$20 \times 10{,}501 = 210{,}020$, about 4% of the original.
 
 **Where ML uses this:**
 
