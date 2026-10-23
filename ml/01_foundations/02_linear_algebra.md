@@ -585,14 +585,23 @@ with a reflection), and then $Q^{-1} = Q^\top$. The unscaled $Q$ above has
 columns of length $\sqrt{2}$, which is why its inverse has the factor
 $\tfrac{1}{2}$.
 
-The eigendecomposition has two limits:
+The eigendecomposition has two limits.
 
-- **$A$ must be square.** $Av = \lambda v$ sets the output equal to a scaled
-  copy of the input, so the two must have the same number of entries.
-- **Perpendicular axes need $A$ symmetric.** A general square matrix can have
-  skewed eigenvectors, or too few of them (the shear at the end of Part B).
+- **It needs a square matrix.** $Av = \lambda v$ compares the output with the
+  input, so both must have the same number of entries. The $3 \times 2$
+  matrix $B$ in Part B turns $[1, 1]$ into $[2, 1, 1]$. A 3-entry output
+  cannot be a multiple of a 2-entry input, so $B$ has no eigenvectors.
+- **Its axes are perpendicular only when $A$ is symmetric.** The
+  non-symmetric $\begin{bmatrix} 2 & 1 \\ 0 & 1 \end{bmatrix}$ has
+  eigenvectors $[1, 0]$ (eigenvalue 2) and $[1, -1]$ (eigenvalue 1), which
+  are 45° apart instead of 90°. Its eigendecomposition exists, but the axes
+  are skewed and $Q^{-1} \ne Q^\top$. Some square matrices have too few
+  eigenvectors for any eigendecomposition: the shear at the end of Part B
+  has only one eigen-direction.
 
-A data matrix ($n$ rows × $d$ features) is usually neither.
+A data matrix ($n$ rows × $d$ features) is usually rectangular, so it has no
+eigendecomposition. The SVD in Part B works for every matrix, and its axes
+are always perpendicular.
 
 #### Part B: the SVD - the same idea for any matrix
 
