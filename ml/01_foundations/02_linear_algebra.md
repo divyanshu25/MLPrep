@@ -466,7 +466,7 @@ $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
   $Q [6, 1] = 6\,[1,1] + 1\,[1,-1] = [7, 5] = Ax$.
 
 <div style="margin:1.25rem 0">
-<svg viewBox="0 0 520 178" role="img" aria-label="Four frames following x=[3,1] through Q inverse, Lambda, and Q: eigen-directions map onto the axes, the stretch happens along the axes, then everything maps back" style="max-width:540px;width:100%;height:auto;font-size:11px;font-family:inherit">
+<svg viewBox="0 0 520 196" role="img" aria-label="Four frames following x=[3,1] through Q inverse, Lambda, and Q: frames 1 and 4 are in normal coordinates; after Q inverse the eigen-directions lie on the axes, so frames 2 and 3 are in eigen-coordinates" style="max-width:540px;width:100%;height:auto;font-size:11px;font-family:inherit">
   <defs>
     <marker id="pa-v" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/></marker>
     <marker id="pa-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
@@ -504,12 +504,20 @@ $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
     <text x="324" y="172" text-anchor="middle">3. after &#923;</text>
     <text x="457" y="172" text-anchor="middle">4. after Q</text>
   </g>
+  <g font-size="10px" text-anchor="middle">
+    <text x="58" y="188" fill="currentColor" fill-opacity="0.6">normal coordinates</text>
+    <text x="191" y="188" fill="#10b981">eigen-coordinates</text>
+    <text x="324" y="188" fill="#10b981">eigen-coordinates</text>
+    <text x="457" y="188" fill="currentColor" fill-opacity="0.6">normal coordinates</text>
+  </g>
 </svg>
 </div>
 
-*$x = [3,1]$ through the three steps: $Q^{-1}$ turns the eigen-directions
-(dashed) onto the axes, so the coordinates become the amounts $(2,1)$;
-$\Lambda$ stretches to $(6,1)$; $Q$ maps back, landing on $Ax = [7,5]$.*
+*$x = [3,1]$ through the three steps. $Q^{-1}$ goes from normal coordinates
+to eigen-coordinates: it turns the eigen-directions (dashed) onto the axes,
+so the numbers read off the axes are the amounts $(2,1)$. $\Lambda$
+stretches to $(6,1)$. $Q$ goes back to normal coordinates, landing on
+$Ax = [7,5]$.*
 
 Written as one product (the rightmost factor acts first):
 
