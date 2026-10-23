@@ -517,6 +517,10 @@ $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
   <text x="268" y="109" text-anchor="middle" fill="currentColor">&#923;</text>
   <line x1="392" y1="118" x2="425" y2="118" stroke="currentColor" stroke-opacity="0.7" marker-end="url(#pa-f)"/>
   <text x="408" y="109" text-anchor="middle" fill="currentColor">Q</text>
+  <g fill="#10b981" font-size="10px">
+    <text x="74" y="70" text-anchor="end">v&#8321; = [1, 1]</text>
+    <text x="42" y="162">v&#8322; = [1, &#8722;1]</text>
+  </g>
   <g fill="currentColor" fill-opacity="0.6" text-anchor="middle">
     <text x="60" y="182">1. start</text>
     <text x="200" y="182">2. after Q&#8315;&#185;</text>
