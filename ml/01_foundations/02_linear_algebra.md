@@ -466,58 +466,79 @@ $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
   $Q [6, 1] = 6\,[1,1] + 1\,[1,-1] = [7, 5] = Ax$.
 
 <div style="margin:1.25rem 0">
-<svg viewBox="0 0 520 196" role="img" aria-label="Four frames following x=[3,1] through Q inverse, Lambda, and Q: frames 1 and 4 are in normal coordinates; after Q inverse the eigen-directions lie on the axes, so frames 2 and 3 are in eigen-coordinates" style="max-width:540px;width:100%;height:auto;font-size:11px;font-family:inherit">
+<svg viewBox="0 0 560 205" role="img" aria-label="Four frames following x=[3,1]. Q inverse and Q leave the arrow in place and only change whether it is measured along the gray axes or the green eigen-directions; Lambda is the only step that moves the arrow, tripling its part along [1,1]" style="max-width:580px;width:100%;height:auto;font-size:11px;font-family:inherit">
   <defs>
     <marker id="pa-v" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/></marker>
+    <marker id="pa-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1" fill-opacity="0.3"/></marker>
     <marker id="pa-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
   </defs>
-  <g stroke="currentColor" stroke-opacity="0.3">
-    <line x1="12" y1="120" x2="105" y2="120"/><line x1="18" y1="62" x2="18" y2="158"/>
-    <line x1="145" y1="120" x2="238" y2="120"/><line x1="151" y1="62" x2="151" y2="158"/>
-    <line x1="278" y1="120" x2="371" y2="120"/><line x1="284" y1="62" x2="284" y2="158"/>
-    <line x1="411" y1="120" x2="504" y2="120"/><line x1="417" y1="62" x2="417" y2="158"/>
+  <g stroke="currentColor" stroke-opacity="0.4">
+    <line x1="7" y1="135" x2="115" y2="135" />
+    <line x1="15" y1="160" x2="15" y2="47" />
   </g>
-  <g stroke="#10b981" stroke-opacity="0.65" stroke-dasharray="4 3">
-    <line x1="18" y1="120" x2="56" y2="82"/><line x1="18" y1="120" x2="56" y2="158"/>
-    <line x1="151" y1="120" x2="206" y2="120"/><line x1="151" y1="120" x2="151" y2="65"/>
-    <line x1="284" y1="120" x2="339" y2="120"/><line x1="284" y1="120" x2="284" y2="65"/>
-    <line x1="417" y1="120" x2="455" y2="82"/><line x1="417" y1="120" x2="455" y2="158"/>
+  <line x1="15" y1="135" x2="106" y2="44" stroke="#10b981" stroke-width="1.2" stroke-dasharray="4 3" stroke-opacity="0.7"/>
+  <line x1="15" y1="135" x2="38.4" y2="158.4" stroke="#10b981" stroke-width="1.2" stroke-dasharray="4 3" stroke-opacity="0.7"/>
+  <g stroke="currentColor" stroke-opacity="0.15">
+    <line x1="147" y1="135" x2="255" y2="135" />
+    <line x1="155" y1="160" x2="155" y2="47" />
   </g>
-  <line x1="18" y1="120" x2="51" y2="109" stroke="#6366f1" stroke-width="2.2" marker-end="url(#pa-v)"/>
-  <text x="54" y="103" fill="#6366f1" font-weight="600">x = [3,1]</text>
-  <line x1="151" y1="120" x2="173" y2="109" stroke="#6366f1" stroke-width="2.2" marker-end="url(#pa-v)"/>
-  <text x="177" y="104" fill="#6366f1" font-weight="600">(2, 1)</text>
-  <line x1="284" y1="120" x2="306" y2="109" stroke="#6366f1" stroke-width="2" stroke-opacity="0.3"/>
-  <line x1="284" y1="120" x2="350" y2="109" stroke="#6366f1" stroke-width="2.2" marker-end="url(#pa-v)"/>
-  <text x="342" y="99" fill="#6366f1" font-weight="600">(6, 1)</text>
-  <line x1="417" y1="120" x2="494" y2="65" stroke="#6366f1" stroke-width="2.2" marker-end="url(#pa-v)"/>
-  <text x="500" y="57" text-anchor="end" fill="#6366f1" font-weight="600">Ax = [7,5]</text>
-  <line x1="109" y1="120" x2="140" y2="120" stroke="currentColor" stroke-opacity="0.7" marker-end="url(#pa-f)"/>
-  <text x="124" y="110" text-anchor="middle" fill="currentColor">Q&#8315;&#185;</text>
-  <line x1="242" y1="120" x2="273" y2="120" stroke="currentColor" stroke-opacity="0.7" marker-end="url(#pa-f)"/>
-  <text x="257" y="110" text-anchor="middle" fill="currentColor">&#923;</text>
-  <line x1="375" y1="120" x2="406" y2="120" stroke="currentColor" stroke-opacity="0.7" marker-end="url(#pa-f)"/>
-  <text x="390" y="110" text-anchor="middle" fill="currentColor">Q</text>
-  <g fill="currentColor" fill-opacity="0.6">
-    <text x="58" y="172" text-anchor="middle">1. start</text>
-    <text x="191" y="172" text-anchor="middle">2. after Q&#8315;&#185;</text>
-    <text x="324" y="172" text-anchor="middle">3. after &#923;</text>
-    <text x="457" y="172" text-anchor="middle">4. after Q</text>
+  <line x1="155" y1="135" x2="246" y2="44" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.9"/>
+  <line x1="155" y1="135" x2="178.4" y2="158.4" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.9"/>
+  <g stroke="currentColor" stroke-opacity="0.15">
+    <line x1="287" y1="135" x2="395" y2="135" />
+    <line x1="295" y1="160" x2="295" y2="47" />
+  </g>
+  <line x1="295" y1="135" x2="386" y2="44" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.9"/>
+  <line x1="295" y1="135" x2="318.4" y2="158.4" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.9"/>
+  <g stroke="currentColor" stroke-opacity="0.4">
+    <line x1="427" y1="135" x2="535" y2="135" />
+    <line x1="435" y1="160" x2="435" y2="47" />
+  </g>
+  <line x1="435" y1="135" x2="526" y2="44" stroke="#10b981" stroke-width="1.2" stroke-dasharray="4 3" stroke-opacity="0.7"/>
+  <line x1="435" y1="135" x2="458.4" y2="158.4" stroke="#10b981" stroke-width="1.2" stroke-dasharray="4 3" stroke-opacity="0.7"/>
+  <line x1="155" y1="135" x2="181" y2="109" stroke="#10b981" stroke-width="4" stroke-opacity="0.45" stroke-linecap="round"/>
+  <line x1="181" y1="109" x2="194" y2="122" stroke="#10b981" stroke-width="4" stroke-opacity="0.45" stroke-linecap="round"/>
+  <line x1="295" y1="135" x2="373" y2="57" stroke="#10b981" stroke-width="4" stroke-opacity="0.45" stroke-linecap="round"/>
+  <line x1="373" y1="57" x2="386" y2="70" stroke="#10b981" stroke-width="4" stroke-opacity="0.45" stroke-linecap="round"/>
+  <line x1="295" y1="135" x2="334" y2="122" stroke="#6366f1" stroke-opacity="0.3" stroke-width="2" marker-end="url(#pa-g)"/>
+  <line x1="15" y1="135" x2="54" y2="122" stroke="#6366f1" stroke-width="2.5" marker-end="url(#pa-v)"/>
+  <line x1="155" y1="135" x2="194" y2="122" stroke="#6366f1" stroke-width="2.5" marker-end="url(#pa-v)"/>
+  <line x1="295" y1="135" x2="386" y2="70" stroke="#6366f1" stroke-width="2.5" marker-end="url(#pa-v)"/>
+  <line x1="435" y1="135" x2="526" y2="70" stroke="#6366f1" stroke-width="2.5" marker-end="url(#pa-v)"/>
+  <g fill="#6366f1" font-weight="600">
+    <text x="60" y="126">[3, 1]</text>
+    <text x="200" y="126">(2, 1)</text>
+    <text x="392" y="78">(6, 1)</text>
+    <text x="514" y="96">[7, 5]</text>
+  </g>
+  <line x1="112" y1="118" x2="145" y2="118" stroke="currentColor" stroke-opacity="0.7" marker-end="url(#pa-f)"/>
+  <text x="128" y="109" text-anchor="middle" fill="currentColor">Q&#8315;&#185;</text>
+  <line x1="252" y1="118" x2="285" y2="118" stroke="currentColor" stroke-opacity="0.7" marker-end="url(#pa-f)"/>
+  <text x="268" y="109" text-anchor="middle" fill="currentColor">&#923;</text>
+  <line x1="392" y1="118" x2="425" y2="118" stroke="currentColor" stroke-opacity="0.7" marker-end="url(#pa-f)"/>
+  <text x="408" y="109" text-anchor="middle" fill="currentColor">Q</text>
+  <g fill="currentColor" fill-opacity="0.6" text-anchor="middle">
+    <text x="60" y="182">1. start</text>
+    <text x="200" y="182">2. after Q&#8315;&#185;</text>
+    <text x="340" y="182">3. after &#923;</text>
+    <text x="480" y="182">4. after Q</text>
   </g>
   <g font-size="10px" text-anchor="middle">
-    <text x="58" y="188" fill="currentColor" fill-opacity="0.6">normal coordinates</text>
-    <text x="191" y="188" fill="#10b981">eigen-coordinates</text>
-    <text x="324" y="188" fill="#10b981">eigen-coordinates</text>
-    <text x="457" y="188" fill="currentColor" fill-opacity="0.6">normal coordinates</text>
+    <text x="60" y="197" fill="currentColor" fill-opacity="0.6">normal coordinates</text>
+    <text x="200" y="197" fill="#10b981">eigen-coordinates</text>
+    <text x="340" y="197" fill="#10b981">eigen-coordinates</text>
+    <text x="480" y="197" fill="currentColor" fill-opacity="0.6">normal coordinates</text>
   </g>
 </svg>
 </div>
 
-*$x = [3,1]$ through the three steps. $Q^{-1}$ goes from normal coordinates
-to eigen-coordinates: it turns the eigen-directions (dashed) onto the axes,
-so the numbers read off the axes are the amounts $(2,1)$. $\Lambda$
-stretches to $(6,1)$. $Q$ goes back to normal coordinates, landing on
-$Ax = [7,5]$.*
+*$x = [3,1]$ through the three steps. $Q^{-1}$ does not move the arrow: it
+measures the same arrow along the green eigen-directions instead of the gray
+axes. Getting to the tip takes 2 steps along $[1,1]$ and 1 step along
+$[1,-1]$ (the green path), so the eigen-coordinates are $(2,1)$. $\Lambda$ is
+the only step that moves the arrow: it triples the part along $[1,1]$,
+giving $(6,1)$. $Q$ again moves nothing; it measures the new arrow along the
+gray axes, which gives $[7,5] = Ax$.*
 
 Written as one product (the rightmost factor acts first):
 
