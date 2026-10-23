@@ -446,59 +446,24 @@ picture is why momentum and Adam exist.*
 
 #### Part A: the eigendecomposition - §1.5 as a formula
 
-Take the §1.5 matrix $A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ and a
-test vector $x = \begin{bmatrix} 3 \\ 1 \end{bmatrix}$.
+§1.5 computed $Ax$ for $A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ and
+$x = [3, 1]$ in three steps: split $x$ into eigenvectors (amounts 2 and 1),
+multiply each amount by its eigenvalue (6 and 1), and rebuild:
+$6\,[1,1] + 1\,[1,-1] = [7,5]$. Each step is a multiplication by a matrix.
+Put the eigenvectors side by side as the columns of
+$Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
 
-§1.5 computed $Ax$ in three steps:
-
-1. **Split $x$ into eigenvectors.** $[3,1] = 2\,[1,1] + 1\,[1,-1]$. The
-   amounts: 2 and 1.
-2. **Multiply each amount by its eigenvalue.** $2 \to 6$ (times
-   $\lambda_1 = 3$), and $1 \to 1$ (times $\lambda_2 = 1$).
-3. **Rebuild the vector.** $6\,[1,1] + 1\,[1,-1] = [7,5]$.
-
-Direct check: $Ax = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}\begin{bmatrix} 3 \\ 1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$,
-matching the three-step result.
-
-Each of the three steps is a matrix multiplication. Let
-$Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$: the eigenvectors,
-standing side by side as columns. Then:
-
-- **Step 1 is "multiply by $Q^{-1}$".** Splitting $x$ means finding the
-  amounts $c_1, c_2$ with $c_1 v_1 + c_2 v_2 = x$. Stack the two unknown
-  amounts into a vector,
-  $c = \begin{bmatrix} c_1 \\ c_2 \end{bmatrix}$ (for this run,
-  $c = \begin{bmatrix} 2 \\ 1 \end{bmatrix}$). §1.4's blend rule (1.4c)
-  says $Qc = c_1 v_1 + c_2 v_2$, so the equation to solve is $Qc = x$:
-  multiply both sides by $Q^{-1}$ to get $c = Q^{-1}x$.
-  Here $Q^{-1} = \tfrac{1}{2}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
-  Check: $Q^{-1} \begin{bmatrix} 3 \\ 1 \end{bmatrix} = \begin{bmatrix} 2 \\ 1 \end{bmatrix}$,
-  the amounts step 1 found.
-- **Step 2 is "multiply by $\Lambda = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$".**
-  A diagonal matrix multiplies coordinate $i$ by $\lambda_i$, nothing else.
-  Check: $\Lambda \begin{bmatrix} 2 \\ 1 \end{bmatrix} = \begin{bmatrix} 6 \\ 1 \end{bmatrix}$.
-- **Step 3 is "multiply by $Q$".** Step 2 handed over the *scaled* amounts
-  $\Lambda c = \begin{bmatrix} 6 \\ 1 \end{bmatrix}$. Multiplying by $Q$
-  turns amounts back into an ordinary vector, by the same blend rule as
-  step 1: each amount multiplies its own column of $Q$ (its eigenvector),
-  and the results add.
-  Check: $Q \begin{bmatrix} 6 \\ 1 \end{bmatrix} = 6 \begin{bmatrix} 1 \\ 1 \end{bmatrix} + 1 \begin{bmatrix} 1 \\ -1 \end{bmatrix} = \begin{bmatrix} 7 \\ 5 \end{bmatrix}$:
-  exactly the rebuild in numbered step 3, and the final answer $Ax$.
-
-The intuition for the three factors: they split $A$'s job into *translate,
-act, translate back*.
-
-- $Q^{-1}$ is the translator **into** eigen-coordinates: give it an ordinary
-  vector, and it returns the amounts - how much of each eigenvector the
-  vector contains.
-- $\Lambda$ does the actual work, and in this coordinate system the work is
-  trivial: stretch each coordinate by its own $\lambda_i$, with no mixing
-  between coordinates.
-- $Q$ is the translator **back**: give it amounts, and it rebuilds the
-  ordinary vector.
-
-So $A = Q \Lambda Q^{-1}$, read right to left, says: change to the basis
-where $A$ is diagonal, apply the stretch, change back.
+- **Step 1: multiply by $Q^{-1}$** (into eigen-coordinates). The amounts
+  $c = [c_1, c_2]$ satisfy $Qc = c_1 v_1 + c_2 v_2 = x$ (the blend rule,
+  1.4c), so $c = Q^{-1} x$. Here
+  $Q^{-1} = \tfrac{1}{2}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$, and
+  $Q^{-1}[3, 1] = [2, 1]$.
+- **Step 2: multiply by $\Lambda = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$**
+  (the stretch). A diagonal matrix multiplies coordinate $i$ by $\lambda_i$
+  and mixes nothing: $\Lambda [2, 1] = [6, 1]$.
+- **Step 3: multiply by $Q$** (back to ordinary coordinates). Each amount
+  multiplies its own eigenvector and the results add:
+  $Q [6, 1] = 6\,[1,1] + 1\,[1,-1] = [7, 5] = Ax$.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 178" role="img" aria-label="Four frames following x=[3,1] through Q inverse, Lambda, and Q: eigen-directions map onto the axes, the stretch happens along the axes, then everything maps back" style="max-width:540px;width:100%;height:auto;font-size:11px;font-family:inherit">
@@ -542,89 +507,56 @@ where $A$ is diagonal, apply the stretch, change back.
 </svg>
 </div>
 
-*$x = [3,1]$ through (1.6a): $Q^{-1}$ turns the eigen-directions (dashed)
-onto the axes, so the coordinates become the amounts $(2,1)$; $\Lambda$
-stretches to $(6,1)$; $Q$ maps back, landing on $Ax = [7,5]$.*
+*$x = [3,1]$ through the three steps: $Q^{-1}$ turns the eigen-directions
+(dashed) onto the axes, so the coordinates become the amounts $(2,1)$;
+$\Lambda$ stretches to $(6,1)$; $Q$ maps back, landing on $Ax = [7,5]$.*
 
-So the whole procedure is: multiply by $Q^{-1}$, then $\Lambda$, then $Q$.
-Written as one product (rightmost acts first):
+Written as one product (the rightmost factor acts first):
 
 $$A = Q \Lambda Q^{-1} \tag{1.6a}$$
 
-This formula is the **eigendecomposition** of $A$. Multiplying the three matrices
-out returns exactly $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$.
+This is the **eigendecomposition** of $A$: change to the basis where $A$ is
+diagonal, stretch, change back. Multiplying the three matrices out gives
+exactly $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$.
 
-(When $A$ is symmetric, the eigenvectors are orthogonal. Scale each to unit
-length and $Q$ becomes an orthogonal matrix, a rotation possibly combined
-with a reflection, whose inverse is its transpose: $Q^{-1} = Q^\top$. The
-unscaled $Q$ above has columns of length $\sqrt{2}$, which is why its
-inverse carried the factor $\tfrac{1}{2}$.)
+When $A$ is symmetric, its eigenvectors are orthogonal. Scaled to unit
+length, they make $Q$ an orthogonal matrix (a rotation, possibly combined
+with a reflection), and then $Q^{-1} = Q^\top$. The unscaled $Q$ above has
+columns of length $\sqrt{2}$, which is why its inverse has the factor
+$\tfrac{1}{2}$.
 
-Two limitations.
+The eigendecomposition has two limits:
 
-- **It needs $A$ square.** An eigenvector is defined by $Av = \lambda v$,
-  an equation that sets the output $Av$ equal to a scaled copy of the input
-  $v$ - which requires the two sides to have the same number of entries.
-  For a rectangular $A$, $Av$ and $v$ have different lengths, and the
-  equation cannot even be written down.
-- **Clean axes need $A$ symmetric.** For a symmetric $A$ the spectral
-  theorem guarantees orthogonal eigenvectors, so $Q$ (with unit columns) is
-  a rotation. A general square matrix can have skewed eigenvectors, or too
-  few of them (the shear below).
+- **$A$ must be square.** $Av = \lambda v$ sets the output equal to a scaled
+  copy of the input, so the two must have the same number of entries.
+- **Perpendicular axes need $A$ symmetric.** A general square matrix can have
+  skewed eigenvectors, or too few of them (the shear at the end of Part B).
 
-A real data matrix ($n$ houses × $d$ features) is neither.
+A data matrix ($n$ rows × $d$ features) is usually neither.
 
-#### Part B: the SVD - eigendecomposition for a rectangular matrix
+#### Part B: the SVD - the same idea for any matrix
 
-**The problem.** Formula (1.6a) needs a square matrix, and a real data
-matrix is rectangular: $n$ rows × $d$ columns. The running example for this
-part:
+The running example has 3 rows and 2 columns, so it takes 2-number inputs to
+3-number outputs:
 
 $$B = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}$$
 
-Three rows, two columns: $B$ takes 2-number inputs to 3-number outputs. In
-the eigenvector equation $Bv = \lambda v$, the left side would have 3
-entries and the right side 2, so the equation cannot be written down: $B$
-has no eigenvectors at all. What plays the role of eigendecomposition here?
-
-**What has to change.** In (1.6a), $Q^{-1}$ translated the input into
-amounts and $Q$ translated back: one matrix and its inverse, possible only
-because inputs and outputs lived in the same space. For a rectangular
-matrix the two translators handle different spaces:
-
-- the input-side translator must be $d \times d$ (it processes $d$-number
-  inputs),
-- the output-side translator must be $n \times n$ (it produces $n$-number
-  outputs),
-
-so they cannot be one matrix and its inverse. The fix is to allow two
-*unrelated* rotations, one per side, and that is the only change.
-
-**The proposal:**
+$Bv = \lambda v$ would set a 3-entry vector equal to a 2-entry one, so $B$ has
+no eigenvectors. The fix: inputs and outputs live in different spaces, so use
+a separate set of perpendicular directions for each.
 
 $$A = U \Sigma V^\top \tag{1.6b}$$
 
-- **$V^\top$ produces the input's coordinates in the $v$ basis.** For
-  $x = c_1 v_1 + c_2 v_2$,
-  $V^\top x = \begin{bmatrix} c_1 \\ c_2 \end{bmatrix}$: the amounts of $x$
-  along a set of perpendicular unit directions $v_1, v_2, \dots$ - the same
-  job $Q^{-1}$ did in Part A (there the amounts were eigen-coordinates; here
-  the $v_i$ stand where the eigenvectors stood). Why it works: row $i$ of
-  $V^\top$ is $v_i$, so entry $i$ of $V^\top x$ is $v_i \cdot x$, and the
-  dot product with a unit vector reads off the amount along it (§1.2).
-- **$\Sigma$ does the stretches.** Axis $i$ is scaled by $\sigma_i \ge 0$:
-  the **singular values**, conventionally numbered biggest first. (This step also moves from
-  $d$ input dimensions to $n$ output dimensions, padding with zeros.)
-- **$U$ rebuilds an output vector from the scaled amounts.** Each amount
-  multiplies its own output direction and the results add:
-  $U$ applied to amounts $(a_1, a_2, \dots)$ gives
-  $a_1 u_1 + a_2 u_2 + \dots$ - the same rebuild job $Q$ did in Part A,
-  now with the output directions $u_i$ as the columns.
-
-$A$ itself is usually none of these three operations. The claim is a
-factorization, the way $12 = 2 \cdot 2 \cdot 3$: 12 is not a prime, but it is
-a product of primes; $A$ is not a rotation or a stretch, but it is a product of
-two rotations and one stretch.
+- **$V^\top$: into input coordinates.** Its rows are perpendicular unit
+  vectors $v_1, v_2, \dots$ in the input space, so entry $i$ of $V^\top x$ is
+  $v_i \cdot x$, the amount of $x$ along $v_i$ (§1.2). This is the job
+  $Q^{-1}$ did.
+- **$\Sigma$: the stretch.** It multiplies amount $i$ by $\sigma_i \ge 0$.
+  These are the **singular values**, numbered largest first. (Σ also changes
+  the length from $d$ to $n$, padding with zeros.)
+- **$U$: rebuild the output.** Its columns are perpendicular unit vectors
+  $u_1, u_2, \dots$ in the output space. Amounts $(a_1, a_2, \dots)$ become
+  $a_1 u_1 + a_2 u_2 + \dots$. This is the job $Q$ did.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 340 190" role="img" aria-label="A maps the unit circle with directions v1 and v2 to an ellipse with radii sigma1 u1 and sigma2 u2" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -653,245 +585,121 @@ the stretch makes the ellipse (radii $\sigma_1, \sigma_2$), the last
 rotation turns it into place. The inputs $v_1, v_2$ land on
 $\sigma_1 u_1, \sigma_2 u_2$.*
 
-**Finding the factors.** So far (1.6b) is a proposal naming three unknowns.
-The tool for finding them is Part A's machinery, but that needs a square,
-symmetric matrix, and $A$ is neither. So manufacture one out of $A$:
-multiplying $A$ by its own transpose is the way to get a square matrix from
-a rectangular one, and there are exactly two ways to do it, $A^\top A$
-($d \times d$) and $A A^\top$ ($n \times n$). Take the first. It has both
-properties the machinery needs:
+**Finding $V$ and $\Sigma$.** Part A's method needs a square, symmetric
+matrix. $A^\top A$ is both: it is $d \times d$, and
+$(A^\top A)^\top = A^\top A$. Substitute (1.6b) and use $U^\top U = I$:
 
-- **It is square.** The shapes multiply as
-  $(d \times n)(n \times d) = d \times d$.
-- **It is symmetric.** Transpose it:
-  $(A^\top A)^\top = A^\top (A^\top)^\top = A^\top A$. The same matrix
-  comes back.
+$$A^\top A = V \Sigma^\top U^\top U \Sigma V^\top = V \Sigma^2 V^\top \tag{1.6c}$$
 
-Square and symmetric is exactly what eigendecomposition handles best. Now
-substitute the proposal (1.6b) into $A^\top A$, using $U^\top U = I$ (a
-rotation followed by its undo changes nothing):
+This has the form $Q \Lambda Q^{-1}$ of (1.6a), with $Q = V$ and
+$\Lambda = \Sigma^2$. So the $v_i$ are the eigenvectors of $A^\top A$, and the
+$\sigma_i$ are the square roots of its eigenvalues. The spectral theorem
+(§1.5) makes the $v_i$ perpendicular.
 
-$$A^\top A = (U \Sigma V^\top)^\top (U \Sigma V^\top)
-           = V \Sigma^\top U^\top U \Sigma V^\top = V \Sigma^2 V^\top \tag{1.6c}$$
+**Finding $U$.** Push $v_i$ through (1.6b): $V^\top v_i = e_i$, then $\Sigma$
+gives $\sigma_i e_i$, then $U$ gives $\sigma_i u_i$. So $A v_i = \sigma_i u_i$,
+which means
 
-Compare the right side with (1.6a), $Q \Lambda Q^{-1}$, piece by piece:
-$Q = V$, $\Lambda = \Sigma^2$, and $Q^{-1} = V^\top$ (for a rotation the
-inverse is the transpose). So (1.6c) is an eigendecomposition - of a square
-symmetric matrix we can actually compute. That turns the proposal into a
-recipe:
+$$u_i = \frac{A v_i}{\sigma_i}$$
 
-1. Form $A^\top A$ and eigendecompose it.
-2. Its eigenvectors are the $v_i$. Its eigenvalues are the $\sigma_i^2$; take
-   square roots to get the $\sigma_i$. Because $A^\top A$ is symmetric, the
-   spectral theorem from §1.5 guarantees the $v_i$ are orthogonal to each
-   other - exactly what "$V$ is a rotation" requires.
-3. Recover each output direction from $A$ itself:
-   $u_i = A v_i / \sigma_i$. (Both facts about this step are derived just
-   below.)
+(For $\sigma_i = 0$, fill in any perpendicular unit vectors.) These $u_i$ come
+out perpendicular automatically. For $i \ne j$, use
+$(Ax) \cdot y = x \cdot (A^\top y)$ and then $A^\top A\, v_j = \sigma_j^2 v_j$:
 
-**Where step 3's formula comes from.** Feed $v_i$ through the proposal's
-three factors:
+$$u_i \cdot u_j = \frac{(A v_i) \cdot (A v_j)}{\sigma_i \sigma_j}
+= \frac{v_i \cdot (A^\top A\, v_j)}{\sigma_i \sigma_j}
+= \frac{\sigma_j^2\, (v_i \cdot v_j)}{\sigma_i \sigma_j} = 0$$
 
-- $V^\top v_i = e_i$: the amounts of $v_i$ are 1 along itself, 0 along the
-  others.
-- $\Sigma$ scales slot $i$: $e_i \to \sigma_i e_i$.
-- $U$ rebuilds: $\sigma_i e_i \to \sigma_i u_i$ (a one-hot picks out column
-  $i$ of $U$).
+**The recipe on $B$.**
 
-So if (1.6b) holds, then $A v_i = \sigma_i u_i$: the proposal leaves no
-choice about $u_i$; it must be the direction $A$ actually sends $v_i$ to.
-Dividing by $\sigma_i$ gives the formula. (For $\sigma_i = 0$ there is
-nothing to divide by; those directions are filled in by any orthonormal
-completion - the padding noted earlier.)
-
-**Why the $u_i$ come out perpendicular.** Take $i \ne j$ and start from the
-formula:
-
-$$u_i \cdot u_j = \frac{(A v_i) \cdot (A v_j)}{\sigma_i \sigma_j}$$
-
-Move one $A$ to the other side of the dot product, using
-$(Ax) \cdot y = x \cdot (A^\top y)$:
-
-$$= \frac{v_i \cdot (A^\top A\, v_j)}{\sigma_i \sigma_j}$$
-
-$v_j$ is an eigenvector of $A^\top A$ with eigenvalue $\sigma_j^2$, so
-$A^\top A\, v_j = \sigma_j^2 v_j$:
-
-$$= \frac{\sigma_j^2\, (v_i \cdot v_j)}{\sigma_i \sigma_j} = 0
-\qquad \text{because } v_i \cdot v_j = 0$$
-
-Perpendicular inputs produce perpendicular outputs, so $U$ is a rotation
-too.
-
-**The recipe on numbers.** Run it first on the §1.5 matrix, so every symbol
-gets a number:
-
-1. **Form $A^\top A$** (here $A^\top = A$ because $A$ is symmetric):
-
-   $$A^\top A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} = \begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix}$$
-
-2. **Eigendecompose it.** Test the two candidate directions:
-
-   - $\begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix} \begin{bmatrix} 1 \\ 1 \end{bmatrix} = \begin{bmatrix} 9 \\ 9 \end{bmatrix} = 9 \begin{bmatrix} 1 \\ 1 \end{bmatrix}$:
-     an eigenvector, eigenvalue $9$.
-   - $\begin{bmatrix} 5 & 4 \\ 4 & 5 \end{bmatrix} \begin{bmatrix} 1 \\ -1 \end{bmatrix} = \begin{bmatrix} 1 \\ -1 \end{bmatrix} = 1 \begin{bmatrix} 1 \\ -1 \end{bmatrix}$:
-     an eigenvector, eigenvalue $1$.
-
-   The two are orthogonal, as the spectral theorem guarantees:
-   $[1,1] \cdot [1,-1] = 1 - 1 = 0$. Normalize each to unit length, and
-   square-root the eigenvalues:
-
-   $$v_1 = \frac{[1,1]}{\sqrt{2}}, \quad v_2 = \frac{[1,-1]}{\sqrt{2}}
-   \qquad \sigma_1 = \sqrt{9} = 3, \quad \sigma_2 = \sqrt{1} = 1$$
-
-3. **Output directions**, one division each:
-
-   $$u_1 = \frac{A v_1}{\sigma_1} = \frac{[3,3]/\sqrt{2}}{3} = \frac{[1,1]}{\sqrt{2}} = v_1
-   \qquad u_2 = \frac{A v_2}{\sigma_2} = \frac{[1,-1]/\sqrt{2}}{1} = v_2$$
-
-For this symmetric $A$, the recipe returns $u_i = v_i$: each direction lands
-on itself. For a non-symmetric matrix, step 3 is exactly where $U$ and $V$
-come apart - so run the recipe once more, this time on the rectangular
-running example from the top of Part B:
-
-$$B = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}$$
-
-$B$ has no eigenvectors, as noted there, but the recipe does not require
-any: every step operates on $B^\top B$, which is square and symmetric.
-
-1. **Form $B^\top B$** ($2 \times 2$: the input-space size):
+1. **Form $B^\top B$:**
 
    $$B^\top B = \begin{bmatrix} 1 & 0 & 1 \\ 1 & 1 & 0 \end{bmatrix}
    \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}
    = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$$
 
-   which is exactly the §1.5 matrix.
+   which is the §1.5 matrix.
 
-2. **Eigendecompose it.** §1.5 already did: $[1,1]$ with eigenvalue $3$,
-   $[1,-1]$ with eigenvalue $1$. Normalized, with square roots:
+2. **Eigendecompose it.** §1.5 found $[1,1]$ with eigenvalue 3 and $[1,-1]$
+   with eigenvalue 1. Normalize, and take square roots:
 
    $$v_1 = \frac{[1,1]}{\sqrt{2}}, \quad v_2 = \frac{[1,-1]}{\sqrt{2}}
    \qquad \sigma_1 = \sqrt{3}, \quad \sigma_2 = 1$$
 
-   The $v_i$ have 2 entries each: they live in the input space.
+3. **Output directions:**
 
-3. **Output directions.** Multiply each $v_i$ through $B$, divide by its
-   $\sigma_i$:
+   $$u_1 = \frac{B v_1}{\sigma_1} = \frac{[2, 1, 1]}{\sqrt{6}}
+   \qquad u_2 = \frac{B v_2}{\sigma_2} = \frac{[0, -1, 1]}{\sqrt{2}}$$
 
-   $$u_1 = \frac{B v_1}{\sigma_1} = \frac{[2, 1, 1]/\sqrt{2}}{\sqrt{3}}
-   = \frac{[2, 1, 1]}{\sqrt{6}}
-   \qquad u_2 = \frac{B v_2}{\sigma_2} = \frac{[0, -1, 1]/\sqrt{2}}{1}
-   = \frac{[0, -1, 1]}{\sqrt{2}}$$
+   These have 3 entries: they live in the output space. Check:
+   $u_1 \cdot u_2 = (0 - 1 + 1)/\sqrt{12} = 0$.
 
-   These have 3 entries each: they live in the output space, so "does
-   $u_1$ equal $v_1$?" is no longer a well-formed question. The
-   orthogonality check:
-
-   $$u_1 \cdot u_2 = \frac{0 - 1 + 1}{\sqrt{12}} = 0$$
-
-Assemble the results into the three matrices: the $u_i$ stand side by side as
-the columns of $U$, the $\sigma_i$ sit on $\Sigma$'s diagonal, and the
-$v_i^\top$ stack as the rows of $V^\top$:
+The $u_i$ are the columns of $U$, the $\sigma_i$ sit on $\Sigma$'s diagonal,
+and the $v_i$ are the rows of $V^\top$:
 
 $$B = U \Sigma V^\top =
 \begin{bmatrix} \tfrac{2}{\sqrt{6}} & 0 \\ \tfrac{1}{\sqrt{6}} & -\tfrac{1}{\sqrt{2}} \\ \tfrac{1}{\sqrt{6}} & \tfrac{1}{\sqrt{2}} \end{bmatrix}
 \begin{bmatrix} \sqrt{3} & 0 \\ 0 & 1 \end{bmatrix}
 \begin{bmatrix} \tfrac{1}{\sqrt{2}} & \tfrac{1}{\sqrt{2}} \\ \tfrac{1}{\sqrt{2}} & -\tfrac{1}{\sqrt{2}} \end{bmatrix}$$
 
-Multiply the three out and $B = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}$
-comes back exactly. (This is the *compact* form: $U$ keeps only the columns
-with nonzero $\sigma$, so the shapes are $(3 \times 2)(2 \times 2)(2 \times 2)$.
-The "full" convention pads $U$ to $3 \times 3$ with a third orthogonal column
-and $\Sigma$ to $3 \times 2$ with a zero row - the between-dimensions padding
-mentioned earlier; the product is the same either way.)
+Multiplying out gives $B$ exactly. The factors send each $v_i$ where $B$
+does, and the $v_i$ span the input space, so by §1.4 they agree with $B$ on
+every input. (This is the *compact* form, which keeps only the columns with
+nonzero $\sigma$. The *full* form pads $U$ to $3 \times 3$ and $\Sigma$ to
+$3 \times 2$; the product is the same.)
 
-Why do these factors really rebuild $B$? By construction, $B v_1 = \sigma_1
-u_1$ and $B v_2 = \sigma_2 u_2$: the factorization does the right thing to
-$v_1$ and $v_2$. And $v_1, v_2$ span the whole input space, so by the recipe
-argument of §1.4, knowing what happens to them pins down what happens to
-*every* input.
+None of these steps needed anything special about $B$, so **every matrix has
+an SVD: every linear map is rotate → stretch → rotate.** In words: $v_1$ is
+the input direction $A$ stretches most, $\sigma_1$ is that stretch, and $u_1$
+is where it lands. $v_2$ is the same among directions perpendicular to $v_1$,
+and so on.
 
-Each step works for any matrix, so every matrix has an SVD. **Every linear map
-is rotate → stretch → rotate.**
+Two checks:
 
-What the factors mean geometrically: $v_1$ is the input direction $A$
-stretches the most, $\sigma_1$ is that biggest stretch, and $u_1$ is the
-direction it lands on. $v_2$ answers the same question among the directions
-perpendicular to $v_1$, and so on. The SVD is a ranking of input directions by
-how much $A$ stretches them.
-
-Three checks:
-
-- The symmetric $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ from §1.5
-  stretches $[1,1]$ by 3 and $[1,-1]$ by 1 - so those are its $v$'s, they land
-  on themselves ($U = V$), and its SVD is just its eigendecomposition.
-- The shear $S = \begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$ does not
-  look like rotations and stretches, yet it factors: its singular values
-  are $\sigma_1 \approx 1.62$ and $\sigma_2 \approx 0.62$.
-- The same shear shows that square alone is not enough for
-  *eigen*decomposition. Look for its eigenvectors directly:
-  $S \begin{bmatrix} x \\ y \end{bmatrix} = \begin{bmatrix} x + y \\ y \end{bmatrix}$,
-  and for this to equal $\lambda \begin{bmatrix} x \\ y \end{bmatrix}$ the
-  second entries force $\lambda = 1$ whenever $y \ne 0$, and then the first
-  entries force $x + y = x$, i.e. $y = 0$. So every eigenvector of $S$ lies
-  along the single direction $[1, 0]$, and diagonalizing 2-D space needs
-  two independent eigen-directions: $S$ has no eigendecomposition. Its SVD
-  exists anyway.
+- For a symmetric matrix with nonnegative eigenvalues, such as the §1.5 $A$,
+  the SVD is the eigendecomposition with unit eigenvectors:
+  $u_i = v_i = [1, \pm 1]/\sqrt{2}$, $\sigma_1 = 3$, $\sigma_2 = 1$.
+- The shear $S = \begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$ has no
+  eigendecomposition. $S[x, y] = [x + y,\ y] = \lambda [x, y]$ forces
+  $\lambda = 1$ and then $y = 0$, so its only eigen-direction is $[1, 0]$,
+  one short of the two needed. Its SVD exists anyway:
+  $\sigma_1 \approx 1.62$, $\sigma_2 \approx 0.62$.
 
 #### Part C: compressing a matrix - why ML cares
 
 A ratings matrix with $n = 10{,}000$ users and $d = 500$ movies holds
-$n \times d = 5{,}000{,}000$ numbers. The question of Part C: can far fewer
-numbers stand in for almost the same matrix?
+$5{,}000{,}000$ numbers. Can far fewer numbers stand in for almost the same
+matrix?
 
-**The recipe: keep the top $k$ of the SVD.** Run Part B's recipe, then keep
-only the first $k$ columns of $U$, the first $k$ singular values, and the
-first $k$ columns of $V$. That stores $k$ columns of length $n$, plus $k$
-columns of length $d$, plus $k$ numbers: $k(n + d + 1)$ in total. For the
-ratings matrix with $k = 20$: $20 \times (10{,}000 + 500 + 1) = 210{,}020$
-numbers in place of $5{,}000{,}000$, about 4%. To use the matrix, multiply the
-three shrunken factors back together; the result approximates $A$.
+**Keep the top $k$ of the SVD.** Keep the first $k$ columns of $U$ and $V$
+and the first $k$ singular values: $k(n + d + 1)$ numbers. With $k = 20$ that
+is $20 \times 10{,}501 = 210{,}020$, about 4% of the original. Multiplying the
+three smaller factors gives an approximation of $A$.
 
-Two questions decide whether this is a good idea. How much does the
-approximation lose? And could some other $k$-sized summary lose less?
-
-**What the approximation loses.** Multiplying $U \Sigma V^\top$ out splits
-it into one summand per singular value:
+**What it loses.** Multiplying $U \Sigma V^\top$ out gives one term per
+singular value:
 
 $$A = \sum_{i} \sigma_i \, u_i v_i^\top \tag{1.6d}$$
 
-Look at summand $i$: it is $\sigma_i \, u_i v_i^\top$, built from $u_i$,
-$v_i$, and $\sigma_i$ and nothing else - the other triples don't appear in it.
-And $u_i v_i^\top$ is a simple object, a column times a row. For example,
-$u = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$ and
-$v^\top = \begin{bmatrix} 3 & 1 \end{bmatrix}$:
+Each $u_i v_i^\top$ is a column times a row. For example:
 
-$$u v^\top = \begin{bmatrix} 1 \\ 2 \end{bmatrix} \begin{bmatrix} 3 & 1 \end{bmatrix}
-= \begin{bmatrix} 1 \cdot 3 & 1 \cdot 1 \\ 2 \cdot 3 & 2 \cdot 1 \end{bmatrix}
+$$\begin{bmatrix} 1 \\ 2 \end{bmatrix} \begin{bmatrix} 3 & 1 \end{bmatrix}
 = \begin{bmatrix} 3 & 1 \\ 6 & 2 \end{bmatrix}$$
 
-The same row at different strengths: one pattern per summand. Nothing about
-$u$ or $v$ was special here - *any* column times *any* row produces this
-one-pattern shape. (A one-pattern matrix is called **rank-1**, a sum of $k$ of
-them **rank-$k$** - when ML says "low-rank", it means exactly this.) Since $u_i$ and $v_i$ are unit
-vectors, every entry of $u_i v_i^\top$ has size at most 1, so summand $i$'s
-magnitude is set by its $\sigma_i$ alone.
+Every row is a multiple of the same row $[3, 1]$: one pattern. A matrix like
+this is **rank-1**, and a sum of $k$ of them is **rank-$k$** ("low-rank" in ML
+means this). Because $u_i$ and $v_i$ are unit vectors, the entries of
+$u_i v_i^\top$ are at most 1 in size, so the size of term $i$ is set by
+$\sigma_i$.
 
-Now number the triples so that $\sigma_1 \ge \sigma_2 \ge \dots$ (the
-numbering is free to choose; this is the standard convention). Keeping the
-first $k$ columns of $U$, $\Sigma$, and $V$ and multiplying gives exactly the
-first $k$ summands:
+Keeping the top $k$ factors keeps exactly the first $k$ terms:
 
 $$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6e}$$
 
-So the recipe throws away precisely the tail
-$\sigma_{k+1} u_{k+1} v_{k+1}^\top + \dots$, and every tail summand is
-small because its $\sigma$ is small. The approximation loses little whenever
-the $\sigma_i$ decay fast, and for real-world matrices they usually do.
+and drops the terms with the smallest $\sigma$. The loss is small when the
+$\sigma_i$ fall off quickly, which they usually do for real data.
 
-Check (1.6d) on the $2 \times 2$ example, with the numbers from Part B's
-recipe run ($v_1 = [1,1]/\sqrt{2}$, $v_2 = [1,-1]/\sqrt{2}$, $u_i = v_i$,
-$\sigma_1 = 3$, $\sigma_2 = 1$):
+Check (1.6d) on the §1.5 $A$ ($u_i = v_i$, $\sigma_1 = 3$, $\sigma_2 = 1$):
 
 $$3 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
 + 1 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & -1 \\ -1 & 1 \end{bmatrix}
@@ -899,18 +707,15 @@ $$3 \cdot \tfrac{1}{2} \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
 + \begin{bmatrix} 0.5 & -0.5 \\ -0.5 & 0.5 \end{bmatrix}
 = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$$
 
-The summands add back to exactly $A$.
+**Can another summary do better?** No. The **Eckart–Young theorem** says
+(1.6e) is the best approximation of $A$ that uses $k$ patterns.
 
-**Could a different summary do better?** No. The **Eckart–Young theorem**
-says (1.6e) is the best approximation of $A$ achievable with $k$ patterns:
-truncating the SVD is optimal, not merely convenient.
-
-**Where ML uses exactly this:**
+**Where ML uses this:**
 
 - **PCA** is the SVD of the centered data matrix.
-- **Classic recommenders**: approximate the user × item ratings matrix as
-  (1.6e) with small $k$; each $v_i$ is a taste archetype over items, each
-  $u_i$ says how much every user has of that taste. Concretely:
+- **Classic recommenders** approximate the user × movie ratings matrix with
+  (1.6e) for a small $k$. Each $v_i$ is a taste pattern over movies, and each
+  $u_i$ says how much of that taste every user has. Concretely:
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 465 205" role="img" aria-label="The 5 by 3 ratings matrix equals 8.8 times u1 v1 transpose plus 6.0 times u2 v2 transpose, using the true SVD numbers; archetype 1 is overall appetite, archetype 2 contrasts romance against action" style="max-width:485px;width:100%;height:auto;font-size:11px;font-family:inherit">
@@ -939,15 +744,15 @@ truncating the SVD is optimal, not merely convenient.
 </svg>
 </div>
 
-  *The 5 × 3 ratings matrix split into its two SVD pieces. Piece 1 (weight 8.8): $v_1^\top = [.64, .51, .57]$ has all-positive,
-  roughly equal entries - it scores every movie about the same - so a user's
-  $u_1$ amount can only mean overall enthusiasm; that reading of the numbers
-  is the label "overall appetite" (the SVD outputs vectors, naming them is on
-  us). Piece 2
-  (weight 6.0): $v_2^\top = [-.45, -.36, .82]$ contrasts Titanic against the
-  action films - romance fans score positive (Ben $.68$), action fans negative
-  (Ana $-.61$). Cara's row: $8.8(.62)\,v_1^\top + 6.0(.18)\,v_2^\top =
+  *The 5 × 3 ratings matrix split into its two SVD terms. Term 1 (weight
+  8.8): $v_1^\top = [.64, .51, .57]$ is positive and about equal for every
+  movie, so a user's $u_1$ amount measures overall enthusiasm. ("Overall
+  appetite" is our label; the SVD only outputs numbers.) Term 2 (weight
+  6.0): $v_2^\top = [-.45, -.36, .82]$ contrasts Titanic with the action
+  films: romance fans score positive (Ben $.68$), action fans negative (Ana
+  $-.61$). Cara's row: $8.8(.62)\,v_1^\top + 6.0(.18)\,v_2^\top =
   [3, 2.4, 4]$, her exact ratings.*
+
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 500 210" role="img" aria-label="The 5 by 3 ratings matrix factored as U times Sigma times V transpose with real numbers, then truncated to the top singular value to give the k equals 1 prediction" style="max-width:520px;width:100%;height:auto;font-size:11px;font-family:inherit">
 <defs><marker id="lc-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker></defs>
@@ -975,19 +780,19 @@ truncating the SVD is optimal, not merely convenient.
 </svg>
 </div>
 
-  *The same two pieces assembled into matrices: $U$ is $5 \times 2$ (one
-  column per archetype, rows in the same user order), $\Sigma$ holds the importances
-  $8.8$ and $6.0$ ($\sigma_3 = 0$, so the compact form drops it), and
-  $V^\top$ is $2 \times 3$ (one row per archetype, columns marked by movie).
-  Keeping only $\sigma_1$ gives the blurry $k = 1$ prediction - Ben, a pure
-  romance fan, gets 1.8 for Die Hard. $k = 1$ works only when $\sigma_1$
-  dominates; here $\sigma_2$ is close behind, and $k = 2$ is exact.*
+  *The same two terms as matrices: $U$ is $5 \times 2$ (one column per
+  pattern, one row per user), $\Sigma$ holds $8.8$ and $6.0$ ($\sigma_3 = 0$,
+  so the compact form drops it), and $V^\top$ is $2 \times 3$ (one row per
+  pattern, one column per movie). Keeping only $\sigma_1$ gives the blurry
+  $k = 1$ prediction: Ben, a pure romance fan, gets 1.8 for Die Hard. $k = 1$
+  works only when $\sigma_1$ dominates; here $\sigma_2$ is close behind, and
+  $k = 2$ is exact.*
 
 - **Model compression**: replace a trained weight matrix with its truncated
   SVD.
 - **LoRA**: assume the *fine-tuning update* $\Delta W$ is low-rank and learn
-  it directly as $\Delta W = BA$ with a tiny inner dimension - a few
-  patterns' worth of change instead of a whole new matrix.
+  it directly as $\Delta W = BA$ with a small inner dimension, a few patterns'
+  worth of change instead of a whole new matrix.
 
 ## 1.7 Norms: what "big" means
 
