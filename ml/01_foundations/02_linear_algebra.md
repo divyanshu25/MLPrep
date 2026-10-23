@@ -667,14 +667,20 @@ $\Lambda = \Sigma^2$. So the $v_i$ are the eigenvectors of $A^\top A$, and the
 $\sigma_i$ are the square roots of its eigenvalues. The spectral theorem
 (§1.5) makes the $v_i$ perpendicular.
 
-**Finding $U$.** Push $v_i$ through (1.6b): $V^\top v_i = e_i$, then $\Sigma$
-gives $\sigma_i e_i$, then $U$ gives $\sigma_i u_i$. So $A v_i = \sigma_i u_i$,
-which means
+**Finding $U$.** The SVD says $A$ sends each input direction $v_i$ to the
+output direction $u_i$, stretched by $\sigma_i$ (the figure above):
+
+$$A v_i = \sigma_i u_i$$
+
+So to find $u_i$, send $v_i$ through $A$ and shrink the result to length 1.
+That result has length exactly $\sigma_i$, because
+$\|A v_i\|^2 = v_i^\top A^\top A\, v_i = \sigma_i^2$. Dividing by it:
 
 $$u_i = \frac{A v_i}{\sigma_i}$$
 
-(For $\sigma_i = 0$, fill in any perpendicular unit vectors.) These $u_i$ come
-out perpendicular automatically. For $i \ne j$, use
+Step 3 of the recipe below does this with numbers. (For $\sigma_i = 0$,
+$A v_i = 0$ has no direction; fill in any perpendicular unit vectors.) These
+$u_i$ come out perpendicular automatically. For $i \ne j$, use
 $(Ax) \cdot y = x \cdot (A^\top y)$ and then $A^\top A\, v_j = \sigma_j^2 v_j$:
 
 $$u_i \cdot u_j = \frac{(A v_i) \cdot (A v_j)}{\sigma_i \sigma_j}
