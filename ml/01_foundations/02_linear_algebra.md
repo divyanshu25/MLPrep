@@ -243,8 +243,12 @@ The amounts $(c_1, c_2)$ are called the **eigen-coordinates** of $x$: its
 coordinates when the eigenvectors are used as the axes (the **eigenbasis**).
 In eigen-coordinates, $A$ only does $(c_1, c_2) \to (3c_1, c_2)$: multiply the
 first coordinate by 3 and leave the second unchanged. Neither coordinate
-affects the other. This is what "$A$ is a diagonal matrix in the eigenbasis"
-means.
+affects the other. As a matrix, that map is
+$\begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$: numbers only on the diagonal
+(top-left to bottom-right), zeros everywhere else. A matrix like this is
+called **diagonal**, and it multiplies each coordinate by its own number
+without mixing them. So "$A$ is diagonal in the eigenbasis" means: measured
+along the eigenvectors, $A$ only stretches each coordinate.
 
 Repeated application is now simple. Each application multiplies $c_1$ by 3
 again, so $A^{100} x = 3^{100} c_1 v_1 + c_2 v_2$.
@@ -459,8 +463,8 @@ $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
   $Q^{-1} = \tfrac{1}{2}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$, and
   $Q^{-1}[3, 1] = [2, 1]$.
 - **Step 2: multiply by $\Lambda = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$**
-  (the stretch). A diagonal matrix multiplies coordinate $i$ by $\lambda_i$
-  and mixes nothing: $\Lambda [2, 1] = [6, 1]$.
+  (the stretch). This is the diagonal matrix from §1.5: it multiplies
+  coordinate $i$ by $\lambda_i$ and mixes nothing: $\Lambda [2, 1] = [6, 1]$.
 - **Step 3: multiply by $Q$** (back to ordinary coordinates). Each amount
   multiplies its own eigenvector and the results add:
   $Q [6, 1] = 6\,[1,1] + 1\,[1,-1] = [7, 5] = Ax$.
@@ -571,8 +575,8 @@ Written as one product (the rightmost factor acts first):
 
 $$A = Q \Lambda Q^{-1} \tag{1.6a}$$
 
-This is the **eigendecomposition** of $A$: change to the basis where $A$ is
-diagonal, stretch, change back. Multiplying the three matrices out gives
+This is the **eigendecomposition** of $A$: switch to eigen-coordinates
+($Q^{-1}$), stretch each coordinate ($\Lambda$), switch back ($Q$). Multiplying the three matrices out gives
 exactly $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$.
 
 When $A$ is symmetric, its eigenvectors are orthogonal. Scaled to unit
