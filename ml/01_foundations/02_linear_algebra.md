@@ -588,20 +588,22 @@ $\tfrac{1}{2}$.
 The eigendecomposition has two limits.
 
 - **It needs a square matrix.** $Av = \lambda v$ compares the output with the
-  input, so both must have the same number of entries. The $3 \times 2$
-  matrix $B$ in Part B turns $[1, 1]$ into $[2, 1, 1]$. A 3-entry output
-  cannot be a multiple of a 2-entry input, so $B$ has no eigenvectors.
+  input, so both must have the same number of entries. For example,
+  $B = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}$ ($3 \times 2$)
+  turns $[1, 1]$ into $[2, 1, 1]$. A 3-entry output cannot be a multiple of
+  a 2-entry input, so $B$ has no eigenvectors.
 - **Its axes are perpendicular only when $A$ is symmetric.** The
   non-symmetric $\begin{bmatrix} 2 & 1 \\ 0 & 1 \end{bmatrix}$ has
   eigenvectors $[1, 0]$ (eigenvalue 2) and $[1, -1]$ (eigenvalue 1), which
   are 45° apart instead of 90°. Its eigendecomposition exists, but the axes
   are skewed and $Q^{-1} \ne Q^\top$. Some square matrices have too few
-  eigenvectors for any eigendecomposition: the shear at the end of Part B
-  has only one eigen-direction.
+  eigenvectors for any eigendecomposition: the shear
+  $\begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$ has only one
+  eigen-direction, $[1, 0]$ (worked out at the end of Part B).
 
 A data matrix ($n$ rows × $d$ features) is usually rectangular, so it has no
-eigendecomposition. The SVD in Part B works for every matrix, and its axes
-are always perpendicular.
+eigendecomposition. The SVD, next in Part B, works for every matrix, and its
+axes are always perpendicular.
 
 #### Part B: the SVD - the same idea for any matrix
 
