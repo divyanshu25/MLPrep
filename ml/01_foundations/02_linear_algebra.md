@@ -517,6 +517,28 @@ $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
   <text x="268" y="109" text-anchor="middle" fill="currentColor">&#923;</text>
   <line x1="392" y1="118" x2="425" y2="118" stroke="currentColor" stroke-opacity="0.7" marker-end="url(#pa-f)"/>
   <text x="408" y="109" text-anchor="middle" fill="currentColor">Q</text>
+  <g stroke="#10b981" stroke-width="1.5">
+    <line x1="165.9" y1="119.9" x2="170.1" y2="124.1"/>
+    <line x1="178.9" y1="106.9" x2="183.1" y2="111.1"/>
+    <line x1="191.9" y1="93.9" x2="196.1" y2="98.1"/>
+    <line x1="204.9" y1="80.9" x2="209.1" y2="85.1"/>
+    <line x1="217.9" y1="67.9" x2="222.1" y2="72.1"/>
+    <line x1="230.9" y1="54.9" x2="235.1" y2="59.1"/>
+    <line x1="243.9" y1="41.9" x2="248.1" y2="46.1"/>
+    <line x1="165.9" y1="150.1" x2="170.1" y2="145.9"/>
+    <line x1="305.9" y1="119.9" x2="310.1" y2="124.1"/>
+    <line x1="318.9" y1="106.9" x2="323.1" y2="111.1"/>
+    <line x1="331.9" y1="93.9" x2="336.1" y2="98.1"/>
+    <line x1="344.9" y1="80.9" x2="349.1" y2="85.1"/>
+    <line x1="357.9" y1="67.9" x2="362.1" y2="72.1"/>
+    <line x1="370.9" y1="54.9" x2="375.1" y2="59.1"/>
+    <line x1="383.9" y1="41.9" x2="388.1" y2="46.1"/>
+    <line x1="305.9" y1="150.1" x2="310.1" y2="145.9"/>
+  </g>
+  <g fill="#10b981" font-size="10px" font-weight="600" text-anchor="end">
+    <text x="176" y="104">2</text>
+    <text x="368" y="52">6</text>
+  </g>
   <g fill="#10b981" font-size="10px">
     <text x="74" y="70" text-anchor="end">v&#8321; = [1, 1]</text>
     <text x="42" y="162">v&#8322; = [1, &#8722;1]</text>
@@ -538,10 +560,11 @@ $Q = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$.
 
 *$x = [3,1]$ through the three steps. $Q^{-1}$ does not move the arrow: it
 measures the same arrow along the green eigen-directions instead of the gray
-axes. Getting to the tip takes 2 steps along $[1,1]$ and 1 step along
-$[1,-1]$ (the green path), so the eigen-coordinates are $(2,1)$. $\Lambda$ is
-the only step that moves the arrow: it triples the part along $[1,1]$,
-giving $(6,1)$. $Q$ again moves nothing; it measures the new arrow along the
+axes. Each tick on a green line is one step of $v_1$ or $v_2$. Getting to
+the tip takes 2 steps along $v_1$ and 1 step along $v_2$ (the green path), so
+the eigen-coordinates are $(2,1)$. $\Lambda$ is
+the only step that moves the arrow: it triples the part along $v_1$, giving
+$(6,1)$, which is 6 steps along $v_1$ and 1 along $v_2$. $Q$ again moves nothing; it measures the new arrow along the
 gray axes, which gives $[7,5] = Ax$.*
 
 Written as one product (the rightmost factor acts first):
