@@ -314,7 +314,7 @@ check.
 
 <details><summary>Solution</summary>
 
-(i) $\sigma'(z) = \sigma(z)(1 - \sigma(z))$ (derived in notes.md, section d).
+(i) $\sigma'(z) = \sigma(z)(1 - \sigma(z))$ (derived in notes.md, section 4).
 Expressed via the output $s = \sigma(z)$: local gradient is simply $s(1-s)$ - no
 need to keep the input or recompute any `exp`.
 

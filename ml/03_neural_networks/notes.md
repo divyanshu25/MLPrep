@@ -14,7 +14,7 @@ Companion code in this directory:
 
 ---
 
-## (a) What a neuron computes, and why nonlinearity is the entire point
+## 1. What a neuron computes, and why nonlinearity is the entire point
 
 A single "neuron" is embarrassingly simple. It takes a vector $x \in \mathbb{R}^n$,
 owns a weight vector $w \in \mathbb{R}^n$ and a bias $b$, and computes
@@ -66,7 +66,7 @@ composition of linear maps is linear ($W_2(W_1x+b_1)+b_2 = (W_2W_1)x + (W_2b_1+b
 
 ---
 
-## (b) Backpropagation = chain rule + bookkeeping + reuse
+## 2. Backpropagation = chain rule + bookkeeping + reuse
 
 ### The chain rule, stated the useful way
 
@@ -166,7 +166,7 @@ makes them match.
 
 ---
 
-## (c) Losses: softmax + cross-entropy, and why $\nabla = p - y$
+## 3. Losses: softmax + cross-entropy, and why $\nabla = p - y$
 
 ### Setup
 
@@ -233,7 +233,7 @@ should too (see `stable_logsumexp` in `mlp_numpy.ipynb`).
 
 ---
 
-## (d) Activation functions: saturation and its discontents
+## 4. Activation functions: saturation and its discontents
 
 ### Sigmoid
 
@@ -300,7 +300,7 @@ classification - never a hidden-layer sigmoid "because probabilities").
 
 ---
 
-## (e) Initialization: why variance is the whole game
+## 5. Initialization: why variance is the whole game
 
 ### The problem, from first principles
 
@@ -363,7 +363,7 @@ what Xavier/Kaiming pin down.
 
 ---
 
-## (f) Optimization
+## 6. Optimization
 
 ### SGD and why minibatches
 
@@ -466,7 +466,7 @@ default for transformers.
 
 ---
 
-## (g) Normalization
+## 7. Normalization
 
 ### BatchNorm: the forward math
 
@@ -532,7 +532,7 @@ running stats, no train/eval mode**. Transformers use LN instead of BN because:
 
 ---
 
-## (h) Regularization
+## 8. Regularization
 
 ### Dropout
 
@@ -576,7 +576,7 @@ digits: a flipped "3" is not a "3").
 
 ---
 
-## (i) Vanishing/exploding gradients, and residual connections
+## 9. Vanishing/exploding gradients, and residual connections
 
 ### The depth problem, stated with Jacobians
 
@@ -589,8 +589,8 @@ product scales like $c^{\,d}$: $c<1 \Rightarrow$ gradients **vanish** (early lay
 frozen, only the top of the net trains); $c>1 \Rightarrow$ gradients **explode**
 (loss spikes, `nan`s - mitigated by gradient clipping, which rescales $g$ when
 $\|g\| >$ threshold). Sigmoid's $\sigma' \le 0.25$ makes vanishing near-certain
-(section d); nothing keeps $c$ pinned at exactly 1 through training even with perfect
-init (section e). Depth itself is the enemy: geometric in $d$.
+(section 4); nothing keeps $c$ pinned at exactly 1 through training even with perfect
+init (section 5). Depth itself is the enemy: geometric in $d$.
 
 ### Residual connections: the gradient highway
 

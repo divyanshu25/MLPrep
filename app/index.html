@@ -147,6 +147,7 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   .md h2 { font-size:1.4rem; line-height:1.25; font-weight:650; letter-spacing:-.02em; margin:2.4rem 0 .7rem; color:var(--text-strong); }
   .md h3 { font-size:1.12rem; line-height:1.3; font-weight:650; letter-spacing:-.012em; margin:1.8rem 0 .5rem; color:var(--text-strong); }
   .md h4 { font-size:15px; font-weight:650; letter-spacing:-.008em; margin:1.7rem 0 .45rem; color:var(--text-strong); }
+  .hnum { color:var(--mut); font-weight:600; font-variant-numeric:tabular-nums; margin-right:.45em; }
   .md p { margin:.55rem 0; }
   .md ul, .md ol { margin:.55rem 0 .55rem 1.4rem; }
   .md ul { list-style:disc; } .md ol { list-style:decimal; }
@@ -1456,6 +1457,35 @@ function docNavKeys(nav) {
     else if (e.key === ']' && nav.next) location.hash = docHash(nav.next);
   };
 }
+/* Number unnumbered sub-headings from their parent: under "## 2.3 Gradients"
+   the "####" headings become 2.3.1, 2.3.2, … and their own children 2.3.1.1.
+   A heading that already starts with a number ("1.", "3.1") keeps it and
+   advances the count, so hand-numbered siblings and auto-numbered ones agree.
+   Headings under an unnumbered parent ("Drill 1 - …", "Exit checklist") are
+   left alone. */
+function numberHeadings(rootEl, plainText) {
+  const own = /^(\d{1,2}(?:\.\d{1,2})*)\.?\s/;
+  const stack = [];   // {level, num, kids}
+  rootEl.querySelectorAll('h2, h3, h4, h5, h6').forEach(h => {
+    const level = +h.tagName[1];
+    while (stack.length && stack[stack.length - 1].level >= level) stack.pop();
+    const parent = stack[stack.length - 1];
+    const m = plainText(h).trim().match(own);
+    let num = null;
+    if (m) {
+      num = m[1];
+      if (parent && parent.num && num.startsWith(parent.num + '.'))
+        parent.kids = Math.max(parent.kids, +num.slice(parent.num.length + 1).split('.')[0] || 0);
+    } else if (parent && parent.num) {
+      num = parent.num + '.' + (++parent.kids);
+      const span = document.createElement('span');
+      span.className = 'hnum';
+      span.textContent = num;
+      h.insertBefore(span, h.firstChild);
+    }
+    stack.push({ level, num, kids: 0 });
+  });
+}
 /* Give every h2/h3 a stable slug id (duplicates get -2, -3, …), then, when
    there are >= 3 headings, build the outline twice from the same links: a
    fixed right rail (>= 1280px) and a "Contents" details block for narrower
@@ -1477,6 +1507,7 @@ function buildOutline(rootEl, wrapEl, scrollRoot) {
     const n = (seen[s] || 0) + 1; seen[s] = n;
     h.id = n > 1 ? s + '-' + n : s;
   });
+  numberHeadings(rootEl, plainText);   // after the ids, so existing anchors keep working
   if (hs.length < 3) return null;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const links = hs.map(h =>
