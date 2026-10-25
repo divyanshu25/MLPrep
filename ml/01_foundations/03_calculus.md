@@ -308,14 +308,27 @@ gradient is $[42, 14]$.
 length is that fastest rate.** Gradient descent steps along $-\nabla f$,
 straight downhill.
 
-Why: take a small step of length $\epsilon$ in a direction $u$ (a unit vector,
-$\|u\| = 1$). Input $i$ changes by $\epsilon\, u_i$. Each input's change times
-its sensitivity is its contribution, and the contributions add:
+Why: start with one concrete step on the example above, where
+$\nabla f = [4, 3]$. That gradient says $f$ rises about 4 per unit of $x_1$
+and 3 per unit of $x_2$. Move $x_1$ by $0.1$ and $x_2$ by $0.2$ at the same
+time. The $x_1$ move adds about $4 \times 0.1 = 0.4$, the $x_2$ move adds
+about $3 \times 0.2 = 0.6$, and for small steps the two effects simply add:
+$\Delta f \approx 1.0$. (Exactly: $f$ goes from 19 to 20.01.)
 
-$$\Delta f \approx \sum_i \frac{\partial f}{\partial x_i}\, \epsilon\, u_i = \epsilon\, (\nabla f \cdot u)$$
+Each sensitivity times its input's change, summed, is a dot product. So for
+any small step $\delta$:
 
-By the dot-product identity (§1.2 of the linear algebra notes),
-$\nabla f \cdot u = \|\nabla f\| \cos\theta$, where $\theta$ is the
+$$\Delta f \approx \nabla f \cdot \delta \qquad \text{here } [4, 3] \cdot [0.1, 0.2] = 1.0$$
+
+To compare directions fairly, give every step the same small length
+$\epsilon$: write the step as $\delta = \epsilon\, u$, where $u$ is a unit
+vector ($\|u\| = 1$) that only says which way to go. Then
+$\Delta f \approx \epsilon\, (\nabla f \cdot u)$, so the rate at which $f$
+rises in direction $u$ is $\nabla f \cdot u$.
+
+Which $u$ makes this largest? By the dot-product identity (§1.2 of the
+linear algebra notes), $\nabla f \cdot u = \|\nabla f\| \cos\theta$, where
+$\theta$ is the
 angle between $u$ and $\nabla f$. This is largest at $\theta = 0$, when $u$
 points along $\nabla f$, and the rate there is $\|\nabla f\|$.
 
