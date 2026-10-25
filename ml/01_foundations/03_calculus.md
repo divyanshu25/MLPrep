@@ -286,56 +286,48 @@ backward, and why training large networks is feasible at all.
 
 ## 2.3 Gradients of vector/matrix expressions
 
-A loss takes all $n$ weights and returns one number, $L(w_1, \dots, w_n)$. (The
-notation $f: \mathbb{R}^n \to \mathbb{R}$ means $n$ numbers in, one number
-out.) The **gradient** lists its sensitivity to each input:
+A loss depends on many weights at once. The **gradient** is the list of how
+fast the loss changes when you change each weight on its own:
 
 $$\nabla f = \left[\frac{\partial f}{\partial x_1}, \dots, \frac{\partial f}{\partial x_n}\right]$$
 
 Each entry is a **partial derivative**: hold every other input fixed, change
-$x_i$ alone, and measure the rate as in §2.1. $\nabla$ is read "nabla" or
+$x_i$ alone, and measure the rate, as in §2.1. $\nabla$ is read "nabla" or
 "grad".
 
-Example: $f(x_1, x_2) = x_1^2 + 3x_2$ at $(2, 5)$ has
-$\partial f / \partial x_1 = 2x_1 = 4$ and $\partial f / \partial x_2 = 3$, so
-$\nabla f = [4, 3]$. The backward walk in §2.2 computed a gradient too: with
-the data $x$ held fixed, $L = (wx + b)^2$ is a function of $w$ and $b$, and its
-gradient is $[42, 14]$.
+Example: $f(x_1, x_2) = x_1^2 + 3x_2$ at $(2, 5)$, where $f = 19$.
+
+- Change $x_1$ alone: $x_1^2$ changes at rate $2x_1 = 4$.
+- Change $x_2$ alone: $3x_2$ changes at rate 3.
+
+So $\nabla f = [4, 3]$. (The backward walk in §2.2 also produced a gradient:
+$[42, 14]$ for the two weights $w$ and $b$.)
 
 #### The gradient points straight uphill
 
 **The gradient points in the direction where $f$ increases fastest, and its
-length is that fastest rate.** Gradient descent steps along $-\nabla f$,
-straight downhill.
+length is that fastest rate.** That is why gradient descent steps along
+$-\nabla f$: it is the steepest way down.
 
-Why: start with one concrete step on the example above, where
-$\nabla f = [4, 3]$. That gradient says $f$ rises about 4 per unit of $x_1$
-and 3 per unit of $x_2$. Move $x_1$ by $0.1$ and $x_2$ by $0.2$ at the same
-time. The $x_1$ move adds about $4 \times 0.1 = 0.4$, the $x_2$ move adds
-about $3 \times 0.2 = 0.6$, and for small steps the two effects simply add:
-$\Delta f \approx 1.0$. (Exactly: $f$ goes from 19 to 20.01.)
+**Any small step.** With $\nabla f = [4, 3]$, $f$ rises about 4 per unit of
+$x_1$ and 3 per unit of $x_2$. Move $x_1$ by $0.1$ and $x_2$ by $0.2$ together:
+the first move adds about $0.4$, the second about $0.6$, and for small steps
+the effects add, so $f$ rises about $1.0$ (exactly: from 19 to 20.01). Each
+rate times its input's change, summed, is a dot product:
 
-Each sensitivity times its input's change, summed, is a dot product. So for
-any small step $\delta$:
+$$\Delta f \approx \nabla f \cdot \text{step} \qquad \text{here } [4, 3] \cdot [0.1, 0.2] = 1.0$$
 
-$$\Delta f \approx \nabla f \cdot \delta \qquad \text{here } [4, 3] \cdot [0.1, 0.2] = 1.0$$
-
-To compare directions fairly, give every step the same small length
-$\epsilon$: write the step as $\delta = \epsilon\, u$, where $u$ is a unit
-vector ($\|u\| = 1$) that only says which way to go. Then
-$\Delta f \approx \epsilon\, (\nabla f \cdot u)$, so the rate at which $f$
-rises in direction $u$ is $\nabla f \cdot u$.
-
-Which $u$ makes this largest? By the dot-product identity (§1.2 of the
-linear algebra notes), $\nabla f \cdot u = \|\nabla f\| \cos\theta$, where
-$\theta$ is the
-angle between $u$ and $\nabla f$. This is largest at $\theta = 0$, when $u$
+**The best direction.** To compare directions fairly, make every step the
+same small length $\epsilon$: step $= \epsilon\, u$, where $u$ is a unit vector
+($\|u\| = 1$) that only says which way. Then $f$ rises at rate
+$\nabla f \cdot u$. By the dot-product identity (§1.2 of the linear algebra
+notes), $\nabla f \cdot u = \|\nabla f\| \cos\theta$, where $\theta$ is the
+angle between $u$ and $\nabla f$. That is largest at $\theta = 0$, when $u$
 points along $\nabla f$, and the rate there is $\|\nabla f\|$.
 
-With $\nabla f = [4, 3]$: stepping along $[1, 0]$ raises $f$ at rate 4, along
-$[0, 1]$ at rate 3, and along $[4, 3]/5$ at rate
-$4 \cdot \tfrac{4}{5} + 3 \cdot \tfrac{3}{5} = 5 = \|\nabla f\|$, faster than
-either axis.
+With $\nabla f = [4, 3]$: along $[1, 0]$ the rate is 4, along $[0, 1]$ it is
+3, and along $[4, 3]/5$ it is $4 \cdot \tfrac{4}{5} + 3 \cdot \tfrac{3}{5} = 5$,
+faster than either axis.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 270" role="img" aria-label="Unit circle of candidate step directions for gradient [4,3]: rate 4 along the x axis, 3 along the y axis, 0 perpendicular to the gradient, and 5 along the gradient direction; level lines of f run perpendicular to the gradient" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -376,7 +368,7 @@ run perpendicular to the gradient.*
 #### Three gradient identities cover most of ML
 
 Most ML losses are built from three expressions, and each one's gradient is
-the 1-D rule you already know, written with vectors:
+a 1-D rule you already know, written with vectors:
 
 | Expression | Gradient | Same rule in 1-D |
 |---|---|---|
@@ -384,58 +376,55 @@ the 1-D rule you already know, written with vectors:
 | $f(x) = \|x\|^2 = x^\top x$ | $\nabla f = 2x$ | $x^2 \to 2x$ |
 | $f(x) = x^\top A x$ | $\nabla f = (A + A^\top)x$ | $ax^2 \to 2ax$ |
 
-- **$a^\top x = a_1 x_1 + \dots + a_n x_n$, a weighted sum** (a linear model's
-  prediction). Input $x_i$ is multiplied by $a_i$, so changing $x_i$ changes
-  $f$ at rate $a_i$, and $\nabla f = a$. Example: $f = 2x_1 + 5x_2$. At
-  $x = [1, 1]$, $f = 7$. Raise $x_1$ by 1 and $f$ becomes 9 (up 2); raise
-  $x_2$ by 1 instead and $f$ becomes 12 (up 5). So $\nabla f = [2, 5]$, the
-  coefficients, and it is the same at every point.
-- **$\|x\|^2 = x_1^2 + \dots + x_n^2$, the squared length** (every squared
-  error and every L2 penalty). Each $x_i^2$ has derivative $2x_i$, so
-  $\nabla f = 2x$. Example: at $x = [3, 1]$, $f = 10$ and $\nabla f = [6, 2]$.
-  Raise $x_1$ by $0.01$ and $f$ becomes $10.0601$, up about $6 \times 0.01$.
-  Unlike the weighted sum, this gradient depends on where you are: larger
-  entries change $f$ faster.
-- **$x^\top A x = \sum_{i,j} A_{ij}\, x_i x_j$, a quadratic form** (curvature
-  terms such as $w^\top H w$ with the Hessian). Each $x_k$ shows up twice:
-  in row $k$ of $A$ (terms $A_{kj} x_k x_j$) and in column $k$ (terms
-  $A_{ik} x_i x_k$). Differentiating both gives $(Ax)_k + (A^\top x)_k$, so
-  $\nabla f = (A + A^\top)x$. When $A$ is symmetric, as a Hessian or
-  covariance matrix is, this is $2Ax$, exactly like $ax^2 \to 2ax$.
-  Check with $A = [[1, 2], [3, 4]]$: written out,
-  $x^\top A x = x_1^2 + 5 x_1 x_2 + 4 x_2^2$, whose partials are
-  $[2 x_1 + 5 x_2,\; 5 x_1 + 8 x_2]$, which is $(A + A^\top)x$ with
-  $A + A^\top = [[2, 5], [5, 8]]$.
+- **Weighted sum, $a^\top x = a_1 x_1 + \dots + a_n x_n$** (a linear model's
+  prediction). Example: $f = 2x_1 + 5x_2$. At $x = [1, 1]$, $f = 7$. Raise
+  $x_1$ by 1 and $f$ becomes 9 (up 2); raise $x_2$ by 1 instead and $f$
+  becomes 12 (up 5). So $\nabla f = [2, 5]$: the gradient is just the
+  weights, the same at every point.
+- **Squared length, $\|x\|^2 = x_1^2 + \dots + x_n^2$** (every squared error
+  and every L2 penalty). Each $x_i^2$ changes at rate $2x_i$, so
+  $\nabla f = 2x$. Example: at $x = [3, 1]$, $f = 10$ and $\nabla f = [6, 2]$;
+  raise $x_1$ by $0.01$ and $f$ becomes $10.0601$, up about $6 \times 0.01$.
+  This gradient depends on where you are: bigger entries change $f$ faster.
+- **Quadratic form, $x^\top A x$** (curvature terms such as $w^\top H w$ with
+  the Hessian). Write it out for $A = [[1, 2], [3, 4]]$:
+  $x^\top A x = x_1^2 + 5 x_1 x_2 + 4 x_2^2$. The 5 is the two off-diagonal
+  entries, 2 and 3, added together, because both multiply $x_1 x_2$. The
+  partials are $[2 x_1 + 5 x_2,\; 5 x_1 + 8 x_2]$, which is $(A + A^\top)x$
+  with $A + A^\top = [[2, 5], [5, 8]]$. When $A$ is symmetric, as a Hessian
+  or covariance matrix is, $A + A^\top = 2A$ and the gradient is $2Ax$,
+  exactly like $ax^2 \to 2ax$.
 
 **Shortcut:** pretend every vector is a single number, use the 1-D rule, then
 arrange transposes so the shapes match.
 
 #### Worked example: the linear regression gradient
 
-**Start with one example.** A linear model predicts
-$p = w_1 x_1 + w_2 x_2$ from the example's two feature values $x_1, x_2$. The
-error is $r = p - y$ (prediction minus target), and the loss is $r^2$.
+**Start with one example.** A linear model predicts $p = w_1 x_1 + w_2 x_2$
+from the example's two feature values $x_1, x_2$. The error is $r = p - y$
+(prediction minus target), and the loss is $r^2$.
 
 Raise $w_1$ by a small $\epsilon$. The prediction rises by $x_1 \epsilon$,
-because $w_1$ is multiplied by $x_1$. The error rises by the same amount, and
-the loss $r^2$ changes at rate $2r$ per unit of error (§2.1), so it rises by
-about $2r \cdot x_1 \epsilon$. That gives
+because $w_1$ is multiplied by $x_1$, and the error rises by the same amount.
+The loss $r^2$ changes at rate $2r$ per unit of error, so it rises by about
+$2r \cdot x_1 \epsilon$:
 
 $$\frac{\partial\, r^2}{\partial w_1} = 2\, r\, x_1$$
 
-In words: **error × feature value.** A weight affects this example's loss a
-lot when the example is badly wrong and that weight's feature is large in it.
-If either is 0, changing the weight does nothing for this example.
+In words: **error × feature value.** A weight matters most for an example
+that is badly wrong and has a large value of that weight's feature. If either
+is 0, changing the weight does nothing for this example.
 
 **Many examples: add them up.** The loss is the sum of every example's
 squared error, so the gradient is the sum of every example's
-(error × feature value). Written with matrices:
+(error × feature value). With matrices:
 
 $$\nabla_w L = 2 X^\top (Xw - y) \qquad \text{for } L(w) = \|Xw - y\|^2$$
 
-Here $X$ is the data matrix (one row per example, one column per feature),
-$y$ holds the targets, $w$ the weights, and $r = Xw - y$ is the vector of
-errors, called the **residuals**.
+Here $X$ is the data matrix, with one row per example and one column per
+feature ($n$ examples, $d$ features, so $X$ is $n \times d$). $y$ holds the
+$n$ targets, $w$ the $d$ weights, and $r = Xw - y$ is the vector of errors,
+called the **residuals**.
 
 **On numbers.** $X = [[1, 2], [3, 4]]$ (two examples, two features),
 $y = [1, 0]$, $w = [1, 1]$. The predictions are $Xw = [3, 7]$, so the errors
@@ -488,25 +477,24 @@ $r$. Doing that for every column at once is $X^\top r$.
 </svg>
 </div>
 
-*The two directions through the same matrix: a prediction dots a **row** of
-$X$ (one example) with $w$; a weight's gradient dots a **column** of $X$
-(one feature) with $r$.*
+*A prediction dots a **row** of $X$ (one example) with $w$. A weight's
+gradient dots a **column** of $X$ (one feature) with $r$.*
 
-That switch from rows to columns is why a transpose appears in backward
-formulas: the forward pass uses the rows of $X$, the backward pass uses its
-columns, and $X^\top$ turns columns into rows.
+That switch from rows to columns is why transposes appear in backward
+formulas: the forward pass uses the rows of $X$, and the backward pass uses
+its columns, which $X^\top$ turns into rows.
 
-**Shape check:** $X^\top$ is $d \times n$ and $r$ is $n \times 1$, so the
-gradient is $d \times 1$, the shape of $w$. **The gradient of a scalar loss
-always has the same shape as the thing you differentiate with respect to**,
+**Shape check:** $X^\top$ is $d \times n$ and $r$ has $n$ entries, so the
+gradient has $d$ entries, one per weight. In general, **the gradient of a
+loss has the same shape as the thing you differentiate with respect to**,
 the most useful debugging rule in matrix calculus. Setting $\nabla_w L = 0$
 gives the normal equations $X^\top X w = X^\top y$, the closed-form
 least-squares solution.
 
 ## 2.4 Jacobians: the full sensitivity table
 
-A layer takes a vector in and gives a vector out
-($f: \mathbb{R}^n \to \mathbb{R}^m$). Each input can affect each output, so one
+A layer takes a vector in and gives a vector out: $n$ numbers in, $m$
+numbers out (written $f: \mathbb{R}^n \to \mathbb{R}^m$). Each input can affect each output, so one
 number per input is no longer enough. The **Jacobian** $J$ is the $m \times n$
 table of all of them: $J_{ij} = \partial f_i / \partial x_j$, how much output
 $i$ changes per unit change of input $j$.
