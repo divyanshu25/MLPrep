@@ -411,9 +411,10 @@ $2r \cdot x_1 \epsilon$:
 
 $$\frac{\partial\, r^2}{\partial w_1} = 2\, r\, x_1$$
 
-In words: **error × feature value.** A weight matters most for an example
-that is badly wrong and has a large value of that weight's feature. If either
-is 0, changing the weight does nothing for this example.
+In words: **error × feature value.** An example pulls hardest on a weight's
+gradient when its error is large and that weight's feature is large in size
+(positive or negative). The signs of the two decide which way it pulls. If
+either is 0, this example contributes nothing to that weight's gradient.
 
 **Many examples: add them up.** The loss is the sum of every example's
 squared error, so the gradient is the sum of every example's
