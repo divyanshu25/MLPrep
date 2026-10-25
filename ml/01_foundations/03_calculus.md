@@ -375,72 +375,69 @@ run perpendicular to the gradient.*
 
 #### Three gradient identities cover most of ML
 
-**Shortcut: pretend every vector is a single number, use the 1-D rule, then
-arrange transposes so the shapes match.**
+Most ML losses are built from three expressions, and each one's gradient is
+the 1-D rule you already know, written with vectors:
 
 | Expression | Gradient | Same rule in 1-D |
 |---|---|---|
 | $f(x) = a^\top x$ | $\nabla f = a$ | $ax \to a$ |
-| $f(x) = x^\top A x$ | $\nabla f = (A + A^\top)x$ | $ax^2 \to 2ax$ |
 | $f(x) = \|x\|^2 = x^\top x$ | $\nabla f = 2x$ | $x^2 \to 2x$ |
+| $f(x) = x^\top A x$ | $\nabla f = (A + A^\top)x$ | $ax^2 \to 2ax$ |
 
-These three shapes appear everywhere: $a^\top x = a_1 x_1 + \dots + a_n x_n$ is
-a linear model's prediction, $\|x\|^2 = x_1^2 + \dots + x_n^2$ is every squared
-error and L2 penalty, and $x^\top A x = \sum_{i,j} A_{ij}\, x_i x_j$ is a
-curvature term such as $w^\top H w$ with the Hessian.
+- **$a^\top x = a_1 x_1 + \dots + a_n x_n$, a weighted sum** (a linear model's
+  prediction). Input $x_i$ is multiplied by $a_i$, so changing $x_i$ changes
+  $f$ at rate $a_i$, and $\nabla f = a$. For $a = [2, 5]$:
+  $f = 2x_1 + 5x_2$ and $\nabla f = [2, 5]$.
+- **$\|x\|^2 = x_1^2 + \dots + x_n^2$, the squared length** (every squared
+  error and every L2 penalty). Each $x_i^2$ has derivative $2x_i$, so
+  $\nabla f = 2x$. At $x = [3, 1]$, $\nabla f = [6, 2]$.
+- **$x^\top A x = \sum_{i,j} A_{ij}\, x_i x_j$, a quadratic form** (curvature
+  terms such as $w^\top H w$ with the Hessian). Each $x_k$ shows up twice:
+  in row $k$ of $A$ (terms $A_{kj} x_k x_j$) and in column $k$ (terms
+  $A_{ik} x_i x_k$). Differentiating both gives $(Ax)_k + (A^\top x)_k$, so
+  $\nabla f = (A + A^\top)x$. When $A$ is symmetric, as a Hessian or
+  covariance matrix is, this is $2Ax$, exactly like $ax^2 \to 2ax$.
+  Check with $A = [[1, 2], [3, 4]]$: written out,
+  $x^\top A x = x_1^2 + 5 x_1 x_2 + 4 x_2^2$, whose partials are
+  $[2 x_1 + 5 x_2,\; 5 x_1 + 8 x_2]$, which is $(A + A^\top)x$ with
+  $A + A^\top = [[2, 5], [5, 8]]$.
 
-Each gradient follows from writing out the components and differentiating
-one at a time:
-
-- $a^\top x$: each $x_i$ appears once, with coefficient $a_i$, so
-  $\partial f / \partial x_i = a_i$, and $\nabla f = a$.
-- $\|x\|^2$: only the $x_i^2$ term involves $x_i$, so
-  $\partial f / \partial x_i = 2 x_i$, and $\nabla f = 2x$.
-- $x^\top A x$: $x_k$ appears in the terms with $i = k$ (a row of $A$) and the
-  terms with $j = k$ (a column of $A$), so
-  $\partial f / \partial x_k = \sum_j A_{kj} x_j + \sum_i A_{ik} x_i =
-  (Ax)_k + (A^\top x)_k$, and $\nabla f = (A + A^\top) x$.
-
-Check the third with $A = [[1, 2], [3, 4]]$: written out,
-$x^\top A x = x_1^2 + 5 x_1 x_2 + 4 x_2^2$, whose partials are
-$[2 x_1 + 5 x_2,\; 5 x_1 + 8 x_2]$. That is $(A + A^\top) x$ with
-$A + A^\top = [[2, 5], [5, 8]]$.
+**Shortcut:** pretend every vector is a single number, use the 1-D rule, then
+arrange transposes so the shapes match.
 
 #### Worked example: the linear regression gradient
 
-**The result:** for the squared-error loss $L(w) = \|Xw - y\|^2$,
+**The idea:** a weight's gradient adds up, over all examples, (how wrong the
+example is) × (that weight's feature value in the example). Examples that are
+badly wrong and have a large value of the feature push the weight hardest. In
+matrix form, for the squared-error loss $L(w) = \|Xw - y\|^2$:
 
 $$\nabla_w L = 2 X^\top (Xw - y)$$
 
-In words: compute every example's error, then for each weight, dot that
-weight's feature column with the errors.
+Here $X$ is the $n \times d$ data matrix (one row per example, one column per
+feature), $y$ the $n$ targets, and $w$ the $d$ weights. $Xw - y$ is the vector
+of errors, called the **residuals** $r$.
 
-Setup: $X$ is the $n \times d$ data matrix ($n$ examples, $d$ features), $y$
-the $n$ targets, $w$ the $d$ weights. Example $i$'s prediction is row $i$ of
-$X$ dotted with $w$, and its error is the **residual**
-$r_i = \sum_j X_{ij} w_j - y_i$. The loss adds the squared errors:
+**On numbers.** $X = [[1, 2], [3, 4]]$, $y = [1, 0]$, $w = [1, 1]$. The
+predictions are $Xw = [3, 7]$, so $r = [2, 7]$.
 
-$$L(w) = \sum_i r_i^2 = \|Xw - y\|^2$$
+- Weight 1's feature column is $[1, 3]$: gradient $2(1 \cdot 2 + 3 \cdot 7) = 46$.
+- Weight 2's feature column is $[2, 4]$: gradient $2(2 \cdot 2 + 4 \cdot 7) = 64$.
 
-Every example's prediction uses weight $w_k$, so $w_k$ reaches the loss
-through $n$ paths, one per example:
+So $\nabla_w L = [46, 64]$, matching the finite-difference gradient of $L$.
+Example 2, with error 7, contributes most of both.
 
-$$w_k \to r_1 \to L, \qquad w_k \to r_2 \to L, \qquad \dots, \qquad w_k \to r_n \to L$$
+**Why.** Write the loss as a sum over examples, $L = \sum_i r_i^2$, with
+$r_i = \sum_j X_{ij} w_j - y_i$. Weight $w_k$ appears in every residual, so it
+reaches the loss through $n$ paths ($w_k \to r_i \to L$), and the add rule
+(§2.2) sums one chain-rule product per path:
 
-By the add rule (§2.2), the derivative is one chain-rule product per path,
-summed:
+$$\frac{\partial L}{\partial w_k} = \sum_i \underbrace{2 r_i}_{\partial L / \partial r_i} \cdot \underbrace{X_{ik}}_{\partial r_i / \partial w_k}$$
 
-$$\frac{\partial L}{\partial w_k} = \sum_i \frac{\partial L}{\partial r_i}\,\frac{\partial r_i}{\partial w_k} = \sum_i 2 r_i \cdot X_{ik}$$
-
-The two factors: $\partial L / \partial r_i = 2 r_i$, because $r_i^2$ is the
-only term containing $r_i$; and $\partial r_i / \partial w_k = X_{ik}$, the
-coefficient of $w_k$ in $r_i$.
-
-The sum $\sum_i X_{ik}\, r_i$ is column $k$ of $X$ dotted with $r$:
-
-$$\frac{\partial L}{\partial w_k}
-= 2\,(X_{1k}\, r_1 + X_{2k}\, r_2 + \dots + X_{nk}\, r_n)
-= 2 \begin{bmatrix} X_{1k} \\ X_{2k} \\ \vdots \\ X_{nk} \end{bmatrix} \cdot r$$
+$\partial L / \partial r_i = 2 r_i$ because $r_i^2$ is the only term containing
+$r_i$, and $\partial r_i / \partial w_k = X_{ik}$ because that is the
+coefficient of $w_k$ in $r_i$. The sum $\sum_i X_{ik}\, r_i$ is column $k$ of
+$X$ dotted with $r$, and doing that for every column at once is $X^\top r$.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 480 250" role="img" aria-label="The data matrix X with row i highlighted in green and column k highlighted in indigo: a prediction dots row i with w, a weight's derivative dots column k with r" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -479,27 +476,19 @@ $$\frac{\partial L}{\partial w_k}
 </div>
 
 *The two directions through the same matrix: a prediction dots a **row** of
-$X$ (one example) with $w$; a weight's derivative dots a **column** of $X$
+$X$ (one example) with $w$; a weight's gradient dots a **column** of $X$
 (one feature) with $r$.*
 
-Doing the column dot product for every $k$ at once is $X^\top r$, which gives
-the result above:
-
-$$\nabla_w L = 2 X^\top r = 2 X^\top (Xw - y)$$
-
 That switch from rows to columns is why a transpose appears in backward
-formulas.
+formulas: the forward pass uses the rows of $X$, the backward pass uses its
+columns, and $X^\top$ turns columns into rows.
 
-Check: $X = [[1, 2], [3, 4]]$, $y = [1, 0]$, $w = [1, 1]$. The residuals are
-$r = [1 + 2 - 1,\; 3 + 4 - 0] = [2, 7]$, and
-$2 X^\top r = 2\,[1 \cdot 2 + 3 \cdot 7,\; 2 \cdot 2 + 4 \cdot 7] = [46, 64]$,
-matching the finite-difference gradient of $L$.
-
-Shape check: $X^\top$ is $d \times n$ and $r$ is $n \times 1$, so the result is
-$d \times 1$, the shape of $w$. **The gradient of a scalar loss always has the
-same shape as the thing you differentiate with respect to**, the most useful
-debugging rule in matrix calculus. Setting $\nabla_w L = 0$ gives the normal
-equations $X^\top X w = X^\top y$, the closed-form least-squares solution.
+**Shape check:** $X^\top$ is $d \times n$ and $r$ is $n \times 1$, so the
+gradient is $d \times 1$, the shape of $w$. **The gradient of a scalar loss
+always has the same shape as the thing you differentiate with respect to**,
+the most useful debugging rule in matrix calculus. Setting $\nabla_w L = 0$
+gives the normal equations $X^\top X w = X^\top y$, the closed-form
+least-squares solution.
 
 ## 2.4 Jacobians: the full sensitivity table
 
