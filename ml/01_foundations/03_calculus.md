@@ -386,11 +386,16 @@ the 1-D rule you already know, written with vectors:
 
 - **$a^\top x = a_1 x_1 + \dots + a_n x_n$, a weighted sum** (a linear model's
   prediction). Input $x_i$ is multiplied by $a_i$, so changing $x_i$ changes
-  $f$ at rate $a_i$, and $\nabla f = a$. For $a = [2, 5]$:
-  $f = 2x_1 + 5x_2$ and $\nabla f = [2, 5]$.
+  $f$ at rate $a_i$, and $\nabla f = a$. Example: $f = 2x_1 + 5x_2$. At
+  $x = [1, 1]$, $f = 7$. Raise $x_1$ by 1 and $f$ becomes 9 (up 2); raise
+  $x_2$ by 1 instead and $f$ becomes 12 (up 5). So $\nabla f = [2, 5]$, the
+  coefficients, and it is the same at every point.
 - **$\|x\|^2 = x_1^2 + \dots + x_n^2$, the squared length** (every squared
   error and every L2 penalty). Each $x_i^2$ has derivative $2x_i$, so
-  $\nabla f = 2x$. At $x = [3, 1]$, $\nabla f = [6, 2]$.
+  $\nabla f = 2x$. Example: at $x = [3, 1]$, $f = 10$ and $\nabla f = [6, 2]$.
+  Raise $x_1$ by $0.01$ and $f$ becomes $10.0601$, up about $6 \times 0.01$.
+  Unlike the weighted sum, this gradient depends on where you are: larger
+  entries change $f$ faster.
 - **$x^\top A x = \sum_{i,j} A_{ij}\, x_i x_j$, a quadratic form** (curvature
   terms such as $w^\top H w$ with the Hessian). Each $x_k$ shows up twice:
   in row $k$ of $A$ (terms $A_{kj} x_k x_j$) and in column $k$ (terms
