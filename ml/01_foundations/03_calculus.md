@@ -494,67 +494,72 @@ least-squares solution.
 
 ## 2.4 Jacobians: the full sensitivity table
 
-A layer takes a vector in and gives a vector out: $n$ numbers in, $m$
-numbers out (written $f: \mathbb{R}^n \to \mathbb{R}^m$). Each input can affect each output, so one
-number per input is no longer enough. The **Jacobian** $J$ is the $m \times n$
-table of all of them: $J_{ij} = \partial f_i / \partial x_j$, how much output
-$i$ changes per unit change of input $j$.
+A layer takes several numbers in and gives several numbers out. Take
+$f(x_1, x_2) = [x_1^2,\; x_1 x_2]$: two inputs, two outputs. Changing $x_1$
+changes both outputs; changing $x_2$ changes only the second. One number per
+input can no longer describe this. You need a table with one row per output
+and one column per input. That table is the **Jacobian** $J$:
+
+$$J_{ij} = \frac{\partial f_i}{\partial x_j} = \text{rate at which output } i \text{ changes per unit of input } j$$
+
+For the example at $(2, 3)$:
+
+$$J = \begin{bmatrix} 2x_1 & 0 \\ x_2 & x_1 \end{bmatrix} = \begin{bmatrix} 4 & 0 \\ 3 & 2 \end{bmatrix}$$
+
+Row 1 says output 1 ($x_1^2$) changes at rate 4 per unit of $x_1$ and does not
+depend on $x_2$. Row 2 says output 2 ($x_1 x_2$) changes at rate 3 per unit of
+$x_1$ and 2 per unit of $x_2$. Each row is the gradient (§2.3) of one output.
 
 #### The Jacobian is the local linear map
 
-**Near a point, a layer acts like multiplication by its Jacobian:**
+**$J$ turns a small change in the inputs into the change in the outputs:**
 
 $$f(x + \delta) \approx f(x) + J\delta$$
 
-This is §2.1's tangent line $f(x+h) \approx f(x) + f'(x)\,h$ for vectors: the
-Jacobian is the slope of a vector function.
+Check on the example: step $\delta = [0.01, 0]$ from $(2, 3)$. The prediction
+is $f(2, 3) + J\delta = [4, 6] + [0.04, 0.03] = [4.04,\; 6.03]$, and the exact
+value is $f(2.01, 3) = [4.0401,\; 6.03]$.
 
-Why: change the inputs by a small vector $\delta$. Output $i$ gets a
-contribution $(\partial f_i / \partial x_j)\,\delta_j$ from each input $j$, and
-the contributions add:
-
-$$\Delta f_i \approx \sum_j \frac{\partial f_i}{\partial x_j}\, \delta_j
-= (\text{row } i \text{ of } J) \cdot \delta$$
-
-Doing this for every output at once is $J\delta$.
-
-Check: $f(x_1, x_2) = [x_1^2,\; x_1 x_2]$ at $(2, 3)$ has
-$J = [[2x_1, 0], [x_2, x_1]] = [[4, 0], [3, 2]]$. For the step
-$\delta = [0.01, 0]$, the exact value is $f(2.01, 3) = [4.0401,\; 6.03]$, and
-the prediction is $f(2, 3) + J\delta = [4 + 0.04,\; 6 + 0.03] = [4.04,\; 6.03]$.
+Why it works: each output on its own is a function of many inputs, so §2.3.1
+applies to it: output $i$ changes by about $\nabla f_i \cdot \delta$. That
+gradient is row $i$ of $J$, and doing every row at once is $J\delta$. This is
+§2.1's tangent line $f(x+h) \approx f(x) + f'(x)\,h$ for vectors: the Jacobian
+plays the role of the slope.
 
 #### Chain rule for vectors: Jacobians multiply
 
-**The Jacobian of a pipeline is the product of its steps' Jacobians.** For
-$z = g(x)$, then $y = f(z)$:
+**For two layers in a row, the Jacobian of the pair is the product of their
+Jacobians.** For $z = g(x)$, then $y = f(z)$:
 
-$$J_{f \circ g}(x) = J_f(g(x))\, J_g(x)$$
+$$J_{f \circ g}(x) = J_f(z)\, J_g(x)$$
 
-Here $f \circ g$ names the whole pipeline, "first $g$, then $f$". Why: a small
-input change $\delta$ becomes $J_g \delta$ after the first step and
-$J_f J_g \delta$ after the second, and applying two matrices in a row is the
-same as multiplying them (§1.4 of the linear algebra notes). Each Jacobian is
-taken where its step actually operates: $J_g$ at $x$, and $J_f$ at
-$z = g(x)$.
+($f \circ g$ means "first $g$, then $f$".) Why: a small input change $\delta$
+becomes $J_g \delta$ after the first layer, and that becomes
+$J_f J_g \delta$ after the second. Applying two matrices in a row is the same
+as multiplying them (§1.4 of the linear algebra notes). Two details: the
+later layer's Jacobian goes on the left, and each Jacobian is taken at its own
+layer's input, $J_g$ at $x$ and $J_f$ at $z$. This is §2.2's "rates multiply"
+with matrices in place of numbers.
 
 #### One layer back in one product: the VJP
 
-**Backprop moves the loss gradient back through a layer by multiplying it by
-the layer's Jacobian, without ever building the Jacobian.**
+**Backprop pushes the gradient back through a layer by multiplying it by the
+layer's Jacobian, without ever building the Jacobian.**
 
-Suppose the loss's sensitivities to the layer's outputs are known, as the row
-vector
-$s = [\partial L / \partial \text{out}_1, \dots, \partial L / \partial \text{out}_m]$.
-Input $i$ reaches the loss through every output:
+In backprop you arrive at a layer already knowing how the loss responds to
+each of its outputs. Call that row vector $s$:
+$s_j = \partial L / \partial \text{out}_j$. You want how the loss responds to
+each input. An input affects the loss through every output it feeds, so add
+one term per output (the add rule of §2.2):
 
-$$\text{in}_i \to \text{out}_1 \to L, \qquad \text{in}_i \to \text{out}_2 \to L, \qquad \dots, \qquad \text{in}_i \to \text{out}_m \to L$$
+$$\frac{\partial L}{\partial \text{in}_i} = \sum_j \underbrace{\frac{\partial L}{\partial \text{out}_j}}_{s_j}\,\underbrace{\frac{\partial \text{out}_j}{\partial \text{in}_i}}_{J_{ji}} = (s\,J)_i$$
 
-so the add rule gives one chain-rule product per path, summed:
+Example: $J = [[3, 2], [4, 5]]$ and $s = [1, 2]$. Input 1 feeds output 1 at
+rate 3 and output 2 at rate 4, so $\partial L / \partial \text{in}_1 = 1 \cdot 3 + 2 \cdot 4 = 11$.
+Input 2: $1 \cdot 2 + 2 \cdot 5 = 12$. Together, $sJ = [11, 12]$.
 
-$$\frac{\partial L}{\partial \text{in}_i} = \sum_j \frac{\partial L}{\partial \text{out}_j}\,\frac{\partial \text{out}_j}{\partial \text{in}_i} = (s\,J)_i$$
-
-So one layer back is $s \mapsto sJ$, a **vector–Jacobian product** (VJP).
-Frameworks compute $sJ$ directly and never store $J$. For a layer of width
+This product $s \mapsto sJ$ is called a **vector–Jacobian product** (VJP).
+Frameworks compute it directly and never store $J$: for a layer of width
 4096, $J$ would have $4096 \times 4096 \approx 17$ million entries per
 example.
 
@@ -599,30 +604,28 @@ example.
 </svg>
 </div>
 
-*One layer as a graph: every input touches every output. Amber edge labels
-are the local derivatives $\partial \text{out}_j / \partial \text{in}_i$,
-the entries of $J$ (here $J = [[3, 2], [4, 5]]$). Red at the outputs: the
-known row vector $s = [1, 2]$. Each input's red number is the sum over its
-edges, $1 \cdot 3 + 2 \cdot 4 = 11$ for in1, and computing both at once is
-$sJ = [11, 12]$, the VJP.*
+*The same example as a graph: every input touches every output. Amber edge
+labels are the entries of $J$; red at the outputs is $s = [1, 2]$. Each
+input's red number is the sum over its edges, $1 \cdot 3 + 2 \cdot 4 = 11$ for
+in1, and both together are $sJ = [11, 12]$.*
 
 #### Three Jacobians worth knowing cold
 
-- **ReLU** passes the gradient where the input was positive and zeroes it
-  elsewhere. $\text{ReLU}(x)_i = \max(0, x_i)$ depends only on $x_i$, so $J$ is
-  diagonal, with 1 where $x_i > 0$ and 0 where $x_i < 0$ (written
-  $\mathbb{1}[x_i > 0]$: 1 when the condition holds, 0 otherwise). With
-  $x = [0.5, -1.2]$ and $s = [7, 9]$, the backward step gives $[7, 0]$.
-- **A linear layer** $f(x) = Wx$ has Jacobian $W$ itself, because output $j$ is
-  $\sum_i W_{ji}\, x_i$. The backward step is $s \mapsto sW$, or $W^\top s$ when
-  $s$ is written as a column.
-- **Softmax**, $p_i = e^{z_i} / \sum_j e^{z_j}$, has a dense Jacobian: every
-  output shares the same denominator, so every output depends on every input.
-  The entries are $J_{ij} = p_i(\delta_{ij} - p_j)$, where $\delta_{ij}$ is 1 if
-  $i = j$ and 0 otherwise (derived in exercise 9). In practice softmax is
-  followed by the cross-entropy loss, and frameworks differentiate the two
-  together. The backward step then collapses to $p - y$, which avoids both the
-  dense Jacobian and the numerically risky $1/p_i$ factor.
+- **ReLU** passes the gradient through where the input was positive and
+  blocks it where the input was negative. Each output depends only on its own
+  input, so $J$ is diagonal, with 1 where $x_i > 0$ and 0 where $x_i < 0$
+  (written $\mathbb{1}[x_i > 0]$). With $x = [0.5, -1.2]$ and $s = [7, 9]$,
+  the backward step gives $[7, 0]$.
+- **A linear layer** $f(x) = Wx$ passes the gradient back through $W$. Output
+  $j$ is $\sum_i W_{ji}\, x_i$, so the Jacobian is $W$ itself, and the backward
+  step is $s \mapsto sW$, or $W^\top s$ when $s$ is written as a column.
+- **Softmax**, $p_i = e^{z_i} / \sum_j e^{z_j}$, mixes everything: every output
+  shares the same denominator, so every output depends on every input and no
+  entry of $J$ is zero. The entries are $J_{ij} = p_i(\delta_{ij} - p_j)$, where
+  $\delta_{ij}$ is 1 if $i = j$ and 0 otherwise (derived in exercise 9). In
+  practice softmax is followed by the cross-entropy loss, and frameworks
+  differentiate the two together. The combined backward step is just $p - y$,
+  which skips the dense Jacobian and the numerically risky $1/p_i$ factor.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 190" role="img" aria-label="Softmax followed by cross-entropy on three classes: forward boxes compute probabilities and the loss; the step-by-step backward path through 1 over p and the dense Jacobian is skipped, replaced by the single fused step p minus y" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -664,13 +667,14 @@ subtraction.*
 
 #### Vanishing and exploding gradients
 
-**The backward signal is multiplied by one Jacobian per layer, so over many
-layers it can shrink or grow exponentially.** If each layer scales it by about
-0.9, fifty layers scale it by $0.9^{50} \approx 0.005$; at about 1.1, by
-$1.1^{50} \approx 117$. Precisely, this happens when the Jacobians' singular
-values (§1.6 of the linear algebra notes) are consistently below or above 1.
+**The gradient is multiplied by one Jacobian per layer on its way back, so
+over many layers it can shrink or grow exponentially.** If each layer scales
+it by about 0.9, fifty layers scale it by $0.9^{50} \approx 0.005$; if each
+scales it by about 1.1, by $1.1^{50} \approx 117$. More precisely, this
+happens when the Jacobians' singular values (§1.6 of the linear algebra
+notes) are consistently below or above 1.
 
 Residual connections help. A residual layer computes $h + F(h)$, so its
-Jacobian is $I + \partial F / \partial h$. The product over layers then always
-contains a path through the identity terms, so some gradient reaches every
-layer unchanged.
+Jacobian is $I + \partial F / \partial h$. Multiplying these over many layers
+always leaves a path through the identity terms, so some gradient reaches
+every layer unchanged.
