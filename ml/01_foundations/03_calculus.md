@@ -412,37 +412,45 @@ arrange transposes so the shapes match.
 
 #### Worked example: the linear regression gradient
 
-**The idea:** a weight's gradient adds up, over all examples, (how wrong the
-example is) × (that weight's feature value in the example). Examples that are
-badly wrong and have a large value of the feature push the weight hardest. In
-matrix form, for the squared-error loss $L(w) = \|Xw - y\|^2$:
+**Start with one example.** A linear model predicts
+$p = w_1 x_1 + w_2 x_2$ from the example's two feature values $x_1, x_2$. The
+error is $r = p - y$ (prediction minus target), and the loss is $r^2$.
 
-$$\nabla_w L = 2 X^\top (Xw - y)$$
+Raise $w_1$ by a small $\epsilon$. The prediction rises by $x_1 \epsilon$,
+because $w_1$ is multiplied by $x_1$. The error rises by the same amount, and
+the loss $r^2$ changes at rate $2r$ per unit of error (§2.1), so it rises by
+about $2r \cdot x_1 \epsilon$. That gives
 
-Here $X$ is the $n \times d$ data matrix (one row per example, one column per
-feature), $y$ the $n$ targets, and $w$ the $d$ weights. $Xw - y$ is the vector
-of errors, called the **residuals** $r$.
+$$\frac{\partial\, r^2}{\partial w_1} = 2\, r\, x_1$$
 
-**On numbers.** $X = [[1, 2], [3, 4]]$, $y = [1, 0]$, $w = [1, 1]$. The
-predictions are $Xw = [3, 7]$, so $r = [2, 7]$.
+In words: **error × feature value.** A weight affects this example's loss a
+lot when the example is badly wrong and that weight's feature is large in it.
+If either is 0, changing the weight does nothing for this example.
 
-- Weight 1's feature column is $[1, 3]$: gradient $2(1 \cdot 2 + 3 \cdot 7) = 46$.
-- Weight 2's feature column is $[2, 4]$: gradient $2(2 \cdot 2 + 4 \cdot 7) = 64$.
+**Many examples: add them up.** The loss is the sum of every example's
+squared error, so the gradient is the sum of every example's
+(error × feature value). Written with matrices:
+
+$$\nabla_w L = 2 X^\top (Xw - y) \qquad \text{for } L(w) = \|Xw - y\|^2$$
+
+Here $X$ is the data matrix (one row per example, one column per feature),
+$y$ holds the targets, $w$ the weights, and $r = Xw - y$ is the vector of
+errors, called the **residuals**.
+
+**On numbers.** $X = [[1, 2], [3, 4]]$ (two examples, two features),
+$y = [1, 0]$, $w = [1, 1]$. The predictions are $Xw = [3, 7]$, so the errors
+are $r = [2, 7]$.
+
+- Weight 1: feature values $1$ and $3$, so $2(2 \cdot 1 + 7 \cdot 3) = 46$.
+- Weight 2: feature values $2$ and $4$, so $2(2 \cdot 2 + 7 \cdot 4) = 64$.
 
 So $\nabla_w L = [46, 64]$, matching the finite-difference gradient of $L$.
 Example 2, with error 7, contributes most of both.
 
-**Why.** Write the loss as a sum over examples, $L = \sum_i r_i^2$, with
-$r_i = \sum_j X_{ij} w_j - y_i$. Weight $w_k$ appears in every residual, so it
-reaches the loss through $n$ paths ($w_k \to r_i \to L$), and the add rule
-(§2.2) sums one chain-rule product per path:
-
-$$\frac{\partial L}{\partial w_k} = \sum_i \underbrace{2 r_i}_{\partial L / \partial r_i} \cdot \underbrace{X_{ik}}_{\partial r_i / \partial w_k}$$
-
-$\partial L / \partial r_i = 2 r_i$ because $r_i^2$ is the only term containing
-$r_i$, and $\partial r_i / \partial w_k = X_{ik}$ because that is the
-coefficient of $w_k$ in $r_i$. The sum $\sum_i X_{ik}\, r_i$ is column $k$ of
-$X$ dotted with $r$, and doing that for every column at once is $X^\top r$.
+**Where $X^\top$ comes from.** Weight $k$'s gradient is
+$2 \sum_i r_i X_{ik}$: each example's error times its value of feature $k$.
+Those feature values are column $k$ of $X$, so this is column $k$ dotted with
+$r$. Doing that for every column at once is $X^\top r$.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 480 250" role="img" aria-label="The data matrix X with row i highlighted in green and column k highlighted in indigo: a prediction dots row i with w, a weight's derivative dots column k with r" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
