@@ -373,9 +373,11 @@ Why $-\log$ is the right charge: it is small when the model was confident
 and right, and grows without limit as the probability on the true class
 goes to 0:
 
-| probability on the true class | 0.9 | 0.5 | 0.01 |
+| probability the model put on the true class | 0.9 | 0.5 | 0.01 |
 |---|---|---|---|
-| loss $-\log p$ | 0.11 | 0.69 | 4.61 |
+| loss $= -\log(\text{that probability})$ | 0.11 | 0.69 | 4.61 |
+
+(Natural log: $-\log 0.9 = 0.11$, $-\log 0.5 = 0.69$, $-\log 0.01 = 4.61$.)
 
 So the loss mostly comes from the examples the model found surprising, and
 training pushes probability toward the labels that actually occurred.
