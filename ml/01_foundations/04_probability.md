@@ -446,15 +446,21 @@ still a fine loss, but no longer a likelihood.
 **MSE is MLE with Gaussian noise. L1 is MLE with Laplace noise.**
 
 A regression model outputs one number, say a price of 300k. A likelihood
-needs a probability for every possible sale price. So assume the actual
-price is the prediction plus noise, $y = f_\theta(x) + \varepsilon$, with
-$\varepsilon$ drawn from a distribution centered at 0. A sale at 310k is then
-exactly as likely as a noise draw of $+10$k:
+needs a probability for every possible sale price, so add an assumption:
+**the actual price is the prediction plus random noise**,
 
-$$p_\theta(y \mid x) = p_\varepsilon\big(y - f_\theta(x)\big)$$
+$$y = f_\theta(x) + \varepsilon$$
 
-($p_\varepsilon$ is a density: high where noise values are likely. The gap
-$y - f_\theta(x)$ measured on real data is the **residual**.)
+with the noise $\varepsilon$ centered at 0. The prediction is fixed; only the
+noise is random. So the price comes out at 310k exactly when the noise comes
+out at $+10$k, and at 295k exactly when the noise comes out at $-5$k. The
+chance of a price is the chance of the noise needed to produce it:
+
+$$p_\theta(y \mid x) = p_\varepsilon(\underbrace{y - f_\theta(x)}_{\text{noise needed}})$$
+
+($p_\varepsilon$ is the noise's density: high for likely noise values, low
+for unlikely ones. The gap $y - f_\theta(x)$ measured on real data is the
+**residual**.)
 
 With numbers: the model predicts 300k, and the bell has width (standard
 deviation) $\sigma = 10$k. How plausible are two possible sale prices?
