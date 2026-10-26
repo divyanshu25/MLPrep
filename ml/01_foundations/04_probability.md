@@ -94,9 +94,11 @@ weight variance so each layer's outputs keep unit variance).
 
 ## 3.2 Bayes rule - derived, not memorized
 
-**Bayes rule turns the probability you can measure, P(evidence |
-hypothesis), into the one you want, P(hypothesis | evidence).** The two are
-very different numbers, and confusing them is the classic mistake.
+**Bayes rule works backward from what you can measure to what you want to
+know.** A lab can measure how often a test is positive for people known to be
+sick. A patient wants the reverse: how often a positive result means sick.
+These two numbers are very different, and confusing them is the classic
+mistake.
 
 #### The rare-disease test
 
@@ -144,49 +146,65 @@ people outnumber the 99 true positives five to one.*
 
 #### The rule
 
-The counting above is Bayes rule. To write it down, start from conditional
-probability. $P(A \mid B)$, read "probability of $A$ given $B$", is the
-probability of $A$ once you know $B$ happened. Knowing $B$ rules out every
-outcome outside $B$; what is left of $A$ is the overlap $A \cap B$ ("$A$ and
-$B$"), and dividing by $P(B)$ makes the remaining probabilities sum to 1:
+The counting above is Bayes rule; writing it as a formula only needs
+notation. $P(\text{sick} \mid +)$, read "probability of sick given
+positive", means: among the people who test positive, the fraction who are
+sick. The count computed exactly that:
 
-$$P(A \mid B) = \frac{P(A \cap B)}{P(B)}$$
+$$P(\text{sick} \mid +) = \frac{\text{sick and positive}}{\text{all positive}} = \frac{99}{594} \approx 16.7\%$$
 
-Check on a die: $A$ = "even" = $\{2, 4, 6\}$, $B$ = "at least 4" =
-$\{4, 5, 6\}$. Given $B$, three outcomes remain and two of them are even, so
-the answer is $2/3$. The formula gives $P(\{4, 6\}) / P(B) = (2/6)/(3/6) = 2/3$.
+Now write each count with the numbers you started from:
 
-The overlap can be written two ways, $P(A \cap B) = P(A \mid B)\,P(B)$ and
-$P(A \cap B) = P(B \mid A)\,P(A)$. Set them equal and divide by $P(B)$:
+- **Sick and positive:** 1% are sick, and 99% of those test positive, so
+  $P(+ \mid \text{sick})\, P(\text{sick}) = 0.99 \times 0.01 = 0.0099$
+  (99 out of 10,000).
+- **All positive:** add both ways of testing positive, sick or healthy:
+  $P(+) = 0.99 \times 0.01 + 0.05 \times 0.99 = 0.0594$ (594 out of 10,000).
+
+Divide the first by the second, and that is Bayes rule:
+
+$$P(\text{sick} \mid +) = \frac{P(+ \mid \text{sick})\; P(\text{sick})}{P(+)} = \frac{0.0099}{0.0594} \approx 16.7\%$$
+
+In general, for a hypothesis $A$ and evidence $B$:
 
 $$P(A \mid B) = \frac{P(B \mid A)\, P(A)}{P(B)}$$
 
-With $A$ a hypothesis and $B$ the evidence, each piece has a name (values
-from the disease test):
+Each piece has a name:
 
 - **Prior** $P(A)$: belief before the evidence. $P(\text{sick}) = 1\%$.
-- **Likelihood** $P(B \mid A)$: chance of this evidence if the hypothesis is
-  true. $P(+ \mid \text{sick}) = 99\%$.
+- **Likelihood** $P(B \mid A)$: how often this evidence shows up when the
+  hypothesis is true. $P(+ \mid \text{sick}) = 99\%$.
 - **Posterior** $P(A \mid B)$: belief after the evidence, the number you
   want. $P(\text{sick} \mid +) \approx 17\%$.
-- **Evidence** $P(B)$: overall chance of the evidence from all causes.
-  $594/10{,}000$.
+- **Evidence** $P(B)$: how often the evidence shows up at all, from every
+  cause. $P(+) = 5.94\%$.
 
-Why the rule matters: only the likelihood can be measured directly. A lab
-measures $P(+ \mid \text{sick})$ by testing people already known to be sick.
-Nobody can measure $P(\text{sick} \mid +)$ that way, because building the
+Why the rule is needed: only the likelihood can be measured directly. A lab
+gets $P(+ \mid \text{sick})$ by testing people already known to be sick.
+Nobody can measure $P(\text{sick} \mid +)$ that way, because collecting the
 group would require already knowing who is sick. Bayes rule computes it from
 the likelihood and the prior.
 
+The general rule follows from one definition. $P(A \mid B)$ keeps only the
+outcomes where $B$ happened and asks what fraction of them also have $A$:
+$P(A \mid B) = P(A \text{ and } B) / P(B)$. The overlap "$A$ and $B$" can
+also be written $P(B \mid A)\, P(A)$, which is the "sick and positive" step
+above. Substituting gives the rule.
+
 #### Today's posterior is tomorrow's prior
 
-Suppose the positive patient takes the test again, independently, and is
-positive again. Start from the 594 positives: of the 99 sick, 99% test
-positive again, about 98; of the 495 healthy, 5% do, about 25. So
-$P(\text{sick} \mid \text{two positives}) = 98 / (98 + 25) \approx 80\%$.
-The first test moved the probability from 1% to 17%, the second from 17% to
-80%. Each piece of evidence updates the current belief, and "prior" and
-"posterior" only say where you are in that chain.
+**Each new piece of evidence updates the current belief, starting from
+wherever the last update left it.** Suppose the positive patient takes the
+test again, independently, and is positive again. Start from the 594 people
+who tested positive once:
+
+- Of the 99 sick, 99% test positive again: about 98.
+- Of the 495 healthy, 5% test positive again: about 25.
+
+So $P(\text{sick} \mid \text{two positives}) = 98 / (98 + 25) \approx 80\%$.
+The first test moved the probability from 1% to 17%; the second, starting
+from 17%, moved it to 80%. The 17% is the posterior of the first test and the
+prior of the second.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 240" role="img" aria-label="Three bars showing the probability of being sick rising from 1 percent before any test to 17 percent after one positive test to 80 percent after a second positive test, with the population counts under each bar" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
