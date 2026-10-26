@@ -217,7 +217,8 @@ So $P(\text{sick} \mid \text{two positives}) = 98 / (98 + 25) \approx 80\%$.
 
 The same thing with Bayes rule: use the first test's posterior,
 $P(\text{sick}) = 99/594 = 1/6$, as the new prior. The test's likelihoods
-are unchanged, 99% for sick people and 5% for healthy ones:
+are unchanged, 99% for sick people and 5% for healthy ones. Writing $+_2$
+for "the second test is positive":
 
 $$P(\text{sick} \mid +_2) = \frac{0.99 \times \tfrac{1}{6}}{0.99 \times \tfrac{1}{6} + 0.05 \times \tfrac{5}{6}} = \frac{0.165}{0.165 + 0.042} \approx 0.798 \approx 80\%$$
 
