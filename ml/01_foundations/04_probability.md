@@ -284,6 +284,20 @@ posterior of the first test and the prior of the second.*
 
 ## 3.3 MLE, and why minimizing cross-entropy IS maximum likelihood
 
+**The one idea of this section: a model is a claim about how probable each
+possible outcome is, and training means adjusting it until the outcomes that
+actually happened look as probable as possible.** The standard losses are
+all the same quantity, $-\log$(probability the model gave to what actually
+happened), for different kinds of model:
+
+- A **classifier** outputs a probability for each class. The loss is
+  $-\log$ of the probability on the true class: **cross-entropy**.
+- A **regression model** outputs a number, read as the center of a bell
+  curve of likely values. The loss is $-\log$ of how high the bell is at the
+  true value, which works out to the squared error: **MSE**.
+
+The subsections below show each step with numbers.
+
 #### The principle
 
 **MLE: pick the parameters under which the data you saw is most probable.**
@@ -354,6 +368,17 @@ Total loss: $1.97$. Now the likelihood: the model gave the true labels
 probabilities 0.7 and 0.2, so $L = 0.7 \times 0.2 = 0.14$, and
 $-\log 0.14 = 1.97$. Same number. Minimizing cross-entropy maximizes the
 likelihood.
+
+Why $-\log$ is the right charge: it is small when the model was confident
+and right, and grows without limit as the probability on the true class
+goes to 0:
+
+| probability on the true class | 0.9 | 0.5 | 0.01 |
+|---|---|---|---|
+| loss $-\log p$ | 0.11 | 0.69 | 4.61 |
+
+So the loss mostly comes from the examples the model found surprising, and
+training pushes probability toward the labels that actually occurred.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 255" role="img" aria-label="Two examples with three-class probability bars: the loss reads only the true class bar of each example, contributing minus log of that probability; the contributions add to the cross-entropy" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -427,7 +452,19 @@ exactly as likely as a noise draw of $+10$k:
 $$p_\theta(y \mid x) = p_\varepsilon\big(y - f_\theta(x)\big)$$
 
 ($p_\varepsilon$ is a density: high where noise values are likely. The gap
-$y - f_\theta(x)$ measured on real data is the **residual**.) Take $-\log$:
+$y - f_\theta(x)$ measured on real data is the **residual**.)
+
+With numbers: the model predicts 300k, and the bell has width (standard
+deviation) $\sigma = 10$k. How plausible are two possible sale prices?
+
+| actual price | error | height of the bell, $e^{-\text{error}^2 / 2\sigma^2}$ | loss, $-\log$ of that |
+|---|---|---|---|
+| 310k | 1 $\sigma$ | 0.61 | 0.5 |
+| 330k | 3 $\sigma$ | 0.011 | 4.5 |
+
+The loss is $\text{error}^2 / 2\sigma^2$: three times the error costs nine
+times as much. That is squared error, falling straight out of "how
+improbable is this price under the bell". In general, take $-\log$:
 
 - **Gaussian noise**, $p_\varepsilon \propto e^{-\varepsilon^2 / 2\sigma^2}$,
   gives squared error, **MSE**:
@@ -477,7 +514,10 @@ the losses: a parabola (MSE) and a V (L1).*
 
 So picking a loss is picking a noise model. MSE assumes large errors are very
 rare and punishes them quadratically; L1 expects outliers and punishes them
-linearly. Asked "why this loss?", name the assumption.
+linearly. With errors of 1 on most points and 10 on one outlier, MSE charges
+the outlier $100$ against $1$ for the others, so it bends the whole fit
+toward that one point; L1 charges $10$ against $1$. Asked "why this loss?",
+name the assumption.
 
 ## 3.4 Bernoulli and Gaussian: the two distributions ML leans on
 
