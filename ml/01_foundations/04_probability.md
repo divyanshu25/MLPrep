@@ -214,6 +214,13 @@ who tested positive once:
 - Of the 495 healthy, 5% test positive again: about 25.
 
 So $P(\text{sick} \mid \text{two positives}) = 98 / (98 + 25) \approx 80\%$.
+
+The same thing with Bayes rule: use the first test's posterior,
+$P(\text{sick}) = 99/594 = 1/6$, as the new prior. The test's likelihoods
+are unchanged, 99% for sick people and 5% for healthy ones:
+
+$$P(\text{sick} \mid +_2) = \frac{0.99 \times \tfrac{1}{6}}{0.99 \times \tfrac{1}{6} + 0.05 \times \tfrac{5}{6}} = \frac{0.165}{0.165 + 0.042} \approx 0.798 \approx 80\%$$
+
 The first test moved the probability from 1% to 17%; the second, starting
 from 17%, moved it to 80%. The 17% is the posterior of the first test and the
 prior of the second.
