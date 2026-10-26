@@ -1,18 +1,18 @@
 # Probability & statistics for ML
 
-Three routine ML tasks depend on the probability in this chapter:
+This chapter answers three questions that come up constantly in ML:
 
-- **Choosing a loss.** Cross-entropy, MSE and L1 are not conventions. Each
-  is the negative log-likelihood of a specific model of the target (§3.3,
-  §3.4), and knowing which model a loss assumes tells you when it is the
-  wrong loss.
-- **Reading a number computed from data.** A test accuracy, a minibatch
-  gradient and a sample mean are all averages over a random sample, so each
-  has an error bar of $\sigma/\sqrt{n}$ and a roughly Gaussian shape (§3.6).
-  A 0.5% improvement measured on 1,000 test examples sits inside that bar.
-- **Judging a fitted model.** Bias and variance (§3.5) are the two ways an
-  estimate, or a trained model, misses the truth. Regularization, more data
-  and bagging each move one of them.
+- **Why is the loss what it is?** Cross-entropy, MSE and L1 each follow from
+  an assumption about how the labels are generated. Know the assumption and
+  you know when the loss is the wrong choice (§3.3, §3.4).
+- **Is this improvement real?** Model B beats model A by 0.5% on 1,000 test
+  examples. Accuracy measured on 1,000 examples varies by about ±0.9% just
+  from which examples happened to be in the test set, so a 0.5% gap can be
+  luck (§3.6, §3.8).
+- **Why does my model miss?** A model can be wrong because it is too simple
+  for the pattern (bias), or because it fits the quirks of its particular
+  training set (variance). Regularization, more data and bagging each
+  reduce one of the two (§3.5).
 
 ## 3.1 Random variables, expectation, variance
 
