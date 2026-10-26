@@ -273,10 +273,12 @@ posterior of the first test and the prior of the second.*
 #### The principle
 
 **Maximum likelihood estimation (MLE): choose the parameters that make the
-observed data most probable.** "Likelihood" is §3.2's word: the probability
-of the evidence given a hypothesis. Here the hypothesis is a parameter value
-$\theta$ and the evidence is the dataset. ($\arg\max_\theta$ means "the
-$\theta$ at which this is largest".)
+observed data most probable.** If a coin lands heads 7 times in 10 flips, a
+heads probability of 0.7 makes that result more probable than 0.5 does, so
+MLE prefers 0.7. "Likelihood" is §3.2's word: the probability of the
+evidence (the data) given a hypothesis (a parameter value $\theta$). Written
+out, with $\arg\max_\theta$ meaning "the $\theta$ at which this is
+largest":
 
 $$\hat\theta = \arg\max_\theta \prod_{i=1}^n p_\theta(y_i \mid x_i)
              = \arg\max_\theta \sum_{i=1}^n \log p_\theta(y_i \mid x_i)$$
@@ -321,17 +323,10 @@ peak, at $p = h/n = 0.7$.*
 
 #### Cross-entropy is MLE for a classifier
 
-**The cross-entropy loss is the negative log of the probability the model
-gave to the true labels.** So minimizing it is maximizing the likelihood.
-
-Cross-entropy, for a target distribution $q$ and a predicted distribution
-$p$ over $K$ classes, is
-
-$$H(q, p) = -\sum_k q_k \log p_k$$
-
-In classification the target is **one-hot** ($q_k = 1$ for the true class,
-0 otherwise), so only one term survives per example: the loss is
-$-\log(\text{probability on the true class})$.
+**The cross-entropy loss charges each example $-\log$(the probability the
+model put on the true class).** Adding up those charges gives the negative
+log of the probability the model gave to all the true labels, so minimizing
+the loss is maximizing the likelihood.
 
 Example: three classes (cat, dog, bird) and two training photos.
 
@@ -397,8 +392,14 @@ $L = 0.7 \cdot 0.2 = 0.14$, and
 
 $$-\log L = -\log 0.7 - \log 0.2 = 0.36 + 1.61 = 1.97$$
 
-The same numbers, term for term. In general, with the one-hot label of
-example $i$ written $y_{ik}$:
+The same numbers, term for term. In general, cross-entropy compares a
+target distribution $q$ with the model's distribution $p$ over the classes,
+
+$$H(q, p) = -\sum_k q_k \log p_k$$
+
+and with a **one-hot** target ($q_k = 1$ for the true class, 0 otherwise)
+only the true class's term survives. Written with the one-hot label of
+example $i$ as $y_{ik}$:
 
 $$\underbrace{-\sum_i \sum_k y_{ik} \log p_\theta(k \mid x_i)}_{\text{cross-entropy loss}} \;=\; \underbrace{-\sum_i \log p_\theta(y_i \mid x_i)}_{\text{negative log-likelihood}}$$
 
@@ -429,10 +430,9 @@ at 0. Then a sale at 310k is as likely as a noise draw of $+10$k, and
 
 $$p_\theta(y \mid x) = p_\varepsilon\big(y - f_\theta(x)\big)$$
 
-Here $p_\varepsilon$ is a **density**, since the noise is continuous: no
-exact value has positive probability, but the chance of landing in a small
-window of width $w$ around $t$ is about $p_\varepsilon(t) \cdot w$. High
-density means nearby values are likely.
+(The noise is continuous, so $p_\varepsilon$ is a **density**: not a
+probability of one exact value, but a curve that is high where values are
+likely and low where they are not.)
 
 Now take $-\log$ per example, exactly as for the classifier. The noise
 density decides which loss comes out:
@@ -696,23 +696,12 @@ $\sigma^2 = \frac{35}{12} \approx 2.92$. Apply the formula to all
 $6^3 = 216$ equally likely 3-roll samples and average the results: you get
 $\frac{35}{18} \approx 1.94$, a third short.
 
-**Why.** Relate deviations from $\bar X$ to deviations from $\mu$. Write
-$X_i - \mu = (X_i - \bar X) + (\bar X - \mu)$, square, and sum over $i$. The
-cross term vanishes, because deviations from their own average sum to zero,
-$\sum_i (X_i - \bar X) = 0$. What is left:
-
-$$\sum_i (X_i - \bar X)^2 = \sum_i (X_i - \mu)^2 - n(\bar X - \mu)^2$$
-
-Check on the rolls $2, 6, 3$: the left side is $\frac{78}{9} \approx 8.67$.
-Measured from $\mu = 3.5$ the squares sum to
-$1.5^2 + 2.5^2 + 0.5^2 = 8.75$, and $n(\bar x - \mu)^2 = 3 \cdot (\frac{1}{6})^2 \approx 0.08$,
-so the right side is $8.75 - 0.08 \approx 8.67$.
-
-The subtracted term is a square, so deviations from $\bar X$ never sum to
-more than deviations from $\mu$. The reason is that $\bar X$ is the point
-that minimizes the sum of squared deviations of its own sample: as a
-function of the point $c$, $\sum_i (X_i - c)^2$ is a parabola with its
-bottom at $c = \bar X$.
+**Why: the sample mean sits too close to its own sample.** Of all possible
+points $c$, the sample mean $\bar X$ is the one that makes the sum of squared
+deviations $\sum_i (X_i - c)^2$ smallest: as a function of $c$ it is a
+parabola with its bottom at $c = \bar X$. The true mean $\mu$ is some other
+point, so measuring from $\bar X$ always gives a smaller sum than measuring
+from $\mu$ would.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 220" role="img" aria-label="The sum of squared deviations of the rolls 2, 6 and 3 from a point c, plotted against c: a parabola with its minimum at c equal to x bar, so the value at c equal to mu is higher by n times x bar minus mu squared" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -743,13 +732,22 @@ sits at $c = \bar x$, where the estimator measures from, so the value at
 the true mean $c = \mu$ is higher by exactly $n(\bar x - \mu)^2$. The
 vertical scale is zoomed in around the minimum.*
 
-**How much is lost on average.** Take expectations of the identity. Each
-$(X_i - \mu)^2$ averages $\sigma^2$, so the first sum averages $n\sigma^2$.
-And $\mathbb{E}[(\bar X - \mu)^2] = \mathrm{Var}(\bar X) = \sigma^2/n$, by the
-same two steps as the die example above (independent variances add to
-$n\sigma^2$, and the $\frac{1}{n}$ comes out squared). So
+**By exactly how much.** Write $X_i - \mu = (X_i - \bar X) + (\bar X - \mu)$,
+square, and sum over $i$. The cross term vanishes because deviations from
+their own average sum to zero, which leaves
 
-$$\mathbb{E}\Big[\sum_i (X_i - \bar X)^2\Big] = n\sigma^2 - n \cdot \frac{\sigma^2}{n} = (n-1)\,\sigma^2$$
+$$\sum_i (X_i - \bar X)^2 = \sum_i (X_i - \mu)^2 - n(\bar X - \mu)^2$$
+
+Check on the rolls $2, 6, 3$: from $\bar x$ the squares sum to
+$\frac{78}{9} \approx 8.67$; from $\mu = 3.5$ they sum to
+$1.5^2 + 2.5^2 + 0.5^2 = 8.75$; and the gap $3 \cdot (\frac{1}{6})^2 \approx 0.08$
+is the difference.
+
+On average, the first sum on the right is $n\sigma^2$ (each term averages
+$\sigma^2$), and the gap is $n \cdot \mathrm{Var}(\bar X) = n \cdot \sigma^2/n = \sigma^2$,
+one draw's worth of variance. So
+
+$$\mathbb{E}\Big[\sum_i (X_i - \bar X)^2\Big] = n\sigma^2 - \sigma^2 = (n-1)\,\sigma^2$$
 
 **The fix.**
 
@@ -915,14 +913,12 @@ the CLT).*
 
 **Why sums become bell-shaped.** Take the smallest case, two dice. A total
 of 7 can happen six ways (1+6, 2+5, ..., 6+1), but a total of 2 only one way
-(1+1), and so can 12 (6+6). Middle totals have many combinations, extreme
-totals few. In terms of distributions, the sum's distribution is six copies
-of one die's flat distribution, each slid one step further right, added up:
-
-$$P(S = t) = \sum_{v=1}^{6} \tfrac16 \cdot P(\text{first die} = t - v)$$
-
-This slide-and-add is called a **convolution**, and a sum's distribution is
-always the convolution of its parts' distributions.
+(1+1), and 12 only one way (6+6). Middle totals have many combinations,
+extreme totals few, so the flat distribution of one die becomes a triangle
+for two. The figure shows the same counting as adding six shifted copies of
+one die's distribution, one for each value of the second die. That
+shift-and-add is called a **convolution**, and it is how the distribution of
+any sum is built from the distributions of its parts.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="-32 0 552 250" role="img" aria-label="Six copies of a die's flat distribution, each slid one step further right, stack into a triangle: the total 7 is covered by all six copies while the totals 2 and 12 are covered by one each" style="max-width:560px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -984,7 +980,7 @@ adding the rows column by column counts the ways to make each total (out of
 36). Total 7 sits under all six copies, totals 2 and 12 under one each. The
 flat shape has become a triangle.*
 
-Each extra draw repeats the slide-and-add, with three effects:
+Each extra draw repeats the shift-and-add, with three effects:
 
 - **The starting shape fades.** Each convolution smooths the shape again,
   so features of the original distribution, like the exponential's spike at
