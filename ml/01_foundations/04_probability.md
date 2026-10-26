@@ -286,20 +286,34 @@ posterior of the first test and the prior of the second.*
 
 #### The principle
 
-**Maximum likelihood estimation (MLE): choose the parameters that make the
-observed data most probable.** If a coin lands heads 7 times in 10 flips, a
-heads probability of 0.7 makes that result more probable than 0.5 does, so
-MLE prefers 0.7. "Likelihood" is §3.2's word: the probability of the
-evidence (the data) given a hypothesis (a parameter value $\theta$). Written
-out, with $\arg\max_\theta$ meaning "the $\theta$ at which this is
-largest":
+**Maximum likelihood estimation (MLE): choose the parameter values that make
+the data you observed most probable.**
 
-$$\hat\theta = \arg\max_\theta \prod_{i=1}^n p_\theta(y_i \mid x_i)
-             = \arg\max_\theta \sum_{i=1}^n \log p_\theta(y_i \mid x_i)$$
+Example: a coin lands heads 7 times in 10 flips. How probable is that result
+for different heads probabilities $p$? Each head contributes a factor $p$ and
+each tail $1 - p$, so the probability of the flips is $p^7 (1-p)^3$:
 
-Taking the log does not change where the maximum is, because $\log$ is
-increasing. It turns the product into a sum, which is numerically stable and
-easy to differentiate term by term, so the log form is what gets used.
+- $p = 0.5$: $\;0.5^{10} \approx 0.00098$
+- $p = 0.7$: $\;0.7^7 \times 0.3^3 \approx 0.0022$
+
+$p = 0.7$ makes the data more than twice as probable, and no other value does
+better (derived below), so MLE picks $p = 0.7$.
+
+The probability of the data, viewed as a function of the parameter, is the
+**likelihood** (§3.2's word). In general, a model with parameters $\theta$
+gives each training example a probability $p_\theta(y_i \mid x_i)$; for
+independent examples the likelihood is their product, and MLE picks the
+$\theta$ that makes it largest ($\arg\max_\theta$ means "the $\theta$ at which
+this is largest"):
+
+$$\hat\theta = \arg\max_\theta \prod_i p_\theta(y_i \mid x_i)$$
+
+**In practice, maximize the log instead.** A product of thousands of small
+probabilities rounds to 0 on a computer, and the log turns it into a sum,
+$\log \prod_i p_i = \sum_i \log p_i$. The log is increasing, so the same
+$\theta$ maximizes both:
+
+$$\hat\theta = \arg\max_\theta \sum_i \log p_\theta(y_i \mid x_i)$$
 
 #### The smallest instance: a coin
 
