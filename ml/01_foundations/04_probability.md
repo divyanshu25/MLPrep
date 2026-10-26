@@ -445,8 +445,17 @@ still a fine loss, but no longer a likelihood.
 
 **MSE is MLE with Gaussian noise. L1 is MLE with Laplace noise.**
 
-A regression model outputs one number, say a price of 300k. A likelihood
-needs a probability for every possible sale price, so add an assumption:
+A regression model outputs one number, say a price of 300k. On its own that
+is a claim that the price is exactly 300k, with probability 0 for every other
+price. Real sales never land exactly on the prediction (one sells at 310k,
+another at 297k), so every model would give the data probability 0 and MLE
+would have nothing to compare.
+
+The fix is to spread probability around the prediction: prices near 300k
+likely, prices far away unlikely. Then each actual sale gets a real
+probability, and MLE can ask which model makes the actual prices most
+probable. It is also realistic: the features never capture everything that
+moves a price (floor, condition, the buyer). The assumption that does this:
 **the actual price is the prediction plus random noise**,
 
 $$y = f_\theta(x) + \varepsilon$$
