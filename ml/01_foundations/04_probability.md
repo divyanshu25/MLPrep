@@ -203,11 +203,14 @@ $$P(\text{sick} \mid +) = \frac{0.99 \times 0.10}{0.99 \times 0.10 + 0.05 \times
 Same test, same positive result: 17% in the general population, 69% among
 people with symptoms.
 
-Why the rule is needed: only the likelihood can be measured directly. A lab
-gets $P(+ \mid \text{sick})$ by testing people already known to be sick.
-Nobody can measure $P(\text{sick} \mid +)$ that way, because collecting the
-group would require already knowing who is sick. Bayes rule computes it from
-the likelihood and the prior.
+Why the rule is needed: the two directions behave differently.
+$P(+ \mid \text{sick})$ is a property of the test. A lab measures it once,
+by running the test on people already confirmed sick and counting the
+positives, and the number holds wherever the test is used.
+$P(\text{sick} \mid +)$ is not a property of the test alone: it depends on
+who is being tested, as the 17% versus 69% example shows. Bayes rule
+computes it for any group from the test's numbers and that group's
+prevalence.
 
 The general rule follows from one definition. $P(A \mid B)$ keeps only the
 outcomes where $B$ happened and asks what fraction of them also have $A$:
