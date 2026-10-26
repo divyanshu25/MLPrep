@@ -44,10 +44,15 @@ $$\mathbb{E}[XY] = \sum_{x,y} x\,y\,P(x)\,P(y) = \Big(\sum_x x\,P(x)\Big)\Big(\s
 
 #### Variance
 
-**Variance measures spread: the average squared distance of a draw from
-the mean** ($\mu$ is shorthand for $\mathbb{E}[X]$):
+**Variance measures spread: the expected squared distance of a draw from
+the true mean** $\mu = \mathbb{E}[X]$ (3.5 for the die):
 
 $$\mathrm{Var}(X) = \mathbb{E}[(X - \mu)^2]$$
+
+Both the mean and the average here are over the whole distribution, every
+outcome weighted by its probability, not over a particular set of draws.
+Estimating the variance from an actual sample is a different problem, with
+a twist of its own (§3.5).
 
 An easier form to compute comes from expanding the square and applying
 linearity ($\mu$ is a constant, and $\mathbb{E}[X] = \mu$):
