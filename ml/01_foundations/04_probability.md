@@ -307,15 +307,14 @@ $$\hat\theta = \arg\max_\theta \prod_i p_\theta(y_i \mid x_i) = \arg\max_\theta 
 
 #### The smallest instance: a coin
 
-A coin has unknown heads probability $p$; you see $h$ heads in $n$ flips.
-**MLE says $\hat p = h/n$, the observed frequency.** To derive it, write the
-log-likelihood and set its derivative to zero:
+For $h$ heads in $n$ flips, **MLE gives $\hat p = h/n$**, the observed
+frequency. Set the derivative of the log-likelihood to zero:
 
 $$\log L(p) = h \log p + (n - h)\log(1-p), \qquad
-\frac{d}{dp}\log L(p) = \frac{h}{p} - \frac{n-h}{1-p} = 0$$
+\frac{h}{p} - \frac{n-h}{1-p} = 0 \;\Rightarrow\; \hat p = \frac{h}{n}$$
 
-Multiplying through by $p(1-p)$ gives $h(1-p) = (n-h)\,p$, so $h = np$ and
-$\hat p = h/n$. (Checked numerically in `probability_demos.ipynb`.)
+(Multiply by $p(1-p)$: $h(1-p) = (n-h)\,p$, so $h = np$. Checked numerically
+in `probability_demos.ipynb`.)
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 360 235" role="img" aria-label="Log likelihood of a coin's heads probability after seeing 7 heads in 10 flips: a single-peaked curve with its maximum at p equals 0.7" style="max-width:380px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -337,23 +336,24 @@ $\hat p = h/n$. (Checked numerically in `probability_demos.ipynb`.)
 </div>
 
 *The log-likelihood of every candidate $p$ after 7 heads in 10 flips: one
-peak, at $p = h/n = 0.7$.*
+peak, at $p = 0.7$.*
 
 #### Cross-entropy is MLE for a classifier
 
-**The cross-entropy loss charges each example $-\log$(the probability the
-model put on the true class).** Adding up those charges gives the negative
-log of the probability the model gave to all the true labels, so minimizing
-the loss is maximizing the likelihood.
+**Cross-entropy charges each example $-\log$(probability on the true class).
+That sum is exactly the negative log-likelihood.**
 
-Example: three classes (cat, dog, bird) and two training photos.
+Two photos, three classes (cat, dog, bird):
 
-- Photo 1 is a **cat**; the model outputs $[0.7, 0.2, 0.1]$. Loss:
-  $-\log 0.7 = 0.36$.
-- Photo 2 is a **dog**; the model outputs $[0.5, 0.2, 0.3]$. Loss:
-  $-\log 0.2 = 1.61$.
+| | true class | model output | loss |
+|---|---|---|---|
+| photo 1 | cat | $[0.7, 0.2, 0.1]$ | $-\log 0.7 = 0.36$ |
+| photo 2 | dog | $[0.5, 0.2, 0.3]$ | $-\log 0.2 = 1.61$ |
 
-Total cross-entropy: $0.36 + 1.61 = 1.97$.
+Total loss: $1.97$. Now the likelihood: the model gave the true labels
+probabilities 0.7 and 0.2, so $L = 0.7 \times 0.2 = 0.14$, and
+$-\log 0.14 = 1.97$. Same number. Minimizing cross-entropy maximizes the
+likelihood.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 255" role="img" aria-label="Two examples with three-class probability bars: the loss reads only the true class bar of each example, contributing minus log of that probability; the contributions add to the cross-entropy" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -401,75 +401,46 @@ Total cross-entropy: $0.36 + 1.61 = 1.97$.
 </div>
 
 *The loss reads only the green bar of each example, the probability on the
-true class, and charges $-\log(\text{that bar})$. A confident correct answer
-(0.7) costs little; a doubtful one (0.2) costs a lot.*
+true class. A confident correct answer (0.7) costs little; a doubtful one
+(0.2) costs a lot.*
 
-Now compute the likelihood of the same data: the probability the model gave
-to both observed labels. With independent examples it is the product,
-$L = 0.7 \cdot 0.2 = 0.14$, and
+In general, cross-entropy compares a target distribution $q$ with the
+model's $p$: $H(q, p) = -\sum_k q_k \log p_k$. With a **one-hot** target
+($q_k = 1$ for the true class, 0 otherwise) only the true class's term
+survives, so summed over examples:
 
-$$-\log L = -\log 0.7 - \log 0.2 = 0.36 + 1.61 = 1.97$$
+$$\text{cross-entropy} = -\sum_i \log p_\theta(y_i \mid x_i) = \text{negative log-likelihood}$$
 
-The same numbers, term for term. In general, cross-entropy compares a
-target distribution $q$ with the model's distribution $p$ over the classes,
-
-$$H(q, p) = -\sum_k q_k \log p_k$$
-
-and with a **one-hot** target ($q_k = 1$ for the true class, 0 otherwise)
-only the true class's term survives. Written with the one-hot label of
-example $i$ as $y_{ik}$:
-
-$$\underbrace{-\sum_i \sum_k y_{ik} \log p_\theta(k \mid x_i)}_{\text{cross-entropy loss}} \;=\; \underbrace{-\sum_i \log p_\theta(y_i \mid x_i)}_{\text{negative log-likelihood}}$$
-
-So **minimizing cross-entropy is maximizing the likelihood of the observed
-labels**: MLE for a categorical output. This needs one-hot targets. With
-soft targets such as label smoothing, $q = [0.9, 0.05, 0.05]$, the
-cross-entropy formula still works but is no longer the likelihood of any
-observed label.
+With soft targets such as label smoothing, $q = [0.9, 0.05, 0.05]$, it is
+still a fine loss, but no longer a likelihood.
 
 #### The same pattern gives the regression losses
 
-**MSE and L1 are also negative log-likelihoods, once you say how the target
-scatters around the prediction: Gaussian scatter gives MSE, Laplace scatter
-gives L1.**
+**MSE is MLE with Gaussian noise. L1 is MLE with Laplace noise.**
 
-The problem first. MLE needs $p_\theta(y \mid x)$, a probability for the
-observed target. A classifier outputs one, but a regression model outputs a
-single number: predicting an apartment's price at 300k does not say how
-likely a sale at 310k or 295k would be. The fix is to model the gap. The
-actual price differs from the prediction by everything the input does not
-capture (floor, condition, the buyer's mood), so write
-
-$$y = f_\theta(x) + \varepsilon$$
-
-where $\varepsilon$ is the **noise**. (Measured after the fact, the same gap
-is the **residual**.) Assume a distribution for $\varepsilon$, say centered
-at 0. Then a sale at 310k is as likely as a noise draw of $+10$k, and
+A regression model outputs one number, say a price of 300k. A likelihood
+needs a probability for every possible sale price. So assume the actual
+price is the prediction plus noise, $y = f_\theta(x) + \varepsilon$, with
+$\varepsilon$ drawn from a distribution centered at 0. A sale at 310k is then
+exactly as likely as a noise draw of $+10$k:
 
 $$p_\theta(y \mid x) = p_\varepsilon\big(y - f_\theta(x)\big)$$
 
-(The noise is continuous, so $p_\varepsilon$ is a **density**: not a
-probability of one exact value, but a curve that is high where values are
-likely and low where they are not.)
+($p_\varepsilon$ is a density: high where noise values are likely. The gap
+$y - f_\theta(x)$ measured on real data is the **residual**.) Take $-\log$:
 
-Now take $-\log$ per example, exactly as for the classifier. The noise
-density decides which loss comes out:
+- **Gaussian noise**, $p_\varepsilon \propto e^{-\varepsilon^2 / 2\sigma^2}$,
+  gives squared error, **MSE**:
 
-- **Gaussian noise**, density
-  $\frac{1}{\sqrt{2\pi\sigma^2}} e^{-\varepsilon^2 / 2\sigma^2}$. The
-  $-\log$ turns the exponential into its exponent and the front factor into a
-  constant:
+  $$-\log p_\theta(y \mid x) = \frac{(y - f_\theta(x))^2}{2\sigma^2} + \text{const}$$
 
-  $$-\log p_\theta(y \mid x) = \frac{(y - f_\theta(x))^2}{2\sigma^2}
-  + \underbrace{\tfrac{1}{2}\log(2\pi\sigma^2)}_{\text{no } \theta \text{: a constant}}$$
+- **Laplace noise**, $p_\varepsilon \propto e^{-|\varepsilon| / b}$, gives
+  absolute error, **L1**:
 
-  Minimizing it over $\theta$ is minimizing squared error: **MSE**.
-- **Laplace noise**, density $\frac{1}{2b} e^{-|\varepsilon| / b}$. The same
-  steps give
+  $$-\log p_\theta(y \mid x) = \frac{|y - f_\theta(x)|}{b} + \text{const}$$
 
-  $$-\log p_\theta(y \mid x) = \frac{|y - f_\theta(x)|}{b} + \log(2b)$$
-
-  absolute error plus a constant: **L1 loss**.
+(The constants, $\tfrac12 \log(2\pi\sigma^2)$ and $\log 2b$, come from the
+densities' normalizing factors and do not depend on $\theta$.)
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 220" role="img" aria-label="Left: Gaussian and Laplace noise densities. Right: their minus log curves, a parabola for the Gaussian giving MSE and a V shape for the Laplace giving L1 loss" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -500,20 +471,13 @@ density decides which loss comes out:
 </svg>
 </div>
 
-*Left: the two noise distributions on matching scales, the Gaussian bell and
-the Laplace with its sharper peak and heavier tails. Right: their $-\log$
-densities, which are the per-example losses: the parabola
-$\varepsilon^2/2$ (MSE) and the V shape $|\varepsilon|$ (L1).*
+*Left: the two noise distributions, the Gaussian bell and the Laplace with
+its sharper peak and heavier tails. Right: their $-\log$ densities, which are
+the losses: a parabola (MSE) and a V (L1).*
 
-So choosing a regression loss is choosing a noise model:
-
-- **MSE** assumes Gaussian noise: large residuals are very rare, so they are
-  punished quadratically.
-- **L1** assumes Laplace noise: heavier tails, so outliers are expected and
-  punished only linearly.
-
-When an interviewer asks "why this loss?", name the assumption: MSE for
-Gaussian noise, L1 for Laplace noise, cross-entropy for a categorical label.
+So picking a loss is picking a noise model. MSE assumes large errors are very
+rare and punishes them quadratically; L1 expects outliers and punishes them
+linearly. Asked "why this loss?", name the assumption.
 
 ## 3.4 Bernoulli and Gaussian: the two distributions ML leans on
 
