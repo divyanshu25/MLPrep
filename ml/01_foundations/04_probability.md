@@ -100,23 +100,31 @@ very different numbers, and confusing them is the classic mistake.
 
 #### The rare-disease test
 
-- **Prevalence** 1%: one person in 100 has the disease.
-- **Sensitivity** 99%: the test flags 99% of sick people.
-- **False-positive rate** 5%: the test wrongly flags 5% of healthy people
-  (its **specificity**, the share of healthy people it clears, is 95%).
+A disease affects 1 person in 100. A test for it is good but not perfect:
 
-You test positive. What is the chance you are sick? Count through 10,000
-people:
+- If you **are sick**, the test comes back positive 99% of the time.
+- If you **are healthy**, it still comes back positive 5% of the time, a
+  false alarm.
 
-- 100 are sick; 99% test positive → **99 true positives**.
-- 9,900 are healthy; 5% test positive → **495 false positives**.
-- Of the $99 + 495 = 594$ positives, $99 / 594 \approx 16.7\%$ are sick.
+You test positive. What is the chance you are actually sick? Most people
+guess about 99%. Count through 10,000 people instead:
 
-Not 99%. The false positives come from a pool 99 times larger than the sick
-pool (9,900 vs 100), so they outnumber the true positives five to one. In ML
-terms this is precision under class imbalance: why accuracy is useless for
-rare-event detection, and why a 99%-accurate fraud model can still be
-useless. (`probability_demos.ipynb` runs it with raw counts.)
+- 100 are sick, and 99% of them test positive: **99 true positives**.
+- 9,900 are healthy, and 5% of them test positive: **495 false alarms**.
+- So 594 people test positive, and only 99 of them are sick:
+  $99 / 594 \approx 16.7\%$.
+
+The test is accurate, but healthy people are so much more common (9,900 vs
+100) that even a 5% false-alarm rate produces five false alarms for every
+real case. These three numbers have standard names: the **prevalence** (1%,
+how common the disease is), the **sensitivity** (99%, the share of sick
+people the test catches), and the **specificity** (95%, the share of healthy
+people it correctly clears).
+
+In ML terms this is precision under class imbalance. It is why accuracy is
+useless for rare events, and why a 99%-accurate fraud model can still flag
+mostly innocent transactions. (`probability_demos.ipynb` runs it with raw
+counts.)
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 130" role="img" aria-label="Among 10,000 people the positive tests split into 99 true positives from the sick group and 495 false positives from the healthy group, so a positive test means only about 17 percent chance of being sick" style="max-width:430px;width:100%;height:auto;font-size:12px;font-family:inherit">
