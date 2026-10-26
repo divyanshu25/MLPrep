@@ -108,6 +108,10 @@ A disease affects 1 person in 100. A test for it is good but not perfect:
 - If you **are healthy**, it still comes back positive 5% of the time, a
   false alarm.
 
+These are two separate numbers, one for each group. Missing a sick person
+and flagging a healthy one have different causes, so a test can be very
+good at one and only fairly good at the other.
+
 You test positive. What is the chance you are actually sick? Most people
 guess about 99%. Count through 10,000 people instead:
 
@@ -116,9 +120,9 @@ guess about 99%. Count through 10,000 people instead:
 - So 594 people test positive, and only 99 of them are sick:
   $99 / 594 \approx 16.7\%$.
 
-The test is accurate, but healthy people are so much more common (9,900 vs
-100) that even a 5% false-alarm rate produces five false alarms for every
-real case. These three numbers have standard names: the **prevalence** (1%,
+The test catches nearly every sick person, but healthy people are so much
+more common (9,900 vs 100) that even a 5% false-alarm rate produces five
+false alarms for every real case. These three numbers have standard names: the **prevalence** (1%,
 how common the disease is), the **sensitivity** (99%, the share of sick
 people the test catches), and the **specificity** (95%, the share of healthy
 people it correctly clears).
