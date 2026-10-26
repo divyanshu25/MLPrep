@@ -49,10 +49,19 @@ the true mean** $\mu = \mathbb{E}[X]$ (3.5 for the die):
 
 $$\mathrm{Var}(X) = \mathbb{E}[(X - \mu)^2]$$
 
-Both the mean and the average here are over the whole distribution, every
-outcome weighted by its probability, not over a particular set of draws.
-Estimating the variance from an actual sample is a different problem, with
-a twist of its own (§3.5).
+"Mean" and "average" are the same operation, but probability applies it to
+two different things:
+
+- The **true mean** averages over every possible outcome, weighted by its
+  probability: $(1 + 2 + \dots + 6)/6 = 3.5$ for the die. It is one fixed
+  number.
+- The **sample mean** averages the draws you actually got: rolls $2, 6, 3$
+  give $11/3 \approx 3.67$. Another set of rolls gives another number.
+
+$\mathbb{E}[\,\cdot\,]$ always means the first kind, so the variance above
+uses the true mean and weights every outcome by its probability. Estimating
+a variance from an actual sample is a different problem, with a twist of its
+own (§3.5).
 
 An easier form to compute comes from expanding the square and applying
 linearity ($\mu$ is a constant, and $\mathbb{E}[X] = \mu$):
