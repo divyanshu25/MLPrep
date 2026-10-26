@@ -286,34 +286,24 @@ posterior of the first test and the prior of the second.*
 
 #### The principle
 
-**Maximum likelihood estimation (MLE): choose the parameter values that make
-the data you observed most probable.**
+**MLE: pick the parameters under which the data you saw is most probable.**
 
-Example: a coin lands heads 7 times in 10 flips. How probable is that result
-for different heads probabilities $p$? Each head contributes a factor $p$ and
-each tail $1 - p$, so the probability of the flips is $p^7 (1-p)^3$:
+A coin lands heads 7 times in 10. With heads probability $p$, the chance of
+that is $p^7 (1-p)^3$:
 
-- $p = 0.5$: $\;0.5^{10} \approx 0.00098$
-- $p = 0.7$: $\;0.7^7 \times 0.3^3 \approx 0.0022$
+- $p = 0.5$: $0.00098$
+- $p = 0.7$: $0.0022$
 
-$p = 0.7$ makes the data more than twice as probable, and no other value does
-better (derived below), so MLE picks $p = 0.7$.
+$p = 0.7$ makes the data twice as probable, and no $p$ does better (derived
+next), so MLE picks 0.7.
 
-The probability of the data, viewed as a function of the parameter, is the
-**likelihood** (§3.2's word). In general, a model with parameters $\theta$
-gives each training example a probability $p_\theta(y_i \mid x_i)$; for
-independent examples the likelihood is their product, and MLE picks the
-$\theta$ that makes it largest ($\arg\max_\theta$ means "the $\theta$ at which
-this is largest"):
+That probability of the data, as a function of the parameters, is the
+**likelihood**. For a model $p_\theta$ and independent examples it is a
+product. In practice you maximize its log instead: a product of thousands of
+probabilities underflows to 0, the log turns it into a sum, and the best
+$\theta$ is the same:
 
-$$\hat\theta = \arg\max_\theta \prod_i p_\theta(y_i \mid x_i)$$
-
-**In practice, maximize the log instead.** A product of thousands of small
-probabilities rounds to 0 on a computer, and the log turns it into a sum,
-$\log \prod_i p_i = \sum_i \log p_i$. The log is increasing, so the same
-$\theta$ maximizes both:
-
-$$\hat\theta = \arg\max_\theta \sum_i \log p_\theta(y_i \mid x_i)$$
+$$\hat\theta = \arg\max_\theta \prod_i p_\theta(y_i \mid x_i) = \arg\max_\theta \sum_i \log p_\theta(y_i \mid x_i)$$
 
 #### The smallest instance: a coin
 
