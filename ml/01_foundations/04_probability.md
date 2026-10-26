@@ -189,34 +189,19 @@ Each piece has a name:
 - **Evidence** $P(B)$: how often the evidence shows up at all, from every
   cause. $P(+) = 5.94\%$.
 
-So the **prevalence is the prior**, and the test's **sensitivity and
-false-positive rate are the likelihoods** $P(+ \mid \text{sick})$ and
-$P(+ \mid \text{healthy})$.
+So the **prevalence is the prior**, and the test's sensitivity and
+false-positive rate are the **likelihoods**.
 
-This split matters in practice. The test's numbers stay the same wherever it
-is used, but the prior depends on who is being tested, and the answer moves
-with it. Use the same test on people who already have symptoms, where say
-10% are sick:
+**Why the rule is needed:** the likelihoods belong to the test, so they are
+the same wherever it is used. The posterior also depends on who is being
+tested. Use the same test on people who already have symptoms, where say 10%
+are sick:
 
-$$P(\text{sick} \mid +) = \frac{0.99 \times 0.10}{0.99 \times 0.10 + 0.05 \times 0.90} = \frac{0.099}{0.144} \approx 69\%$$
+$$P(\text{sick} \mid +) = \frac{0.99 \times 0.10}{0.99 \times 0.10 + 0.05 \times 0.90} \approx 69\%$$
 
 Same test, same positive result: 17% in the general population, 69% among
-people with symptoms.
-
-Why the rule is needed: the two directions behave differently.
-$P(+ \mid \text{sick})$ is a property of the test. A lab measures it once,
-by running the test on people already confirmed sick and counting the
-positives, and the number holds wherever the test is used.
-$P(\text{sick} \mid +)$ is not a property of the test alone: it depends on
-who is being tested, as the 17% versus 69% example shows. Bayes rule
-computes it for any group from the test's numbers and that group's
-prevalence.
-
-The general rule follows from one definition. $P(A \mid B)$ keeps only the
-outcomes where $B$ happened and asks what fraction of them also have $A$:
-$P(A \mid B) = P(A \text{ and } B) / P(B)$. The overlap "$A$ and $B$" can
-also be written $P(B \mid A)\, P(A)$, which is the "sick and positive" step
-above. Substituting gives the rule.
+people with symptoms. Bayes rule turns the test's fixed numbers into the
+answer for whichever group you are in.
 
 #### Today's posterior is tomorrow's prior
 
