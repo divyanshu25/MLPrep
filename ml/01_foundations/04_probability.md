@@ -122,10 +122,16 @@ guess about 99%. Count through 10,000 people instead:
 
 The test catches nearly every sick person, but healthy people are so much
 more common (9,900 vs 100) that even a 5% false-alarm rate produces five
-false alarms for every real case. These three numbers have standard names: the **prevalence** (1%,
-how common the disease is), the **sensitivity** (99%, the share of sick
-people the test catches), and the **specificity** (95%, the share of healthy
-people it correctly clears).
+false alarms for every real case.
+
+The three starting numbers have standard names. One describes the people
+being tested; the other two describe the test:
+
+| Name | Value | Describes |
+|---|---|---|
+| **Prevalence** | 1% | the people: how common the disease is among them |
+| **Sensitivity** | 99% | the test: the share of sick people it flags |
+| **Specificity** | 95% | the test: the share of healthy people it clears (so 5% false alarms) |
 
 In ML terms this is precision under class imbalance. It is why accuracy is
 useless for rare events, and why a 99%-accurate fraud model can still flag
@@ -182,6 +188,20 @@ Each piece has a name:
   want. $P(\text{sick} \mid +) \approx 17\%$.
 - **Evidence** $P(B)$: how often the evidence shows up at all, from every
   cause. $P(+) = 5.94\%$.
+
+So the **prevalence is the prior**, and the test's **sensitivity and
+false-positive rate are the likelihoods** $P(+ \mid \text{sick})$ and
+$P(+ \mid \text{healthy})$.
+
+This split matters in practice. The test's numbers stay the same wherever it
+is used, but the prior depends on who is being tested, and the answer moves
+with it. Use the same test on people who already have symptoms, where say
+10% are sick:
+
+$$P(\text{sick} \mid +) = \frac{0.99 \times 0.10}{0.99 \times 0.10 + 0.05 \times 0.90} = \frac{0.099}{0.144} \approx 69\%$$
+
+Same test, same positive result: 17% in the general population, 69% among
+people with symptoms.
 
 Why the rule is needed: only the likelihood can be measured directly. A lab
 gets $P(+ \mid \text{sick})$ by testing people already known to be sick.
