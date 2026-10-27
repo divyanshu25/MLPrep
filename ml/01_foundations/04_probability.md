@@ -443,58 +443,55 @@ still a fine loss, but no longer a likelihood.
 
 #### The same pattern gives the regression losses
 
-**MSE is MLE with Gaussian noise. L1 is MLE with Laplace noise.**
+**MSE is MLE when the errors are Gaussian. L1 is MLE when they are
+Laplace.** Four short steps.
 
-A regression model outputs one number, say a price of 300k. On its own that
-is a claim that the price is exactly 300k, with probability 0 for every other
-price. Real sales never land exactly on the prediction (one sells at 310k,
-another at 297k), so every model would give the data probability 0 and MLE
-would have nothing to compare.
+**1. A regression model needs a spread.** The model outputs one number, say
+a price of 300k. Taken literally, that claims the price is exactly 300k and
+gives every other price probability 0. Real sales never land exactly on the
+prediction, so every model would give the data probability 0 and MLE could
+not compare them. What is needed is probability spread around the
+prediction: near 300k likely, far away unlikely.
 
-The fix is to spread probability around the prediction: prices near 300k
-likely, prices far away unlikely. Then each actual sale gets a real
-probability, and MLE can ask which model makes the actual prices most
-probable. It is also realistic: the features never capture everything that
-moves a price (floor, condition, the buyer). The assumption that does this:
-**the actual price is the prediction plus random noise**,
+**2. Model the spread as noise.** Assume the actual price is the prediction
+plus random noise centered at 0:
 
 $$y = f_\theta(x) + \varepsilon$$
 
-with the noise $\varepsilon$ centered at 0. The prediction is fixed; only the
-noise is random. So the price comes out at 310k exactly when the noise comes
-out at $+10$k, and at 295k exactly when the noise comes out at $-5$k. The
-chance of a price is the chance of the noise needed to produce it:
+The noise stands for everything the features miss (floor, condition, the
+buyer). The prediction is fixed, so the price is 310k exactly when the noise
+is $+10$k. The probability of a price is the probability of the noise it
+takes to produce it:
 
-$$p_\theta(y \mid x) = p_\varepsilon(\underbrace{y - f_\theta(x)}_{\text{noise needed}})$$
+$$p_\theta(y \mid x) = p_\varepsilon\big(y - f_\theta(x)\big)$$
 
-($p_\varepsilon$ is the noise's density: high for likely noise values, low
-for unlikely ones. The gap $y - f_\theta(x)$ measured on real data is the
-**residual**.)
+(The gap $y - f_\theta(x)$ measured on real data is the **residual**.)
 
-With numbers: the model predicts 300k, and the bell has width (standard
-deviation) $\sigma = 10$k. How plausible are two possible sale prices?
+**3. With a Gaussian bell, the loss is the squared error.** Say the noise is
+a bell with standard deviation $\sigma = 10$k, so a price's probability
+density is proportional to $e^{-\text{error}^2 / 2\sigma^2}$:
 
-| actual price | error | height of the bell, $e^{-\text{error}^2 / 2\sigma^2}$ | loss, $-\log$ of that |
+| actual price | error | height of the bell | loss $= -\log(\text{height})$ |
 |---|---|---|---|
 | 310k | 1 $\sigma$ | 0.61 | 0.5 |
 | 330k | 3 $\sigma$ | 0.011 | 4.5 |
 
-The loss is $\text{error}^2 / 2\sigma^2$: three times the error costs nine
-times as much. That is squared error, falling straight out of "how
-improbable is this price under the bell". In general, take $-\log$:
+The loss is $\text{error}^2 / 2\sigma^2$: triple the error, nine times the
+loss. Summed over the dataset, the negative log-likelihood is
 
-- **Gaussian noise**, $p_\varepsilon \propto e^{-\varepsilon^2 / 2\sigma^2}$,
-  gives squared error, **MSE**:
+$$-\log L(\theta) = \frac{1}{2\sigma^2} \sum_i \big(y_i - f_\theta(x_i)\big)^2 + \text{const}$$
 
-  $$-\log p_\theta(y \mid x) = \frac{(y - f_\theta(x))^2}{2\sigma^2} + \text{const}$$
+The constant ($\tfrac{n}{2}\log 2\pi\sigma^2$, from the bell's normalizing
+factor) does not depend on $\theta$. So the most likely model is the one
+with the smallest total squared error: **MSE**.
 
-- **Laplace noise**, $p_\varepsilon \propto e^{-|\varepsilon| / b}$, gives
-  absolute error, **L1**:
+**4. With a Laplace distribution, the loss is the absolute error.** The
+Laplace density is proportional to $e^{-|\text{error}| / b}$, so the same
+steps give
 
-  $$-\log p_\theta(y \mid x) = \frac{|y - f_\theta(x)|}{b} + \text{const}$$
+$$-\log L(\theta) = \frac{1}{b} \sum_i \big|y_i - f_\theta(x_i)\big| + \text{const}$$
 
-(The constants, $\tfrac12 \log(2\pi\sigma^2)$ and $\log 2b$, come from the
-densities' normalizing factors and do not depend on $\theta$.)
+The most likely model has the smallest total absolute error: **L1**.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 220" role="img" aria-label="Left: Gaussian and Laplace noise densities. Right: their minus log curves, a parabola for the Gaussian giving MSE and a V shape for the Laplace giving L1 loss" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -529,12 +526,13 @@ densities' normalizing factors and do not depend on $\theta$.)
 its sharper peak and heavier tails. Right: their $-\log$ densities, which are
 the losses: a parabola (MSE) and a V (L1).*
 
-So picking a loss is picking a noise model. MSE assumes large errors are very
-rare and punishes them quadratically; L1 expects outliers and punishes them
-linearly. With errors of 1 on most points and 10 on one outlier, MSE charges
-the outlier $100$ against $1$ for the others, so it bends the whole fit
-toward that one point; L1 charges $10$ against $1$. Asked "why this loss?",
-name the assumption.
+**Which to pick.** Picking a loss is picking a noise model. The Gaussian
+says large errors almost never happen, so MSE punishes them quadratically.
+The Laplace has heavier tails, so it expects outliers, and L1 punishes them
+only linearly. With errors of 1 on most points and 10 on one outlier, MSE
+charges the outlier $100$ against $1$ for each other point and bends the whole
+fit toward it; L1 charges $10$ against $1$. Asked "why this loss?", name the
+noise assumption.
 
 ## 3.4 Bernoulli and Gaussian: the two distributions ML leans on
 
