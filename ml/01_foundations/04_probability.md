@@ -756,14 +756,29 @@ $$-\mathrm{KL}(q\|p) = \sum_x q(x)\log\frac{p(x)}{q(x)} \;\le\; \sum_x q(x)\Big(
 
 (The sums run over outcomes with $q(x) > 0$, so $\sum_x p(x) \le 1$.)
 
-Two consequences. Since cross-entropy is entropy plus KL, a loss can never
-go below the entropy of its labels. That floor is 0 for one-hot labels, but
-for label-smoothed labels $[0.9, 0.05, 0.05]$ it is
-$0.9 \times (-\log 0.9) + 2 \times 0.05 \times (-\log 0.05) \approx 0.394$,
-which is why a smoothed loss levels off above zero. And for any $p$ over $K$
-outcomes, the KL to the uniform distribution is
-$\sum_x p(x)\log\frac{p(x)}{1/K} = \log K - H(p) \ge 0$, so no distribution
-has more entropy than the uniform one, $\log K$.
+This has two consequences.
+
+First, a loss can't go below the entropy of its labels. Cross-entropy is
+entropy plus KL, and the KL is never negative, so the loss is at least the
+labels' entropy, and equals it only when the model's probabilities match
+the labels exactly. A one-hot label like $[1, 0, 0]$ is certain, so its
+entropy is 0 and a perfect model can reach a loss of 0. A label-smoothed
+label $[0.9, 0.05, 0.05]$ has entropy
+
+$$0.9 \times (-\log 0.9) + 0.05 \times (-\log 0.05) + 0.05 \times (-\log 0.05) = 0.095 + 0.150 + 0.150 \approx 0.394$$
+
+So even a model that outputs exactly $[0.9, 0.05, 0.05]$ has a loss of
+0.394, and the training loss levels off there instead of reaching 0.
+
+Second, among distributions over $K$ outcomes, the uniform one ($1/K$ each)
+has the most entropy, $\log K$. To see it, take the KL from any $p$ to the
+uniform distribution:
+
+$$\sum_x p(x)\log\frac{p(x)}{1/K} = \sum_x p(x)\log p(x) + \log K = \log K - H(p)$$
+
+This KL is never negative, so $H(p) \le \log K$. For six outcomes, no
+distribution has more than $\log 6 \approx 1.79$ nats, the fair die's
+entropy.
 
 #### KL is not symmetric
 
