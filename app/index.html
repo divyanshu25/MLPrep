@@ -58,6 +58,11 @@ document.documentElement.classList.toggle('dark', localStorage.getItem('mlprep-t
   /* Only #app and inner panes scroll: the page shell itself is locked so nothing
      (hidden helpers, momentum chaining) can scroll past the end of the content. */
   html, body { height:100%; overflow:hidden; }
+  /* #app is the only scroller. It must be a positioned box, or absolutely
+     positioned descendants (KaTeX's hidden MathML copy of every equation)
+     escape it, make the document itself tall, and let scrollIntoView or
+     find-in-page scroll the whole page and push the top nav out of view. */
+  #app { position:relative; }
   html { background:var(--base); }
   body { background:var(--base); color:var(--text); font-size:15px;
          font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;
