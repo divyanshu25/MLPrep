@@ -126,14 +126,14 @@ many examples.
 
 #### Bernoulli: one yes/no event
 
-A **Bernoulli($p$)** variable is 1 with probability $p$ and 0 otherwise.
-Flip a coin with $p = 0.3$ many times and about
-30% of the flips come out 1.
+A **Bernoulli($p$)** variable is 1 with probability $p$ and 0 with
+probability $1 - p$. Flip a coin with $p = 0.3$ many times and about 30% of
+the flips come out 1.
 
-The mean is $p$, since $1 \cdot p + 0 \cdot (1 - p) = p$. The variance is
-$p(1 - p)$, here $0.3 \times 0.7 = 0.21$. (A 0/1 variable equals its own
-square, so $\mathbb{E}[X^2] = p$, and the shortcut $\mathrm{Var}(X) = \mathbb{E}[X^2] - \mu^2$ from §3.1 gives
-$p - p^2$.)
+Its mean is $p$, since $1 \cdot p + 0 \cdot (1 - p) = p$. Its variance is
+$p(1 - p)$: a 0/1 variable equals its own square, so $\mathbb{E}[X^2] = p$,
+and $\mathrm{Var}(X) = \mathbb{E}[X^2] - \mu^2 = p - p^2$. For $p = 0.3$
+that's $0.21$.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 380 200" role="img" aria-label="The Bernoulli variance p times one minus p plotted against p: a parabola that is zero at p equals 0 and p equals 1 and peaks at one quarter when p equals one half" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -160,19 +160,21 @@ $p - p^2$.)
 *The variance of one Bernoulli($p$) draw as $p$ goes from 0 to 1: zero at
 both ends, maximum $1/4$ at $p = 1/2$.*
 
-A fair coin is as unpredictable as a coin can be, so
-its variance is largest. A coin that almost always lands heads barely varies
-at all.
+A fair coin has the largest variance because it is the hardest to predict.
+A coin that almost always lands heads barely varies.
 
-The Bernoulli is the building block for a few things you'll meet constantly.
-Add up $n$ independent flips and you're counting successes, which gives the
-**Binomial** distribution, with mean $np$ by linearity and variance
-$np(1 - p)$ because independent variances add ($n$ copies of $p(1-p)$). A classifier that says "spam
-with probability 0.9" is modeling the label as Bernoulli(0.9). And **dropout**, a training method
-that sets each neuron's output to zero at random, keeps each neuron with
-probability $p$, so a layer of $n$ neurons keeps about $np$ of them. (PyTorch's
-dropout layer takes the drop probability instead, so a setting of 0.1 keeps
-each neuron with $p = 0.9$.)
+The Bernoulli shows up in three common places:
+
+- **Counting.** Add up $n$ independent Bernoulli($p$) flips and you get
+  the number of successes, which follows the **Binomial** distribution. Its
+  mean is $np$ by linearity, and its variance is $np(1 - p)$ because
+  independent variances add.
+- **Classifiers.** A spam classifier that outputs 0.9 is saying the label
+  (1 for spam, 0 for not spam) is Bernoulli(0.9).
+- **Dropout.** This training method sets each neuron's output to zero at
+  random. Keeping each neuron with probability $p$ keeps
+  about $np$ of a layer's $n$ neurons. (PyTorch's dropout setting is the
+  drop probability, so a setting of 0.1 keeps each neuron with $p = 0.9$.)
 
 #### Gaussian: the sum of many small effects
 
