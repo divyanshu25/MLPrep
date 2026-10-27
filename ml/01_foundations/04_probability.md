@@ -675,14 +675,27 @@ The difference shows up with outliers. Four houses sold for 300k, 305k, 310k
 and 900k, the last one a typo. Suppose you predict a single price $c$ for
 all four.
 
-- MSE picks the mean, 453.75k, which is above every real sale. Squaring
-  makes the typo's error so large that it outweighs the other three houses.
-  (The derivative of $\sum_i (y_i - c)^2$ is $-2\sum_i (y_i - c)$, which is
-  zero at the mean.)
-- L1 picks the median, anywhere from 305k to 310k. Moving $c$ up by a step
-  changes every house's absolute error by the same step, however far away
-  the house is, so the typo counts as just one house above $c$. The loss
-  stops falling once half the houses are on each side.
+MSE picks the mean, 453.75k, which is above every real sale. Squaring makes
+the typo's error so large that it outweighs the other three houses. (The
+derivative of $\sum_i (y_i - c)^2$ is $-2\sum_i (y_i - c)$, which is zero at
+the mean.)
+
+L1 picks the median, the middle of the sorted prices. Here is the sum of
+absolute errors for a few choices of $c$:
+
+| prediction $c$ | 300k | 305k | 307.5k | 310k | 320k | 453.75k |
+|---|---|---|---|---|---|---|
+| sum of absolute errors | 615 | 605 | 605 | 605 | 625 | 892.5 |
+
+The loss is lowest, 605, for every $c$ from 305k to 310k. To see why, move
+$c$ up by 1k and look at each house's error. A house below $c$ gets 1k
+farther away, which adds 1. A house above $c$ gets 1k closer, which
+subtracts 1. Starting at 300k, one house is below and three are above, so
+each step lowers the loss by 2. Between 305k and 310k, two houses are below
+and two are above, so a step changes nothing. Past 310k, three houses are
+below and one is above, so the loss rises again. The best $c$ is wherever
+half the houses are on each side, which is the median. The 900k typo counts
+as one house above $c$, and how far above it is doesn't matter.
 
 ## 3.5 Entropy and KL: what a loss value means
 
