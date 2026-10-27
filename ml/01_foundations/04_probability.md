@@ -605,6 +605,17 @@ mean squared error, you're doing maximum likelihood under the assumption that
 each price is an independent draw from a bell around its prediction, with
 the same $\sigma$ for every house, cheap or expensive. That's where MSE comes from.
 
+That last assumption is often wrong. A 10k house and a 200 million house
+don't miss by similar amounts: a 10k error is huge on the first and
+negligible on the second, yet MSE charges both the same. Two common fixes
+follow from the same reasoning. Predict the log of the price instead: a
+fixed $\sigma$ on the log scale means a fixed percentage error, which is
+plausible for every house. Or have the model output its own $\sigma$ for
+each house: the $-\log$ of the bell (§3.2) then gives a per-house loss of
+$d^2/(2\sigma^2) + \log\sigma$, plus a constant, so a house with a large $\sigma$ has
+its squared error divided by more and counts less, while the $\log\sigma$
+term stops the model from claiming a large $\sigma$ everywhere.
+
 L1 loss comes out the same way with a different noise shape. Suppose the
 errors follow a Laplace distribution, whose factor for a miss of $d$ is
 $e^{-|d|/b}$. The number $b$ does the job $\sigma$ does for the Gaussian: a
