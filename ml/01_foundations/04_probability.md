@@ -177,7 +177,7 @@ each neuron with $p = 0.9$.)
 #### Gaussian: the sum of many small effects
 
 The **Gaussian** $\mathcal{N}(\mu, \sigma^2)$ is the bell curve, centered at
-the mean $\mu$, with its width set by the standard deviation $\sigma$ (the
+the mean $\mu$, with its spread set by the standard deviation $\sigma$ (the
 second number in the notation is the variance, $\sigma^2$).
 
 Think about how far a house-price prediction misses the actual price. The
@@ -575,7 +575,7 @@ impossible, and there'd be nothing for maximum likelihood to compare.
 
 The fix is to say what we actually believe: the real price is the prediction
 plus some random noise, $y = f_\theta(x) + \varepsilon$, and the noise is
-spread out like the bell from §3.2. With a width of $\sigma = 10$k, a price
+spread out like the bell from §3.2. With a standard deviation of $\sigma = 10$k, a price
 that misses the prediction by $d$ thousand gets a density factor of
 $e^{-d^2 / 2\sigma^2} = e^{-d^2/200}$. (This drops the bell's constant in
 front, which is the same for every model and so doesn't change which model
@@ -602,12 +602,14 @@ You can check it: $e^{-225/200} = 0.32$ and $e^{-25/200} = 0.88$. A smaller
 sum of squared errors always means a larger likelihood. Dividing by the
 number of examples doesn't change which model is best, so when you minimize
 mean squared error, you're doing maximum likelihood under the assumption that
-the errors are independent and Gaussian, with the same width for every
+the errors are independent and Gaussian, with the same standard deviation $\sigma$ for every
 example. That's where MSE comes from.
 
-L1 loss comes out the same way with a different noise shape. If you assume
+L1 loss comes out the same way with a different noise shape. Suppose the
 errors follow a Laplace distribution, whose factor for a miss of $d$ is
-$e^{-|d|/b}$, with a width $b$ playing the role of $\sigma$, the exponents again add, the likelihood becomes
+$e^{-|d|/b}$. The number $b$ does the job $\sigma$ does for the Gaussian: a
+larger $b$ spreads the errors more. Multiplying the factors adds the
+exponents again, so the likelihood is
 $e^{-(\text{sum of absolute errors})/b}$, and maximizing it means minimizing
 the sum of absolute errors.
 
@@ -830,7 +832,7 @@ lower bound on the mutual information between the two.
 
 #### Entropy of a Gaussian, and why it's the maximum
 
-For a bell of width $\sigma$, the $-\log$ density from §3.2 is
+For a bell with standard deviation $\sigma$, the $-\log$ density from §3.2 is
 $\frac{(x-\mu)^2}{2\sigma^2} + \frac{1}{2}\log(2\pi\sigma^2)$. Averaging it
 over the bell (an integral, since the values are continuous), the
 $(x - \mu)^2$ averages to $\sigma^2$ by the definition of variance, so the
@@ -838,7 +840,7 @@ first term becomes $\frac{1}{2}$:
 
 $$H = \tfrac{1}{2} + \tfrac{1}{2}\log(2\pi\sigma^2) = \tfrac{1}{2}\log(2\pi e\sigma^2)$$
 
-It grows with the width and doesn't care where the bell is centered, which
+It grows with $\sigma$ and doesn't care where the bell is centered, which
 makes sense: sliding a bell left or right doesn't make it any more or less
 predictable. For $\sigma = 2$ it's about 2.11 nats.
 
@@ -935,7 +937,7 @@ theorem).*
 The **central limit theorem** (CLT) says this happens for any distribution
 with a finite variance. If you measure
 how far the average lands from $\mu$ in units of its standard error, that
-number follows the standard bell, centered at 0 with width 1, more and more
+number follows the standard bell, centered at 0 with standard deviation 1, more and more
 closely as $n$ grows:
 
 $$\frac{\bar X - \mu}{\sigma / \sqrt{n}} \to \mathcal{N}(0, 1)$$
