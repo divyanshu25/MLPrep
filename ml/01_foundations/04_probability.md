@@ -567,76 +567,46 @@ $$-\log p_\theta(y \mid x) = -\big[\, y \log \hat y + (1 - y) \log(1 - \hat y) \
 
 #### The regression losses: MSE and L1
 
-MSE is what maximum likelihood gives when you assume a model's misses follow
-a bell curve: small misses are common, large ones are rare. L1 is what it
-gives when you assume large misses are more common than a bell allows.
+MSE is what maximum likelihood gives when you assume a model's errors follow
+a bell curve: small errors are common, large ones rare. L1 is what it gives
+when large errors are more common than a bell allows.
 
-A regression model outputs one number, say 300k for a house. Maximum
-likelihood needs more than that. It needs a probability for the price the
-house actually sold for. So read the prediction as "about 300k": the actual
-price is the prediction plus random noise, and the noise follows the bell
-from §3.2, centered at 0 with standard deviation $\sigma$.
+A regression model outputs one number, say 300k for a house, but maximum
+likelihood needs a probability for the price the house actually sold for.
+So read the prediction as "about 300k": the actual price is the prediction
+plus noise from the bell of §3.2, centered at 0 with standard deviation
+$\sigma$. With $\sigma = 10$k, a sale that misses by $d$ thousand (the
+**error**, or **residual**) scores the bell's height there, $e^{-d^2/200}$:
+1 for a perfect prediction, 0.61 for a 10k miss, 0.011 for a 30k miss. (The
+bell's constant in front is the same for every model, so it's dropped.)
 
-Take $\sigma = 10$k. If a sale misses the prediction by $d$ thousand (this
-gap is the **error**, also called the **residual**), its score is the bell's
-height at $d$, $e^{-d^2/200}$. (The bell's constant in front is dropped. It
-is the same for every model, so it can't change which model wins.)
-
-| error $d$ | 0 | 5k | 10k | 30k |
-|---|---|---|---|---|
-| score $e^{-d^2/200}$ | 1 | 0.88 | 0.61 | 0.011 |
-
-A perfect prediction scores 1, a 10k miss scores 0.61, and a 30k miss scores
-almost nothing.
-
-Now compare two models. Three houses sold for 310k, 290k and 305k. Model A
-predicted 300k for each one. Model B predicted 310k, 290k and 300k. The
-houses are independent, so a model's likelihood is the product of its three
-scores:
+Three houses sold for 310k, 290k and 305k. The houses are independent, so a
+model's likelihood is the product of its scores:
 
 | | predictions | errors | scores | likelihood | sum of squared errors |
 |---|---|---|---|---|---|
 | model A | 300, 300, 300 | 10, −10, 5 | 0.61, 0.61, 0.88 | 0.32 | 225 |
 | model B | 310, 290, 300 | 0, 0, 5 | 1, 1, 0.88 | 0.88 | 25 |
 
-B wins, 0.88 to 0.32. B also has the smaller sum of squared errors, and that
-is no accident. Multiplying powers of $e$ adds their exponents, so
+B wins, and it also has the smaller sum of squared errors. That always
+happens: multiplying powers of $e$ adds the exponents, so
 
 $$-\log(\text{likelihood}) = \frac{\text{sum of squared errors}}{200}$$
 
 (Check: $e^{-225/200} = 0.32$ and $e^{-25/200} = 0.88$.) The most likely
-model is always the one with the smallest sum of squared errors. Divide by
-the number of houses and that's MSE.
+model is the one with the smallest squared error, and dividing by the number
+of houses gives MSE.
 
-MSE uses the same $\sigma = 10$k for every house, so it expects every house
-to miss by about the same number of dollars. That $\sigma$ is not measured
-from the data. It is the size of the bell placed around every prediction,
-and one size rarely fits all: a 10k miss is huge for a 10k cabin and
-negligible for a 200 million estate, yet MSE charges both the same. Two
-common fixes give each house a bell of the right size:
+The catch is that one $\sigma = 10$k assumes every house misses by about the
+same number of dollars, which fails when a 10k cabin and a 200M estate are in
+the same dataset. The usual fix is to predict log(price). The error then
+becomes $\log(\text{actual}/\text{predicted})$, so one $\sigma$ means the
+same *percentage* miss on every house. (Another fix is to have the model
+output its own $\sigma$ for each house.)
 
-- Predict the log of the price instead of the price. The error then becomes
-  $\log(\text{actual}) - \log(\text{predicted}) = \log(\text{actual}/\text{predicted})$,
-  which depends only on the ratio of the two prices. A cabin predicted at
-  10k that sells for 11k and an estate predicted at 200M that sells for 220M
-  are both 10% misses, and both have error $\log 1.1 \approx 0.095$. So one
-  $\sigma$ on the log scale allows the same *percentage* miss on every
-  house. With $\sigma = 0.1$, that is about ±1k on the cabin and ±20M on the
-  estate.
-- Have the model output its own $\sigma$ for each house, say 1k for the
-  cabin and 20M for the estate. The loss for a house becomes
-  $d^2/(2\sigma^2) + \log\sigma$, so a 10k miss adds a lot to the cabin's
-  loss and almost nothing to the estate's. The $\log\sigma$ term charges for a large
-  $\sigma$, so $\sigma$ can't simply be made large for every house.
-
-If large misses happen more often than a Gaussian allows, use the
-**Laplace** distribution instead. Its score for a miss of $d$ is
-$e^{-|d|/b}$, where $b$ sets the spread the way $\sigma$ does. The same steps
-give
-
-$$-\log(\text{likelihood}) = \frac{\text{sum of absolute errors}}{b}$$
-
-which is L1 loss.
+L1 comes from **Laplace** noise, whose score for an error $d$ is
+$e^{-|d|/b}$, with $b$ setting the spread. The same steps give
+$-\log(\text{likelihood}) = (\text{sum of absolute errors})/b$.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 220" role="img" aria-label="Left: Gaussian and Laplace noise densities. Right: their minus log curves, a parabola for the Gaussian giving MSE and a V shape for the Laplace giving L1 loss" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -671,31 +641,19 @@ which is L1 loss.
 than the Gaussian. Right: their $-\log$, the loss for one example: a
 parabola for MSE, a V for L1.*
 
-The difference shows up with outliers. Four houses sold for 300k, 305k, 310k
-and 900k, the last one a typo. Suppose you predict a single price $c$ for
-all four.
-
-MSE picks the mean, 453.75k, which is above every real sale. Squaring makes
-the typo's error so large that it outweighs the other three houses. (The
-derivative of $\sum_i (y_i - c)^2$ is $-2\sum_i (y_i - c)$, which is zero at
-the mean.)
-
-L1 picks the median, the middle of the sorted prices. Here is the sum of
-absolute errors for a few choices of $c$:
+The two differ on outliers. Four houses sold for 300k, 305k, 310k and 900k,
+the last one a typo, and you predict one price $c$ for all four. MSE picks
+the mean, 453.75k, above every real sale, because squaring makes the typo's
+error dominate. L1 picks the median, any $c$ from 305k to 310k:
 
 | prediction $c$ | 300k | 305k | 307.5k | 310k | 320k | 453.75k |
 |---|---|---|---|---|---|---|
 | sum of absolute errors | 615 | 605 | 605 | 605 | 625 | 892.5 |
 
-The loss is lowest, 605, for every $c$ from 305k to 310k. To see why, move
-$c$ up by 1k and look at each house's error. A house below $c$ gets 1k
-farther away, which adds 1. A house above $c$ gets 1k closer, which
-subtracts 1. Starting at 300k, one house is below and three are above, so
-each step lowers the loss by 2. Between 305k and 310k, two houses are below
-and two are above, so a step changes nothing. Past 310k, three houses are
-below and one is above, so the loss rises again. The best $c$ is wherever
-half the houses are on each side, which is the median. The 900k typo counts
-as one house above $c$, and how far above it is doesn't matter.
+Moving $c$ up by 1k adds 1 for each house below $c$ and subtracts 1 for each
+house above it. So the loss falls while more houses are above $c$, and stops
+falling once half are on each side. The typo counts as one house above $c$,
+however far above it is.
 
 ## 3.5 Entropy and KL: what a loss value means
 
