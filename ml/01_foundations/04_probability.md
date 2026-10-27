@@ -1,135 +1,107 @@
 # Probability & statistics for ML
 
-This chapter answers three questions that come up constantly in ML:
+Three questions come up again and again when you train and evaluate models.
+Why is the loss cross-entropy, or MSE, and not something else? When model B
+beats model A by half a point, is that real or luck? And when a model is
+wrong, is it too simple, or has it latched onto quirks of its training set?
+All three have precise answers, and they all come from the same small set of
+ideas in probability.
 
-- **Why is the loss what it is?** Cross-entropy, MSE and L1 each follow from
-  an assumption about how the labels are generated. Know the assumption and
-  you know when the loss is the wrong choice (§3.4).
-- **Is this improvement real?** Model B beats model A by 0.5% on 1,000 test
-  examples. Accuracy on 1,000 examples varies by about ±0.9% just from which
-  examples happened to be in the test set, so a 0.5% gap can be luck (§3.6,
-  §3.8).
-- **Why does my model miss?** It is too simple for the pattern (bias), or it
-  fits the quirks of its particular training set (variance). Regularization,
-  more data and bagging each reduce one of the two (§3.7).
-
-It builds in three parts, each using only what came before:
-
-1. **Describing uncertainty** (§3.1–3.2): averages and spread, and the two
-   distributions ML uses most.
-2. **Learning from data** (§3.3–3.5): Bayes rule, maximum likelihood (where
-   the losses come from), and what a loss value means.
-3. **Trusting numbers computed from data** (§3.6–3.8): error bars, bias and
-   variance, and whether a difference is real.
-
-Every idea comes with a few lines of NumPy you can run. The snippets assume
-`import numpy as np`.
+We'll build those ideas in order. First, how to describe a random quantity:
+its average, its spread, and the two distributions ML uses most (§3.1–3.2).
+Then how to learn from data: Bayes rule, maximum likelihood, and what a loss
+value actually measures (§3.3–3.5). Finally, how much to trust a number
+computed from data: error bars, bias and variance, and hypothesis tests
+(§3.6–3.8).
 
 ## 3.1 Random variables, expectation, variance
 
-A **random variable** is a number that comes out of a random process. Roll a
-die and you get $X \in \{1, \dots, 6\}$, each face with probability $1/6$.
+A **random variable** is just a number that comes out of a random process.
+Roll a die and you get one of 1 through 6, each with probability 1/6. Before
+the roll you can't say which, but you can say two useful things about it:
+where it lands on average, and how far from that it typically lands.
 
-Two numbers summarize it. The **expectation** (or mean) is where it lands on
-average. The **variance** is how far it typically lands from there.
-
-```python
-faces = np.arange(1, 7)                 # 1, 2, ..., 6
-p = np.full(6, 1/6)                     # each face equally likely
-
-mean = (faces * p).sum()                # 3.5
-var  = ((faces - mean)**2 * p).sum()    # 2.92
-
-rolls = np.random.randint(1, 7, size=100_000)
-rolls.mean(), rolls.var()               # ≈ 3.5, ≈ 2.92
-```
-
-The first two lines compute the exact values from the probabilities. The
-last two simulate 100,000 rolls and get nearly the same numbers.
+For the die, those two numbers are 3.5 and 2.92, and we'll see how to get
+each one below. If you rolled it 100,000 times, the average of your rolls
+would come out very close to 3.5, and their spread very close to 2.92.
 
 #### Expectation
 
-**The expectation is each value times its probability, summed:** the
-long-run average.
+The average is called the **expectation**: multiply each value by its
+probability and add up.
 
 $$\mathbb{E}[X] = \sum_x x \, P(X = x) = \tfrac{1}{6}(1+2+3+4+5+6) = 3.5$$
 
-**Linearity: the average of a sum is the sum of the averages.**
+The most useful fact about expectations is that they split over sums. Roll
+two dice and the total averages $3.5 + 3.5 = 7$. In general,
 
 $$\mathbb{E}[aX + bY] = a\,\mathbb{E}[X] + b\,\mathbb{E}[Y]$$
 
-This always holds, even when $X$ and $Y$ depend on each other, because both
-sides are the same weighted sum with the terms grouped differently. Two dice
-add to 7 on average, $3.5 + 3.5$. Most results in this chapter are one
-application of this rule.
+and this is called **linearity**. It holds even when $X$ and $Y$ depend on
+each other, because both sides are the same weighted sum, just grouped
+differently. A surprising number of results in this chapter are one
+application of it.
 
-Products are different. $\mathbb{E}[XY] = \mathbb{E}[X]\,\mathbb{E}[Y]$ only
-when $X$ and $Y$ are **independent**: knowing one tells you nothing about
-the other, $P(X = x, Y = y) = P(X = x)\,P(Y = y)$. Then the double sum splits:
+Products don't split so easily. $\mathbb{E}[XY]$ equals
+$\mathbb{E}[X]\,\mathbb{E}[Y]$ only when $X$ and $Y$ are **independent**,
+meaning knowing one tells you nothing about the other:
+$P(X = x, Y = y) = P(X = x)\,P(Y = y)$. When that holds, the double sum
+factors into two single sums:
 
 $$\mathbb{E}[XY] = \sum_{x,y} x\,y\,P(x)\,P(y) = \Big(\sum_x x\,P(x)\Big)\Big(\sum_y y\,P(y)\Big) = \mathbb{E}[X]\,\mathbb{E}[Y]$$
 
 #### Variance
 
-**Variance is the expected squared distance from the true mean**
-$\mu = \mathbb{E}[X]$:
+The spread is measured by the **variance**: the average squared distance
+from the true mean $\mu = \mathbb{E}[X]$.
 
 $$\mathrm{Var}(X) = \mathbb{E}[(X - \mu)^2]$$
 
-"Mean" and "average" are the same operation applied to two different things:
+One thing worth getting straight early. "Mean" and "average" are the same
+operation, but there are two different things you can apply it to. The
+*true mean* averages over every possible outcome, weighted by probability:
+for the die it's 3.5, one fixed number. The *sample mean* averages the
+draws you actually got: rolls 2, 6, 3 give 3.67, and the next three rolls
+will give something else. The $\mathbb{E}[\,\cdot\,]$ notation always means
+the first kind. Estimating a variance from actual draws turns out to have a
+twist, which we'll get to in §3.7.
 
-- The **true mean** averages over every possible outcome, weighted by its
-  probability: 3.5 for the die. It is one fixed number.
-- The **sample mean** averages the draws you actually got: rolls $2, 6, 3$
-  give $3.67$. Another set of rolls gives another number.
+There's a handy shortcut for computing variance: expand the square and use
+linearity, and you get $\mathrm{Var}(X) = \mathbb{E}[X^2] - \mu^2$. For the
+die that's $91/6 - 3.5^2 \approx 2.92$.
 
-$\mathbb{E}[\,\cdot\,]$ always means the first kind. Estimating a variance
-from an actual sample is a different problem, with a twist of its own
-(§3.7).
+Two rules tell you how variance behaves when you transform things. If you
+multiply $X$ by $a$, every distance from the mean gets multiplied by $a$, so
+every squared distance by $a^2$: $\mathrm{Var}(aX) = a^2\,\mathrm{Var}(X)$.
+And if you add two *independent* variables, their variances add:
+$\mathrm{Var}(X + Y) = \mathrm{Var}(X) + \mathrm{Var}(Y)$. (Expanding the
+square gives the two variances plus a cross term,
+$2\,\mathbb{E}[(X - \mu_X)(Y - \mu_Y)]$, called the **covariance** term, and
+independence makes it zero by the product rule above.) Two dice have variance
+$2.92 + 2.92 = 5.83$.
 
-A shortcut for computing it: expand the square and use linearity.
-
-$$\mathrm{Var}(X) = \mathbb{E}[X^2] - \mu^2 = \tfrac{91}{6} - 3.5^2 \approx 2.92 \quad \text{for the die}$$
-
-Two rules for how variance behaves:
-
-- **Scaling: $\mathrm{Var}(aX) = a^2\,\mathrm{Var}(X)$.** Doubling $X$
-  doubles every distance from the mean, so it quadruples every squared
-  distance.
-- **Adding independent variables: $\mathrm{Var}(X + Y) = \mathrm{Var}(X) + \mathrm{Var}(Y)$.**
-  Expanding $\big((X - \mu_X) + (Y - \mu_Y)\big)^2$ gives the two variances
-  plus a cross term, $2\,\mathbb{E}[(X - \mu_X)(Y - \mu_Y)]$, called the
-  **covariance** term. For independent variables the product rule above
-  makes it 0. Two dice: $2.92 + 2.92 = 5.83$.
-
-The second rule is behind the $\sigma/\sqrt{n}$ error bars of §3.6 and behind
-weight initialization schemes like Xavier and He, which pick the weight
-variance so each layer's outputs keep the same variance as its inputs.
+That second rule does a lot of work later. It's where the $\sigma/\sqrt{n}$
+error bars of §3.6 come from, and it's the reasoning behind weight
+initialization schemes like Xavier and He, which choose the weight variance
+so that each layer's outputs have the same variance as its inputs.
 
 ## 3.2 Bernoulli and Gaussian: the two distributions ML leans on
 
-Two distributions cover most of what ML models:
-
-- **One yes/no event** (a coin flip, a binary label, a dropout mask):
-  **Bernoulli**.
-- **A quantity built from many small effects** (measurement noise, how far a
-  prediction misses, an average): **Gaussian**.
-
-§3.4 uses both to derive the standard losses.
+Two distributions show up far more than any others. The Bernoulli describes
+a single yes/no event: a coin flip, whether an email is spam, whether a unit
+survives dropout. The Gaussian describes a quantity built from many small
+effects: measurement noise, how far a prediction misses, an average over many
+examples. §3.4 will use both to derive the standard losses.
 
 #### Bernoulli: one yes/no event
 
-**A Bernoulli($p$) variable is 1 with probability $p$ and 0 otherwise.** One
-draw is one coin flip.
+A **Bernoulli($p$)** variable is 1 with probability $p$ and 0 otherwise.
+That's all there is to it. Flip a coin with $p = 0.3$ many times and about
+30% of the flips come out 1.
 
-```python
-flips = (np.random.rand(100_000) < 0.3).astype(float)   # Bernoulli(0.3)
-flips.mean(), flips.var()                               # ≈ 0.3, ≈ 0.21
-```
-
-The mean is $p$: $1 \cdot p + 0 \cdot (1 - p) = p$. The variance is
-$p(1 - p)$, here $0.3 \times 0.7 = 0.21$. (A 0/1 variable has $X^2 = X$, so
-$\mathbb{E}[X^2] = p$ and the shortcut gives $p - p^2$.)
+The mean is $p$, since $1 \cdot p + 0 \cdot (1 - p) = p$. The variance is
+$p(1 - p)$, here $0.3 \times 0.7 = 0.21$. (A 0/1 variable equals its own
+square, so $\mathbb{E}[X^2] = p$, and the shortcut gives $p - p^2$.)
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 380 200" role="img" aria-label="The Bernoulli variance p times one minus p plotted against p: a parabola that is zero at p equals 0 and p equals 1 and peaks at one quarter when p equals one half" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -156,99 +128,93 @@ $\mathbb{E}[X^2] = p$ and the shortcut gives $p - p^2$.)
 *The variance of one Bernoulli($p$) draw as $p$ goes from 0 to 1: zero at
 both ends, maximum $1/4$ at $p = 1/2$.*
 
-A fair coin ($p = 1/2$) is the hardest to predict and has the largest
-variance; a nearly certain outcome barely varies.
+This shape makes sense. A fair coin is as unpredictable as a coin can be, so
+its variance is largest. A coin that almost always lands heads barely varies
+at all.
 
-Three things built from it:
-
-- **Counting successes: the Binomial.** The number of heads in $n$ flips is
-  a sum of $n$ Bernoullis, so it has mean $np$ (linearity) and variance
-  $np(1 - p)$ (independent variances add).
-- **Binary labels.** A classifier that outputs "spam with probability 0.9"
-  is modeling the label as Bernoulli($0.9$). §3.4 turns this into the binary
-  cross-entropy loss.
-- **Dropout.** Each unit is kept with probability $p$, so a layer of $n$
-  units keeps $np$ on average. (PyTorch quotes the drop probability:
-  `nn.Dropout(0.1)` keeps each unit with $p = 0.9$.)
+The Bernoulli is the building block for a few things you'll meet constantly.
+Add up $n$ independent flips and you're counting successes, which gives the
+**Binomial** distribution, with mean $np$ by linearity and variance
+$np(1 - p)$ because independent variances add. A classifier that says "spam
+with probability 0.9" is modeling the label as Bernoulli(0.9), and §3.4 turns
+that into the binary cross-entropy loss. And dropout keeps each unit with
+probability $p$, so a layer of $n$ units keeps about $np$ of them. (PyTorch
+quotes the drop probability instead: `nn.Dropout(0.1)` keeps each unit with
+$p = 0.9$.)
 
 #### Gaussian: the sum of many small effects
 
-**The Gaussian $\mathcal{N}(\mu, \sigma^2)$ is the bell curve**, centered at
-the mean $\mu$, with width set by the standard deviation $\sigma$.
+The **Gaussian** $\mathcal{N}(\mu, \sigma^2)$ is the bell curve, centered at
+the mean $\mu$, with its width set by the standard deviation $\sigma$. Rather
+than start with its formula, let's see where it comes from.
 
-Where the bell comes from: add up many small random effects. Here is the
-error of a house-price prediction as 20 small independent pushes of up to
-±1k each (the floor, the condition, the buyer's mood, ...):
+Think about how far a house-price prediction misses the actual price. The
+miss is the sum of lots of small things the model didn't account for: the
+floor, the condition, the buyer's mood, the week it sold. Simulate that as 20
+small independent pushes, each anywhere from −1k to +1k, for 100,000 houses,
+and count how many total misses land near each value (within 1k of it):
 
-```python
-np.random.seed(0)
-pushes = np.random.uniform(-1, 1, size=(100_000, 20))   # 100k houses
-errors = pushes.sum(axis=1)                             # each house's total miss
-np.histogram(errors, bins=9, range=(-9, 9))[0]          # counts, -9k to +9k
-# [  309  2324  9546 22638 30192 22586  9784  2324   267]
-```
+| total miss | −8k | −6k | −4k | −2k | 0 | +2k | +4k | +6k | +8k |
+|---|---|---|---|---|---|---|---|---|---|
+| houses | 309 | 2,324 | 9,546 | 22,638 | 30,192 | 22,586 | 9,784 | 2,324 | 267 |
 
-Each push is flat, any value from −1k to 1k equally likely, but the totals
-pile up in the middle and thin out at the edges. A total near zero only
-needs the pushes to roughly cancel, which many combinations do; a total of
-+9k needs nearly all 20 to push the same way. §3.6 shows this happens for
-almost any kind of push: the **central limit theorem**.
+Each push on its own is flat: any value from −1k to 1k is equally likely. But
+the totals pile up in the middle and thin out toward the edges. That's
+because a total near zero only needs the pushes to roughly cancel, and there
+are a huge number of ways for that to happen, while a total of +9k needs
+nearly all 20 pushes to go the same way. The result is a bell. §3.6 shows
+this happens for almost any kind of push, which is the **central limit
+theorem**.
 
-The bell's formula:
+The bell's formula is
 
 $$\frac{1}{\sqrt{2\pi\sigma^2}}\, e^{-(x-\mu)^2 / 2\sigma^2}$$
 
-The shape comes from the factor $e^{-(x-\mu)^2 / 2\sigma^2}$. It is 1 at the
-mean, the same on both sides, and falls off fast. With $\sigma = 10$, a value
-10 from the mean gets factor $e^{-0.5} = 0.61$, and a value 30 away gets
-$e^{-4.5} = 0.011$. The constant in front only scales the curve so its total
-area is 1.
+The part that gives it its shape is $e^{-(x-\mu)^2 / 2\sigma^2}$. At the mean
+it equals 1, it's symmetric on either side, and it falls off quickly as you
+move away. With $\sigma = 10$, a value 10 away from the mean gets a factor of
+$e^{-0.5} = 0.61$, and a value 30 away gets $e^{-4.5} = 0.011$. The constant
+in front just scales the curve so its total area is 1.
 
-Three reasons it is the default:
+So why is the Gaussian everyone's default? Partly because of the simulation
+above: real noise is usually the sum of many small effects, so a bell often
+fits. Partly because, among all distributions with a given mean and variance,
+it's the most spread out and makes the fewest extra assumptions (§3.5 makes
+that precise). And partly for a reason that will matter a lot in §3.4: its
+$-\log$ is a squared distance.
 
-1. **Noise usually is a sum of many small effects**, as above, so a bell
-   often fits reality.
-2. **It assumes the least.** For a given mean and variance it is the most
-   spread out, least committal distribution (§3.5 makes this precise).
-3. **Its $-\log$ is a squared distance:**
+$$-\log\Big(\tfrac{1}{\sqrt{2\pi\sigma^2}}\, e^{-(x-\mu)^2 / 2\sigma^2}\Big)
+= \frac{(x-\mu)^2}{2\sigma^2} + \tfrac{1}{2}\log(2\pi\sigma^2)$$
 
-   $$-\log\Big(\tfrac{1}{\sqrt{2\pi\sigma^2}}\, e^{-(x-\mu)^2 / 2\sigma^2}\Big)
-   = \frac{(x-\mu)^2}{2\sigma^2} + \tfrac{1}{2}\log(2\pi\sigma^2)$$
-
-   §3.4 uses this to show that assuming Gaussian errors gives least squares.
+That's the first hint of why least squares is so common.
 
 ## 3.3 Bayes rule - derived, not memorized
 
-**Bayes rule works backward from what you can measure to what you want to
-know.** A lab can measure how often a test is positive for people known to be
-sick. A patient wants the reverse: how often a positive result means sick.
-These are very different numbers, and confusing them is the classic mistake.
+Bayes rule is about turning a probability around. A lab can measure how
+often a test comes back positive for people known to be sick. But a patient
+with a positive result wants the reverse: given that I tested positive, how
+likely am I to be sick? Those two numbers can be wildly different, and mixing
+them up is one of the most common mistakes in reasoning about data.
 
 #### The rare-disease test
 
-A disease affects 1 person in 100. A test for it is good but not perfect:
+Say a disease affects 1 person in 100, and there's a test for it. If you're
+sick, the test comes back positive 99% of the time. If you're healthy, it
+still comes back positive 5% of the time, a false alarm. Notice these are two
+separate numbers, one for each group: a test can be excellent at catching the
+sick and only decent at clearing the healthy, because those failures have
+different causes.
 
-- If you **are sick**, it comes back positive 99% of the time.
-- If you **are healthy**, it still comes back positive 5% of the time, a
-  false alarm.
+Now you test positive. What's the chance you're actually sick? Most people
+guess something close to 99%. Count through 10,000 people instead:
 
-These are two separate numbers, one for each group. Missing a sick person
-and flagging a healthy one have different causes, so a test can be very good
-at one and only fairly good at the other.
+- 100 are sick, and 99% of them test positive: 99 people.
+- 9,900 are healthy, and 5% of them test positive: 495 people.
+- So 594 people test positive, and only 99 of them are sick: $99/594 \approx 17\%$.
 
-You test positive. What is the chance you are sick? Most people guess about
-99%. Count through 10,000 people instead:
-
-```python
-sick, healthy = 100, 9_900
-true_pos  = 0.99 * sick              # 99 sick people test positive
-false_pos = 0.05 * healthy           # 495 healthy people test positive
-true_pos / (true_pos + false_pos)    # 0.167
-```
-
-About 17%. The test catches nearly every sick person, but healthy people are
-so much more common (9,900 vs 100) that even a 5% false-alarm rate produces
-five false alarms for every real case.
+About 17%. The test catches nearly every sick person, but there are so many
+more healthy people (9,900 against 100) that even a 5% false-alarm rate
+produces five false alarms for every real case.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 130" role="img" aria-label="Among 10,000 people the positive tests split into 99 true positives from the sick group and 495 false positives from the healthy group, so a positive test means only about 17 percent chance of being sick" style="max-width:430px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -262,11 +228,11 @@ five false alarms for every real case.
 </svg>
 </div>
 
-*The two bars are everyone who tests positive, drawn to scale: 99 sick, 495
-healthy.*
+*Everyone who tests positive, drawn to scale: 99 sick, 495 healthy.*
 
-The three starting numbers have standard names. One describes the people
-being tested; two describe the test:
+The three numbers we started with have standard names, and it helps to
+notice that one of them describes the people while the other two describe
+the test:
 
 | Name | Value | Describes |
 |---|---|---|
@@ -274,66 +240,69 @@ being tested; two describe the test:
 | **Sensitivity** | 99% | the test: the share of sick people it flags |
 | **Specificity** | 95% | the test: the share of healthy people it clears (so 5% false alarms) |
 
-In ML terms this is precision under class imbalance. It is why accuracy is
-useless for rare events: a 99%-accurate fraud model can still flag mostly
-innocent transactions. (`probability_demos.ipynb` runs it with raw counts.)
+If you've worked on fraud or anomaly detection, you've seen this exact
+problem under a different name: precision under class imbalance. It's why
+accuracy is a useless metric for rare events, and why a 99%-accurate fraud
+model can still flag mostly innocent transactions. (`probability_demos.ipynb`
+runs the counts.)
 
 #### The rule
 
-The code above is Bayes rule; the formula only adds notation.
-$P(\text{sick} \mid +)$, read "probability of sick given positive", means:
-among the people who test positive, the fraction who are sick. That is
-exactly what the code computed:
+The counting above already *is* Bayes rule; the formula just adds notation.
+$P(\text{sick} \mid +)$ is read "the probability of sick given positive", and
+it means: among the people who test positive, what fraction are sick. That's
+exactly what we computed, sick-and-positive divided by all-positive.
 
-$$P(\text{sick} \mid +) = \frac{\text{sick and positive}}{\text{all positive}}$$
-
-Write each count with the starting numbers:
-
-- **Sick and positive:** $P(+ \mid \text{sick})\, P(\text{sick}) = 0.99 \times 0.01 = 0.0099$
-- **All positive:** both ways of testing positive,
-  $P(+) = 0.99 \times 0.01 + 0.05 \times 0.99 = 0.0594$
-
-Divide:
+Now write those two counts using the numbers we started from. The
+sick-and-positive share is $P(+ \mid \text{sick})\,P(\text{sick}) = 0.99
+\times 0.01 = 0.0099$. The all-positive share counts both ways to test
+positive, $P(+) = 0.99 \times 0.01 + 0.05 \times 0.99 = 0.0594$. Divide one by
+the other:
 
 $$P(\text{sick} \mid +) = \frac{P(+ \mid \text{sick})\; P(\text{sick})}{P(+)} = \frac{0.0099}{0.0594} \approx 16.7\%$$
 
-In general, for a hypothesis $A$ and evidence $B$:
+Replace "sick" with any hypothesis $A$ and "positive" with any evidence $B$,
+and you have the general rule:
 
 $$P(A \mid B) = \frac{P(B \mid A)\, P(A)}{P(B)}$$
 
-- **Prior** $P(A)$: belief before the evidence. Here the prevalence, 1%.
-- **Likelihood** $P(B \mid A)$: how often this evidence shows up when the
-  hypothesis is true. Here the sensitivity, 99%.
-- **Posterior** $P(A \mid B)$: belief after the evidence, the number you
-  want. Here 17%.
-- **Evidence** $P(B)$: how often the evidence shows up at all. Here 5.94%.
+The pieces have names you'll hear a lot. $P(A)$ is the **prior**, what you
+believed before the evidence; here it's the prevalence, 1%. $P(B \mid A)$ is
+the **likelihood**, how often the evidence shows up when the hypothesis is
+true; here it's the sensitivity, 99%. $P(A \mid B)$ is the **posterior**,
+what you believe after the evidence, the number you actually wanted: 17%.
+And $P(B)$ is the **evidence**, how often you'd see a positive at all: 5.94%.
 
-**Why the rule is needed:** the test's numbers (the likelihoods) are the same
-wherever it is used, but the answer also depends on who is being tested. The
-same test on people who already have symptoms, where say 10% are sick:
+Why bother with a formula when counting works? Because the test's numbers
+stay fixed wherever you use it, but the answer depends on who's being tested.
+Use the same test on people who already have symptoms, where maybe 10% are
+sick:
 
 $$P(\text{sick} \mid +) = \frac{0.99 \times 0.10}{0.99 \times 0.10 + 0.05 \times 0.90} \approx 69\%$$
 
-Same test, same positive result: 17% in the general population, 69% among
-people with symptoms.
+Same test, same positive result. In the general population it means 17%;
+among people with symptoms it means 69%. Bayes rule is how you carry the
+test's fixed properties over to whatever group you're actually in.
 
 #### Today's posterior is tomorrow's prior
 
-**Each new piece of evidence updates the current belief, starting from
-wherever the last update left it.** The positive patient takes the test
-again and is positive again. Writing $+_2$ for "the second test is
-positive":
+Suppose our patient takes the test a second time and it's positive again.
+What now? The trick is that after the first test, we no longer believe 1%; we
+believe 17%. That becomes the new prior. Writing $+_2$ for "the second test
+is positive":
 
 $$P(\text{sick} \mid +_2) = \frac{P(+_2 \mid \text{sick})\, P(\text{sick})}{P(+_2 \mid \text{sick})\, P(\text{sick}) + P(+_2 \mid \text{healthy})\, P(\text{healthy})}$$
 
-The prior is now the first test's posterior, $P(\text{sick}) = 1/6$ (that
-is, $99/594$), so $P(\text{healthy}) = 5/6$. The test's numbers are
-unchanged, 0.99 and 0.05:
+The prior is $P(\text{sick}) = 1/6$ (that's $99/594$), so
+$P(\text{healthy}) = 5/6$. The test itself hasn't changed, so the
+likelihoods are still 0.99 and 0.05:
 
 $$P(\text{sick} \mid +_2) = \frac{0.99 \times \tfrac{1}{6}}{0.99 \times \tfrac{1}{6} + 0.05 \times \tfrac{5}{6}} = \frac{0.165}{0.165 + 0.042} \approx 80\%$$
 
-The first test moved the probability from 1% to 17%; the second, starting
-from 17%, moved it to 80%.
+The first positive moved us from 1% to 17%. The second, starting from 17%,
+moved us to 80%. Each piece of evidence updates whatever you currently
+believe, and "prior" and "posterior" only describe where you are in that
+chain.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 240" role="img" aria-label="Three bars showing the probability of being sick rising from 1 percent before any test to 17 percent after one positive test to 80 percent after a second positive test, with the population counts under each bar" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -379,42 +348,39 @@ from 17%, moved it to 80%.
 </svg>
 </div>
 
-*$P(\text{sick})$ at each stage, green portion of each bar. Each update keeps
-only the people consistent with the new evidence: 10,000 shrink to the 594
-who tested positive, then to the 123 who tested positive twice.*
+*$P(\text{sick})$ at each stage, the green part of each bar. Each update
+keeps only the people consistent with the new evidence: 10,000 shrink to the
+594 who tested positive, then to the 123 who tested positive twice.*
 
 ## 3.4 Maximum likelihood: where the standard losses come from
 
-**A model is a claim about how probable each possible outcome is. Training
-means adjusting it until the outcomes that actually happened look as
-probable as possible.** Every standard loss is the same quantity,
-$-\log$(probability the model gave to what actually happened):
-
-- A **classifier** outputs a probability per class. The loss is $-\log$ of
-  the probability on the true class: **cross-entropy**.
-- A **regression model** outputs a number, read as the center of a bell of
-  likely values. The loss is $-\log$ of the bell's height at the true value,
-  which works out to the squared error: **MSE**.
+Here's the idea that ties the common losses together. A model, whatever its
+architecture, is making a claim about how probable each possible outcome is.
+Training it means adjusting it until the things that actually happened look
+as probable as possible. And every standard loss turns out to be the same
+quantity in disguise: $-\log$ of the probability the model gave to what
+actually happened. For a classifier, that's cross-entropy. For a regression
+model, if you think of its output as the center of a bell of likely values,
+it works out to squared error. The rest of this section shows both.
 
 #### The principle, on a coin
 
-**Maximum likelihood (MLE): pick the parameters under which the data you saw
-is most probable.**
+The idea is called **maximum likelihood estimation** (MLE): choose the
+parameters under which the data you saw is most probable.
 
-A coin lands heads 7 times in 10. Each flip is a Bernoulli($p$) draw (§3.2),
-so the chance of that sequence is $p^7 (1-p)^3$. Try every $p$:
+Take a coin that landed heads 7 times in 10 flips. Each flip is a
+Bernoulli($p$) draw, so the probability of that exact sequence is
+$p^7 (1-p)^3$. We don't know $p$, so try a few values:
 
-```python
-p = np.linspace(0.01, 0.99, 99)          # candidate heads probabilities
-lik = p**7 * (1 - p)**3                  # probability of the data under each
-p[lik.argmax()]                          # 0.7
-lik[np.isclose(p, 0.5)], lik[np.isclose(p, 0.7)]   # 0.00098, 0.0022
-```
+| heads probability $p$ | 0.5 | 0.6 | 0.7 | 0.8 |
+|---|---|---|---|---|
+| probability of the 10 flips | 0.00098 | 0.0018 | 0.0022 | 0.0017 |
 
-$p = 0.7$ makes the data twice as probable as $p = 0.5$, and no $p$ does
-better. In general, for $h$ heads in $n$ flips the best $p$ is $h/n$, the
-observed frequency. (Setting the derivative of $h \log p + (n-h)\log(1-p)$
-to zero gives $h/p = (n-h)/(1-p)$, so $p = h/n$.)
+$p = 0.7$ makes the data more than twice as probable as $p = 0.5$, and no
+value beats it. That's not a coincidence of these numbers: for $h$ heads in
+$n$ flips, the best $p$ is always $h/n$, the frequency you observed. (Set the
+derivative of $h \log p + (n-h)\log(1-p)$ to zero and you get
+$h/p = (n-h)/(1-p)$, which solves to $p = h/n$.)
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 360 235" role="img" aria-label="Log likelihood of a coin's heads probability after seeing 7 heads in 10 flips: a single-peaked curve with its maximum at p equals 0.7" style="max-width:380px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -435,40 +401,37 @@ to zero gives $h/p = (n-h)/(1-p)$, so $p = h/n$.)
 </svg>
 </div>
 
-*The log-likelihood of every candidate $p$ after 7 heads in 10 flips: one
-peak, at $p = 0.7$.*
+*The log-likelihood of every candidate $p$ after 7 heads in 10 flips. It has
+one peak, at $p = 0.7$.*
 
-That probability of the data, viewed as a function of the parameters, is the
-**likelihood**: the same word as in Bayes rule (§3.3), the probability of the
-evidence given a hypothesis. For a model with parameters $\theta$ and
-independent examples it is a product, one factor per example. In practice
-you maximize its log: a product of thousands of probabilities rounds to 0 on
-a computer, the log turns it into a sum, and the best $\theta$ is the same.
+The probability of the data, viewed as a function of the parameters, is the
+**likelihood**. It's the same word as in Bayes rule, and the same idea: the
+probability of the evidence under a hypothesis, where now the hypothesis is a
+choice of parameters $\theta$. With independent examples it's a product of
+one probability per example. In practice we maximize its log instead,
+because a product of thousands of probabilities rounds to zero on a computer,
+the log turns it into a sum, and the best $\theta$ doesn't change:
 
 $$\hat\theta = \arg\max_\theta \prod_i p_\theta(y_i \mid x_i) = \arg\max_\theta \sum_i \log p_\theta(y_i \mid x_i)$$
 
-($\arg\max_\theta$ means "the $\theta$ at which this is largest".)
+($\arg\max_\theta$ just means "the $\theta$ that makes this largest".)
 
-#### Cross-entropy is MLE for a classifier
+#### Cross-entropy is maximum likelihood for a classifier
 
-**Cross-entropy charges each example $-\log$(probability on the true class).
-Adding up those charges gives exactly the negative log-likelihood.**
+The loss classifiers train with charges each example $-\log$ of the
+probability the model put on the true class. Take two photos and three classes
+(cat, dog, bird):
 
-Two photos, three classes (cat, dog, bird):
+| | true class | model output | probability on the truth | loss |
+|---|---|---|---|---|
+| photo 1 | cat | $[0.7, 0.2, 0.1]$ | 0.7 | $-\log 0.7 = 0.36$ |
+| photo 2 | dog | $[0.5, 0.2, 0.3]$ | 0.2 | $-\log 0.2 = 1.61$ |
 
-```python
-probs = np.array([[0.7, 0.2, 0.1],     # photo 1, true class: cat
-                  [0.5, 0.2, 0.3]])    # photo 2, true class: dog
-labels = np.array([0, 1])
-
-p_true = probs[np.arange(2), labels]   # [0.7, 0.2]: probability on the truth
-(-np.log(p_true)).sum()                # 1.97  cross-entropy
--np.log(p_true.prod())                 # 1.97  negative log-likelihood
-```
-
-The likelihood is $0.7 \times 0.2 = 0.14$, the probability the model gave to
-both true labels, and $-\log 0.14 = 1.97$: the same number as the summed
-loss. Minimizing cross-entropy is maximizing the likelihood.
+The total loss is 1.97. Now ask a different question: how probable did the
+model think the true labels were? It gave them 0.7 and 0.2, so the
+likelihood of the data is $0.7 \times 0.2 = 0.14$, and $-\log 0.14 = 1.97$.
+That's the same number the loss gave. So minimizing cross-entropy and maximizing the
+likelihood are literally the same thing.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 255" role="img" aria-label="Two examples with three-class probability bars: the loss reads only the true class bar of each example, contributing minus log of that probability; the contributions add to the cross-entropy" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -515,80 +478,76 @@ loss. Minimizing cross-entropy is maximizing the likelihood.
 </svg>
 </div>
 
-*The loss reads only the green bar of each example, the probability on the
+*The loss reads only the green bar of each example: the probability on the
 true class.*
 
-Why $-\log$ is the right charge: it is small when the model was confident
-and right, and grows without limit as the probability on the true class goes
-to 0.
+It's worth seeing why $-\log$ makes a good charge. When the model is
+confident and right, the charge is tiny; as the probability on the true class
+heads toward zero, the charge grows without limit:
 
 | probability the model put on the true class | 0.9 | 0.5 | 0.01 |
 |---|---|---|---|
 | loss $= -\log(\text{that probability})$ | 0.11 | 0.69 | 4.61 |
 
-So the loss comes mostly from the examples the model found surprising, and
-training moves probability toward the labels that actually occurred.
+So the loss is dominated by the examples the model found surprising, and
+training spends its effort moving probability toward the labels that
+actually occurred.
 
-In general, cross-entropy compares a target distribution $q$ with the
-model's $p$: $H(q, p) = -\sum_k q_k \log p_k$. With a **one-hot** target
-($q_k = 1$ for the true class, 0 otherwise) only the true class's term
-survives, so it equals the negative log-likelihood. With soft targets such
-as label smoothing, $q = [0.9, 0.05, 0.05]$, it is still a fine loss, but no
-longer a likelihood.
+More generally, cross-entropy compares a target distribution $q$ with the
+model's distribution $p$: $H(q, p) = -\sum_k q_k \log p_k$. With a one-hot
+target, where $q_k$ is 1 for the true class and 0 elsewhere, only the true
+class's term survives and you get exactly the negative log-likelihood above.
+With soft targets like label smoothing, $q = [0.9, 0.05, 0.05]$, it's still a
+perfectly good loss, just no longer a likelihood.
 
-**Two classes: binary cross-entropy.** A classifier that outputs
-$\hat y = 0.9$ for "spam" models the label as Bernoulli($0.9$). It gives the
-true label $y \in \{0, 1\}$ probability $\hat y$ if $y = 1$ and $1 - \hat y$
-if $y = 0$. Taking $-\log$, both cases in one line:
+With only two classes the same idea gives **binary cross-entropy**. If the
+model outputs $\hat y = 0.9$ for "spam", it's saying the label is
+Bernoulli(0.9): probability $\hat y$ for $y = 1$ and $1 - \hat y$ for
+$y = 0$. Taking $-\log$ and writing both cases in one line:
 
 $$-\log p_\theta(y \mid x) = -\big[\, y \log \hat y + (1 - y) \log(1 - \hat y) \,\big]$$
 
 #### The regression losses: MSE and L1
 
-**MSE is MLE when prediction errors are bell-shaped (Gaussian). L1 is MLE
-when they follow a Laplace distribution.**
+Regression needs one extra step. A regression model outputs a single number,
+say a price of 300k. Taken literally, that's a claim that the price is
+exactly 300k and every other price is impossible. Real sales never land
+exactly on the prediction, so every model would give the data probability
+zero, and there'd be nothing for maximum likelihood to compare.
 
-**Why an assumption is needed.** A regression model outputs one number, say
-a price of 300k. Taken literally, that claims the price is exactly 300k and
-gives every other price probability 0. Real sales never land exactly on the
-prediction, so every model would give the data probability 0 and MLE could
-not compare them. So assume the actual price is the prediction plus random
-noise, $y = f_\theta(x) + \varepsilon$, spread as the bell of §3.2 with width
-$\sigma = 10$k. A price that misses by $d$ thousand then gets probability
-factor $e^{-d^2 / 2\sigma^2} = e^{-d^2/200}$:
+The fix is to say what we actually believe: the real price is the prediction
+plus some random noise, $y = f_\theta(x) + \varepsilon$, and the noise is
+spread out like the bell from §3.2. With a width of $\sigma = 10$k, a price
+that misses the prediction by $d$ thousand gets a probability factor of
+$e^{-d^2 / 2\sigma^2} = e^{-d^2/200}$. A miss of 10k gets 0.61, a miss of 30k
+gets 0.011. Small misses are common, big ones rare.
 
-- off by 0: factor 1
-- off by 10k: $e^{-100/200} = 0.61$
-- off by 30k: $e^{-900/200} = 0.011$
+Now we can compare models. Three houses sold for 310k, 290k and 305k. Model A
+predicted 300k for all three; model B predicted 310k, 290k and 300k. Which
+one makes the actual prices more probable?
 
-**Two candidate models.** Three houses sold for 310k, 290k and 305k. Which
-model makes those prices more probable?
+| | predictions | errors | probability factors | likelihood | sum of squared errors |
+|---|---|---|---|---|---|
+| model A | 300, 300, 300 | 10, −10, 5 | 0.61, 0.61, 0.88 | 0.32 | 225 |
+| model B | 310, 290, 300 | 0, 0, 5 | 1, 1, 0.88 | 0.88 | 25 |
 
-```python
-y = np.array([310, 290, 305])                 # actual prices (k)
-pred_A = np.array([300, 300, 300])
-pred_B = np.array([310, 290, 300])
-
-lik = lambda pred: np.exp(-(y - pred)**2 / 200).prod()
-lik(pred_A), lik(pred_B)                      # 0.32, 0.88
-((y - pred_A)**2).sum(), ((y - pred_B)**2).sum()   # 225, 25
-```
-
-Model B makes the actual prices more probable, so MLE picks B. It also has
-the smaller sum of squared errors, and that is no coincidence: each factor
-is $e$ raised to $-\text{error}^2/200$, and multiplying powers of $e$ adds
-their exponents,
+Model B wins, 0.88 to 0.32. And look at the last column: B also has the much
+smaller sum of squared errors. That's not luck. Each factor is $e$ raised to
+$-\text{error}^2/200$, and when you multiply powers of $e$ the exponents add,
+so
 
 $$\text{likelihood} = e^{-(\text{sum of squared errors}) / 200}$$
 
-so $e^{-225/200} = 0.32$ and $e^{-25/200} = 0.88$. A smaller sum of squared
-errors always means a larger likelihood. **Maximizing the likelihood is
-minimizing the squared error: MSE.**
+You can check it: $e^{-225/200} = 0.32$ and $e^{-25/200} = 0.88$. A smaller
+sum of squared errors always means a larger likelihood. So when you minimize
+mean squared error, you're doing maximum likelihood under the assumption that
+the errors are Gaussian. That's where MSE comes from.
 
-**L1 is the same with a different shape.** If misses follow a Laplace
-distribution, the factor for a miss of $d$ is $e^{-|d|/b}$. The exponents
-again add, the likelihood is $e^{-(\text{sum of absolute errors})/b}$, and
-MLE minimizes the sum of absolute errors: **L1**.
+L1 loss comes out the same way with a different noise shape. If you assume
+errors follow a Laplace distribution, whose factor for a miss of $d$ is
+$e^{-|d|/b}$, the exponents again add, the likelihood becomes
+$e^{-(\text{sum of absolute errors})/b}$, and maximizing it means minimizing
+the sum of absolute errors.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 220" role="img" aria-label="Left: Gaussian and Laplace noise densities. Right: their minus log curves, a parabola for the Gaussian giving MSE and a V shape for the Laplace giving L1 loss" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -619,49 +578,48 @@ MLE minimizes the sum of absolute errors: **L1**.
 </svg>
 </div>
 
-*Left: the two noise distributions, the Gaussian bell and the Laplace with
-its sharper peak and heavier tails. Right: their $-\log$, the loss per
-example: a parabola (MSE) and a V (L1).*
+*Left: the two noise distributions. The Laplace has a sharper peak and
+heavier tails than the Gaussian. Right: their $-\log$, which is the loss per
+example: a parabola for MSE, a V for L1.*
 
-**Which to pick.** Picking a loss is picking how you expect misses to be
-spread. The Gaussian says big misses almost never happen, so MSE punishes
-them quadratically. The Laplace expects occasional big misses, and L1
-punishes them only linearly. With errors of 1 on most points and 10 on one
-outlier, MSE charges the outlier 100 against 1 for each other point and bends
-the whole fit toward it; L1 charges 10 against 1.
+So choosing between MSE and L1 is really choosing what you believe about your
+errors. The Gaussian says big misses almost never happen, so MSE punishes
+them quadratically. The Laplace expects the occasional big miss, so L1
+punishes it only linearly. In practice this shows up with outliers: if most
+errors are around 1 and one is 10, MSE charges that one point 100 against 1
+for each of the others, and the whole fit bends toward it. L1 charges it 10.
 
-In symbols: $p_\theta(y \mid x) = p_\varepsilon\big(y - f_\theta(x)\big)$, the
-probability of a price is the probability of the error it takes to produce
-it. The gap $y - f_\theta(x)$ measured on data is called the **residual**.
+In symbols, the regression model says
+$p_\theta(y \mid x) = p_\varepsilon\big(y - f_\theta(x)\big)$: the probability
+of a price is the probability of the error it would take to produce it. The
+gap $y - f_\theta(x)$ on real data is called the **residual**.
 
 ## 3.5 Entropy and KL: what a loss value means
 
-§3.4 wrote every loss as $-\log$(probability of what happened). This section
-says what that number measures. The same few definitions explain the floor a
-label-smoothed loss never crosses, the KL penalty in RLHF (module 7), and why
-the Gaussian assumes the least (§3.2).
+We now know every loss is $-\log$ of a probability. But what does a loss of
+1.97 actually mean? And why does a label-smoothed loss never reach zero, or
+an RLHF objective include a "KL penalty"? These all come from a few
+definitions in information theory.
 
 #### Surprise and entropy
 
-**The surprise of an outcome with probability $p$ is $-\log p$.** Certain
-outcomes have surprise 0, rare ones a lot, and independent surprises add,
-since $-\log(pq) = -\log p - \log q$. The cross-entropy charges in §3.4's
-table (0.11 for a probability of 0.9, 4.61 for 0.01) are exactly these
-surprises. With natural logs the unit is the **nat**, with base 2 the
-**bit** (1 nat ≈ 1.44 bits); `torch` losses are in nats.
+Start with a single outcome that had probability $p$. Call $-\log p$ its
+**surprise**. A certain outcome has surprise 0; a rare one has a lot; and
+because $-\log(pq) = -\log p - \log q$, the surprises of independent events
+add. Those cross-entropy charges from §3.4 (0.11 for a probability of 0.9,
+4.61 for 0.01) were exactly this. With natural logs the unit is called a
+**nat**, with base 2 a **bit** (one nat is about 1.44 bits); PyTorch losses
+are in nats.
 
-**Entropy is the average surprise of a distribution**: how unpredictable one
-draw is.
-
-```python
-H = lambda p: -(p * np.log(p)).sum()     # average surprise, in nats
-
-H(np.full(6, 1/6))           # 1.79   fair die (= log 6)
-H(np.array([0.5, 0.5]))      # 0.693  fair coin (= 1 bit)
-H(np.array([0.9, 0.1]))      # 0.325  biased coin: more predictable
-```
+The **entropy** of a distribution is its average surprise, which is a
+measure of how unpredictable a single draw is:
 
 $$H(p) = -\sum_x p(x)\log p(x)$$
+
+A fair die has entropy $\log 6 \approx 1.79$ nats. A fair coin has
+$\log 2 \approx 0.693$ nats, exactly one bit. A coin that lands heads 90% of
+the time has only 0.325 nats: it's more predictable, so there's less
+surprise on average.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 380 200" role="img" aria-label="Entropy of a coin in bits plotted against its heads probability p: zero at p equals 0 and 1, maximum of one bit at p equals one half" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -685,145 +643,144 @@ $$H(p) = -\sum_x p(x)\log p(x)$$
 *Entropy of one coin flip as $p$ goes from 0 to 1. The fair coin is the
 hardest to predict and has the most, exactly one bit.*
 
+The curve has the same shape as the Bernoulli variance from §3.2, and for the
+same reason: both are measuring how hard one flip is to predict.
+
 #### Cross-entropy and KL divergence
 
-Now two distributions over the same outcomes: $q$, the truth, and $p$, a
-model's guess at it. Say a fair coin, $q = [0.5, 0.5]$, and a model that
-believes it lands heads 90% of the time, $p = [0.9, 0.1]$.
+Now suppose there are two distributions over the same outcomes: the truth
+$q$, and a model's guess $p$. Say the truth is a fair coin,
+$q = [0.5, 0.5]$, but the model believes it lands heads 90% of the time,
+$p = [0.9, 0.1]$.
 
-- **Cross-entropy** $H(q, p) = -\sum_x q(x)\log p(x)$ is the average surprise
-  when outcomes come from $q$ but are scored with $p$. This is §3.4's loss,
-  with $q$ the label and $p$ the model's output.
-- **KL divergence** $\mathrm{KL}(q\|p) = \sum_x q(x)\log\frac{q(x)}{p(x)}$ is
-  the extra surprise caused by scoring with the wrong distribution.
+If outcomes come from $q$ but you score them with $p$, your average surprise
+is the **cross-entropy**, $H(q, p) = -\sum_x q(x)\log p(x)$. That's the loss
+from §3.4, with $q$ the label and $p$ the model's prediction. How much of
+that surprise is the model's fault? The part above what the truth itself
+would cost is the **KL divergence**,
+$\mathrm{KL}(q\|p) = \sum_x q(x)\log\frac{q(x)}{p(x)}$.
 
-```python
-q, p = np.array([0.5, 0.5]), np.array([0.9, 0.1])
-H(q)                              # 0.693  the truth's own unpredictability
-(q * np.log(q / p)).sum()         # 0.511  KL: extra surprise from using p
--(q * np.log(p)).sum()            # 1.204  cross-entropy = 0.693 + 0.511
-```
-
-The three are connected:
+For the coin, the truth's own entropy is $H(q) = 0.693$, the KL is 0.511,
+and the cross-entropy is 1.204, which is exactly $0.693 + 0.511$. So the
+three fit together as
 
 $$H(q, p) = H(q) + \mathrm{KL}(q \,\|\, p)$$
 
-In words: the loss is the labels' own unpredictability plus the extra caused
-by the model being wrong.
+which reads: the loss is the labels' own unpredictability, plus the extra
+cost of the model being wrong.
 
-#### KL is never negative, and what follows
+#### KL is never negative
 
-**$\mathrm{KL}(q\|p) \ge 0$, and it is 0 only when $p = q$: a wrong model can
-only add surprise, never remove it.** (This is Gibbs' inequality.) The proof
-uses $\log x \le x - 1$, true for every $x > 0$, with $x = p/q$:
+A wrong model can only add surprise, never take it away: $\mathrm{KL}(q\|p)
+\ge 0$, with equality only when $p = q$. (This is called Gibbs' inequality.)
+The proof is short. It uses the fact that $\log x \le x - 1$ for every
+$x > 0$, applied with $x = p/q$:
 
 $$-\mathrm{KL}(q \,\|\, p) = \sum_x q(x)\log\frac{p(x)}{q(x)}
   \;\le\; \sum_x q(x)\Big(\frac{p(x)}{q(x)} - 1\Big)
   = 1 - 1 = 0$$
 
-Three consequences used daily:
+That one inequality explains several things you'll run into. It means the
+loss has a floor: cross-entropy can never drop below the entropy of the
+labels. With one-hot labels that floor is 0, but with label smoothing,
+$q = [0.9, 0.05, 0.05]$, it's about 0.394 nats, which is why a smoothed
+training loss levels off above zero even when the model gets every example
+right. It also means no distribution over $K$ outcomes can have more entropy
+than the uniform one, $\log K$; the die's $\log 6$ is the maximum for six
+outcomes.
 
-- **The loss has a floor.** Cross-entropy can never go below the labels'
-  entropy $H(q)$. With one-hot labels the floor is 0. With label smoothing,
-  $q = [0.9, 0.05, 0.05]$, it is $H(q) \approx 0.394$ nats, which is why a
-  smoothed training loss levels off above zero even when the model is right
-  on every example.
-- **Uniform has the most entropy.** Comparing any $q$ over $K$ outcomes with
-  the uniform distribution gives $H(q) \le \log K$. The die's $\log 6$ is
-  the most any six-outcome variable can have.
-- **KL is not symmetric.** Swapping the coin example gives
-  $\mathrm{KL}(p\|q) = 0.368 \ne 0.511$. $\mathrm{KL}(q\|p)$ charges heavily
-  wherever the truth produces outcomes the model calls unlikely, so
-  minimizing it makes the model spread out to cover everything.
-  $\mathrm{KL}(p\|q)$ charges wherever the model puts probability the truth
-  does not, so minimizing it makes the model play safe and focus on one
-  region.
+One more thing about KL: it isn't symmetric. Swap $p$ and $q$ in the coin
+example and you get 0.368 instead of 0.511. The direction matters a lot in
+practice. $\mathrm{KL}(q\|p)$ heavily penalizes the model for calling
+something unlikely that the truth actually produces, so minimizing it makes
+the model spread out to cover everything. $\mathrm{KL}(p\|q)$ penalizes the
+model for putting probability where the truth has little, so minimizing it
+makes the model cautious, focusing on one region where the truth is high.
 
-#### Where these appear in ML
+#### Where these show up in ML
 
-- **MLE minimizes a KL.** Averaged over a large dataset, the negative
-  log-likelihood is $H(q, p_\theta) = H(q) + \mathrm{KL}(q\|p_\theta)$, with
-  $q$ the true data distribution. $H(q)$ does not depend on the model, so
-  maximizing likelihood minimizes $\mathrm{KL}(q\|p_\theta)$: the spreading
-  direction, which is why an MLE-trained model spreads probability over
-  everything that appears in the data.
-- **RLHF's KL penalty** (module 7, §3.2) is the other direction,
-  $\mathrm{KL}(\pi_\theta\|\pi_{ref})$: the fine-tuned model pays wherever it
-  gives probability to outputs the original model would rarely produce, so it
-  can become more focused but cannot drift far.
-- **Knowledge distillation** trains a student on the teacher's full output
-  distribution instead of one-hot labels. The floor becomes the teacher's
-  entropy, and the student learns the teacher's uncertainty, not just its top
-  choice.
+Maximum likelihood is secretly minimizing a KL. Averaged over a large
+dataset, the negative log-likelihood is $H(q, p_\theta) = H(q) +
+\mathrm{KL}(q\|p_\theta)$, where $q$ is the true data distribution. The first
+term doesn't depend on the model at all, so training only ever reduces the
+second. That's the spreading direction, which is why a model trained by
+maximum likelihood ends up assigning probability to everything that appears
+in its data.
+
+RLHF uses the other direction. Its KL penalty (module 7, §3.2) is
+$\mathrm{KL}(\pi_\theta\|\pi_{ref})$: the fine-tuned model pays whenever it
+gives probability to outputs the original model would rarely produce. So it
+can become more focused, but it can't drift far from where it started.
+
+Knowledge distillation is another example. Instead of training a small
+student model on one-hot labels, you train it on the teacher's full output
+distribution. The loss floor becomes the teacher's entropy rather than zero,
+and the student learns how uncertain the teacher was, not just its top
+answer.
 
 #### Mutual information
 
-**Mutual information is how much knowing one variable tells you about
-another.** It is the KL between how often pairs of values actually occur
-together, $p(x, y)$, and how often they would if the two were unrelated,
-$p(x)\,p(y)$:
+A related question: how much does knowing one variable tell you about
+another? That's **mutual information**. It's the KL between how often pairs
+of values actually occur together, $p(x, y)$, and how often they would if
+the two were unrelated, $p(x)\,p(y)$:
 
 $$I(X; Y) = \sum_{x, y} p(x, y)\log\frac{p(x, y)}{p(x)\,p(y)} = H(X) - H(X \mid Y)$$
 
-It is 0 exactly when $X$ and $Y$ are independent, and otherwise equals the
-uncertainty in $X$ minus what is left once $Y$ is known. Feature selection
-can rank features by it, and the contrastive loss of module 4 is designed to
-push it up.
+The second form reads nicely: the uncertainty in $X$, minus what's left once
+you know $Y$. It's zero exactly when the two are independent. You can rank
+features by how much mutual information they share with the label, and the
+contrastive loss of module 4 is designed to push it up.
 
-#### Entropy of a Gaussian, and why it is the maximum
+#### Entropy of a Gaussian, and why it's the maximum
 
 For a bell of width $\sigma$, averaging the $-\log$ density from §3.2 gives
 
 $$H = \tfrac{1}{2} + \tfrac{1}{2}\log(2\pi\sigma^2) = \tfrac{1}{2}\log(2\pi e\sigma^2)$$
 
-It grows with the width and does not depend on where the bell is centered.
-For $\sigma = 2$, $H \approx 2.11$ nats.
+It grows with the width and doesn't care where the bell is centered, which
+makes sense: sliding a bell left or right doesn't make it any more or less
+predictable. For $\sigma = 2$ it's about 2.11 nats.
 
-**Why it is the maximum.** Take any distribution $p$ with mean $\mu$ and
-variance $\sigma^2$, and the Gaussian $g$ with the same two numbers. Scoring
-$p$'s draws with $g$ costs exactly $H(g)$ on average, because $-\log g$ only
-involves $(x - \mu)^2$, whose average is $\sigma^2$ for both. Then
-$0 \le \mathrm{KL}(p\|g) = H(g) - H(p)$, so no distribution with that mean
-and variance is more unpredictable than the Gaussian. Assuming Gaussian noise
-when you know only the mean and variance assumes nothing more.
+This also settles the claim from §3.2 that the Gaussian assumes the least.
+Take any distribution $p$ with some mean and variance, and the Gaussian $g$
+with the same two numbers. Scoring $p$'s outcomes with $g$ costs exactly
+$H(g)$ on average, because $-\log g$ only involves $(x - \mu)^2$, which
+averages to $\sigma^2$ for both. Then Gibbs' inequality gives
+$0 \le \mathrm{KL}(p\|g) = H(g) - H(p)$. No distribution with that mean and
+variance is more unpredictable than the Gaussian, so assuming Gaussian noise
+when that's all you know doesn't sneak in any extra assumptions.
 
 ## 3.6 Averages: error bars and the central limit theorem
 
-**Average $n$ independent draws and two things happen: the average's typical
-error shrinks like $\sigma/\sqrt{n}$, and its distribution becomes a bell,
-whatever distribution the draws came from.**
-
-This starts the chapter's third part: how much to trust a number computed
-from data. Almost every such number is an average over a sample: a test
-accuracy (an average of 0/1 scores), a minibatch gradient (an average of
-per-example gradients). The typical error of such an average, its standard
-deviation, is called its **standard error**: the error bar.
+Almost every number you compute from data is an average. A test accuracy is
+the average of a 0 or 1 per example; a minibatch gradient is the average of
+per-example gradients. So it's worth knowing exactly how much an average can
+be trusted. Two things happen as you average more draws: the typical error
+shrinks like $\sigma/\sqrt{n}$, and the distribution of the average turns into
+a bell, no matter what the individual draws looked like.
 
 #### The $\sigma/\sqrt{n}$ error bar
 
-Average $n$ draws that are **independent** (no draw affects another) and
-**identically distributed** (all from the same distribution, mean $\mu$,
-variance $\sigma^2$). By §3.1's rules:
+Take $n$ draws that are independent and all come from the same distribution,
+with mean $\mu$ and variance $\sigma^2$. Their average $\bar X$ has mean $\mu$,
+by linearity. Its variance is $\sigma^2/n$: the $n$ variances add up to
+$n\sigma^2$, and dividing by $n$ divides the variance by $n^2$. So the typical
+error of the average, its standard deviation, is $\sigma/\sqrt{n}$. This is
+called the **standard error**, and it's the error bar on anything you compute
+by averaging.
 
-- the average $\bar X$ has mean $\mu$ (linearity), and
-- variance $\frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$ (the variances
-  of the $n$ draws add, and the $\frac{1}{n}$ comes out squared).
+For example, a single draw from the exponential distribution has a spread
+of 1.0. Average 30 such draws and the average has a spread of only
+$1/\sqrt{30} \approx 0.18$.
 
-So the error bar is $\sigma/\sqrt{n}$.
-
-```python
-x = np.random.exponential(size=(100_000, 30))   # 100k samples of 30 draws
-x.std()                    # ≈ 1.0    one draw's spread (sigma)
-x.mean(axis=1).std()       # ≈ 0.18   spread of a 30-draw average: 1/sqrt(30)
-```
-
-It shrinks as $n$ grows, but slowly: halving the error bar takes 4× the
-data.
+The error does shrink as $n$ grows, but slowly. Because of the square root,
+halving your error bar takes four times as much data.
 
 #### The bell shape
 
-The draws above come from the exponential distribution, which is lopsided:
-highest at zero, with a long right tail. Their averages are not:
+The exponential distribution is very lopsided: most values near zero and a long tail to the right. But
+look at what their averages do:
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 205" role="img" aria-label="Three panels showing the distribution of the average of n exponential draws for n equal to 1, 4, and 30: the lopsided exponential becomes a narrow symmetric bell centered on the mean 1" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -858,22 +815,25 @@ highest at zero, with a long right tail. Their averages are not:
 </svg>
 </div>
 
-*The distribution of the average of $n$ exponential draws (curves scaled to
-matching heights). It narrows around the mean (that is $\sigma/\sqrt{n}$) and
-becomes a symmetric bell (that is the central limit theorem).*
+*The distribution of the average of $n$ exponential draws, with the curves
+scaled to matching heights. It narrows around the mean (that's
+$\sigma/\sqrt{n}$) and becomes a symmetric bell (that's the central limit
+theorem).*
 
-The **central limit theorem (CLT)**: measure how far the average lands from
-$\mu$ in units of its error bar, and that number follows the standard bell
-($\mu = 0$, $\sigma = 1$) more and more closely as $n$ grows:
+The **central limit theorem** (CLT) says this always happens. If you measure
+how far the average lands from $\mu$ in units of its standard error, that
+number follows the standard bell, centered at 0 with width 1, more and more
+closely as $n$ grows:
 
 $$\frac{\bar X - \mu}{\sigma / \sqrt{n}} \to \mathcal{N}(0, 1)$$
 
-**Why sums become bells.** Two dice: a total of 7 can happen six ways
-(1+6, 2+5, ..., 6+1), but 2 and 12 only one way each. Middle totals have many
-combinations, extreme totals few, so one die's flat distribution becomes a
-triangle for two. The figure shows this as six shifted copies of one die's
-distribution added up, one copy per value of the second die. That
-shift-and-add is called a **convolution**.
+Why should sums turn into bells? Think about two dice. A total of 7 can
+happen six ways (1+6, 2+5, and so on up to 6+1), but a total of 2 or 12 only
+one way each. Middle totals have lots of combinations and extreme totals have
+few, so one die's flat distribution becomes a triangle for two. The figure
+below builds that triangle by adding six shifted copies of one die's
+distribution, one for each value of the second die. That shift-and-add has a
+name, **convolution**.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="-32 0 552 250" role="img" aria-label="Six copies of a die's flat distribution, each slid one step further right, stack into a triangle: the total 7 is covered by all six copies while the totals 2 and 12 are covered by one each" style="max-width:560px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -930,64 +890,62 @@ shift-and-add is called a **convolution**.
 </div>
 
 *Top: six copies of one die's flat distribution, shifted one step apart.
-Bottom: adding the columns counts the ways to make each total (out of 36).
-The flat shape has become a triangle.*
+Bottom: adding the columns counts the ways to make each total, out of 36.*
 
-Each extra draw repeats the shift-and-add. Every repeat smooths away more of
-the starting shape (like the exponential's spike at zero), while the mean and
-variance just add. And once the shape is a bell it stays a bell, because
-adding Gaussians gives a Gaussian. `probability_demos.ipynb` tracks this
-numerically.
+Every extra draw repeats the shift-and-add. Each repeat smooths away a bit
+more of the original shape, like the exponential's spike at zero, while the
+mean and variance just keep adding. And once the shape is a bell it stays a
+bell, because adding Gaussians gives a Gaussian. (`probability_demos.ipynb`
+tracks this numerically.)
 
 #### Where ML uses it
 
-- **SGD noise.** A minibatch gradient is an average of per-example
-  gradients, so its noise shrinks like $1/\sqrt{\text{batch size}}$:
-  quadrupling the batch halves the noise.
-- **Error bars on test accuracy.** Each test example scores 1 or 0, a
-  Bernoulli draw with variance $p(1-p)$, so accuracy on $n$ examples has
-  error bar $\sqrt{p(1-p)/n}$. With 1,000 examples at 90% accuracy:
-  $\sqrt{0.9 \times 0.1 / 1000} \approx 0.009$, about $\pm 0.9\%$. A "0.5%
-  improvement" on that test set is within noise.
-- **Confidence intervals** report "$\pm 2$ standard errors" because about 95%
-  of a bell lies within 2 standard deviations of its center (95.4%; exactly
-  95% at 1.96, the value §3.8 uses).
+You'll use this reasoning all the time. A minibatch gradient is an average
+of per-example gradients, so its noise shrinks like $1/\sqrt{\text{batch
+size}}$: quadrupling the batch only halves the noise. Test accuracy is an
+average of Bernoulli draws with variance $p(1-p)$, so on $n$ examples its
+error bar is $\sqrt{p(1-p)/n}$. With 1,000 test examples at 90% accuracy,
+that's $\sqrt{0.9 \times 0.1 / 1000} \approx 0.009$, about ±0.9%, which is
+why a half-point improvement on that test set means very little. And
+confidence intervals quote "±2 standard errors" because about 95% of a bell
+lies within 2 standard deviations of its center (95.4%, or exactly 95% at
+1.96, the number §3.8 uses).
 
 ## 3.7 Bias and variance: two ways an estimate misses
 
-**A number computed from a random sample is itself random. It can miss the
-truth in two ways: off on average (bias), or jumpy from sample to sample
-(variance). Its expected squared error is exactly bias² + variance.** §3.6
-measured the jumpiness of an average; this section adds the second way to be
-wrong.
+Anything you compute from a random sample is itself random: draw a different
+sample and you'd get a different number. §3.6 measured how much an average
+jumps around. But there's a second, separate way for an estimate to be wrong,
+and it matters just as much: it can be off on average.
 
-Names: the **target** $\theta$ is the true number you want (the die's mean).
-An **estimator** is a formula applied to a sample, and its output is the
-**estimate** $\hat\theta$. §3.4's $\hat p = h/n$ is an estimator, and so is
-every MLE.
+Some vocabulary first. The **target** $\theta$ is the true number you want to
+know, like the die's mean. An **estimator** is the formula you apply to a
+sample, and its output is the **estimate** $\hat\theta$. The coin's
+$\hat p = h/n$ from §3.4 is an estimator, and so is anything fit by maximum
+likelihood.
 
-Example: estimate the die's mean (3.5) by averaging 3 rolls.
-
-```python
-samples = np.random.randint(1, 7, size=(100_000, 3))   # 100k samples of 3 rolls
-est = samples.mean(axis=1)                             # one estimate per sample
-est[:3]                     # e.g. [3.67, 2.33, 4.67]: each sample disagrees
-est.mean() - 3.5            # ≈ 0      bias: right on average
-est.var()                   # ≈ 0.97   variance: 2.92 / 3 (§3.6)
-```
+Here's an estimator for the die's mean: roll three times and average. One
+sample might give rolls 2, 6, 3 and an estimate of 3.67; the next might give
+1, 2, 4 and 2.33; the next 5, 3, 6 and 4.67. Each individual estimate is off,
+sometimes by more than a full point. But averaged over many samples, the
+estimates land right on 3.5, and they scatter around it with variance about
+0.97, which is $2.92/3$ from §3.6. That gives us the
+two kinds of error:
 
 $$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
   \mathrm{Var} = \mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big]$$
 
-- **Bias** is a systematic miss: averaging estimates from thousands of fresh
-  samples still would not land on the truth. The 3-roll average has none.
-- **Variance** is the sample-to-sample jumpiness.
+**Bias** is a systematic miss, the kind that wouldn't go away even if you
+averaged estimates from thousands of fresh samples. **Variance** is how much
+the estimate jumps around from sample to sample. Our three-roll average has
+zero bias and a variance of about 0.97.
 
-Scored by the **mean squared error**, $\mathbb{E}[(\hat\theta - \theta)^2]$,
-the two add exactly. Split the miss into "jump around the estimator's own
-average" ($a$, random) plus "bias" ($b$, fixed). Then
-$(a + b)^2 = a^2 + 2ab + b^2$, and $a$ averages to zero, so the cross term
-drops out:
+If you score an estimator by its mean squared error,
+$\mathbb{E}[(\hat\theta - \theta)^2]$, the two kinds of error simply add. Split
+the miss into "how far this estimate is from the estimator's own average"
+plus "how far that average is from the truth". When you square the sum, the
+cross term averages to zero, because the first piece is as often positive as
+negative. What's left is
 
 $$\mathrm{MSE} = \mathrm{Bias}^2 + \mathrm{Var}$$
 
@@ -1017,24 +975,20 @@ cloud's center sits from the bullseye; variance is how scattered it is.*
 
 #### Estimating a variance from data (Bessel's correction)
 
-**Computing a sample's variance with divisor $n$ underestimates the truth on
-average. Dividing by $n - 1$ fixes it exactly.** NumPy exposes the choice as
-`ddof`. Check it on every possible 3-roll sample:
+Here's an estimator that *is* biased, and it's one you've probably used. To
+estimate a variance from a sample, the obvious thing is to average the
+squared distances from the sample mean, dividing by $n$. (NumPy's `np.var`
+does exactly this unless you pass `ddof=1`, which divides by $n - 1$.)
 
-```python
-import itertools
-all_samples = list(itertools.product(range(1, 7), repeat=3))   # all 216
-np.mean([np.var(s) for s in all_samples])           # 1.94  divide by n
-np.mean([np.var(s, ddof=1) for s in all_samples])   # 2.92  divide by n - 1
-```
+Check it on dice. There are 216 equally likely samples of three rolls.
+Compute the divide-by-$n$ variance of each and average them: you get 1.94.
+The true variance is 2.92, so the estimate is a third short on average.
+Divide by $n - 1$ instead and the average is exactly 2.92. Why?
 
-The true variance is 2.92 (§3.1). Divide by $n$ and you are a third short on
-average; divide by $n - 1$ and you are exactly right.
-
-**Why: the sample mean sits too close to its own sample.** The variance
-formula measures squared distances from the mean. A sample does not know the
-true mean $\mu$, so it measures from its own mean $\bar X$. But $\bar X$ is the
-point that makes the sum of squared distances to the sample smallest:
+The variance is defined as the average squared distance from the *true*
+mean. But a sample doesn't know the true mean, so it measures from its own
+mean $\bar X$ instead. And $\bar X$ is special: it's the point that makes the
+sum of squared distances to that particular sample as small as possible.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 220" role="img" aria-label="The sum of squared deviations of the rolls 2, 6 and 3 from a point c, plotted against c: a parabola with its minimum at c equal to x bar, so the value at c equal to mu is higher by n times x bar minus mu squared" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1060,46 +1014,50 @@ point that makes the sum of squared distances to the sample smallest:
 </svg>
 </div>
 
-*The sum of squared distances from the rolls 2, 6, 3 to a point $c$. It is
-smallest at $c = \bar x$, where the estimator measures from, and higher at the
-true mean $c = \mu$ by exactly $n(\bar x - \mu)^2$.*
+*The sum of squared distances from the rolls 2, 6, 3 to a point $c$. It's
+smallest at the sample mean $\bar x$, and higher at the true mean $\mu$ by
+exactly $n(\bar x - \mu)^2$.*
 
-So measuring from $\bar X$ always undercounts the spread. By exactly how
-much: writing $X_i - \mu = (X_i - \bar X) + (\bar X - \mu)$ and summing the
-squares gives
+So measuring from $\bar X$ always undercounts the spread a little. How much?
+Writing $X_i - \mu = (X_i - \bar X) + (\bar X - \mu)$ and summing the squares
+gives
 
 $$\sum_i (X_i - \bar X)^2 = \sum_i (X_i - \mu)^2 - n(\bar X - \mu)^2$$
 
-On average the first sum is $n\sigma^2$, and the gap is
-$n \cdot \mathrm{Var}(\bar X) = n \cdot \sigma^2/n = \sigma^2$ (§3.6), one
-draw's worth. So the sum of squared deviations averages $(n-1)\sigma^2$, and
-dividing by $n - 1$ makes it exactly right. This is **Bessel's correction**.
+On average the first sum on the right is $n\sigma^2$, and the subtracted gap
+is $n \cdot \mathrm{Var}(\bar X) = n \cdot \sigma^2/n = \sigma^2$ (§3.6),
+exactly one draw's worth of variance. So the sum of squared deviations
+averages $(n-1)\sigma^2$, and dividing by $n - 1$ instead of $n$ makes the
+estimate exactly right on average. That's **Bessel's correction**.
 
-Another way to see it: the $n$ deviations $X_i - \bar X$ always sum to zero,
-so once $n - 1$ are known the last is fixed. The sample has only $n - 1$
-free deviations. With one draw, the single deviation is 0: dividing by $n$
-claims zero spread, while dividing by $n - 1$ gives $0/0$, undefined, which
-is the honest answer.
+There's another way to see the $n - 1$. The deviations from the sample mean
+always add up to zero, so once you know $n - 1$ of them, the last one is
+fixed: a sample of $n$ only really has $n - 1$ free deviations. The extreme
+case makes it vivid. With a single draw, its one deviation is zero. Dividing
+by $n$ would claim the distribution has no spread at all; dividing by $n - 1$
+gives $0/0$, undefined, which is the honest answer to "how spread out is this,
+based on one example?"
 
 #### The tradeoff in ML terms
 
-Training a model fits the same template. The sample is the training set, the
-estimator is the training procedure, and the estimate is the trained model's
-prediction at some input $x$. "Redrawing the sample" means collecting a new
+This is more than a statistics curiosity, because training a model is an
+estimator too. The sample is your training set, the formula is the whole
+training procedure, and the estimate is the trained model's prediction at
+some input $x$. "Drawing a different sample" means collecting a different
 training set and retraining.
 
-- **Bias**: average the predictions at $x$ over many training sets; bias is
-  how far that average is from the truth. It comes from what the model
-  cannot express.
-- **Variance**: how much the prediction at $x$ changes between training
-  sets. It comes from the fit following the quirks and noise of the one
-  sample it saw.
+Seen this way, bias is how far the model's predictions would be from the
+truth even if you averaged over many training sets. It comes from what the
+model simply can't express. Variance is how much the predictions change from
+one training set to the next. It comes from the model fitting the quirks and
+noise of whichever sample it happened to see.
 
-A **linear model** is high-bias, low-variance: if the truth curves, a line
-misses it in the same places every time, but refitting gives nearly the same
-line. A **deep net or unpruned decision tree** is low-bias, high-variance: it
-can fit nearly any shape, but each fit also follows its own training set's
-noise, so two fits disagree.
+A linear model is high-bias and low-variance. If the true relationship
+curves, a straight line will miss it in the same places every time, but
+retrain it on new data and you get nearly the same line. A deep net or an
+unpruned decision tree is the opposite: it can fit almost any shape, but each
+fit also follows its own training set's noise, so two fits on two samples
+disagree.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 380 205" role="img" aria-label="Bias squared falls and variance rises as model flexibility grows; their sum is a U shaped curve with a minimum at intermediate flexibility" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1120,50 +1078,45 @@ noise, so two fits disagree.
 </svg>
 </div>
 
-*As model flexibility grows, $\mathrm{Bias}^2$ falls and $\mathrm{Var}$
-rises. Their sum is smallest in between (the dot).*
+*As model flexibility grows, $\mathrm{Bias}^2$ falls and $\mathrm{Var}$ rises.
+Their sum is smallest somewhere in between (the dot).*
 
-What the standard fixes do:
+The standard fixes each move one of the two. Regularization stops the fit
+from following the training set so closely, trading a little bias for less
+variance. More data lowers variance directly, the same way averaging more
+draws shrinks $\sigma^2/n$. Bagging trains several high-variance models on
+resampled data and averages them, which cancels much of the variance while
+leaving the bias about where it was.
 
-- **Regularization** stops the fit from following the training set so
-  closely: variance drops, some bias is accepted in exchange.
-- **More data** lowers variance, like $\sigma^2/n$ (§3.6).
-- **Bagging** averages several high-variance models trained on resampled
-  data: averaging cancels variance while leaving bias about the same.
-
-For test error there is one more term,
-$\mathrm{Bias}^2 + \mathrm{Var} + \text{irreducible noise}$: the noise in the
-labels themselves (§3.4), which no model can predict. The full derivation is
-in the evaluation module.
+For a model's test error there's one more term:
+$\mathrm{Bias}^2 + \mathrm{Var} + \text{irreducible noise}$. That last term is
+the noise in the labels themselves (§3.4), which no model can predict. The
+evaluation module derives it in full.
 
 ## 3.8 Hypothesis tests: is the difference real?
 
-**A hypothesis test asks: if there were no real difference, how often would
-noise alone produce a gap this large?** If rarely, call the difference real.
-Two examples:
-
-- Model A scores 91.2% and model B 90.5% on the same 1,000 test examples. Is
-  A better?
-- Checkout page B converts 2.3% of 50,000 users and page A 2.1%. Ship B?
+Model A scores 91.2% and model B 90.5% on the same 1,000 test examples. Is A
+better? Checkout page B converts 2.3% of 50,000 users and page A converts
+2.1%. Should you ship B? A hypothesis test answers questions like these by
+asking a slightly backward one: if there were no real difference, how often
+would noise alone produce a gap this big? If the answer is "rarely", you call
+the difference real.
 
 #### The procedure
 
-1. **Assume no real difference.** This is the **null hypothesis** $H_0$: the
-   gap is sampling noise.
-2. **Measure the gap in error bars:** $z = \text{gap} / \text{SE}$. By the
-   CLT (§3.6), $z$ follows the standard bell when $H_0$ holds.
-3. **Compute the p-value:** the probability, under $H_0$, of a gap at least
-   this large in either direction.
-4. **Decide** with a threshold fixed in advance, usually 0.05: if
-   $p < 0.05$, call the difference **statistically significant**.
+You start by assuming there's no real difference. That assumption is called
+the **null hypothesis**, $H_0$. Then you measure the gap you observed in units
+of its standard error, $z = \text{gap} / \text{SE}$. By the central limit
+theorem, if $H_0$ is true, $z$ follows the standard bell. The **p-value** is
+the probability, under $H_0$, of a gap at least as large as yours in either
+direction. If it's below a threshold you chose in advance, usually 0.05, you
+call the difference **statistically significant**.
 
-```python
-from scipy.stats import norm
-p_pool = 0.022                                  # A/B test, both groups pooled
-se = np.sqrt(p_pool * (1 - p_pool) * 2 / 50_000)   # 0.000928
-z = (0.023 - 0.021) / se                        # 2.16
-2 * norm.sf(z)                                  # 0.031  the p-value
-```
+For the checkout pages, pooling both groups gives a conversion rate of
+0.022. The standard error of the gap is then
+$\sqrt{0.022 \times 0.978 \times 2/50{,}000} \approx 0.000928$, so
+$z = 0.002 / 0.000928 \approx 2.16$, and the chance of noise producing a gap
+at least that large in either direction is $p \approx 0.031$.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 190" role="img" aria-label="Standard normal curve with both tails beyond plus and minus 2.16 shaded; the shaded area is the two-sided p-value of 0.031" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1181,80 +1134,89 @@ z = (0.023 - 0.021) / se                        # 2.16
 </svg>
 </div>
 
-*The A/B test lands at $z = 2.16$. The p-value is the shaded area: how often
-noise alone would push $z$ that far from zero in either direction.*
+*The checkout test lands at $z = 2.16$. The p-value is the shaded area: how
+often noise alone would push $z$ that far from zero in either direction.*
 
 #### Two proportions, derived
 
-Each conversion rate is an average of 0/1 outcomes, a Bernoulli average with
-variance $p(1-p)/n$ (§3.2, §3.6). The two groups are separate users, so the
-variance of the difference is the sum (§3.1). Under $H_0$ both rates equal
-one $p$, estimated by pooling everyone:
+Where did that standard error come from? Each conversion rate is an average
+of 0/1 outcomes, so it's a Bernoulli average with variance $p(1-p)/n$
+(§3.2, §3.6). The two pages were shown to different users, so the two rates
+are independent and the variance of their difference is the sum (§3.1).
+Under $H_0$ both pages have the same true rate, which we estimate by pooling
+everyone together, giving
 
 $$\text{SE} = \sqrt{\hat p(1-\hat p)\Big(\frac{1}{n_A} + \frac{1}{n_B}\Big)},
   \qquad z = \frac{\hat p_B - \hat p_A}{\text{SE}}$$
 
-**The A/B test** gives $z = 2.16$, $p = 0.031$, as computed above:
-statistically significant, with the caveats below.
+For the checkout test that's $z = 2.16$ and $p = 0.031$: significant at the
+0.05 level, though with some caveats we'll get to.
 
-**The two models**, treated the same way:
+The two models are a different story:
 
 $$\text{SE} = \sqrt{\tfrac{0.912 \times 0.088}{1000} + \tfrac{0.905 \times 0.095}{1000}} \approx 0.0129,
   \qquad z = \frac{0.007}{0.0129} \approx 0.54, \qquad p \approx 0.59$$
 
-Nowhere near significant: a 0.7-point gap on 1,000 examples is within noise.
-The computation is also slightly off, because both models were scored on the
-*same* examples. The paired version, **McNemar's test**, uses only the
-examples where the models disagree. If A is right and B wrong on $b$ of them,
-and the reverse on $c$, then under $H_0$ each disagreement is a fair coin and
-$z = (b - c)/\sqrt{b + c}$. A 7-example gap is significant only with at most
-12 disagreements in total ($7/\sqrt{12} \approx 2.0$). With the hundreds of
-disagreements typical in practice, it is noise.
+Nowhere near significant. A 0.7-point gap on 1,000 examples is well within
+noise. The calculation is also a bit off, since both models were scored on
+the *same* examples and so aren't independent. The right tool there is
+**McNemar's test**, which only looks at the examples where the two models
+disagree. If A is right and B wrong on $b$ of them, and the reverse on $c$,
+then under $H_0$ each disagreement is a coin flip, and
+$z = (b - c)/\sqrt{b + c}$. A 7-example gap would only be significant if the
+models disagreed on 12 or fewer examples in total ($7/\sqrt{12} \approx 2.0$).
+In practice they usually disagree on hundreds, and the gap is noise.
 
 #### What a p-value is not
 
-**A p-value is the probability of data this extreme if there is no effect.
-It is not the probability that there is no effect.** Turning one into the
-other is §3.3's problem: it needs a prior on how often tested ideas are real.
-A team that tests many long shots will find that most of its $p < 0.05$
-results are false alarms, just like most positive tests in §3.3's
-rare-disease example.
+A p-value is the probability of seeing data this extreme *if* there's no
+effect. It is not the probability that there's no effect. Getting from one
+to the other is exactly the Bayes problem from §3.3: you need a prior on how
+often the ideas you test are real. A team that tests lots of long shots will
+find that most of its "significant" results are false alarms, for the same
+reason most positive tests in the rare-disease example came from healthy
+people.
 
 #### Errors, power and sample size
 
-- **False positive (type I error):** calling a difference real when it is
-  not. Its rate is the threshold, 5%.
-- **Miss (type II error):** failing to detect a real effect. The chance of
-  detecting it is the test's **power**.
+A test can go wrong in two ways. It can call a difference real when it
+isn't, a **false positive** (statisticians call it a type I error); the
+threshold sets that rate, 5% for $p < 0.05$. Or it can miss a real effect, a
+type II error. The chance of catching a real effect is the test's **power**.
 
-**Power decides the sample size.** To be significant, the gap must exceed
-1.96 SE. For a real effect $\delta$ to clear that bar 80% of the time, it must
-sit another 0.84 SE higher (80% of a bell lies below 0.84 standard
-deviations above its center). So $\delta \ge 2.8$ SE. With
-$\text{SE} \approx \sqrt{2p(1-p)/n}$ for two equal groups:
+Power is what decides how big a test needs to be. To come out significant,
+the gap has to clear 1.96 standard errors. For a real effect of size $\delta$
+to clear that bar 80% of the time, it needs to sit another 0.84 standard
+errors higher, since 80% of a bell lies below 0.84 standard deviations above
+its center. So you need $\delta \ge 2.8$ SE. With
+$\text{SE} \approx \sqrt{2p(1-p)/n}$ for two equal groups, solving for $n$
+gives
 
 $$n \;\ge\; \frac{2 \cdot 2.8^2 \cdot p(1-p)}{\delta^2} \quad\text{per group}$$
 
-For the checkout test ($p \approx 0.022$, a lift worth detecting of
-$\delta = 0.002$) that is about **84,000 per group**. The test ran 50,000, so
-it was underpowered: a real 0.2-point lift sits only 2.16 SE from zero, and
-the power is $P(Z > 1.96 - 2.16) \approx 58\%$. Such a lift would be missed
-about 4 times in 10. And the lifts an underpowered test does catch are
-biased upward, since only the samples that happened to overshoot clear the
-bar.
+For the checkout test, with $p \approx 0.022$ and a 0.2-point lift worth
+detecting, that's about 84,000 users per group. The test only ran 50,000, so
+it was underpowered. At that size a real 0.2-point lift sits just 2.16
+standard errors from zero, which gives a power of about 58%: the test would
+miss a real lift like that about 4 times in 10. And the lifts that an
+underpowered test does catch tend to be overestimates, because only the
+samples that happened to overshoot make it past the bar.
 
 #### Two ways to fool yourself
 
-- **Testing many things.** Test 20 metrics and, even if nothing is real, the
-  chance that at least one comes out significant is
-  $1 - 0.95^{20} \approx 0.64$. Pick one primary metric in advance, or divide
-  the threshold by the number of tests (Bonferroni).
-- **Peeking.** Checking the p-value daily and stopping the first time it dips
-  below 0.05 is many tests disguised as one. Fix the sample size in advance
-  from the power calculation, or use a test designed for repeated looks.
+The first is testing many things at once. Test 20 metrics and, even if
+nothing real is going on, the chance that at least one comes out significant
+is $1 - 0.95^{20} \approx 0.64$. Either pick one primary metric before you
+start, or divide the threshold by the number of tests (the Bonferroni
+correction).
 
-A confidence interval says the same thing and also shows the size: the 95%
-interval for the gap is $\text{gap} \pm 1.96$ SE, and it excludes 0 exactly
-when $p < 0.05$. For the A/B test it is $0.002 \pm 0.0018$: the lift is
-somewhere between 0.02 and 0.38 points. Significant, but its size is still
-almost unknown.
+The second is peeking: checking the p-value every day and stopping the
+moment it dips below 0.05. That's really many tests disguised as one, with
+the same inflated false-alarm rate. Fix the sample size in advance from a
+power calculation, or use a test designed for repeated looks.
+
+Finally, a confidence interval tells you the same thing as a test and more.
+The 95% interval for the gap is the gap ± 1.96 SE, and it excludes zero
+exactly when $p < 0.05$. For the checkout test it's $0.002 \pm 0.0018$: the
+lift is somewhere between 0.02 and 0.38 points. Significant, yes, but we
+still have almost no idea how big it is.
