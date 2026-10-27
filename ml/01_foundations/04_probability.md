@@ -443,55 +443,48 @@ still a fine loss, but no longer a likelihood.
 
 #### The same pattern gives the regression losses
 
-**MSE is MLE when the errors are Gaussian. L1 is MLE when they are
-Laplace.** Four short steps.
+**MSE is MLE when the errors are bell-shaped (Gaussian).** Here is the whole
+argument on three houses.
 
-**1. A regression model needs a spread.** The model outputs one number, say
-a price of 300k. Taken literally, that claims the price is exactly 300k and
-gives every other price probability 0. Real sales never land exactly on the
-prediction, so every model would give the data probability 0 and MLE could
-not compare them. What is needed is probability spread around the
-prediction: near 300k likely, far away unlikely.
+**The assumption.** A regression model's prediction is a best guess: real
+prices land near it, not on it. Assume they scatter around the prediction in
+a bell shape, so a price that misses the prediction by $d$ gets relative
+probability $e^{-d^2 / 2\sigma^2}$ (with $\sigma = 10$k, and prices in
+thousands so $2\sigma^2 = 200$):
 
-**2. Model the spread as noise.** Assume the actual price is the prediction
-plus random noise centered at 0:
+- off by 0: probability factor 1
+- off by 10k: $0.61$
+- off by 30k: $0.011$
 
-$$y = f_\theta(x) + \varepsilon$$
+Small misses are common, big misses rare.
 
-The noise stands for everything the features miss (floor, condition, the
-buyer). The prediction is fixed, so the price is 310k exactly when the noise
-is $+10$k. The probability of a price is the probability of the noise it
-takes to produce it:
+**Two candidate models.** Three houses sold for 310k, 290k and 305k. Which
+model makes those prices more probable?
 
-$$p_\theta(y \mid x) = p_\varepsilon\big(y - f_\theta(x)\big)$$
+| | predictions | errors | probability factors | likelihood (product) |
+|---|---|---|---|---|
+| model A | 300, 300, 300 | 10, −10, 5 | 0.61, 0.61, 0.88 | **0.32** |
+| model B | 310, 290, 300 | 0, 0, 5 | 1, 1, 0.88 | **0.88** |
 
-(The gap $y - f_\theta(x)$ measured on real data is the **residual**.)
+Model B makes the actual prices more probable, so MLE picks B.
 
-**3. With a Gaussian bell, the loss is the squared error.** Say the noise is
-a bell with standard deviation $\sigma = 10$k, so a price's probability
-density is proportional to $e^{-\text{error}^2 / 2\sigma^2}$:
+**Why that is the same as least squares.** Each factor is $e$ raised to
+$-\text{error}^2 / 2\sigma^2$, and multiplying powers of $e$ adds their
+exponents:
 
-| actual price | error | height of the bell | loss $= -\log(\text{height})$ |
-|---|---|---|---|
-| 310k | 1 $\sigma$ | 0.61 | 0.5 |
-| 330k | 3 $\sigma$ | 0.011 | 4.5 |
+$$\text{likelihood} = e^{-(\text{sum of squared errors}) / 2\sigma^2}$$
 
-The loss is $\text{error}^2 / 2\sigma^2$: triple the error, nine times the
-loss. Summed over the dataset, the negative log-likelihood is
+Model A's squared errors sum to $100 + 100 + 25 = 225$ and model B's to
+$25$, and indeed $e^{-225/200} = 0.32$ and $e^{-25/200} = 0.88$. A smaller sum
+of squared errors always means a larger likelihood. So **maximizing the
+likelihood is minimizing the squared error: MSE.** Taking $-\log$ makes it
+literal: $-\log(\text{likelihood}) = (\text{sum of squared errors}) / 2\sigma^2$.
 
-$$-\log L(\theta) = \frac{1}{2\sigma^2} \sum_i \big(y_i - f_\theta(x_i)\big)^2 + \text{const}$$
-
-The constant ($\tfrac{n}{2}\log 2\pi\sigma^2$, from the bell's normalizing
-factor) does not depend on $\theta$. So the most likely model is the one
-with the smallest total squared error: **MSE**.
-
-**4. With a Laplace distribution, the loss is the absolute error.** The
-Laplace density is proportional to $e^{-|\text{error}| / b}$, so the same
-steps give
-
-$$-\log L(\theta) = \frac{1}{b} \sum_i \big|y_i - f_\theta(x_i)\big| + \text{const}$$
-
-The most likely model has the smallest total absolute error: **L1**.
+**L1 is the same with a different shape.** If misses follow a Laplace
+distribution instead, the factor for a miss of $d$ is $e^{-|d| / b}$. The
+exponents again add, so the likelihood is
+$e^{-(\text{sum of absolute errors}) / b}$, and MLE minimizes the sum of
+absolute errors: **L1**.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 220" role="img" aria-label="Left: Gaussian and Laplace noise densities. Right: their minus log curves, a parabola for the Gaussian giving MSE and a V shape for the Laplace giving L1 loss" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -523,16 +516,21 @@ The most likely model has the smallest total absolute error: **L1**.
 </div>
 
 *Left: the two noise distributions, the Gaussian bell and the Laplace with
-its sharper peak and heavier tails. Right: their $-\log$ densities, which are
-the losses: a parabola (MSE) and a V (L1).*
+its sharper peak and heavier tails. Right: their $-\log$, which is the loss
+per example: a parabola (MSE) and a V (L1).*
 
-**Which to pick.** Picking a loss is picking a noise model. The Gaussian
-says large errors almost never happen, so MSE punishes them quadratically.
-The Laplace has heavier tails, so it expects outliers, and L1 punishes them
-only linearly. With errors of 1 on most points and 10 on one outlier, MSE
-charges the outlier $100$ against $1$ for each other point and bends the whole
-fit toward it; L1 charges $10$ against $1$. Asked "why this loss?", name the
-noise assumption.
+**Which to pick.** Picking a loss is picking how you expect misses to be
+spread. The Gaussian says big misses almost never happen, so MSE punishes
+them quadratically. The Laplace expects occasional big misses, and L1
+punishes them only linearly. With errors of 1 on most points and 10 on one
+outlier, MSE charges the outlier $100$ against $1$ for each other point and
+bends the whole fit toward it; L1 charges $10$ against $1$.
+
+In symbols: the model is $y = f_\theta(x) + \varepsilon$, with noise
+$\varepsilon$ drawn from the assumed distribution, so
+$p_\theta(y \mid x) = p_\varepsilon\big(y - f_\theta(x)\big)$: the probability
+of a price is the probability of the error it takes to produce it. The gap
+$y - f_\theta(x)$ measured on data is called the **residual**.
 
 ## 3.4 Bernoulli and Gaussian: the two distributions ML leans on
 
