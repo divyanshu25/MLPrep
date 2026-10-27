@@ -104,10 +104,21 @@ leaves
 
 $$\mathrm{Var}(X + Y) = \mathrm{Var}(X) + \mathrm{Var}(Y)$$
 
-Two dice have variance $2.92 + 2.92 = 5.83$. (Variables whose covariance is
-zero are called **uncorrelated**. Independent variables are always
-uncorrelated, and the variances of any uncorrelated pair add, so
-independence is enough but not required.)
+Two dice have variance $2.92 + 2.92 = 5.83$.
+
+The derivation only used independence to make the covariance zero. So what
+$\mathrm{Var}(X + Y) = \mathrm{Var}(X) + \mathrm{Var}(Y)$ really needs is zero
+covariance, and variables with zero
+covariance are called **uncorrelated**. Independent variables are always
+uncorrelated, but some dependent ones are too. Take $X$ equal to $-1$, $0$ or
+$1$ with probability $1/3$ each, and $Y = X^2$, so $Y$ is completely
+determined by $X$. Here $\mu_X = 0$, so the covariance is
+$\mathbb{E}[X(Y - \mu_Y)] = \mathbb{E}[X^3] - \mu_Y\,\mathbb{E}[X]$. Both
+terms are zero: $X^3$ takes the values $-1$, $0$, $1$ equally often, and
+$\mathbb{E}[X] = 0$. The variances still add. $\mathrm{Var}(X) = 2/3$ and
+$\mathrm{Var}(Y) = 2/9$, and $X + Y$ takes the values $0$, $0$, $2$, which
+have mean $2/3$ and variance $8/9 = 2/3 + 2/9$. For the variances to add,
+independence is enough, but zero covariance is all that's required.
 
 The rule that independent variances add,
 $\mathrm{Var}(X + Y) = \mathrm{Var}(X) + \mathrm{Var}(Y)$, does a lot of work
