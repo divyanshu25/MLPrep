@@ -96,7 +96,7 @@ The last average, without the 2, is the **covariance** of $X$ and $Y$. It is
 positive when $X$ tends to be above its mean at the same times $Y$ is above
 its mean, and negative when one tends to be above while the other is below.
 If $X$ and $Y$ are independent, so are $X - \mu_X$ and $Y - \mu_Y$, and the
-product rule above splits the covariance into
+product rule for independent variables, $\mathbb{E}[XY] = \mathbb{E}[X]\,\mathbb{E}[Y]$, splits the covariance into
 $\mathbb{E}[X - \mu_X] \cdot \mathbb{E}[Y - \mu_Y]$. Each of those averages
 is zero by linearity ($\mathbb{E}[X] - \mu_X = 0$), so the covariance is
 $0 \cdot 0 = 0$. That
@@ -109,8 +109,9 @@ zero are called **uncorrelated**. Independent variables are always
 uncorrelated, and the variances of any uncorrelated pair add, so
 independence is enough but not required.)
 
-That second rule does a lot of work later. It's where the $\sigma/\sqrt{n}$
-error bars of §3.6 come from, and it's the reasoning behind weight
+The rule that independent variances add,
+$\mathrm{Var}(X + Y) = \mathrm{Var}(X) + \mathrm{Var}(Y)$, does a lot of work
+later. It's where the $\sigma/\sqrt{n}$ error bars of §3.6 come from, and it's the reasoning behind weight
 initialization schemes like Xavier and He, which choose the weight variance
 so that each layer's outputs have the same variance as its inputs.
 
@@ -130,7 +131,8 @@ Flip a coin with $p = 0.3$ many times and about
 
 The mean is $p$, since $1 \cdot p + 0 \cdot (1 - p) = p$. The variance is
 $p(1 - p)$, here $0.3 \times 0.7 = 0.21$. (A 0/1 variable equals its own
-square, so $\mathbb{E}[X^2] = p$, and the shortcut gives $p - p^2$.)
+square, so $\mathbb{E}[X^2] = p$, and the shortcut $\mathrm{Var}(X) = \mathbb{E}[X^2] - \mu^2$ from §3.1 gives
+$p - p^2$.)
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 380 200" role="img" aria-label="The Bernoulli variance p times one minus p plotted against p: a parabola that is zero at p equals 0 and p equals 1 and peaks at one quarter when p equals one half" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -849,7 +851,8 @@ Take any distribution $p$ with some mean and variance, and the Gaussian $g$
 with the same two numbers. Scoring $p$'s outcomes with $g$ costs exactly
 $H(g)$ on average, because $-\log g$ only involves $(x - \mu)^2$, which
 averages to $\sigma^2$ for both. So the cross-entropy $H(p, g)$ equals
-$H(g)$, and $H(p, g) = H(p) + \mathrm{KL}(p\|g)$ from above turns into
+$H(g)$. Cross-entropy is entropy plus KL, $H(p, g) = H(p) + \mathrm{KL}(p\|g)$,
+so this turns into
 $\mathrm{KL}(p\|g) = H(g) - H(p)$. Gibbs' inequality says this is
 $\ge 0$. No distribution with that mean and
 variance is more unpredictable than the Gaussian, so assuming Gaussian noise
@@ -1198,7 +1201,8 @@ variance. So the sum of squared deviations
 averages $(n-1)\sigma^2$, and dividing by $n - 1$ instead of $n$ makes the
 estimate exactly right on average. That's **Bessel's correction**.
 
-That same fact, that the deviations add up to zero, gives another way to see
+The fact that the deviations from the sample mean add up to zero also gives
+another way to see
 the $n - 1$: once you know $n - 1$ of them, the last one is fixed, so a
 sample of $n$ only has $n - 1$ free deviations. Take the extreme case of a
 single draw. Its one deviation is zero. Dividing by $n$ would claim the
@@ -1377,7 +1381,9 @@ the gap has to clear 1.96 standard errors. For a real effect of size $\delta$
 to clear that bar 80% of the time, it needs to sit another 0.84 standard
 errors higher, since 80% of a bell lies below 0.84 standard deviations above
 its center. So you need $\delta \ge 2.8$ SE. With two groups of $n$ users,
-the formula above becomes $\text{SE} \approx \sqrt{2p(1-p)/n}$. Squaring
+the two-proportion formula
+$\text{SE} = \sqrt{p(1-p)(1/n_A + 1/n_B)}$ becomes
+$\text{SE} \approx \sqrt{2p(1-p)/n}$. Squaring
 $\delta \ge 2.8\sqrt{2p(1-p)/n}$ and solving for $n$ gives
 
 $$n \;\ge\; \frac{2 \cdot 2.8^2 \cdot p(1-p)}{\delta^2} \quad\text{per group}$$
