@@ -743,118 +743,126 @@ $$H(q, p) = H(q) + \mathrm{KL}(q\|p)$$
 
 #### KL is never negative
 
-Using $p$ in place of $q$ can only raise the average surprise:
-$\mathrm{KL}(q\|p) \ge 0$, with equality only when $p = q$. (This is called
-Gibbs' inequality.) The proof uses the fact that $\log x \le x - 1$ for every
-$x > 0$ (the line $x - 1$ is the tangent to $\log x$ at $x = 1$, and the log
-curve lies below its tangents), applied with $x = p/q$:
+In the coin table, the model's extra surprise was negative on heads and
+positive on tails, and the average came out positive. That always happens:
+$\mathrm{KL}(q\|p) \ge 0$, and it is 0 only when $p = q$. (This is called
+Gibbs' inequality.) A model can lower its surprise on some outcomes by
+giving them more probability, but probabilities add up to 1, so that
+probability has to come from other outcomes, and the cost there always
+outweighs the saving.
 
-$$-\mathrm{KL}(q \,\|\, p) = \sum_x q(x)\log\frac{p(x)}{q(x)}
-  \;\le\; \sum_x q(x)\Big(\frac{p(x)}{q(x)} - 1\Big)
-  \le 1 - 1 = 0$$
+The proof uses one fact: $\log x \le x - 1$ for every $x > 0$, because the
+line $x - 1$ touches the log curve at $x = 1$ and the curve stays below it.
+Apply it with $x = p(x)/q(x)$:
 
-(The last step is $\le$ rather than $=$ because the sum of $p(x)$ runs only
-over outcomes where $q(x) > 0$, so it is at most 1.)
+$$-\mathrm{KL}(q\|p) = \sum_x q(x)\log\frac{p(x)}{q(x)} \;\le\; \sum_x q(x)\Big(\frac{p(x)}{q(x)} - 1\Big) = \sum_x p(x) - \sum_x q(x) \;\le\; 1 - 1 = 0$$
 
-Two consequences follow. The loss has a floor: cross-entropy can never drop below the entropy of the
-labels. With one-hot labels that floor is 0, but with label smoothing,
-$q = [0.9, 0.05, 0.05]$, it's
-$0.9 \times (-\log 0.9) + 2 \times 0.05 \times (-\log 0.05) = 0.095 + 0.300
-\approx 0.394$ nats, which is why a smoothed
-training loss levels off above zero even when the model gets every example
-right. And the KL from any $p$ to the uniform distribution, which gives
-each of $K$ outcomes probability $1/K$, is
-$\sum_x p(x)\log\frac{p(x)}{1/K} = \sum_x p(x)\log p(x) + \log K = \log K -
-H(p)$. That is $\ge 0$, so no distribution over $K$ outcomes can have more entropy than the uniform one,
-$\log K$; the die's $\log 6$ is the maximum for six outcomes.
+(The sums run over outcomes with $q(x) > 0$, so $\sum_x p(x)$ is at most 1.)
 
-KL is also not symmetric. Swap $p$ and $q$ in the coin example and you get
-$0.9 \log\frac{0.9}{0.5} + 0.1 \log\frac{0.1}{0.5} = 0.529 - 0.161 = 0.368$
-instead of 0.511, and the direction matters in practice.
-$\mathrm{KL}(q\|p)$ contains the term $q(x)\log\frac{q(x)}{p(x)}$, which grows
-without limit when $p(x) \to 0$ at an outcome the truth produces, so the $p$
-that minimizes it puts probability on every outcome $q$ produces.
-$\mathrm{KL}(p\|q)$ weights each term by $p(x)$, so an outcome with
-$p(x) = 0$ adds nothing; the $p$ that minimizes it can put all its
-probability on one region where $q$ is high and ignore the rest.
+This has two useful consequences. First, the loss has a floor. Cross-entropy
+is entropy plus KL, so it can never drop below the entropy of the labels.
+With one-hot labels that floor is 0. With label smoothing,
+$q = [0.9, 0.05, 0.05]$, the floor is
+$0.9 \times (-\log 0.9) + 2 \times 0.05 \times (-\log 0.05) \approx 0.394$
+nats, which is why a smoothed training loss levels off above zero even when
+the model gets every example right.
+
+Second, the uniform distribution has the most entropy. For any $p$ over $K$
+outcomes, the KL to the uniform distribution (probability $1/K$ each) is
+$\sum_x p(x)\log\frac{p(x)}{1/K} = \sum_x p(x)\log p(x) + \log K = \log K - H(p)$. That can't be negative,
+so $H(p) \le \log K$. The fair die's $\log 6$ is the most any six-outcome
+distribution can have.
+
+KL is not symmetric. Swapping $p$ and $q$ in the coin example gives
+$0.9 \log\frac{0.9}{0.5} + 0.1 \log\frac{0.1}{0.5} = 0.368$ instead of 0.511,
+and the two directions behave differently:
+
+- $\mathrm{KL}(q\|p)$ averages over the outcomes the truth produces. If the
+  model gives one of them a probability near 0, $\log\frac{q(x)}{p(x)}$ is
+  huge. So minimizing it pushes the model to cover every outcome the truth
+  produces.
+- $\mathrm{KL}(p\|q)$ averages over the outcomes the model produces.
+  Outcomes the model gives probability 0 cost nothing. So minimizing it lets
+  the model concentrate on one region where the truth is high and ignore
+  the rest.
 
 #### Where these show up in ML
 
-Maximum likelihood minimizes a KL. Let $q$ be the true distribution the
-data comes from. The average of $-\log p_\theta(x)$ over a large dataset
-drawn from $q$ approaches $\sum_x q(x)\,(-\log p_\theta(x))$, which is the
-cross-entropy $H(q, p_\theta) = H(q) + \mathrm{KL}(q\|p_\theta)$. The first
-term doesn't depend on the model at all, so training only ever reduces the
-second. That's the covering direction, which is why a model trained by
-maximum likelihood ends up assigning probability to everything that appears
-in its data.
+Maximum likelihood minimizes $\mathrm{KL}(q\|p_\theta)$, where $q$ is the
+true distribution of the data. Training minimizes the average of
+$-\log p_\theta(x)$ over the dataset, and on a large dataset that average is
+the cross-entropy $H(q, p_\theta) = H(q) + \mathrm{KL}(q\|p_\theta)$. $H(q)$
+is fixed by the data, so training can only lower the KL. This is the
+covering direction, which is why a model trained by maximum likelihood puts
+some probability on everything that appears in its data.
 
-RLHF uses the other direction. A language model defines a distribution over
-outputs, called its **policy**, $\pi_\theta$. RLHF fine-tunes it with a
-penalty $\mathrm{KL}(\pi_\theta\|\pi_{ref})$, where $\pi_{ref}$ is the model
-before fine-tuning (module 7, §3.2). The penalty grows when $\pi_\theta$ puts
-probability on outputs where $\pi_{ref}$ is small. That keeps $\pi_\theta$
-close to $\pi_{ref}$ while still allowing it to concentrate on fewer
-outputs.
+RLHF uses the other direction. A language model's distribution over outputs
+is called its **policy**, $\pi_\theta$. RLHF fine-tunes it with a penalty
+$\mathrm{KL}(\pi_\theta\|\pi_{ref})$, where $\pi_{ref}$ is the model before
+fine-tuning (module 7, §3.2). The penalty is large when $\pi_\theta$ puts
+probability on outputs that $\pi_{ref}$ rarely produces, so the fine-tuned
+model stays close to the original.
 
-Knowledge distillation is another example. Instead of training a small
-student model on one-hot labels, you train it on the teacher's full output
-distribution. The loss floor becomes the teacher's entropy rather than zero,
-and the student's targets include the teacher's probabilities on the wrong
-classes, not just its top answer.
+Knowledge distillation trains a small student model on a large teacher's
+full output probabilities instead of one-hot labels. These targets have
+entropy, so the loss floor is the teacher's entropy rather than 0, and they
+include the teacher's probabilities on the wrong classes, not just its top
+answer.
 
 #### Mutual information
 
-A related question: how much does knowing one variable tell you about
-another? That's **mutual information**. It's the KL between how often pairs
-of values actually occur together, $p(x, y)$, and how often they would if
-the two were unrelated, $p(x)\,p(y)$:
+Mutual information measures how much knowing one variable tells you about
+another. Compare how often pairs of values actually occur together,
+$p(x, y)$, with how often they would if the two were independent,
+$p(x)\,p(y)$. Mutual information is the KL between the two:
 
 $$I(X; Y) = \sum_{x, y} p(x, y)\log\frac{p(x, y)}{p(x)\,p(y)}$$
 
-Because it's a KL, it is never negative, and it's zero exactly when
-$p(x, y) = p(x)\,p(y)$ everywhere, which is independence. There's a second
-way to write it. The **conditional entropy** $H(X \mid Y)$ is the entropy of
-$X$ computed separately for each value of $Y$ and then averaged over $Y$:
-$H(X \mid Y) = -\sum_{x,y} p(x, y)\log p(x \mid y)$. Since
-$\frac{p(x, y)}{p(y)} = p(x \mid y)$, the log above splits into
-$\log p(x \mid y) - \log p(x)$, and summing each part gives
+Since it's a KL, it is never negative, and it is 0 exactly when
+$p(x, y) = p(x)\,p(y)$, which is independence.
+
+It has a second, more intuitive form:
 
 $$I(X; Y) = H(X) - H(X \mid Y)$$
 
-which reads: the uncertainty in $X$, minus what's left once you know $Y$. You can rank
-features by how much mutual information they share with the label. The
+the uncertainty about $X$, minus the uncertainty left once you know $Y$.
+Here $H(X \mid Y)$, the **conditional entropy**, is the entropy of $X$
+computed for each value of $Y$ and then averaged over $Y$. (To get this
+form, write $\frac{p(x, y)}{p(x)\,p(y)} = \frac{p(x \mid y)}{p(x)}$ and split
+the log into two sums.) If $Y$ is a copy of $X$, knowing $Y$ removes all
+uncertainty and $I = H(X)$; if they are independent, $I = 0$.
+
+You can rank features by their mutual information with the label. The
 contrastive loss of module 4, which trains embeddings by matching pairs such
 as an image and its caption, is built so that lowering the loss raises a
 lower bound on the mutual information between the two.
 
 #### Entropy of a Gaussian, and why it's the maximum
 
-For a bell with standard deviation $\sigma$, the $-\log$ density from §3.2 is
-$\frac{(x-\mu)^2}{2\sigma^2} + \frac{1}{2}\log(2\pi\sigma^2)$. Averaging it
-over the bell (an integral, since the values are continuous), the
-$(x - \mu)^2$ averages to $\sigma^2$ by the definition of variance, so the
-first term becomes $\frac{1}{2}$:
+The entropy of a bell with standard deviation $\sigma$ is
 
-$$H = \tfrac{1}{2} + \tfrac{1}{2}\log(2\pi\sigma^2) = \tfrac{1}{2}\log(2\pi e\sigma^2)$$
+$$H = \tfrac{1}{2}\log(2\pi e\sigma^2)$$
 
-It grows with $\sigma$ and doesn't care where the bell is centered, which
-makes sense: sliding a bell left or right doesn't make it any more or less
-predictable. For $\sigma = 2$ it's about 2.11 nats.
+To get it, average the bell's $-\log$ density from §3.2,
+$\frac{(x-\mu)^2}{2\sigma^2} + \frac{1}{2}\log(2\pi\sigma^2)$. The
+$(x - \mu)^2$ averages to $\sigma^2$, since that is what variance means, so
+the first term averages to $\frac{1}{2}$, and
+$\frac{1}{2} + \frac{1}{2}\log(2\pi\sigma^2) = \frac{1}{2}\log(2\pi e\sigma^2)$.
+For $\sigma = 2$ that's about 2.11 nats. It grows with $\sigma$ and doesn't
+depend on $\mu$: sliding a bell left or right doesn't make it more or less
+predictable.
 
-This gives one more reason the Gaussian is the default choice for noise:
-among all distributions with a given mean and variance, it has the highest
-entropy.
-Take any distribution $p$ with some mean and variance, and the Gaussian $g$
-with the same two numbers. Scoring $p$'s outcomes with $g$ costs exactly
-$H(g)$ on average, because $-\log g$ only involves $(x - \mu)^2$, which
-averages to $\sigma^2$ for both. So the cross-entropy $H(p, g)$ equals
-$H(g)$. Cross-entropy is entropy plus KL, $H(p, g) = H(p) + \mathrm{KL}(p\|g)$,
-so this turns into
-$\mathrm{KL}(p\|g) = H(g) - H(p)$. Gibbs' inequality says this is
-$\ge 0$. No distribution with that mean and
-variance is more unpredictable than the Gaussian, so assuming Gaussian noise
-when that's all you know adds no structure beyond those two numbers.
+Among all distributions with a given mean and variance, the Gaussian has the
+highest entropy. That is one more reason it's the default choice for noise:
+if the mean and variance are all you know, the Gaussian is the most
+unpredictable choice, so it assumes nothing beyond them.
+
+The proof takes three lines. Let $p$ be any distribution with mean $\mu$ and
+variance $\sigma^2$, and $g$ the Gaussian with the same two numbers. The
+cross-entropy $H(p, g)$ is the average of $-\log g(x)$ under $p$. $-\log g(x)$
+depends on $x$ only through $(x - \mu)^2$, which averages to $\sigma^2$
+under $p$ and under $g$ alike, so $H(p, g) = H(g)$. And since cross-entropy
+is entropy plus KL, $H(g) = H(p) + \mathrm{KL}(p\|g) \ge H(p)$.
 
 ## 3.6 Averages: error bars and the central limit theorem
 
