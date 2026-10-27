@@ -680,7 +680,8 @@ $$H(p) = -\sum_x p(x)\log p(x)$$
 
 Every face of a fair die has probability $1/6$ and so surprise $\log 6$,
 which makes the average, the entropy, $\log 6 \approx 1.79$ nats. A fair coin
-has $\log 2 \approx 0.693$ nats, exactly one bit. A coin that lands heads 90%
+has $\log 2 \approx 0.693$ nats. Measured in bits, with base-2 logs, each
+side has surprise $\log_2 2 = 1$, so the entropy is exactly 1 bit. A coin that lands heads 90%
 of the time has $0.9 \times (-\log 0.9) + 0.1 \times (-\log 0.1) = 0.095 +
 0.230 = 0.325$ nats: it's more predictable, so there's less surprise on
 average.
