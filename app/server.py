@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MLPrep study app server - stdlib only (Python 3.11).
+"""Firefall study app server - stdlib only (Python 3.11).
 
 Serves app/index.html at / and a JSON API over the repo's dsa/ problems,
 notes, flashcards, and the practice/queue.tsv spaced-repetition queue.
@@ -1587,7 +1587,7 @@ def main():
     port = int(os.environ.get("PORT", "8888"))
     n = len(all_problems())  # warm the cache, fail fast on parse errors
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"MLPrep study app: http://127.0.0.1:{port}  ({n} problems discovered)")
+    print(f"Firefall study app: http://127.0.0.1:{port}  ({n} problems discovered)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
