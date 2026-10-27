@@ -567,62 +567,80 @@ $$-\log p_\theta(y \mid x) = -\big[\, y \log \hat y + (1 - y) \log(1 - \hat y) \
 
 #### The regression losses: MSE and L1
 
-Regression needs one extra step. A regression model outputs a single number,
-say a price of 300k. Taken literally, that's a claim that the price is
-exactly 300k and every other price is impossible. Real sales never land
-exactly on the prediction, so every model would call the actual prices
-impossible, and there'd be nothing for maximum likelihood to compare.
+A classifier gives a probability for every class, so the probability of the
+true label is right there to be maximized. A regression model gives one
+number, say a predicted price of 300k, and says nothing about how probable
+301k or 350k would be. To use maximum likelihood, the model has to put a
+probability on every possible price.
 
-The fix is to say what we actually believe: the real price is the prediction
-plus some random noise, $y = f_\theta(x) + \varepsilon$, and the noise is
-spread out like the bell from §3.2. With a standard deviation of $\sigma = 10$k, a price
-that misses the prediction by $d$ thousand gets a density factor of
-$e^{-d^2 / 2\sigma^2} = e^{-d^2/200}$. (This drops the bell's constant in
-front, which is the same for every model and so doesn't change which model
-wins.) A miss of 10k gets 0.61, a miss of 30k gets 0.011. Small misses are
-common, big ones rare.
+The standard way is to treat the prediction as the center of a bell. The
+model says the actual price is its prediction plus random noise,
 
-Now we can compare models. Three houses sold for 310k, 290k and 305k. Model A
-predicted 300k for all three; model B predicted 310k, 290k and 300k. Which
-one makes the actual prices more probable?
+$$y = f_\theta(x) + \varepsilon$$
 
-| | predictions | errors | density factors | likelihood | sum of squared errors |
+where $f_\theta(x)$ is the predicted price for house $x$, and the noise
+$\varepsilon$ follows the Gaussian from §3.2, with mean 0 and standard
+deviation $\sigma$. Take $\sigma = 10$k, so the model expects most prices to
+land within about 10k of its prediction. The gap $d = y - f_\theta(x)$
+between the actual and predicted price is the **error** (also called the
+**residual**). A price with error $d$ thousand gets a density proportional to
+$e^{-d^2/2\sigma^2} = e^{-d^2/200}$:
+
+| error $d$ | 0 | 5k | 10k | 30k |
+|---|---|---|---|---|
+| factor $e^{-d^2/200}$ | 1 | 0.88 | 0.61 | 0.011 |
+
+The bell's constant in front, $1/\sqrt{2\pi\sigma^2}$, is left out because it
+is the same for every house and every model, so it can't change which model
+wins.
+
+Now compare two models on three houses that sold for 310k, 290k and 305k.
+Model A predicted 300k for all three; model B predicted 310k, 290k and 300k.
+The houses are independent, so each model's likelihood is the product of its
+three factors:
+
+| | predictions | errors | factors | likelihood | sum of squared errors |
 |---|---|---|---|---|---|
 | model A | 300, 300, 300 | 10, −10, 5 | 0.61, 0.61, 0.88 | 0.32 | 225 |
 | model B | 310, 290, 300 | 0, 0, 5 | 1, 1, 0.88 | 0.88 | 25 |
 
-Model B wins, 0.88 to 0.32. And look at the last column: B also has the much
-smaller sum of squared errors. That's not luck. Each factor is $e$ raised to
-$-\text{error}^2/200$, and when you multiply powers of $e$ the exponents add,
-so
+Model B makes the actual prices more probable, 0.88 against 0.32, and it also
+has the smaller sum of squared errors. The two always go together. Each
+factor is $e$ raised to $-d^2/200$, and multiplying powers of $e$ adds the
+exponents, so
 
-$$\text{likelihood} = e^{-(\text{sum of squared errors}) / 200}$$
+$$\text{likelihood} = e^{-(\text{sum of squared errors})/200}, \qquad -\log(\text{likelihood}) = \frac{\text{sum of squared errors}}{200}$$
 
-You can check it: $e^{-225/200} = 0.32$ and $e^{-25/200} = 0.88$. A smaller
-sum of squared errors always means a larger likelihood. Dividing by the
-number of examples doesn't change which model is best, so when you minimize
-mean squared error, you're doing maximum likelihood under the assumption that
-each price is an independent draw from a bell around its prediction, with
-the same $\sigma$ for every house, cheap or expensive. That's where MSE comes from.
+(Check: $e^{-225/200} = 0.32$ and $e^{-25/200} = 0.88$.) The negative
+log-likelihood is the sum of squared errors divided by a constant,
+$2\sigma^2 = 200$. Dividing
+it further by the number of houses gives the mean squared error, and neither
+constant changes which model is best. So minimizing MSE is maximum likelihood
+with Gaussian noise. That's where MSE comes from.
 
-That last assumption is often wrong. A 10k house and a 200 million house
-don't miss by similar amounts: a 10k error is huge on the first and
-negligible on the second, yet MSE charges both the same. Two common fixes
-follow from the same reasoning. Predict the log of the price instead: a
-fixed $\sigma$ on the log scale means a fixed percentage error, which is
-plausible for every house. Or have the model output its own $\sigma$ for
-each house: the $-\log$ of the bell (§3.2) then gives a per-house loss of
-$d^2/(2\sigma^2) + \log\sigma$, plus a constant, so a house with a large $\sigma$ has
-its squared error divided by more and counts less, while the $\log\sigma$
-term stops the model from claiming a large $\sigma$ everywhere.
+The derivation assumed three things: the errors of different houses are
+independent, each is Gaussian, and all of them share one $\sigma$. That
+$\sigma$ is not measured from any house; one house has one price, and a
+single number has no spread. It describes the bell the model places around
+each prediction, and MSE uses the same bell for every house.
 
-L1 loss comes out the same way with a different noise shape. Suppose the
-errors follow a Laplace distribution, whose factor for a miss of $d$ is
-$e^{-|d|/b}$. The number $b$ does the job $\sigma$ does for the Gaussian: a
-larger $b$ spreads the errors more. Multiplying the factors adds the
-exponents again, so the likelihood is
-$e^{-(\text{sum of absolute errors})/b}$, and maximizing it means minimizing
-the sum of absolute errors.
+The shared $\sigma$ is often the weakest assumption. If one house costs 10k
+and another 200 million, a 10k error is huge on the first and negligible on
+the second, but MSE charges both the same. Two fixes come out of the same
+derivation. Predicting the log of the price makes a fixed $\sigma$ mean a
+fixed *percentage* error, which is plausible for every house. Or the model
+can output its own $\sigma$ for each house. The $-\log$ of that house's bell
+is then $d^2/(2\sigma^2) + \log\sigma$ plus a constant, so a house with a
+large $\sigma$ has its squared error divided by more and counts less, and the
+$\log\sigma$ term stops the model from giving every house a large $\sigma$.
+
+L1 loss, the sum of absolute errors, comes out the same way from a different
+noise shape, the **Laplace distribution**, whose density for an error $d$ is
+proportional to $e^{-|d|/b}$. The number $b$ does the job $\sigma$ does for
+the Gaussian: a larger $b$ spreads the errors more. Multiplying the factors
+adds the exponents again, so $-\log(\text{likelihood})$ is the sum of absolute
+errors divided by $b$, and maximizing the likelihood means minimizing the sum
+of absolute errors.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 220" role="img" aria-label="Left: Gaussian and Laplace noise densities. Right: their minus log curves, a parabola for the Gaussian giving MSE and a V shape for the Laplace giving L1 loss" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -653,22 +671,27 @@ the sum of absolute errors.
 </svg>
 </div>
 
-*Left: the two noise distributions. The Laplace has a sharper peak and
-heavier tails than the Gaussian. Right: their $-\log$, which is the loss per
-example: a parabola for MSE, a V for L1.*
+*Left: the two noise distributions, as a function of the noise
+$\varepsilon$. The Laplace has a sharper peak and heavier tails than the
+Gaussian. Right: their $-\log$, which is the loss per example: a parabola
+for MSE, a V for L1.*
 
-So choosing between MSE and L1 is really choosing what you believe about your
-errors. The Gaussian density falls off as $e^{-d^2/200}$, which makes a big
-miss extremely improbable, and its loss grows as $d^2$. The Laplace density
-falls off only as $e^{-|d|/b}$, and its loss grows as $|d|$. The difference
-shows up with outliers: if most errors are around 1 and one is 10, MSE charges
-that one point 100 against 1 for each of the others, and the minimizing fit
-moves toward that point. L1 charges it 10.
+The two shapes differ in how fast they fall off. The Gaussian's
+$e^{-d^2/200}$ drops so quickly that a large error is almost impossible under
+it, and its loss grows as $d^2$. The Laplace's $e^{-|d|/b}$ drops more
+slowly, and its loss grows only as $|d|$. This decides how each loss treats
+an outlier. Say four houses sold for 300k, 305k, 310k and 900k, the last one a
+data-entry mistake, and the model predicts a single price $c$ for all four.
 
-In symbols, the regression model says
-$p_\theta(y \mid x) = p_\varepsilon\big(y - f_\theta(x)\big)$: the probability
-of a price is the probability of the error it would take to produce it. The
-gap $y - f_\theta(x)$ on real data is called the **residual**.
+- The sum of squared errors $\sum_i (y_i - c)^2$ has derivative
+  $-2\sum_i (y_i - c)$, which is zero when $c$ is the mean of the prices:
+  453.75k. The one bad record pulls the prediction more than 140k above every
+  real sale.
+- For the sum of absolute errors $\sum_i |y_i - c|$, raising $c$ by a small
+  step adds that step to the loss for every price below $c$ and removes it
+  for every price above $c$. The loss stops falling once half the prices are
+  on each side, so any $c$ between 305k and 310k is best: the median. The
+  900k record counts only as one price above $c$, however far above it is.
 
 ## 3.5 Entropy and KL: what a loss value means
 
