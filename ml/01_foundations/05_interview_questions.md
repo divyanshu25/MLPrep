@@ -348,7 +348,7 @@ error.
 **If asked:** *Information-theory view?* The expected loss is
 $H(q, p_\theta) = H(q) + \mathrm{KL}(q \,\|\, p_\theta)$, and $H(q)$ does not
 depend on $\theta$, so training minimizes the KL divergence from the data
-to the model (Probability §3.7).
+to the model (Probability §3.5).
 </details>
 
 ---

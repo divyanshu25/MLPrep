@@ -4,7 +4,7 @@ This chapter answers three questions that come up constantly in ML:
 
 - **Why is the loss what it is?** Cross-entropy, MSE and L1 each follow from
   an assumption about how the labels are generated. Know the assumption and
-  you know when the loss is the wrong choice (§3.3, §3.4).
+  you know when the loss is the wrong choice (§3.4).
 - **Is this improvement real?** Model B beats model A by 0.5% on 1,000 test
   examples. Accuracy measured on 1,000 examples varies by about ±0.9% just
   from which examples happened to be in the test set, so a 0.5% gap can be
@@ -12,7 +12,16 @@ This chapter answers three questions that come up constantly in ML:
 - **Why does my model miss?** A model can be wrong because it is too simple
   for the pattern (bias), or because it fits the quirks of its particular
   training set (variance). Regularization, more data and bagging each
-  reduce one of the two (§3.5).
+  reduce one of the two (§3.7).
+
+The chapter builds in three parts, each using only what came before:
+
+1. **Describing uncertainty** (§3.1–3.2): averages and spread, and the two
+   distributions ML uses most, Bernoulli and Gaussian.
+2. **Learning from data** (§3.3–3.5): Bayes rule, maximum likelihood (where
+   the standard losses come from), and what a loss value means.
+3. **Trusting numbers computed from data** (§3.6–3.8): error bars on
+   averages, bias and variance, and whether a difference is real.
 
 ## 3.1 Random variables, expectation, variance
 
@@ -31,8 +40,8 @@ $$\mathbb{E}[aX + bY] = a\,\mathbb{E}[X] + b\,\mathbb{E}[Y]$$
 
 This holds even when $X$ and $Y$ are dependent, because both sides are the
 same weighted sum with the terms grouped differently. The chapter uses it
-constantly: the variance shortcut below, the Binomial mean $np$ (§3.4), and
-the fact that a sample mean is right on average (§3.5) are each one
+constantly: the variance shortcut below, the Binomial mean $np$ (§3.2), and
+the fact that a sample mean is right on average (§3.7) are each one
 application of it.
 
 Products are different. $\mathbb{E}[XY] = \mathbb{E}[X]\,\mathbb{E}[Y]$ only
@@ -61,7 +70,7 @@ two different things:
 $\mathbb{E}[\,\cdot\,]$ always means the first kind, so the variance above
 uses the true mean and weights every outcome by its probability. Estimating
 a variance from an actual sample is a different problem, with a twist of its
-own (§3.5).
+own (§3.7).
 
 An easier form to compute comes from expanding the square and applying
 linearity ($\mu$ is a constant, and $\mathbb{E}[X] = \mu$):
@@ -92,7 +101,108 @@ This additivity is behind the $\sigma/\sqrt{n}$ error bars of §3.6 and
 behind variance-preserving weight initialization (Xavier/He: choose the
 weight variance so each layer's outputs keep unit variance).
 
-## 3.2 Bayes rule - derived, not memorized
+## 3.2 Bernoulli and Gaussian: the two distributions ML leans on
+
+Two distributions cover most of what ML models:
+
+- **One yes/no event** (a coin flip, a binary label, a dropout mask):
+  **Bernoulli**.
+- **A quantity built from many small effects** (measurement noise, how far a
+  prediction misses, an average): **Gaussian**.
+
+§3.4 uses both to derive the standard losses.
+
+#### Bernoulli: one yes/no event
+
+Code the two outcomes as 1 and 0, with $p$ the probability of 1:
+
+$$P(X = 1) = p, \qquad P(X = 0) = 1 - p$$
+
+This is **Bernoulli($p$)**. Each coin flip is one **draw** from it.
+
+- **Mean:** $\mathbb{E}[X] = 1 \cdot p + 0 \cdot (1 - p) = p$.
+- **Variance:** a 0/1 variable has $X^2 = X$, so $\mathbb{E}[X^2] = p$ and
+  $\mathrm{Var}(X) = p - p^2 = p(1 - p)$.
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 380 200" role="img" aria-label="The Bernoulli variance p times one minus p plotted against p: a parabola that is zero at p equals 0 and p equals 1 and peaks at one quarter when p equals one half" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <text x="180" y="22" text-anchor="middle" fill="#6366f1" font-weight="600">Var(X) = p(1 − p)</text>
+  <line x1="40" y1="150" x2="332" y2="150" stroke="currentColor" opacity="0.5"/>
+  <line x1="40" y1="150" x2="40" y2="30" stroke="currentColor" opacity="0.5"/>
+  <line x1="180" y1="150" x2="180" y2="40" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
+  <line x1="40" y1="40" x2="180" y2="40" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
+  <path d="M 40 150 Q 180 -70 320 150" fill="none" stroke="#6366f1" stroke-width="2"/>
+  <circle cx="180" cy="40" r="3.5" fill="#6366f1"/>
+  <circle cx="40" cy="150" r="3" fill="#f43f5e"/>
+  <circle cx="320" cy="150" r="3" fill="#f43f5e"/>
+  <text x="40" y="168" text-anchor="middle" fill="currentColor">0</text>
+  <text x="180" y="168" text-anchor="middle" fill="currentColor">1/2</text>
+  <text x="320" y="168" text-anchor="middle" fill="currentColor">1</text>
+  <text x="344" y="154" fill="currentColor">p</text>
+  <text x="34" y="44" text-anchor="end" fill="currentColor">1/4</text>
+  <text x="186" y="100" fill="#6366f1" font-size="10.5">fair coin</text>
+  <text x="52" y="140" fill="#f43f5e" font-size="10.5">nearly certain</text>
+  <text x="308" y="140" text-anchor="end" fill="#f43f5e" font-size="10.5">nearly certain</text>
+</svg>
+</div>
+
+*The variance of one Bernoulli($p$) draw as $p$ goes from 0 to 1: zero at
+both ends, maximum $1/4$ at $p = 1/2$.*
+
+The variance is largest for a fair coin ($1/4$ at $p = 1/2$), where the
+outcome is hardest to predict, and falls to 0 as one outcome becomes certain.
+
+Three things built from it:
+
+- **Count the 1s: the Binomial.** The number of successes in $n$
+  independent tries, $S = X_1 + \dots + X_n$, has mean $np$ (linearity) and
+  variance $np(1 - p)$ (independent variances add). Seeing $h$ heads in $n$
+  flips is one Binomial draw.
+- **Model a binary label.** A classifier that outputs "spam with
+  probability 0.9" is modeling the label as Bernoulli($0.9$). §3.4 turns
+  this into the binary cross-entropy loss.
+- **Randomize a network: dropout.** Dropout keeps each unit with
+  probability $p$ and zeroes it otherwise, so each keep/drop decision is a
+  Bernoulli($p$) draw and a layer of $n$ units keeps $np$ on average.
+  (Frameworks usually quote the drop probability: PyTorch's
+  `nn.Dropout(0.1)` drops with probability 0.1, keep probability
+  $p = 0.9$.)
+
+#### Gaussian: the sum of many small effects
+
+The **Gaussian** $\mathcal{N}(\mu, \sigma^2)$ is the bell curve, with mean
+$\mu$ and variance $\sigma^2$ ($\sigma$ is its width, the standard
+deviation). Its density is
+
+$$\frac{1}{\sqrt{2\pi\sigma^2}}\, e^{-(x-\mu)^2 / 2\sigma^2}$$
+
+The shape comes from the factor $e^{-(x-\mu)^2 / 2\sigma^2}$: it is 1 at the
+mean, the same on both sides, and falls off fast as $x$ moves away. With
+$\sigma = 10$, a value 10 from the mean gets factor $e^{-0.5} = 0.61$ and
+a value 30 away gets $e^{-4.5} = 0.011$. The front constant only scales the
+curve so its total area is 1. Three reasons it is the default:
+
+1. **Sums of many small effects are bell-shaped.** Picture the gap between a
+   house's predicted and actual price as about 20 small independent
+   contributions: floor $+0.8$k, condition
+   $-0.3$k, buyer's mood $+0.5$k, timing $-0.2$k, and so on. A total near
+   zero is common, because the contributions only need to roughly cancel and
+   many combinations do. A total of $+15$k is rare, because nearly all of
+   them would have to point the same way. So totals pile up in the middle
+   and thin out at the extremes: a bell. §3.6's central limit theorem makes
+   this exact. Measurement noise and regression residuals are usually such
+   sums, which is why "assume Gaussian noise" so often fits.
+2. **It assumes the least.** Among all distributions with a given mean and
+   variance, the Gaussian is the most spread out and least committal (§3.5
+   makes this precise), so it adds nothing beyond those two numbers.
+3. **Its $-\log$ density is a squared distance:**
+
+   $$-\log\Big(\tfrac{1}{\sqrt{2\pi\sigma^2}}\, e^{-(x-\mu)^2 / 2\sigma^2}\Big)
+   = \frac{(x-\mu)^2}{2\sigma^2} + \tfrac{1}{2}\log(2\pi\sigma^2)$$
+
+   §3.4 uses this to show that assuming Gaussian errors gives least squares.
+
+## 3.3 Bayes rule - derived, not memorized
 
 **Bayes rule works backward from what you can measure to what you want to
 know.** A lab can measure how often a test is positive for people known to be
@@ -282,7 +392,7 @@ keeps only the people consistent with the new evidence: 10,000 shrink to the
 sick share climbs from 1% to 17% to 80%. The middle number is both the
 posterior of the first test and the prior of the second.*
 
-## 3.3 MLE, and why minimizing cross-entropy IS maximum likelihood
+## 3.4 Maximum likelihood: where the standard losses come from
 
 **The one idea of this section: a model is a claim about how probable each
 possible outcome is, and training means adjusting it until the outcomes that
@@ -302,8 +412,8 @@ The subsections below show each step with numbers.
 
 **MLE: pick the parameters under which the data you saw is most probable.**
 
-A coin lands heads 7 times in 10. With heads probability $p$, the chance of
-that is $p^7 (1-p)^3$:
+A coin lands heads 7 times in 10. Each flip is a Bernoulli($p$) draw (§3.2),
+so with heads probability $p$ the chance of that sequence is $p^7 (1-p)^3$:
 
 - $p = 0.5$: $0.00098$
 - $p = 0.7$: $0.0022$
@@ -312,7 +422,8 @@ $p = 0.7$ makes the data twice as probable, and no $p$ does better (derived
 next), so MLE picks 0.7.
 
 That probability of the data, as a function of the parameters, is the
-**likelihood**. For a model $p_\theta$ and independent examples it is a
+**likelihood**: the same word as in Bayes rule (§3.3), the probability of the
+evidence given a hypothesis. For a model $p_\theta$ and independent examples it is a
 product. In practice you maximize its log instead: a product of thousands of
 probabilities underflows to 0, the log turns it into a sum, and the best
 $\theta$ is the same:
@@ -441,27 +552,32 @@ $$\text{cross-entropy} = -\sum_i \log p_\theta(y_i \mid x_i) = \text{negative lo
 With soft targets such as label smoothing, $q = [0.9, 0.05, 0.05]$, it is
 still a fine loss, but no longer a likelihood.
 
+**Two classes: binary cross-entropy.** A classifier that outputs
+$\hat y = 0.9$ for "spam" models the label as Bernoulli($0.9$) (§3.2). It
+gives the true label $y \in \{0, 1\}$ probability $\hat y$ if $y = 1$ and
+$1 - \hat y$ if $y = 0$. Taking $-\log$, both cases in one line:
+
+$$-\log p_\theta(y \mid x) = -\big[\, y \log \hat y + (1 - y) \log(1 - \hat y) \,\big]$$
+
+This is the **binary cross-entropy** loss, the two-class case of the same
+idea.
+
 #### The same pattern gives the regression losses
 
 **MSE is MLE when the errors are bell-shaped (Gaussian).** Here is the whole
 argument on three houses.
 
 **The assumption.** A regression model's prediction is a best guess: real
-prices land near it, not on it. Assume they scatter around the prediction in
-a bell shape. The standard bell curve is the **Gaussian**, covered in §3.4;
-all this section needs is its shape: a price that misses the prediction by
-$d$ thousand gets a probability factor of $e^{-d^2 / 200}$. That formula is 1
-when $d = 0$, the same for misses above and below, and falls off quickly as
-$d$ grows:
+prices land near it, not on it. Assume they scatter around the prediction as the
+Gaussian bell of §3.2, with width $\sigma = 10$k. Then a price that misses
+the prediction by $d$ thousand gets probability factor
+$e^{-d^2 / 2\sigma^2} = e^{-d^2 / 200}$:
 
 - off by 0: factor 1
 - off by 10k: $e^{-100/200} = 0.61$
 - off by 30k: $e^{-900/200} = 0.011$
 
-Small misses are common, big misses rare. The 200 sets how wide the bell is;
-with 200, about two thirds of prices land within 10k of the prediction. (In general the
-factor is $e^{-d^2 / 2\sigma^2}$, where $\sigma$ is the bell's width, its
-standard deviation; $\sigma = 10$ gives the 200.)
+Small misses are common, big misses rare.
 
 **Two candidate models.** Three houses sold for 310k, 290k and 305k. Which
 model makes those prices more probable?
@@ -537,347 +653,187 @@ $p_\theta(y \mid x) = p_\varepsilon\big(y - f_\theta(x)\big)$: the probability
 of a price is the probability of the error it takes to produce it. The gap
 $y - f_\theta(x)$ measured on data is called the **residual**.
 
-## 3.4 Bernoulli and Gaussian: the two distributions ML leans on
+## 3.5 Entropy and KL: what a loss value means
 
-Two distributions answer the two commonest modeling questions:
+§3.4 derived every standard loss as $-\log$(probability of what happened).
+This section says what that number measures, and the same few definitions
+explain the KL penalty in RLHF (module 7), the floor a label-smoothed loss
+never crosses, and why the Gaussian assumes the least (§3.2).
 
-- What does **one yes/no event** look like? **Bernoulli**: the coin flips
-  and classifier labels of §3.3.
-- What does the **sum of many small independent effects** look like?
-  **Gaussian**: regression noise (§3.3) and the limit of averages (§3.6).
+#### Surprise and entropy
 
-#### Bernoulli: one yes/no event
+**The surprise of an outcome with probability $p$ is $-\log p$.** Certain
+outcomes ($p = 1$) have surprise 0, rarer outcomes have more, and two
+independent outcomes have probability $pq$ with surprise
+$-\log(pq) = -\log p - \log q$: surprises add. With natural logs the unit
+is called a **nat**, with base-2 logs a **bit** (1 nat ≈ 1.44 bits); `torch`
+losses are in nats. The cross-entropy charges in
+§3.4's table (0.11 for a probability of 0.9, 4.61 for 0.01) are exactly
+these surprises.
 
-Code the two outcomes as 1 and 0, with $p$ the probability of 1:
+**Entropy is the average surprise of a distribution:**
 
-$$P(X = 1) = p, \qquad P(X = 0) = 1 - p$$
+$$H(p) = \mathbb{E}[-\log p(X)] = -\sum_x p(x)\log p(x)$$
 
-This is **Bernoulli($p$)**. Each coin flip in §3.3 is one **draw** from it.
+- Fair die: $H = \log 6 \approx 1.79$ nats ($2.58$ bits).
+- Fair coin: $H = \log 2$ nats $= 1$ bit.
+- Coin with $p = 0.9$: $H = -(0.9\log 0.9 + 0.1\log 0.1) \approx 0.325$ nats
+  ($0.469$ bits). More predictable than the fair coin, so less entropy.
 
-- **Mean:** $\mathbb{E}[X] = 1 \cdot p + 0 \cdot (1 - p) = p$.
-- **Variance:** a 0/1 variable has $X^2 = X$, so $\mathbb{E}[X^2] = p$ and
-  $\mathrm{Var}(X) = p - p^2 = p(1 - p)$.
+For a coin, entropy against $p$ has the same shape as §3.2's variance
+parabola, for the same reason: both measure how unpredictable one draw is.
 
 <div style="margin:1.25rem 0">
-<svg viewBox="0 0 380 200" role="img" aria-label="The Bernoulli variance p times one minus p plotted against p: a parabola that is zero at p equals 0 and p equals 1 and peaks at one quarter when p equals one half" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
-  <text x="180" y="22" text-anchor="middle" fill="#6366f1" font-weight="600">Var(X) = p(1 − p)</text>
-  <line x1="40" y1="150" x2="332" y2="150" stroke="currentColor" opacity="0.5"/>
-  <line x1="40" y1="150" x2="40" y2="30" stroke="currentColor" opacity="0.5"/>
-  <line x1="180" y1="150" x2="180" y2="40" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
+<svg viewBox="0 0 380 200" role="img" aria-label="Entropy of a coin in bits plotted against its heads probability p: zero at p equals 0 and 1, maximum of one bit at p equals one half" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <text x="180" y="22" text-anchor="middle" fill="#6366f1" font-weight="600">H(p) of a coin, in bits</text>
+  <line x1="40" y1="160" x2="332" y2="160" stroke="currentColor" opacity="0.5"/>
+  <line x1="40" y1="160" x2="40" y2="30" stroke="currentColor" opacity="0.5"/>
+  <line x1="180" y1="160" x2="180" y2="40" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
   <line x1="40" y1="40" x2="180" y2="40" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
-  <path d="M 40 150 Q 180 -70 320 150" fill="none" stroke="#6366f1" stroke-width="2"/>
+  <polyline points="40.0,160.0 45.6,143.0 51.2,130.9 56.8,120.7 62.4,111.7 68.0,103.7 73.6,96.5 79.2,89.9 84.8,83.9 90.4,78.4 96.0,73.4 101.6,68.8 107.2,64.6 112.8,60.8 118.4,57.3 124.0,54.2 129.6,51.5 135.2,49.0 140.8,46.9 146.4,45.0 152.0,43.5 157.6,42.2 163.2,41.2 168.8,40.6 174.4,40.1 180.0,40.0 185.6,40.1 191.2,40.6 196.8,41.2 202.4,42.2 208.0,43.5 213.6,45.0 219.2,46.9 224.8,49.0 230.4,51.5 236.0,54.2 241.6,57.3 247.2,60.8 252.8,64.6 258.4,68.8 264.0,73.4 269.6,78.4 275.2,83.9 280.8,89.9 286.4,96.5 292.0,103.7 297.6,111.7 303.2,120.7 308.8,130.9 314.4,143.0 320.0,160.0" fill="none" stroke="#6366f1" stroke-width="2"/>
   <circle cx="180" cy="40" r="3.5" fill="#6366f1"/>
-  <circle cx="40" cy="150" r="3" fill="#f43f5e"/>
-  <circle cx="320" cy="150" r="3" fill="#f43f5e"/>
-  <text x="40" y="168" text-anchor="middle" fill="currentColor">0</text>
-  <text x="180" y="168" text-anchor="middle" fill="currentColor">1/2</text>
-  <text x="320" y="168" text-anchor="middle" fill="currentColor">1</text>
-  <text x="344" y="154" fill="currentColor">p</text>
-  <text x="34" y="44" text-anchor="end" fill="currentColor">1/4</text>
-  <text x="186" y="100" fill="#6366f1" font-size="10.5">fair coin</text>
-  <text x="52" y="140" fill="#f43f5e" font-size="10.5">nearly certain</text>
-  <text x="308" y="140" text-anchor="end" fill="#f43f5e" font-size="10.5">nearly certain</text>
+  <circle cx="292" cy="103.7" r="3.5" fill="#f59e0b"/>
+  <text x="286" y="122" text-anchor="end" fill="#f59e0b" font-size="10.5">p = 0.9: 0.47 bits</text>
+  <text x="40" y="178" text-anchor="middle" fill="currentColor">0</text>
+  <text x="180" y="178" text-anchor="middle" fill="currentColor">1/2</text>
+  <text x="320" y="178" text-anchor="middle" fill="currentColor">1</text>
+  <text x="344" y="164" fill="currentColor">p</text>
+  <text x="34" y="44" text-anchor="end" fill="currentColor">1</text>
 </svg>
 </div>
 
-*The variance of one Bernoulli($p$) draw as $p$ goes from 0 to 1: zero at
-both ends, maximum $1/4$ at $p = 1/2$.*
+*Entropy of one coin flip as $p$ goes from 0 to 1. The fair coin is the
+hardest to predict and has the most entropy, exactly one bit.*
 
-The variance is largest for a fair coin ($1/4$ at $p = 1/2$), where the
-outcome is hardest to predict, and falls to 0 as one outcome becomes certain.
+#### Cross-entropy and KL divergence
 
-Three things built from it:
+Now two distributions over the same outcomes: $q$, the truth, and $p$, a
+model's guess at it. For example, a fair coin ($q = [0.5, 0.5]$) and a model
+that believes it lands heads 90% of the time ($p = [0.9, 0.1]$).
 
-- **Count the 1s: the Binomial.** The number of successes in $n$
-  independent tries, $S = X_1 + \dots + X_n$, has mean $np$ (linearity) and
-  variance $np(1 - p)$ (independent variances add). §3.3's "$h$ heads in $n$
-  flips" was one Binomial draw.
-- **Model a binary label: binary cross-entropy.** A classifier that outputs
-  $\hat y = 0.9$ for "spam" models the label as Bernoulli($0.9$). The
-  probability it gives the true label $y \in \{0, 1\}$ is $\hat y$ if
-  $y = 1$ and $1 - \hat y$ if $y = 0$. Taking $-\log$, both cases in one
-  line:
+- **Cross-entropy** is the average surprise when outcomes come from $q$ but
+  are scored with $p$. This is §3.4's loss, with $q$ the one-hot label and
+  $p$ the model's output.
 
-  $$-\log p_\theta(y \mid x) = -\big[\, y \log \hat y + (1 - y) \log(1 - \hat y) \,\big]$$
+  $$H(q, p) = -\sum_x q(x)\log p(x)$$
 
-  This is the **binary cross-entropy** loss: MLE for a Bernoulli label, the
-  two-class case of §3.3.
-- **Randomize a network: dropout.** Dropout keeps each unit with
-  probability $p$ and zeroes it otherwise, so each keep/drop decision is a
-  Bernoulli($p$) draw and a layer of $n$ units keeps $np$ on average.
-  (Frameworks usually quote the drop probability: PyTorch's
-  `nn.Dropout(0.1)` drops with probability 0.1, keep probability
-  $p = 0.9$.)
+- **KL divergence** is the extra surprise caused by scoring with the wrong
+  distribution.
 
-#### Gaussian: the sum of many small effects
+  $$\mathrm{KL}(q \,\|\, p) = \sum_x q(x)\log\frac{q(x)}{p(x)}$$
 
-The **Gaussian** $\mathcal{N}(\mu, \sigma^2)$ has density
-$\frac{1}{\sqrt{2\pi\sigma^2}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}$: the bell
-curve, with mean $\mu$ and variance $\sigma^2$. Three reasons it is the
-default:
+Splitting $\log\frac{q}{p} = \log q - \log p$ connects the three:
 
-1. **Sums of many small effects are bell-shaped.** Picture §3.3's price gap
-   as about 20 small independent contributions: floor $+0.8$k, condition
-   $-0.3$k, buyer's mood $+0.5$k, timing $-0.2$k, and so on. A total near
-   zero is common, because the contributions only need to roughly cancel and
-   many combinations do. A total of $+15$k is rare, because nearly all of
-   them would have to point the same way. So totals pile up in the middle
-   and thin out at the extremes: a bell. §3.6's central limit theorem makes
-   this exact. Measurement noise and regression residuals are usually such
-   sums, which is why "assume Gaussian noise" so often fits.
-2. **It assumes the least.** Among all distributions with a given mean and
-   variance, the Gaussian has the most entropy (proved in §3.7), so it adds
-   no structure beyond those two numbers.
-3. **Its $-\log$ density is a squared distance:**
+$$H(q, p) = H(q) + \mathrm{KL}(q \,\|\, p)$$
 
-   $$-\log\Big(\tfrac{1}{\sqrt{2\pi\sigma^2}}\, e^{-(x-\mu)^2 / 2\sigma^2}\Big)
-   = \frac{(x-\mu)^2}{2\sigma^2} + \tfrac{1}{2}\log(2\pi\sigma^2)$$
+In words: the loss is the labels' own uncertainty plus the extra caused by
+the model being wrong. For the coin example:
 
-   That is why Gaussian noise gives least squares (§3.3).
+- $H(q) = \log 2 = 0.693$
+- $\mathrm{KL}(q\|p) = 0.5\log\frac{0.5}{0.9} + 0.5\log\frac{0.5}{0.1} = 0.5(-0.588) + 0.5(1.609) = 0.511$
+- $H(q, p) = -(0.5\log 0.9 + 0.5\log 0.1) = 1.204 = 0.693 + 0.511$
 
-## 3.5 Bias and variance of estimators
+#### KL is never negative, and everything that follows from it
 
-**An estimate computed from a random sample is itself random. It can miss
-the truth in two ways: it can be off on average (bias), or it can jump
-around from sample to sample (variance). Its expected squared error is
-exactly bias² + variance.**
+**$\mathrm{KL}(q\|p) \ge 0$, and it is 0 only when $p = q$**: a wrong model
+can only add surprise, never remove it. (This is called Gibbs' inequality.) The proof uses $\log x \le x - 1$, true for every $x > 0$: the
+line $x - 1$ touches $\log x$ at $x = 1$ and lies above it everywhere else.
+With $x = p/q$:
 
-Names for the pieces: the **target** $\theta$ is the true, fixed number you
-want (the die's mean, a coin's heads probability). The **estimator** is a
-formula applied to a sample, and the **estimate** $\hat\theta$ is its output.
-§3.3's $\hat p = h/n$ is an estimator, and so is every MLE.
+$$-\mathrm{KL}(q \,\|\, p) = \sum_x q(x)\log\frac{p(x)}{q(x)}
+  \;\le\; \sum_x q(x)\Big(\frac{p(x)}{q(x)} - 1\Big)
+  = \sum_x p(x) - \sum_x q(x) = 1 - 1 = 0$$
 
-Example: estimate the die's mean ($\theta = 3.5$) by rolling 3 times and
-averaging, $\hat\theta = \bar X = \frac{1}{3}(X_1 + X_2 + X_3)$. Different
-samples give different estimates:
+Equality needs $p(x) = q(x)$ everywhere. Three facts used daily follow:
 
-- rolls $2, 6, 3 \;\rightarrow\; 3.67$
-- rolls $1, 2, 4 \;\rightarrow\; 2.33$
-- rolls $5, 3, 6 \;\rightarrow\; 4.67$
+- **The loss has a floor.** Since $H(q, p) = H(q) + \mathrm{KL} \ge H(q)$,
+  the cross-entropy can never go below the labels' entropy. With one-hot
+  labels that floor is 0. With label smoothing $q = [0.9, 0.05, 0.05]$ it is
+  $H(q) = -(0.9\log 0.9 + 2 \cdot 0.05\log 0.05) \approx 0.394$ nats, which is
+  why a smoothed training loss levels off above zero even when the model is
+  right on every example.
+- **The uniform distribution has the most entropy.** For $u$ uniform over
+  $K$ outcomes, $\mathrm{KL}(q\|u) = \log K - H(q) \ge 0$, so
+  $H(q) \le \log K$. The die's $\log 6$ is the most any six-outcome
+  variable can have.
+- **KL is not symmetric.** Swap the two distributions in the check above:
+  $\mathrm{KL}(p\|q) = 0.9\log\frac{0.9}{0.5} + 0.1\log\frac{0.1}{0.5} = 0.368 \ne 0.511$.
+  The direction matters. $\mathrm{KL}(q\|p)$ charges heavily wherever the
+  truth $q$ has outcomes that the model $p$ calls unlikely, so minimizing it
+  makes $p$ spread out to cover everything $q$ can produce.
+  $\mathrm{KL}(p\|q)$ charges wherever $p$ puts probability that $q$ does
+  not, so minimizing it makes $p$ play safe and focus on one region where
+  $q$ is high.
 
-So $\hat\theta$ is a random variable, with an expectation (the average
-estimate over all possible samples) and a variance. Notation: capital
-$X_1, \dots, X_n$ and $\bar X$ are the draws before they land (random); lower
-case $x_1, \dots, x_n$ and $\bar x$ are one sample's actual numbers, such as
-$2, 6, 3$ with $\bar x = 3.67$.
+#### Where these appear in ML
 
-$$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
-  \mathrm{Var} = \mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big]$$
+- **MLE minimizes a KL.** The average negative log-likelihood over the data
+  approximates $H(q, p_\theta) = H(q) + \mathrm{KL}(q\|p_\theta)$, where $q$
+  is the data distribution (an average over many samples approaches the
+  expectation, as §3.6 shows). $H(q)$ does not depend on $\theta$, so
+  maximizing likelihood minimizes $\mathrm{KL}(q\|p_\theta)$: the spreading
+  direction, which is why an MLE-trained model spreads probability over
+  everything that appears in the data.
+- **RLHF's KL penalty** (module 7, §3.2) is
+  $\mathrm{KL}(\pi_\theta\|\pi_{ref})$, the other direction: the
+  fine-tuned model pays wherever it gives probability to outputs the original
+  model would rarely produce, so it can become more focused but cannot drift
+  far from the original.
+- **Knowledge distillation** trains a student on
+  $H(p_{teacher}, p_{student})$ instead of one-hot labels. The floor is now
+  $H(p_{teacher}) > 0$, and the student learns the teacher's uncertainty,
+  not just its top choice.
 
-- **Bias** is a systematic miss: averaging estimates from thousands of fresh
-  samples still would not land on $\theta$. The die average has zero bias:
-  by linearity, $\mathbb{E}[\bar X] = \frac{1}{3}(3.5 + 3.5 + 3.5) = 3.5$.
-- **Variance** is the sample-to-sample jumpiness, like the spread from 2.33
-  to 4.67 above. By §3.1's rules: one roll has variance $2.92$, so the sum
-  of three independent rolls has $3 \times 2.92 = 8.76$, and the factor
-  $\frac{1}{3}$ comes out squared: $\mathrm{Var}(\bar X) = 8.76/9 \approx 0.97$.
+#### Mutual information
 
-To score an estimator with one number, use the **mean squared error**,
-$\mathrm{MSE} = \mathbb{E}[(\hat\theta - \theta)^2]$. Split the miss into
-"jump around the average" plus "bias":
+**Mutual information measures how much knowing one variable tells you about
+another.** It compares how often pairs of values actually occur together,
+$p(x, y)$, with how often they would if the two were unrelated,
+$p(x)\,p(y)$:
 
-$$\hat\theta - \theta =
-  \underbrace{\big(\hat\theta - \mathbb{E}[\hat\theta]\big)}_{a\text{: random}}
-  + \underbrace{\big(\mathbb{E}[\hat\theta] - \theta\big)}_{b\text{: Bias, fixed}}$$
+$$I(X; Y) = \mathrm{KL}\big(p(x, y) \,\|\, p(x)\,p(y)\big) = \sum_{x, y} p(x, y)\log\frac{p(x, y)}{p(x)\,p(y)}$$
 
-Then $(a + b)^2 = a^2 + 2ab + b^2$. Take expectations: $\mathbb{E}[a^2]$ is
-the variance, $\mathbb{E}[2ab] = 2b\,\mathbb{E}[a] = 0$ because $a$ averages to
-zero, and $b^2$ is the squared bias. So
+By Gibbs' inequality $I \ge 0$, with $I = 0$ exactly when $X$ and $Y$ are
+independent (§3.1). Equivalently, $I(X; Y) = H(X) - H(X \mid Y)$: the
+uncertainty in $X$ minus what is left once $Y$ is known. Feature selection
+can rank features by how much they tell you about the label this way, and
+the contrastive loss of module 4 is designed to push it up.
 
-$$\mathrm{MSE} = \mathrm{Bias}^2 + \mathrm{Var}$$
+#### Entropy of a Gaussian, and why it is the maximum
 
-<div style="margin:1.25rem 0">
-<svg viewBox="0 0 320 220" role="img" aria-label="Four dartboards showing the combinations of low and high bias with low and high variance" style="max-width:340px;width:100%;height:auto;font-size:12px;font-family:inherit">
-  <text x="90" y="28" text-anchor="middle" fill="currentColor" fill-opacity="0.7">low variance</text>
-  <text x="230" y="28" text-anchor="middle" fill="currentColor" fill-opacity="0.7">high variance</text>
-  <text x="30" y="74" text-anchor="middle" fill="currentColor" fill-opacity="0.7">low bias</text>
-  <text x="30" y="174" text-anchor="middle" fill="currentColor" fill-opacity="0.7">high bias</text>
-  <g fill="none" stroke="currentColor">
-    <circle cx="90" cy="70" r="26" stroke-opacity="0.2"/><circle cx="90" cy="70" r="17" stroke-opacity="0.35"/><circle cx="90" cy="70" r="8" stroke-opacity="0.5"/>
-    <circle cx="230" cy="70" r="26" stroke-opacity="0.2"/><circle cx="230" cy="70" r="17" stroke-opacity="0.35"/><circle cx="230" cy="70" r="8" stroke-opacity="0.5"/>
-    <circle cx="90" cy="170" r="26" stroke-opacity="0.2"/><circle cx="90" cy="170" r="17" stroke-opacity="0.35"/><circle cx="90" cy="170" r="8" stroke-opacity="0.5"/>
-    <circle cx="230" cy="170" r="26" stroke-opacity="0.2"/><circle cx="230" cy="170" r="17" stroke-opacity="0.35"/><circle cx="230" cy="170" r="8" stroke-opacity="0.5"/>
-  </g>
-  <g fill="#6366f1">
-    <circle cx="92" cy="67" r="2.5"/><circle cx="86" cy="72" r="2.5"/><circle cx="93" cy="74" r="2.5"/><circle cx="88" cy="66" r="2.5"/><circle cx="90" cy="71" r="2.5"/>
-    <circle cx="240" cy="58" r="2.5"/><circle cx="216" cy="76" r="2.5"/><circle cx="236" cy="84" r="2.5"/><circle cx="222" cy="60" r="2.5"/><circle cx="244" cy="74" r="2.5"/>
-    <circle cx="105" cy="154" r="2.5"/><circle cx="99" cy="159" r="2.5"/><circle cx="106" cy="161" r="2.5"/><circle cx="101" cy="153" r="2.5"/><circle cx="103" cy="158" r="2.5"/>
-    <circle cx="251" cy="146" r="2.5"/><circle cx="230" cy="164" r="2.5"/><circle cx="248" cy="170" r="2.5"/><circle cx="234" cy="148" r="2.5"/><circle cx="254" cy="160" r="2.5"/>
-  </g>
-</svg>
-</div>
+For a density the sum becomes an integral, $H(p) = -\int p(x)\log p(x)\,dx$.
+For $\mathcal{N}(\mu, \sigma^2)$, take the expectation of the $-\log$
+density from §3.2, using $\mathbb{E}[(X - \mu)^2] = \sigma^2$:
 
-*Each dot is the estimate from one resampled dataset. Bias is how far the
-cloud's center sits from the bullseye; variance is how scattered the cloud
-is. The expected squared miss is exactly $\mathrm{Bias}^2 + \mathrm{Var}$.*
+$$H = \mathbb{E}\Big[\frac{(X-\mu)^2}{2\sigma^2} + \tfrac{1}{2}\log(2\pi\sigma^2)\Big]
+  = \tfrac{1}{2} + \tfrac{1}{2}\log(2\pi\sigma^2)
+  = \tfrac{1}{2}\log(2\pi e\sigma^2)$$
 
-#### Estimating a variance from data (Bessel's correction)
+It grows with $\sigma$ and does not depend on $\mu$: shifting a bell does
+not make it more or less predictable. For $\sigma = 2$, $H \approx 2.11$
+nats.
 
-**Computing a sample's variance with divisor $n$ underestimates the true
-variance on average. Dividing by $n - 1$ fixes it exactly.** The reason:
-deviations are measured from the sample's own mean, which always sits closer
-to the sample than the true mean does.
+**Why it is the maximum.** Take any density $p$ with mean $\mu$ and variance
+$\sigma^2$, and let $g$ be the Gaussian with the same two numbers. The
+cross-entropy $H(p, g)$ only needs $\mathbb{E}_p[(X-\mu)^2] = \sigma^2$, so the
+computation above gives $H(p, g) = H(g)$. Then by Gibbs:
 
-**The natural estimator.** The true variance is
-$\sigma^2 = \mathbb{E}[(X - \mu)^2]$. From a sample you have neither the
-probabilities nor $\mu$, so replace the expectation by the plain average
-over the $n$ draws and $\mu$ by the sample mean $\bar X$:
+$$0 \le \mathrm{KL}(p \,\|\, g) = H(p, g) - H(p) = H(g) - H(p)$$
 
-$$\hat\sigma^2 = \frac{1}{n}\sum_i (X_i - \bar X)^2$$
+So $H(p) \le H(g)$: for a given mean and variance, the Gaussian has the most
+entropy. Assuming Gaussian noise when you know only the mean and variance
+assumes nothing more.
 
-For the rolls $2, 6, 3$: $\bar x = \frac{11}{3}$, the deviations are
-$-\frac{5}{3}, \frac{7}{3}, -\frac{2}{3}$, and
-
-$$\hat\sigma^2 = \frac{1}{3}\left[\left(\tfrac{5}{3}\right)^2 + \left(\tfrac{7}{3}\right)^2 + \left(\tfrac{2}{3}\right)^2\right]
-  = \frac{1}{3} \cdot \frac{78}{9} = \frac{26}{9} \approx 2.89$$
-
-**It is biased low.** For the die we can check. The true variance is
-$\sigma^2 = \frac{35}{12} \approx 2.92$. Apply the formula to all
-$6^3 = 216$ equally likely 3-roll samples and average the results: you get
-$\frac{35}{18} \approx 1.94$, a third short.
-
-**Why: the sample mean sits too close to its own sample.** Of all possible
-points $c$, the sample mean $\bar X$ is the one that makes the sum of squared
-deviations $\sum_i (X_i - c)^2$ smallest: as a function of $c$ it is a
-parabola with its bottom at $c = \bar X$. The true mean $\mu$ is some other
-point, so measuring from $\bar X$ always gives a smaller sum than measuring
-from $\mu$ would.
-
-<div style="margin:1.25rem 0">
-<svg viewBox="0 0 400 220" role="img" aria-label="The sum of squared deviations of the rolls 2, 6 and 3 from a point c, plotted against c: a parabola with its minimum at c equal to x bar, so the value at c equal to mu is higher by n times x bar minus mu squared" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
-  <text x="200" y="18" text-anchor="middle" fill="#6366f1" font-weight="600">Σᵢ (xᵢ − c)², for the rolls 2, 6, 3</text>
-  <line x1="44" y1="32" x2="44" y2="190" stroke="currentColor" opacity="0.5"/>
-  <line x1="44" y1="190" x2="356" y2="190" stroke="currentColor" opacity="0.5"/>
-  <path d="M 50 40 Q 190 280 330 40" fill="none" stroke="#6366f1" stroke-width="2"/>
-  <line x1="44" y1="124.7" x2="190" y2="124.7" stroke="#f59e0b" opacity="0.6" stroke-dasharray="4 4"/>
-  <line x1="44" y1="160" x2="190" y2="160" stroke="#10b981" opacity="0.6" stroke-dasharray="4 4"/>
-  <line x1="114" y1="124.7" x2="114" y2="190" stroke="#f59e0b" opacity="0.6" stroke-dasharray="4 4"/>
-  <line x1="190" y1="160" x2="190" y2="190" stroke="#10b981" opacity="0.6" stroke-dasharray="4 4"/>
-  <line x1="190" y1="124.7" x2="190" y2="160" stroke="#f43f5e" stroke-width="1.5"/>
-  <line x1="186" y1="124.7" x2="194" y2="124.7" stroke="#f43f5e" stroke-width="1.5"/>
-  <line x1="186" y1="160" x2="194" y2="160" stroke="#f43f5e" stroke-width="1.5"/>
-  <text x="190" y="116" text-anchor="middle" fill="#f43f5e" font-size="10.5">n(x̄ − μ)² = 0.08</text>
-  <circle cx="114" cy="124.7" r="3.5" fill="#f59e0b"/>
-  <circle cx="190" cy="160" r="3.5" fill="#10b981"/>
-  <text x="40" y="128.7" text-anchor="end" fill="#f59e0b" font-size="11">8.75</text>
-  <text x="40" y="164" text-anchor="end" fill="#10b981" font-size="11">8.67</text>
-  <text x="114" y="206" text-anchor="middle" fill="#f59e0b">μ = 3.5</text>
-  <text x="190" y="206" text-anchor="middle" fill="#10b981">x̄ ≈ 3.67</text>
-  <text x="364" y="194" fill="currentColor">c</text>
-</svg>
-</div>
-
-*The sum of squared deviations of one sample from a point $c$. The minimum
-sits at $c = \bar x$, where the estimator measures from, so the value at
-the true mean $c = \mu$ is higher by exactly $n(\bar x - \mu)^2$. The
-vertical scale is zoomed in around the minimum.*
-
-**By exactly how much.** Write $X_i - \mu = (X_i - \bar X) + (\bar X - \mu)$,
-square, and sum over $i$. The cross term vanishes because deviations from
-their own average sum to zero, which leaves
-
-$$\sum_i (X_i - \bar X)^2 = \sum_i (X_i - \mu)^2 - n(\bar X - \mu)^2$$
-
-Check on the rolls $2, 6, 3$: from $\bar x$ the squares sum to
-$\frac{78}{9} \approx 8.67$; from $\mu = 3.5$ they sum to
-$1.5^2 + 2.5^2 + 0.5^2 = 8.75$; and the gap $3 \cdot (\frac{1}{6})^2 \approx 0.08$
-is the difference.
-
-On average, the first sum on the right is $n\sigma^2$ (each term averages
-$\sigma^2$), and the gap is $n \cdot \mathrm{Var}(\bar X) = n \cdot \sigma^2/n = \sigma^2$,
-one draw's worth of variance. So
-
-$$\mathbb{E}\Big[\sum_i (X_i - \bar X)^2\Big] = n\sigma^2 - \sigma^2 = (n-1)\,\sigma^2$$
-
-**The fix.**
-
-- Divide by $n$: the average is $\frac{n-1}{n}\sigma^2$, a bias of
-  $-\sigma^2/n$. For 3 die rolls that predicts
-  $\frac{2}{3} \cdot \frac{35}{12} = \frac{35}{18} \approx 1.94$, exactly the
-  enumeration result.
-- Divide by $n - 1$: the average is exactly $\sigma^2$. This is **Bessel's
-  correction**.
-
-Another way to see the $n - 1$: the $n$ deviations $X_i - \bar X$ must sum to
-zero, so once $n - 1$ of them are known the last is fixed. The sample
-supplies only $n - 1$ free deviations. With one draw, the single deviation
-is $X_1 - \bar X = 0$: the $1/n$ formula claims zero spread, while Bessel's
-$0/0$ is undefined, which is the honest answer.
-
-#### The tradeoff in ML terms
-
-Training a model fits the same template:
-
-- the **sample** is the training set,
-- the **estimator** is the whole training procedure,
-- the **estimate** is the trained model's prediction at an input $x$,
-- **redrawing the sample** means collecting a new training set and
-  retraining.
-
-So:
-
-- **Bias**: average the predictions at $x$ over many training sets; bias is
-  how far that average is from the truth. It comes from what the model class
-  cannot express.
-- **Variance**: how much the prediction at $x$ changes between training
-  sets. It comes from the fit following the quirks and noise of the one
-  sample it saw.
-
-The two classic model types sit at opposite corners of the dartboard
-figure:
-
-- A **linear model** is high-bias, low-variance. If the truth curves, a line
-  misses it in the same places whichever training set it saw, but refitting
-  gives nearly the same line.
-- A **deep net or unpruned decision tree** is low-bias, high-variance. It can
-  fit nearly any shape, so on average it tracks the truth, but each fit also
-  follows its own training set's noise, so two fits disagree.
-
-<div style="margin:1.25rem 0">
-<svg viewBox="0 0 380 205" role="img" aria-label="Bias squared falls and variance rises as model flexibility grows; their sum is a U shaped curve with a minimum at intermediate flexibility" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
-  <line x1="50" y1="170" x2="348" y2="170" stroke="currentColor" opacity="0.5"/>
-  <line x1="50" y1="170" x2="50" y2="28" stroke="currentColor" opacity="0.5"/>
-  <line x1="195" y1="103.3" x2="195" y2="170" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
-  <path d="M 50 36.7 Q 195 170 340 170" fill="none" stroke="#10b981" stroke-width="2"/>
-  <path d="M 50 170 Q 195 170 340 36.7" fill="none" stroke="#f59e0b" stroke-width="2"/>
-  <path d="M 50 36.7 Q 195 170 340 36.7" fill="none" stroke="#6366f1" stroke-width="2.5"/>
-  <circle cx="195" cy="103.3" r="3.5" fill="#6366f1"/>
-  <text x="195" y="90" text-anchor="middle" fill="#6366f1" font-weight="600">Bias² + Var</text>
-  <text x="72" y="120" fill="#10b981">Bias²</text>
-  <text x="318" y="120" text-anchor="end" fill="#f59e0b">Var</text>
-  <text x="52" y="18" fill="currentColor" fill-opacity="0.7">error</text>
-  <text x="50" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">simple</text>
-  <text x="195" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">model flexibility</text>
-  <text x="340" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">flexible</text>
-</svg>
-</div>
-
-*As model flexibility grows, $\mathrm{Bias}^2$ falls (the model can express
-more) and $\mathrm{Var}$ rises (the fit can follow more noise). Their sum is
-smallest at an intermediate flexibility (the dot).*
-
-What the standard fixes do:
-
-- **Regularization** stops the fit from following the training set so
-  closely: variance drops, some bias is accepted in exchange.
-- **More data** lowers variance directly, like $\mathrm{Var}(\bar X) = \sigma^2/n$.
-- **Bagging** averages several high-variance models trained on resampled
-  data: averaging cancels variance while leaving bias about the same.
-
-For test error the decomposition gains one term:
-$\mathrm{Bias}^2 + \mathrm{Var} + \text{irreducible noise}$. The new term is
-the noise $\varepsilon$ in the target itself (§3.3), which no model can
-predict. The full derivation is in the evaluation module.
-
-## 3.6 Central limit theorem - the $\sqrt{n}$ intuition
+## 3.6 Averages: error bars and the central limit theorem
 
 **Average $n$ independent draws and two things happen: the average's
 typical error shrinks like $\sigma/\sqrt{n}$, and its distribution becomes
 approximately Gaussian, whatever distribution the draws came from.** The
 second fact is the **central limit theorem (CLT)**.
 
-This matters because almost every number in ML is an average over a sample:
-a sample mean (§3.5), a test accuracy (an average of 0/1 scores), a
+This section starts the chapter's third part: how much to trust a number
+computed from data. Almost every such number is an average over a sample:
+the mean of some measurements, a test accuracy (an average of 0/1 scores), a
 minibatch gradient (an average of per-example gradients). The standard
 deviation of such an average is called its **standard error**, and it is
 the error bar on every number computed from a sample.
@@ -898,13 +854,17 @@ Their average $\bar X = \frac{1}{n}\sum_i X_i$ has, by §3.1's rules:
 - mean $\mathbb{E}[\bar X] = \mu$ (linearity), and
 - variance $\mathrm{Var}(\bar X) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$.
 
-So the standard error is $\sigma/\sqrt{n}$. It goes to zero as $n$ grows
-(the **law of large numbers**), but slowly: halving the error bar takes 4×
-the data.
+So the standard error is $\sigma/\sqrt{n}$. For the die ($\sigma^2 = 2.92$),
+the average of 3 rolls has variance $2.92/3 \approx 0.97$, and the average of
+300 rolls has variance $0.0097$, a standard error of about $0.1$. The error
+goes to zero as $n$ grows (the **law of large numbers**), but slowly:
+halving it takes 4× the data.
 
 #### The Gaussian shape
 
-The CLT says the standardized average approaches a standard Gaussian:
+The CLT says: measure how far the average lands from $\mu$ in units of its
+standard error, and that number follows the standard bell curve
+($\mu = 0$, $\sigma = 1$) more and more closely as $n$ grows:
 
 $$\frac{\bar X - \mu}{\sigma / \sqrt{n}} \to \mathcal{N}(0, 1)$$
 
@@ -1030,7 +990,7 @@ Each extra draw repeats the shift-and-add, with three effects:
 - **The Gaussian is where it stops.** Convolving two Gaussians gives a
   Gaussian, so once the shape is a bell, more draws leave it a bell.
 
-§3.4's argument (many combinations give a middling total, few give an
+§3.2's argument (many combinations give a middling total, few give an
 extreme one) is the same counting, for small continuous contributions.
 `probability_demos.ipynb` tracks it numerically: the skewness of $\bar X$
 falls toward 0 and its standard deviation matches $\sigma/\sqrt{n}$.
@@ -1041,7 +1001,7 @@ falls toward 0 and its standard deviation matches $\sigma/\sqrt{n}$.
   gradients, so its noise around the full-data gradient shrinks like
   $1/\sqrt{\text{batch size}}$: quadrupling the batch halves the noise.
 - **Error bars on test accuracy.** Each test example scores 1 or 0, a
-  Bernoulli draw with variance $p(1-p)$ (§3.4), so the accuracy over $n$
+  Bernoulli draw with variance $p(1-p)$ (§3.2), so the accuracy over $n$
   examples has standard error $\sqrt{p(1-p)/n}$. With $n = 1000$ and
   accuracy near 90%, that is $\sqrt{0.9 \cdot 0.1 / 1000} \approx 0.009$, an
   error bar of about $\pm 0.9\%$. A "0.5% improvement" on such a test set is
@@ -1051,168 +1011,239 @@ falls toward 0 and its standard deviation matches $\sigma/\sqrt{n}$.
   within 2 standard deviations of its mean (95.4%; exactly 95% at 1.96, the
   value §3.8 uses).
 
-## 3.7 Information theory: what the cross-entropy number means
+## 3.7 Bias and variance: two ways an estimate misses
 
-§3.3 showed that cross-entropy is the right loss. This section says what its
-value means, and the same few definitions explain the KL penalty in RLHF
-(module 7), the floor a label-smoothed loss never crosses, and why the
-Gaussian assumes the least (§3.4).
+**An estimate computed from a random sample is itself random. It can miss
+the truth in two ways: it can be off on average (bias), or it can jump
+around from sample to sample (variance). Its expected squared error is
+exactly bias² + variance.** §3.6 measured how much an average jumps around;
+this section asks the same question about any estimate, and adds the second
+way to be wrong.
 
-#### Surprise and entropy
+Names for the pieces: the **target** $\theta$ is the true, fixed number you
+want (the die's mean, a coin's heads probability). The **estimator** is a
+formula applied to a sample, and the **estimate** $\hat\theta$ is its output.
+§3.4's $\hat p = h/n$ is an estimator, and so is every MLE.
 
-**The surprise of an outcome with probability $p$ is $-\log p$.** Certain
-outcomes ($p = 1$) have surprise 0, rarer outcomes have more, and two
-independent outcomes have probability $pq$ with surprise
-$-\log(pq) = -\log p - \log q$: surprises add. Natural logs give **nats**,
-base-2 logs give **bits** ($1$ nat $\approx 1.44$ bits). This chapter uses
-nats, which is what `torch` losses report.
+Example: estimate the die's mean ($\theta = 3.5$) by rolling 3 times and
+averaging, $\hat\theta = \bar X = \frac{1}{3}(X_1 + X_2 + X_3)$. Different
+samples give different estimates:
 
-**Entropy is the average surprise of a distribution:**
+- rolls $2, 6, 3 \;\rightarrow\; 3.67$
+- rolls $1, 2, 4 \;\rightarrow\; 2.33$
+- rolls $5, 3, 6 \;\rightarrow\; 4.67$
 
-$$H(p) = \mathbb{E}[-\log p(X)] = -\sum_x p(x)\log p(x)$$
+So $\hat\theta$ is a random variable, with an expectation (the average
+estimate over all possible samples) and a variance. Notation: capital
+$X_1, \dots, X_n$ and $\bar X$ are the draws before they land (random); lower
+case $x_1, \dots, x_n$ and $\bar x$ are one sample's actual numbers, such as
+$2, 6, 3$ with $\bar x = 3.67$.
 
-- Fair die: $H = \log 6 \approx 1.79$ nats ($2.58$ bits).
-- Fair coin: $H = \log 2$ nats $= 1$ bit.
-- Coin with $p = 0.9$: $H = -(0.9\log 0.9 + 0.1\log 0.1) \approx 0.325$ nats
-  ($0.469$ bits). More predictable than the fair coin, so less entropy.
+$$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
+  \mathrm{Var} = \mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big]$$
 
-For a coin, entropy against $p$ has the same shape as §3.4's variance
-parabola, for the same reason: both measure how unpredictable one draw is.
+- **Bias** is a systematic miss: averaging estimates from thousands of fresh
+  samples still would not land on $\theta$. The die average has zero bias:
+  by linearity, $\mathbb{E}[\bar X] = \frac{1}{3}(3.5 + 3.5 + 3.5) = 3.5$.
+- **Variance** is the sample-to-sample jumpiness, like the spread from 2.33
+  to 4.67 above. By §3.6, $\mathrm{Var}(\bar X) = \sigma^2/n = 2.92/3 \approx 0.97$.
+
+To score an estimator with one number, use the **mean squared error**,
+$\mathrm{MSE} = \mathbb{E}[(\hat\theta - \theta)^2]$. Split the miss into
+"jump around the average" plus "bias":
+
+$$\hat\theta - \theta =
+  \underbrace{\big(\hat\theta - \mathbb{E}[\hat\theta]\big)}_{a\text{: random}}
+  + \underbrace{\big(\mathbb{E}[\hat\theta] - \theta\big)}_{b\text{: Bias, fixed}}$$
+
+Then $(a + b)^2 = a^2 + 2ab + b^2$. Take expectations: $\mathbb{E}[a^2]$ is
+the variance, $\mathbb{E}[2ab] = 2b\,\mathbb{E}[a] = 0$ because $a$ averages to
+zero, and $b^2$ is the squared bias. So
+
+$$\mathrm{MSE} = \mathrm{Bias}^2 + \mathrm{Var}$$
 
 <div style="margin:1.25rem 0">
-<svg viewBox="0 0 380 200" role="img" aria-label="Entropy of a coin in bits plotted against its heads probability p: zero at p equals 0 and 1, maximum of one bit at p equals one half" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
-  <text x="180" y="22" text-anchor="middle" fill="#6366f1" font-weight="600">H(p) of a coin, in bits</text>
-  <line x1="40" y1="160" x2="332" y2="160" stroke="currentColor" opacity="0.5"/>
-  <line x1="40" y1="160" x2="40" y2="30" stroke="currentColor" opacity="0.5"/>
-  <line x1="180" y1="160" x2="180" y2="40" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
-  <line x1="40" y1="40" x2="180" y2="40" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
-  <polyline points="40.0,160.0 45.6,143.0 51.2,130.9 56.8,120.7 62.4,111.7 68.0,103.7 73.6,96.5 79.2,89.9 84.8,83.9 90.4,78.4 96.0,73.4 101.6,68.8 107.2,64.6 112.8,60.8 118.4,57.3 124.0,54.2 129.6,51.5 135.2,49.0 140.8,46.9 146.4,45.0 152.0,43.5 157.6,42.2 163.2,41.2 168.8,40.6 174.4,40.1 180.0,40.0 185.6,40.1 191.2,40.6 196.8,41.2 202.4,42.2 208.0,43.5 213.6,45.0 219.2,46.9 224.8,49.0 230.4,51.5 236.0,54.2 241.6,57.3 247.2,60.8 252.8,64.6 258.4,68.8 264.0,73.4 269.6,78.4 275.2,83.9 280.8,89.9 286.4,96.5 292.0,103.7 297.6,111.7 303.2,120.7 308.8,130.9 314.4,143.0 320.0,160.0" fill="none" stroke="#6366f1" stroke-width="2"/>
-  <circle cx="180" cy="40" r="3.5" fill="#6366f1"/>
-  <circle cx="292" cy="103.7" r="3.5" fill="#f59e0b"/>
-  <text x="286" y="122" text-anchor="end" fill="#f59e0b" font-size="10.5">p = 0.9: 0.47 bits</text>
-  <text x="40" y="178" text-anchor="middle" fill="currentColor">0</text>
-  <text x="180" y="178" text-anchor="middle" fill="currentColor">1/2</text>
-  <text x="320" y="178" text-anchor="middle" fill="currentColor">1</text>
-  <text x="344" y="164" fill="currentColor">p</text>
-  <text x="34" y="44" text-anchor="end" fill="currentColor">1</text>
+<svg viewBox="0 0 320 220" role="img" aria-label="Four dartboards showing the combinations of low and high bias with low and high variance" style="max-width:340px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <text x="90" y="28" text-anchor="middle" fill="currentColor" fill-opacity="0.7">low variance</text>
+  <text x="230" y="28" text-anchor="middle" fill="currentColor" fill-opacity="0.7">high variance</text>
+  <text x="30" y="74" text-anchor="middle" fill="currentColor" fill-opacity="0.7">low bias</text>
+  <text x="30" y="174" text-anchor="middle" fill="currentColor" fill-opacity="0.7">high bias</text>
+  <g fill="none" stroke="currentColor">
+    <circle cx="90" cy="70" r="26" stroke-opacity="0.2"/><circle cx="90" cy="70" r="17" stroke-opacity="0.35"/><circle cx="90" cy="70" r="8" stroke-opacity="0.5"/>
+    <circle cx="230" cy="70" r="26" stroke-opacity="0.2"/><circle cx="230" cy="70" r="17" stroke-opacity="0.35"/><circle cx="230" cy="70" r="8" stroke-opacity="0.5"/>
+    <circle cx="90" cy="170" r="26" stroke-opacity="0.2"/><circle cx="90" cy="170" r="17" stroke-opacity="0.35"/><circle cx="90" cy="170" r="8" stroke-opacity="0.5"/>
+    <circle cx="230" cy="170" r="26" stroke-opacity="0.2"/><circle cx="230" cy="170" r="17" stroke-opacity="0.35"/><circle cx="230" cy="170" r="8" stroke-opacity="0.5"/>
+  </g>
+  <g fill="#6366f1">
+    <circle cx="92" cy="67" r="2.5"/><circle cx="86" cy="72" r="2.5"/><circle cx="93" cy="74" r="2.5"/><circle cx="88" cy="66" r="2.5"/><circle cx="90" cy="71" r="2.5"/>
+    <circle cx="240" cy="58" r="2.5"/><circle cx="216" cy="76" r="2.5"/><circle cx="236" cy="84" r="2.5"/><circle cx="222" cy="60" r="2.5"/><circle cx="244" cy="74" r="2.5"/>
+    <circle cx="105" cy="154" r="2.5"/><circle cx="99" cy="159" r="2.5"/><circle cx="106" cy="161" r="2.5"/><circle cx="101" cy="153" r="2.5"/><circle cx="103" cy="158" r="2.5"/>
+    <circle cx="251" cy="146" r="2.5"/><circle cx="230" cy="164" r="2.5"/><circle cx="248" cy="170" r="2.5"/><circle cx="234" cy="148" r="2.5"/><circle cx="254" cy="160" r="2.5"/>
+  </g>
 </svg>
 </div>
 
-*Entropy of one coin flip as $p$ goes from 0 to 1. The fair coin is the
-hardest to predict and has the most entropy, exactly one bit.*
+*Each dot is the estimate from one resampled dataset. Bias is how far the
+cloud's center sits from the bullseye; variance is how scattered the cloud
+is. The expected squared miss is exactly $\mathrm{Bias}^2 + \mathrm{Var}$.*
 
-#### Cross-entropy and KL divergence
+#### Estimating a variance from data (Bessel's correction)
 
-Now two distributions over the same outcomes: $q$, the truth, and $p$, a
-model of it.
+**Computing a sample's variance with divisor $n$ underestimates the true
+variance on average. Dividing by $n - 1$ fixes it exactly.** The reason:
+deviations are measured from the sample's own mean, which always sits closer
+to the sample than the true mean does.
 
-- **Cross-entropy** is the average surprise when outcomes come from $q$ but
-  are scored with $p$. This is §3.3's loss, with $q$ the one-hot label and
-  $p$ the model's output.
+**The natural estimator.** The true variance is
+$\sigma^2 = \mathbb{E}[(X - \mu)^2]$. From a sample you have neither the
+probabilities nor $\mu$, so replace the expectation by the plain average
+over the $n$ draws and $\mu$ by the sample mean $\bar X$:
 
-  $$H(q, p) = -\sum_x q(x)\log p(x)$$
+$$\hat\sigma^2 = \frac{1}{n}\sum_i (X_i - \bar X)^2$$
 
-- **KL divergence** is the extra surprise caused by scoring with the wrong
-  distribution.
+For the rolls $2, 6, 3$: $\bar x = \frac{11}{3}$, the deviations are
+$-\frac{5}{3}, \frac{7}{3}, -\frac{2}{3}$, and
 
-  $$\mathrm{KL}(q \,\|\, p) = \sum_x q(x)\log\frac{q(x)}{p(x)}$$
+$$\hat\sigma^2 = \frac{1}{3}\left[\left(\tfrac{5}{3}\right)^2 + \left(\tfrac{7}{3}\right)^2 + \left(\tfrac{2}{3}\right)^2\right]
+  = \frac{1}{3} \cdot \frac{78}{9} = \frac{26}{9} \approx 2.89$$
 
-Splitting $\log\frac{q}{p} = \log q - \log p$ connects the three:
+**It is biased low.** For the die we can check. The true variance is
+$\sigma^2 = \frac{35}{12} \approx 2.92$. Apply the formula to all
+$6^3 = 216$ equally likely 3-roll samples and average the results: you get
+$\frac{35}{18} \approx 1.94$, a third short.
 
-$$H(q, p) = H(q) + \mathrm{KL}(q \,\|\, p)$$
+**Why: the sample mean sits too close to its own sample.** Of all possible
+points $c$, the sample mean $\bar X$ is the one that makes the sum of squared
+deviations $\sum_i (X_i - c)^2$ smallest: as a function of $c$ it is a
+parabola with its bottom at $c = \bar X$. The true mean $\mu$ is some other
+point, so measuring from $\bar X$ always gives a smaller sum than measuring
+from $\mu$ would.
 
-In words: the loss is the labels' own uncertainty plus the extra caused by
-the model being wrong. Check with $q = [0.5, 0.5]$, $p = [0.9, 0.1]$:
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 400 220" role="img" aria-label="The sum of squared deviations of the rolls 2, 6 and 3 from a point c, plotted against c: a parabola with its minimum at c equal to x bar, so the value at c equal to mu is higher by n times x bar minus mu squared" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <text x="200" y="18" text-anchor="middle" fill="#6366f1" font-weight="600">Σᵢ (xᵢ − c)², for the rolls 2, 6, 3</text>
+  <line x1="44" y1="32" x2="44" y2="190" stroke="currentColor" opacity="0.5"/>
+  <line x1="44" y1="190" x2="356" y2="190" stroke="currentColor" opacity="0.5"/>
+  <path d="M 50 40 Q 190 280 330 40" fill="none" stroke="#6366f1" stroke-width="2"/>
+  <line x1="44" y1="124.7" x2="190" y2="124.7" stroke="#f59e0b" opacity="0.6" stroke-dasharray="4 4"/>
+  <line x1="44" y1="160" x2="190" y2="160" stroke="#10b981" opacity="0.6" stroke-dasharray="4 4"/>
+  <line x1="114" y1="124.7" x2="114" y2="190" stroke="#f59e0b" opacity="0.6" stroke-dasharray="4 4"/>
+  <line x1="190" y1="160" x2="190" y2="190" stroke="#10b981" opacity="0.6" stroke-dasharray="4 4"/>
+  <line x1="190" y1="124.7" x2="190" y2="160" stroke="#f43f5e" stroke-width="1.5"/>
+  <line x1="186" y1="124.7" x2="194" y2="124.7" stroke="#f43f5e" stroke-width="1.5"/>
+  <line x1="186" y1="160" x2="194" y2="160" stroke="#f43f5e" stroke-width="1.5"/>
+  <text x="190" y="116" text-anchor="middle" fill="#f43f5e" font-size="10.5">n(x̄ − μ)² = 0.08</text>
+  <circle cx="114" cy="124.7" r="3.5" fill="#f59e0b"/>
+  <circle cx="190" cy="160" r="3.5" fill="#10b981"/>
+  <text x="40" y="128.7" text-anchor="end" fill="#f59e0b" font-size="11">8.75</text>
+  <text x="40" y="164" text-anchor="end" fill="#10b981" font-size="11">8.67</text>
+  <text x="114" y="206" text-anchor="middle" fill="#f59e0b">μ = 3.5</text>
+  <text x="190" y="206" text-anchor="middle" fill="#10b981">x̄ ≈ 3.67</text>
+  <text x="364" y="194" fill="currentColor">c</text>
+</svg>
+</div>
 
-- $H(q) = \log 2 = 0.693$
-- $\mathrm{KL}(q\|p) = 0.5\log\frac{0.5}{0.9} + 0.5\log\frac{0.5}{0.1} = 0.5(-0.588) + 0.5(1.609) = 0.511$
-- $H(q, p) = -(0.5\log 0.9 + 0.5\log 0.1) = 1.204 = 0.693 + 0.511$
+*The sum of squared deviations of one sample from a point $c$. The minimum
+sits at $c = \bar x$, where the estimator measures from, so the value at
+the true mean $c = \mu$ is higher by exactly $n(\bar x - \mu)^2$. The
+vertical scale is zoomed in around the minimum.*
 
-#### KL is never negative, and everything that follows from it
+**By exactly how much.** Write $X_i - \mu = (X_i - \bar X) + (\bar X - \mu)$,
+square, and sum over $i$. The cross term vanishes because deviations from
+their own average sum to zero, which leaves
 
-**$\mathrm{KL}(q\|p) \ge 0$, and it is 0 only when $p = q$** (Gibbs'
-inequality). The proof uses $\log x \le x - 1$, true for every $x > 0$: the
-line $x - 1$ touches $\log x$ at $x = 1$ and lies above it everywhere else.
-With $x = p/q$:
+$$\sum_i (X_i - \bar X)^2 = \sum_i (X_i - \mu)^2 - n(\bar X - \mu)^2$$
 
-$$-\mathrm{KL}(q \,\|\, p) = \sum_x q(x)\log\frac{p(x)}{q(x)}
-  \;\le\; \sum_x q(x)\Big(\frac{p(x)}{q(x)} - 1\Big)
-  = \sum_x p(x) - \sum_x q(x) = 1 - 1 = 0$$
+Check on the rolls $2, 6, 3$: from $\bar x$ the squares sum to
+$\frac{78}{9} \approx 8.67$; from $\mu = 3.5$ they sum to
+$1.5^2 + 2.5^2 + 0.5^2 = 8.75$; and the gap $3 \cdot (\frac{1}{6})^2 \approx 0.08$
+is the difference.
 
-Equality needs $p(x) = q(x)$ everywhere. Three facts used daily follow:
+On average, the first sum on the right is $n\sigma^2$ (each term averages
+$\sigma^2$), and the gap is $n \cdot \mathrm{Var}(\bar X) = n \cdot \sigma^2/n = \sigma^2$ (§3.6),
+one draw's worth of variance. So
 
-- **The loss has a floor.** Since $H(q, p) = H(q) + \mathrm{KL} \ge H(q)$,
-  the cross-entropy can never go below the labels' entropy. With one-hot
-  labels that floor is 0. With label smoothing $q = [0.9, 0.05, 0.05]$ it is
-  $H(q) = -(0.9\log 0.9 + 2 \cdot 0.05\log 0.05) \approx 0.394$ nats, which is
-  why a smoothed training loss levels off above zero even when the model is
-  right on every example.
-- **The uniform distribution has the most entropy.** For $u$ uniform over
-  $K$ outcomes, $\mathrm{KL}(q\|u) = \log K - H(q) \ge 0$, so
-  $H(q) \le \log K$. The die's $\log 6$ is the most any six-outcome
-  variable can have.
-- **KL is not symmetric.** Swap the two distributions in the check above:
-  $\mathrm{KL}(p\|q) = 0.9\log\frac{0.9}{0.5} + 0.1\log\frac{0.1}{0.5} = 0.368 \ne 0.511$.
-  The direction matters. Minimizing $\mathrm{KL}(q\|p)$ over $p$ charges
-  heavily wherever $q$ has mass and $p$ does not, so $p$ spreads out to
-  cover all of $q$. Minimizing $\mathrm{KL}(p\|q)$ charges wherever $p$ has
-  mass and $q$ does not, so $p$ concentrates on one mode of $q$.
+$$\mathbb{E}\Big[\sum_i (X_i - \bar X)^2\Big] = n\sigma^2 - \sigma^2 = (n-1)\,\sigma^2$$
 
-#### Where these appear in ML
+**The fix.**
 
-- **MLE minimizes a KL.** The average negative log-likelihood over the data
-  approximates $H(q, p_\theta) = H(q) + \mathrm{KL}(q\|p_\theta)$, where $q$
-  is the data distribution (§3.6: a sample average approximates the
-  expectation). $H(q)$ does not depend on $\theta$, so maximizing likelihood
-  minimizes $\mathrm{KL}(q\|p_\theta)$: the covering direction, which is why
-  an MLE-trained model spreads probability over every mode in the data.
-- **RLHF's KL penalty** (module 7, §3.2) is
-  $\mathrm{KL}(\pi_\theta\|\pi_{ref})$, the other direction: the fine-tuned
-  policy pays wherever it puts mass the reference would not, so it can
-  sharpen but not wander.
-- **Knowledge distillation** trains a student on
-  $H(p_{teacher}, p_{student})$ instead of one-hot labels. The floor is now
-  $H(p_{teacher}) > 0$, and the student learns the teacher's uncertainty,
-  not just its top choice.
+- Divide by $n$: the average is $\frac{n-1}{n}\sigma^2$, a bias of
+  $-\sigma^2/n$. For 3 die rolls that predicts
+  $\frac{2}{3} \cdot \frac{35}{12} = \frac{35}{18} \approx 1.94$, exactly the
+  enumeration result.
+- Divide by $n - 1$: the average is exactly $\sigma^2$. This is **Bessel's
+  correction**.
 
-#### Mutual information
+Another way to see the $n - 1$: the $n$ deviations $X_i - \bar X$ must sum to
+zero, so once $n - 1$ of them are known the last is fixed. The sample
+supplies only $n - 1$ free deviations. With one draw, the single deviation
+is $X_1 - \bar X = 0$: the $1/n$ formula claims zero spread, while Bessel's
+$0/0$ is undefined, which is the honest answer.
 
-**Mutual information measures how much knowing one variable tells you about
-another.** It compares the joint distribution with what independence would
-give:
+#### The tradeoff in ML terms
 
-$$I(X; Y) = \mathrm{KL}\big(p(x, y) \,\|\, p(x)\,p(y)\big) = \sum_{x, y} p(x, y)\log\frac{p(x, y)}{p(x)\,p(y)}$$
+Training a model fits the same template:
 
-By Gibbs' inequality $I \ge 0$, with $I = 0$ exactly when $X$ and $Y$ are
-independent (§3.1). Equivalently, $I(X; Y) = H(X) - H(X \mid Y)$: the
-uncertainty in $X$ minus what is left once $Y$ is known. Feature selection
-ranks features by it, and the InfoNCE contrastive loss (module 4) is a lower
-bound on it.
+- the **sample** is the training set,
+- the **estimator** is the whole training procedure,
+- the **estimate** is the trained model's prediction at an input $x$,
+- **redrawing the sample** means collecting a new training set and
+  retraining.
 
-#### Entropy of a Gaussian, and why it is the maximum
+So:
 
-For a density the sum becomes an integral, $H(p) = -\int p(x)\log p(x)\,dx$.
-For $\mathcal{N}(\mu, \sigma^2)$, take the expectation of the $-\log$
-density from §3.4, using $\mathbb{E}[(X - \mu)^2] = \sigma^2$:
+- **Bias**: average the predictions at $x$ over many training sets; bias is
+  how far that average is from the truth. It comes from what the model class
+  cannot express.
+- **Variance**: how much the prediction at $x$ changes between training
+  sets. It comes from the fit following the quirks and noise of the one
+  sample it saw.
 
-$$H = \mathbb{E}\Big[\frac{(X-\mu)^2}{2\sigma^2} + \tfrac{1}{2}\log(2\pi\sigma^2)\Big]
-  = \tfrac{1}{2} + \tfrac{1}{2}\log(2\pi\sigma^2)
-  = \tfrac{1}{2}\log(2\pi e\sigma^2)$$
+The two classic model types sit at opposite corners of the dartboard
+figure:
 
-It grows with $\sigma$ and does not depend on $\mu$: shifting a bell does
-not make it more or less predictable. For $\sigma = 2$, $H \approx 2.11$
-nats.
+- A **linear model** is high-bias, low-variance. If the truth curves, a line
+  misses it in the same places whichever training set it saw, but refitting
+  gives nearly the same line.
+- A **deep net or unpruned decision tree** is low-bias, high-variance. It can
+  fit nearly any shape, so on average it tracks the truth, but each fit also
+  follows its own training set's noise, so two fits disagree.
 
-**Why it is the maximum.** Take any density $p$ with mean $\mu$ and variance
-$\sigma^2$, and let $g$ be the Gaussian with the same two numbers. The
-cross-entropy $H(p, g)$ only needs $\mathbb{E}_p[(X-\mu)^2] = \sigma^2$, so the
-computation above gives $H(p, g) = H(g)$. Then by Gibbs:
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 380 205" role="img" aria-label="Bias squared falls and variance rises as model flexibility grows; their sum is a U shaped curve with a minimum at intermediate flexibility" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <line x1="50" y1="170" x2="348" y2="170" stroke="currentColor" opacity="0.5"/>
+  <line x1="50" y1="170" x2="50" y2="28" stroke="currentColor" opacity="0.5"/>
+  <line x1="195" y1="103.3" x2="195" y2="170" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
+  <path d="M 50 36.7 Q 195 170 340 170" fill="none" stroke="#10b981" stroke-width="2"/>
+  <path d="M 50 170 Q 195 170 340 36.7" fill="none" stroke="#f59e0b" stroke-width="2"/>
+  <path d="M 50 36.7 Q 195 170 340 36.7" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <circle cx="195" cy="103.3" r="3.5" fill="#6366f1"/>
+  <text x="195" y="90" text-anchor="middle" fill="#6366f1" font-weight="600">Bias² + Var</text>
+  <text x="72" y="120" fill="#10b981">Bias²</text>
+  <text x="318" y="120" text-anchor="end" fill="#f59e0b">Var</text>
+  <text x="52" y="18" fill="currentColor" fill-opacity="0.7">error</text>
+  <text x="50" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">simple</text>
+  <text x="195" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">model flexibility</text>
+  <text x="340" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">flexible</text>
+</svg>
+</div>
 
-$$0 \le \mathrm{KL}(p \,\|\, g) = H(p, g) - H(p) = H(g) - H(p)$$
+*As model flexibility grows, $\mathrm{Bias}^2$ falls (the model can express
+more) and $\mathrm{Var}$ rises (the fit can follow more noise). Their sum is
+smallest at an intermediate flexibility (the dot).*
 
-So $H(p) \le H(g)$: for a given mean and variance, the Gaussian has the most
-entropy. Assuming Gaussian noise when you know only the mean and variance
-assumes nothing more.
+What the standard fixes do:
+
+- **Regularization** stops the fit from following the training set so
+  closely: variance drops, some bias is accepted in exchange.
+- **More data** lowers variance directly, like $\mathrm{Var}(\bar X) = \sigma^2/n$ (§3.6).
+- **Bagging** averages several high-variance models trained on resampled
+  data: averaging cancels variance while leaving bias about the same.
+
+For test error the decomposition gains one term:
+$\mathrm{Bias}^2 + \mathrm{Var} + \text{irreducible noise}$. The new term is
+the noise $\varepsilon$ in the target itself (§3.4), which no model can
+predict. The full derivation is in the evaluation module.
 
 ## 3.8 Hypothesis tests: is the difference real?
 
@@ -1262,7 +1293,7 @@ either direction.*
 
 Both examples compare two rates, $\hat p_A = k_A / n_A$ and
 $\hat p_B = k_B / n_B$. Each is a Bernoulli sample mean with variance
-$p(1-p)/n$ (§3.4, §3.6), and they come from separate users, so the variance
+$p(1-p)/n$ (§3.2, §3.6), and they come from separate users, so the variance
 of their difference is the sum (§3.1):
 
 $$\mathrm{Var}(\hat p_B - \hat p_A) = \frac{p_B(1-p_B)}{n_B} + \frac{p_A(1-p_A)}{n_A}$$
@@ -1302,10 +1333,10 @@ noise.
 
 **A p-value is $P(\text{data this extreme} \mid H_0)$, not
 $P(H_0 \mid \text{data})$**, the probability that there is no real effect.
-Turning one into the other is §3.2's problem: it needs a prior on how often
+Turning one into the other is §3.3's problem: it needs a prior on how often
 tested changes are real. A team that tests many long-shot ideas will find
 that most of its $p < 0.05$ results are false positives, just as most
-positive tests in §3.2's rare-disease example were.
+positive tests in §3.3's rare-disease example were.
 
 #### Errors, power and sample size
 

@@ -22,9 +22,10 @@ Read in this order:
    the chain rule as the whole of backprop, gradients of vector expressions,
    and Jacobians.
 3. [Probability & statistics for ML](04_probability.md) - expectation and
-   variance, Bayes rule, maximum likelihood (why cross-entropy is the loss),
-   bias and variance of estimators, the central limit theorem, information
-   theory (entropy, cross-entropy, KL), and hypothesis tests.
+   variance, the Bernoulli and Gaussian distributions, Bayes rule, maximum
+   likelihood (where cross-entropy and MSE come from), information theory
+   (entropy, cross-entropy, KL), error bars and the central limit theorem,
+   bias and variance of estimators, and hypothesis tests.
 4. [Interview questions & exit checklist](05_interview_questions.md) - model
    answers to fifteen standard questions, and the checklist to clear before
    moving to the next module.

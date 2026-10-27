@@ -175,7 +175,7 @@ value iteration, at the cost of a full evaluation per sweep.
 Real problems do not hand over $P(s' \mid s, a)$. The agent has only
 sampled transitions $(s, a, r, s')$ from acting. Two ways to estimate
 values from samples, and the difference between them is a bias-variance
-tradeoff in the sense of module 1, §3.5.
+tradeoff in the sense of module 1, §3.7.
 
 #### Monte Carlo
 
@@ -392,7 +392,7 @@ selection and recommendation exploration, and it isolates the
   arms it knows little about and stops once their intervals fall below the
   leader.
 - **Thompson sampling.** Keep a posterior over each arm's reward (module
-  1, §3.2, updated after each pull), sample one value from each posterior,
+  1, §3.3, updated after each pull), sample one value from each posterior,
   and pull the arm whose sample is largest. Arms with wide posteriors get
   pulled in proportion to how plausibly they could be best.
 

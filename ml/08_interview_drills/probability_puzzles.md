@@ -293,7 +293,7 @@ probability you drew the double-headed coin?
 
 <details><summary>Solution</summary>
 
-**Tool: Bayes rule with counts** (module 1, §3.2). Imagine 16 draws: 8
+**Tool: Bayes rule with counts** (module 1, §3.3). Imagine 16 draws: 8
 of each coin. The double-headed coin gives HHH all 8 times; the fair coin
 gives HHH with probability $1/8$, so once. Of the 9 draws showing HHH, 8
 are the double-headed coin: $8/9 \approx 0.89$.
