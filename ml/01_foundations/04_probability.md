@@ -602,8 +602,8 @@ You can check it: $e^{-225/200} = 0.32$ and $e^{-25/200} = 0.88$. A smaller
 sum of squared errors always means a larger likelihood. Dividing by the
 number of examples doesn't change which model is best, so when you minimize
 mean squared error, you're doing maximum likelihood under the assumption that
-the errors are independent and Gaussian, with the same standard deviation $\sigma$ for every
-example. That's where MSE comes from.
+each price is an independent draw from a bell around its prediction, with
+the same $\sigma$ for every house, cheap or expensive. That's where MSE comes from.
 
 L1 loss comes out the same way with a different noise shape. Suppose the
 errors follow a Laplace distribution, whose factor for a miss of $d$ is
