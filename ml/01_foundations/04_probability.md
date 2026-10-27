@@ -743,48 +743,40 @@ $$H(q, p) = H(q) + \mathrm{KL}(q\|p)$$
 
 #### KL is never negative
 
-In the coin table, the model's extra surprise was negative on heads and
-positive on tails, and the average came out positive. That always happens:
-$\mathrm{KL}(q\|p) \ge 0$, and it is 0 only when $p = q$. (This is called
-Gibbs' inequality.) A model can lower its surprise on some outcomes by
-giving them more probability, but probabilities add up to 1, so that
-probability has to come from other outcomes, and the cost there always
-outweighs the saving.
+In the coin table, the extra surprise was negative on heads, yet the average
+was positive. That always holds: $\mathrm{KL}(q\|p) \ge 0$, and it is 0 only
+when $p = q$ (**Gibbs' inequality**). Giving one outcome more probability
+means taking it from another, and the cost there always outweighs the gain.
 
-The proof uses one fact: $\log x \le x - 1$ for every $x > 0$, because the
-line $x - 1$ touches the log curve at $x = 1$ and the curve stays below it.
-Apply it with $x = p(x)/q(x)$:
+The proof uses $\log x \le x - 1$ for every $x > 0$ (the line $x - 1$
+touches the log curve at $x = 1$ and stays above it), with
+$x = p(x)/q(x)$:
 
 $$-\mathrm{KL}(q\|p) = \sum_x q(x)\log\frac{p(x)}{q(x)} \;\le\; \sum_x q(x)\Big(\frac{p(x)}{q(x)} - 1\Big) = \sum_x p(x) - \sum_x q(x) \;\le\; 1 - 1 = 0$$
 
-(The sums run over outcomes with $q(x) > 0$, so $\sum_x p(x)$ is at most 1.)
+(The sums run over outcomes with $q(x) > 0$, so $\sum_x p(x) \le 1$.)
 
-This has two useful consequences. First, the loss has a floor. Cross-entropy
-is entropy plus KL, so it can never drop below the entropy of the labels.
-With one-hot labels that floor is 0. With label smoothing,
-$q = [0.9, 0.05, 0.05]$, the floor is
-$0.9 \times (-\log 0.9) + 2 \times 0.05 \times (-\log 0.05) \approx 0.394$
-nats, which is why a smoothed training loss levels off above zero even when
-the model gets every example right.
+Two consequences. Since cross-entropy is entropy plus KL, a loss can never
+go below the entropy of its labels. That floor is 0 for one-hot labels, but
+for label-smoothed labels $[0.9, 0.05, 0.05]$ it is
+$0.9 \times (-\log 0.9) + 2 \times 0.05 \times (-\log 0.05) \approx 0.394$,
+which is why a smoothed loss levels off above zero. And for any $p$ over $K$
+outcomes, the KL to the uniform distribution is
+$\sum_x p(x)\log\frac{p(x)}{1/K} = \log K - H(p) \ge 0$, so no distribution
+has more entropy than the uniform one, $\log K$.
 
-Second, the uniform distribution has the most entropy. For any $p$ over $K$
-outcomes, the KL to the uniform distribution (probability $1/K$ each) is
-$\sum_x p(x)\log\frac{p(x)}{1/K} = \sum_x p(x)\log p(x) + \log K = \log K - H(p)$. That can't be negative,
-so $H(p) \le \log K$. The fair die's $\log 6$ is the most any six-outcome
-distribution can have.
+#### KL is not symmetric
 
-KL is not symmetric. Swapping $p$ and $q$ in the coin example gives
-$0.9 \log\frac{0.9}{0.5} + 0.1 \log\frac{0.1}{0.5} = 0.368$ instead of 0.511,
-and the two directions behave differently:
+Swapping $p$ and $q$ in the coin example gives
+$0.9 \log\frac{0.9}{0.5} + 0.1 \log\frac{0.1}{0.5} = 0.368$ instead of
+0.511, and the two directions behave differently:
 
-- $\mathrm{KL}(q\|p)$ averages over the outcomes the truth produces. If the
-  model gives one of them a probability near 0, $\log\frac{q(x)}{p(x)}$ is
-  huge. So minimizing it pushes the model to cover every outcome the truth
-  produces.
-- $\mathrm{KL}(p\|q)$ averages over the outcomes the model produces.
-  Outcomes the model gives probability 0 cost nothing. So minimizing it lets
-  the model concentrate on one region where the truth is high and ignore
-  the rest.
+- $\mathrm{KL}(q\|p)$ averages over outcomes the truth produces. If the
+  model gives one of them a probability near 0, its term is huge, so
+  minimizing it makes the model cover everything the truth produces.
+- $\mathrm{KL}(p\|q)$ averages over outcomes the model produces, so
+  outcomes the model ignores cost nothing. Minimizing it lets the model
+  concentrate on one region where the truth is high.
 
 #### Where these show up in ML
 
