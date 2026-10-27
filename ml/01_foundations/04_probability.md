@@ -5,8 +5,8 @@ Why is the loss cross-entropy, or MSE, and not something else? When model B
 beats model A by half a point, is that real or luck? And when a model is
 wrong, is it too simple, or has it latched onto quirks of its training set?
 All three have precise answers, and they come from a small set of ideas:
-how to describe a random quantity (§3.1–3.2), how to learn from data
-(§3.3–3.5), and how much to trust a number computed from data (§3.6–3.8).
+how to describe a random quantity, how to learn from data, and how much to
+trust a number computed from data.
 
 ## 3.1 Random variables, expectation, variance
 
@@ -64,8 +64,7 @@ different things. The
 for the die it's 3.5, one fixed number. The *sample mean* averages the
 draws you actually got: rolls 2, 6, 3 give 3.67, and the next three rolls
 will give something else. The $\mathbb{E}[\,\cdot\,]$ notation always means
-the first kind. Estimating a variance from actual draws has a twist
-(§3.7).
+the first kind.
 
 There's a shortcut for computing variance. Expand the square and use
 linearity: $\mathbb{E}[X^2 - 2\mu X + \mu^2] = \mathbb{E}[X^2] - 2\mu \cdot \mu
@@ -113,9 +112,8 @@ covariance is zero. Variables with zero covariance are called
 uncorrelated variables are not always independent.
 
 The rule that independent variances add,
-$\mathrm{Var}(X + Y) = \mathrm{Var}(X) + \mathrm{Var}(Y)$, does a lot of work
-later. It's where the $\sigma/\sqrt{n}$ error bars of §3.6 come from, and it's the reasoning behind weight
-initialization schemes like Xavier and He, which choose the weight variance
+$\mathrm{Var}(X + Y) = \mathrm{Var}(X) + \mathrm{Var}(Y)$, is the reasoning
+behind weight initialization schemes like Xavier and He, which choose the weight variance
 so that each layer's outputs have the same variance as its inputs.
 
 ## 3.2 Bernoulli and Gaussian: the two distributions ML leans on
@@ -124,7 +122,7 @@ Two distributions show up far more than any others. The Bernoulli describes
 a single yes/no event: a coin flip, whether an email is spam, whether a
 neuron is kept by dropout. The Gaussian describes a quantity built from many
 small effects: measurement noise, how far a prediction misses, an average over
-many examples. §3.4 derives the standard losses from both.
+many examples.
 
 #### Bernoulli: one yes/no event
 
@@ -170,8 +168,7 @@ The Bernoulli is the building block for a few things you'll meet constantly.
 Add up $n$ independent flips and you're counting successes, which gives the
 **Binomial** distribution, with mean $np$ by linearity and variance
 $np(1 - p)$ because independent variances add ($n$ copies of $p(1-p)$). A classifier that says "spam
-with probability 0.9" is modeling the label as Bernoulli(0.9), and §3.4 turns
-that into the binary cross-entropy loss. And **dropout**, a training method
+with probability 0.9" is modeling the label as Bernoulli(0.9). And **dropout**, a training method
 that sets each neuron's output to zero at random, keeps each neuron with
 probability $p$, so a layer of $n$ neurons keeps about $np$ of them. (PyTorch's
 dropout layer takes the drop probability instead, so a setting of 0.1 keeps
@@ -197,9 +194,7 @@ Each push on its own is flat: any value from −1k to 1k is equally likely. But
 the totals pile up in the middle and thin out toward the edges. That's
 because a total near zero only needs the pushes to roughly cancel, and there
 are a huge number of ways for that to happen, while a total of +9k needs
-nearly all 20 pushes to go the same way. The result is a bell. §3.6 shows
-this happens for almost any kind of push, which is the **central limit
-theorem**.
+nearly all 20 pushes to go the same way. The result is a bell.
 
 The bell's formula is
 
@@ -221,10 +216,7 @@ $\int e^{-x^2/2}\,dx = \sqrt{2\pi}$, which we take as given.)
 
 So why is the Gaussian everyone's default? Partly because of the simulation
 above: real noise is usually the sum of many small effects, so a bell often
-fits. Partly because, among all distributions with a given mean and variance,
-it's the most unpredictable (it has the highest entropy, §3.5), so it adds the
-fewest extra assumptions. And partly for a reason that will matter a lot in §3.4: its
-$-\log$ is a squared distance. The log of a product is the sum of the logs,
+fits. And partly because its $-\log$ is a squared distance. The log of a product is the sum of the logs,
 and $-\log e^{-z} = z$, so
 
 $$-\log\Big(\tfrac{1}{\sqrt{2\pi\sigma^2}}\, e^{-(x-\mu)^2 / 2\sigma^2}\Big)
@@ -849,7 +841,9 @@ It grows with the width and doesn't care where the bell is centered, which
 makes sense: sliding a bell left or right doesn't make it any more or less
 predictable. For $\sigma = 2$ it's about 2.11 nats.
 
-This also settles the claim from §3.2 that the Gaussian assumes the least.
+This gives one more reason the Gaussian is the default choice for noise:
+among all distributions with a given mean and variance, it has the highest
+entropy.
 Take any distribution $p$ with some mean and variance, and the Gaussian $g$
 with the same two numbers. Scoring $p$'s outcomes with $g$ costs exactly
 $H(g)$ on average, because $-\log g$ only involves $(x - \mu)^2$, which
@@ -1065,7 +1059,7 @@ that's $\sqrt{0.9 \times 0.1 / 1000} \approx 0.0095$, about ±1 point, which
 is why a half-point improvement on that test set means very little. And an
 error bar of ±2 standard errors is called a 95% **confidence interval**,
 because about 95% of a bell lies within 2 standard deviations of its center
-(95.4%, or exactly 95% at 1.96, the number §3.8 uses). If you repeated the
+(95.4%, or exactly 95% at 1.96). If you repeated the
 experiment many times, intervals built this way would contain the true value
 about 95% of the time.
 
@@ -1290,8 +1284,7 @@ call the difference **statistically significant**.
 For the checkout pages, $H_0$ says both pages share one true rate, so you
 estimate it by **pooling**: treating all 100,000 users as one group, which
 gives a conversion rate of 0.022. The standard error of the gap is then
-$\sqrt{0.022 \times 0.978 \times 2/50{,}000} \approx 0.000928$ (derived
-below), so $z = 0.002 / 0.000928 \approx 2.16$. The area of the standard bell
+$\sqrt{0.022 \times 0.978 \times 2/50{,}000} \approx 0.000928$, so $z = 0.002 / 0.000928 \approx 2.16$. The area of the standard bell
 beyond ±2.16 is $p \approx 0.031$: that's the chance of noise producing a gap
 at least that large in either direction.
 
@@ -1330,7 +1323,7 @@ $$\text{SE} = \sqrt{\hat p(1-\hat p)\Big(\frac{1}{n_A} + \frac{1}{n_B}\Big)},
   \qquad z = \frac{\hat p_B - \hat p_A}{\text{SE}}$$
 
 For the checkout test that's $z = 2.16$ and $p = 0.031$: significant at the
-0.05 level, with caveats covered under power and peeking.
+0.05 level.
 
 A confidence interval (§3.6) tells you the same thing as a test and more.
 The 95% interval for the gap is the gap ± 1.96 SE. It excludes zero exactly
