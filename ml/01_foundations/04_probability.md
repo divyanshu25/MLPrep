@@ -608,17 +608,25 @@ $$-\log(\text{likelihood}) = \frac{\text{sum of squared errors}}{200}$$
 model is always the one with the smallest sum of squared errors. Divide by
 the number of houses and that's MSE.
 
-MSE uses the same $\sigma$ for every house. That $\sigma$ is not measured
+MSE uses the same $\sigma = 10$k for every house, so it expects every house
+to miss by about the same number of dollars. That $\sigma$ is not measured
 from the data. It is the size of the bell placed around every prediction,
-and one size rarely fits all. For a 10k cabin a 10k miss is huge; for a
-200 million estate it is negligible; MSE charges both the same. There are two
-common fixes:
+and one size rarely fits all: a 10k miss is huge for a 10k cabin and
+negligible for a 200 million estate, yet MSE charges both the same. Two
+common fixes give each house a bell of the right size:
 
-- Predict the log of the price. Then one $\sigma$ means one *percentage*
-  error, which fits cheap and expensive houses alike.
-- Have the model output its own $\sigma$ for each house. The loss for a
-  house becomes $d^2/(2\sigma^2) + \log\sigma$. A house with a large
-  $\sigma$ counts less, and the $\log\sigma$ term charges for a large
+- Predict the log of the price instead of the price. The error then becomes
+  $\log(\text{actual}) - \log(\text{predicted}) = \log(\text{actual}/\text{predicted})$,
+  which depends only on the ratio of the two prices. A cabin predicted at
+  10k that sells for 11k and an estate predicted at 200M that sells for 220M
+  are both 10% misses, and both have error $\log 1.1 \approx 0.095$. So one
+  $\sigma$ on the log scale allows the same *percentage* miss on every
+  house. With $\sigma = 0.1$, that is about ±1k on the cabin and ±20M on the
+  estate.
+- Have the model output its own $\sigma$ for each house, say 1k for the
+  cabin and 20M for the estate. The loss for a house becomes
+  $d^2/(2\sigma^2) + \log\sigma$, so a 10k miss adds a lot to the cabin's
+  loss and almost nothing to the estate's. The $\log\sigma$ term charges for a large
   $\sigma$, so $\sigma$ can't simply be made large for every house.
 
 If large misses happen more often than a Gaussian allows, use the
