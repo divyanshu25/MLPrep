@@ -210,9 +210,10 @@ The part that gives the curve its shape is $e^{-(x-\mu)^2 / 2\sigma^2}$. At the 
 it equals 1, it's symmetric on either side, and it falls off quickly as you
 move away. With $\sigma = 10$, a value 10 away from the mean gets a factor of
 $e^{-0.5} = 0.61$, and a value 30 away gets $e^{-4.5} = 0.011$. The constant
-in front just scales the curve so its total area is 1. (Finding that this
-particular constant does it takes an integral, the Gaussian integral
-$\int e^{-x^2/2}\,dx = \sqrt{2\pi}$, which we take as given.)
+in front scales the curve so its total area is 1: the area under
+$e^{-(x-\mu)^2 / 2\sigma^2}$ is exactly $\sqrt{2\pi\sigma^2}$ (a standard
+calculus result called the Gaussian integral), so dividing by it leaves an
+area of 1.
 
 So why is the Gaussian everyone's default? Partly because of the simulation
 above: real noise is usually the sum of many small effects, so a bell often
@@ -1044,8 +1045,7 @@ Every extra draw repeats the shift-and-add. Each value of the result is a sum
 over many values of the input, so each repeat averages away a bit more of the
 original shape, like the exponential's spike at zero, while the
 mean and variance just keep adding. And once the shape is a bell it stays a
-bell, because the sum of independent Gaussians is again a Gaussian (a
-standard result we take as given). (`probability_demos.ipynb`
+bell, because the sum of independent Gaussians is again a Gaussian. (`probability_demos.ipynb`
 tracks this numerically.)
 
 #### Where ML uses it
