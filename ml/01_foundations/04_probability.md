@@ -448,8 +448,11 @@ argument on three houses.
 
 **The assumption.** A regression model's prediction is a best guess: real
 prices land near it, not on it. Assume they scatter around the prediction in
-a bell shape: a price that misses the prediction by $d$ thousand gets a
-probability factor of $e^{-d^2 / 200}$.
+a bell shape. The standard bell curve is the **Gaussian**, covered in §3.4;
+all this section needs is its shape: a price that misses the prediction by
+$d$ thousand gets a probability factor of $e^{-d^2 / 200}$. That formula is 1
+when $d = 0$, the same for misses above and below, and falls off quickly as
+$d$ grows:
 
 - off by 0: factor 1
 - off by 10k: $e^{-100/200} = 0.61$
