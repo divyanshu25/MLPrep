@@ -73,15 +73,30 @@ start of this section: for the die, $\sigma = \sqrt{2.92} \approx 1.71$.
 Two rules tell you how variance behaves when you transform things. If you
 multiply $X$ by $a$, every distance from the mean gets multiplied by $a$, so
 every squared distance by $a^2$: $\mathrm{Var}(aX) = a^2\,\mathrm{Var}(X)$.
-And if you add two *independent* variables, their variances add:
-$\mathrm{Var}(X + Y) = \mathrm{Var}(X) + \mathrm{Var}(Y)$. (Expanding the
-square gives the two variances plus a cross term,
-$2\,\mathbb{E}[(X - \mu_X)(Y - \mu_Y)]$, called the **covariance** term, and
-independence makes it zero by the product rule above. Variables whose
-covariance is zero are called **uncorrelated**; the product rule
-$\mathbb{E}[XY] = \mathbb{E}[X]\,\mathbb{E}[Y]$ holds for them too, so
-independence is enough but not required.) Two dice have variance
-$2.92 + 2.92 = 5.83$.
+And if you add two *independent* variables, their variances add.
+
+To see why, write $\mu_X$ and $\mu_Y$ for the two means. By linearity,
+$X + Y$ has mean $\mu_X + \mu_Y$, so its distance from its mean is
+$(X - \mu_X) + (Y - \mu_Y)$. The variance is the average of that distance
+squared. Squaring a sum of two pieces, $(a + b)^2 = a^2 + b^2 + 2ab$, and
+averaging term by term gives
+
+$$\mathrm{Var}(X + Y) = \underbrace{\mathbb{E}[(X - \mu_X)^2]}_{\mathrm{Var}(X)} + \underbrace{\mathbb{E}[(Y - \mu_Y)^2]}_{\mathrm{Var}(Y)} + 2\,\mathbb{E}[(X - \mu_X)(Y - \mu_Y)]$$
+
+The last average, without the 2, is the **covariance** of $X$ and $Y$. It is
+positive when $X$ tends to be above its mean at the same times $Y$ is above
+its mean, and negative when one tends to be above while the other is below.
+If $X$ and $Y$ are independent, so are $X - \mu_X$ and $Y - \mu_Y$, and the
+product rule above splits the covariance into
+$\mathbb{E}[X - \mu_X] \cdot \mathbb{E}[Y - \mu_Y] = 0 \cdot 0 = 0$. That
+leaves
+
+$$\mathrm{Var}(X + Y) = \mathrm{Var}(X) + \mathrm{Var}(Y)$$
+
+Two dice have variance $2.92 + 2.92 = 5.83$. (Variables whose covariance is
+zero are called **uncorrelated**. Independent variables are always
+uncorrelated, and the variances of any uncorrelated pair add, so
+independence is enough but not required.)
 
 That second rule does a lot of work later. It's where the $\sigma/\sqrt{n}$
 error bars of §3.6 come from, and it's the reasoning behind weight
