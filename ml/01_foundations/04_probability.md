@@ -448,15 +448,17 @@ argument on three houses.
 
 **The assumption.** A regression model's prediction is a best guess: real
 prices land near it, not on it. Assume they scatter around the prediction in
-a bell shape, so a price that misses the prediction by $d$ gets relative
-probability $e^{-d^2 / 2\sigma^2}$ (with $\sigma = 10$k, and prices in
-thousands so $2\sigma^2 = 200$):
+a bell shape: a price that misses the prediction by $d$ thousand gets a
+probability factor of $e^{-d^2 / 200}$.
 
-- off by 0: probability factor 1
-- off by 10k: $0.61$
-- off by 30k: $0.011$
+- off by 0: factor 1
+- off by 10k: $e^{-100/200} = 0.61$
+- off by 30k: $e^{-900/200} = 0.011$
 
-Small misses are common, big misses rare.
+Small misses are common, big misses rare. The 200 sets how wide the bell is;
+with 200, about two thirds of prices land within 10k of the prediction. (In general the
+factor is $e^{-d^2 / 2\sigma^2}$, where $\sigma$ is the bell's width, its
+standard deviation; $\sigma = 10$ gives the 200.)
 
 **Two candidate models.** Three houses sold for 310k, 290k and 305k. Which
 model makes those prices more probable?
@@ -469,16 +471,16 @@ model makes those prices more probable?
 Model B makes the actual prices more probable, so MLE picks B.
 
 **Why that is the same as least squares.** Each factor is $e$ raised to
-$-\text{error}^2 / 2\sigma^2$, and multiplying powers of $e$ adds their
+$-\text{error}^2 / 200$, and multiplying powers of $e$ adds their
 exponents:
 
-$$\text{likelihood} = e^{-(\text{sum of squared errors}) / 2\sigma^2}$$
+$$\text{likelihood} = e^{-(\text{sum of squared errors}) / 200}$$
 
 Model A's squared errors sum to $100 + 100 + 25 = 225$ and model B's to
 $25$, and indeed $e^{-225/200} = 0.32$ and $e^{-25/200} = 0.88$. A smaller sum
 of squared errors always means a larger likelihood. So **maximizing the
 likelihood is minimizing the squared error: MSE.** Taking $-\log$ makes it
-literal: $-\log(\text{likelihood}) = (\text{sum of squared errors}) / 2\sigma^2$.
+literal: $-\log(\text{likelihood}) = (\text{sum of squared errors}) / 200$.
 
 **L1 is the same with a different shape.** If misses follow a Laplace
 distribution instead, the factor for a miss of $d$ is $e^{-|d| / b}$. The
