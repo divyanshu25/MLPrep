@@ -713,44 +713,33 @@ both ends, highest at $1/2$), and for the same reason: both are measuring how ha
 
 #### Cross-entropy and KL divergence
 
-Now suppose there are two distributions over the same outcomes: the truth
-$q$, and a model's guess $p$. Say the truth is a fair coin,
-$q = [0.5, 0.5]$, but the model believes it lands heads 90% of the time,
-$p = [0.9, 0.1]$.
+Now take two distributions over the same outcomes: the truth $q$ and a
+model's guess $p$. The coin is fair, $q = [0.5, 0.5]$, but the model thinks
+it lands heads 90% of the time, $p = [0.9, 0.1]$.
 
-Flip the real coin many times. Half the flips are heads and half are tails,
-because the flips come from $q$. But score each flip's surprise with the
-model's probabilities: heads costs $-\log 0.9 = 0.105$ and tails costs
-$-\log 0.1 = 2.303$. The average cost per flip is
+Flip the real coin many times, so half the flips are heads and half are
+tails. Score each flip twice: with the model's probability, $-\log p(x)$,
+and with the true one, $-\log q(x)$.
 
-$$0.5 \times 0.105 + 0.5 \times 2.303 = 1.204$$
+| | heads | tails | average over flips |
+|---|---|---|---|
+| surprise using the model, $-\log p(x)$ | 0.105 | 2.303 | 1.204 |
+| surprise using the truth, $-\log q(x)$ | 0.693 | 0.693 | 0.693 |
+| extra, $\log\frac{q(x)}{p(x)}$ | −0.588 | 1.609 | 0.511 |
 
-This average, surprise computed with $p$ on outcomes drawn from $q$, is the
-**cross-entropy**, $H(q, p) = -\sum_x q(x)\log p(x)$. It's the loss from
-§3.4, with $q$ the label and $p$ the model's prediction.
-
-A model with the right probabilities, $p = q$, would pay $-\log 0.5 = 0.693$
-on every flip, so its average is the truth's own entropy, $H(q) = 0.693$.
-That much is the cost of the coin's own randomness, and no model can avoid
-it. The wrong model pays $1.204 - 0.693 = 0.511$ more per flip. That extra
-cost is the **KL divergence**, $\mathrm{KL}(q\|p)$.
-
-To get its formula, compare the two scores outcome by outcome. On outcome
-$x$ the wrong model pays $-\log p(x)$ and the right one pays $-\log q(x)$, so
-the extra is $\log\frac{q(x)}{p(x)}$. Averaging over outcomes drawn from $q$
-gives
+The model's average, 1.204, is the **cross-entropy**,
+$H(q, p) = -\sum_x q(x)\log p(x)$. It's the loss from §3.4. The truth's
+average, 0.693, is the entropy $H(q)$: the part that comes from the coin's
+own randomness, which no model can avoid. The difference, 0.511, is the
+**KL divergence**, the extra surprise caused by the model's wrong
+probabilities. It is the average of the bottom row:
 
 $$\mathrm{KL}(q\|p) = \sum_x q(x)\log\frac{q(x)}{p(x)}$$
 
-For the coin, the extra on heads is $\log\frac{0.5}{0.9} = -0.588$: the
-model is less surprised by heads than the truth would be. The extra on
-tails is $\log\frac{0.5}{0.1} = 1.609$. The average is
-$0.5 \times (-0.588) + 0.5 \times 1.609 = 0.511$, the same gap as before. So
+So the loss splits into two parts, the labels' own unpredictability and the
+model's extra cost:
 
 $$H(q, p) = H(q) + \mathrm{KL}(q\|p)$$
-
-The loss is the labels' own unpredictability plus the extra cost of the
-model's wrong probabilities.
 
 #### KL is never negative
 
