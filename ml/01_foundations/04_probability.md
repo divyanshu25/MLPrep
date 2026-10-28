@@ -786,7 +786,9 @@ entropy.
 
 Swapping $p$ and $q$ in the coin example gives
 $0.9 \log\frac{0.9}{0.5} + 0.1 \log\frac{0.1}{0.5} = 0.368$ instead of
-0.511, and the two directions behave differently:
+0.511. If the model can match $q$ exactly, both directions are minimized by
+$p = q$. When it can't, which is the usual case, they prefer different
+models, because each charges for a different mistake:
 
 - $\mathrm{KL}(q\|p)$ averages over outcomes the truth produces, so the
   model is charged for every outcome the truth produces that it gives a
