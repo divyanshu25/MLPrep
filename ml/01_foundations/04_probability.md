@@ -826,10 +826,14 @@ models, because each charges for a different mistake:
   outputs, because it generates them during training, so the model comes
   first.
 - **Distillation trains on soft targets.** A small student model is trained
-  on a large teacher's output probabilities instead of one-hot labels.
-  These targets have nonzero entropy, so the loss bottoms out at the
-  teacher's entropy rather than 0, and they include the teacher's
-  probabilities on the wrong classes, not just its top answer.
+  to match a large teacher's output probabilities instead of one-hot
+  labels. For a photo of a cat, the one-hot label over (cat, dog, car) is
+  $[1, 0, 0]$, which only says "cat". The teacher might output
+  $[0.7, 0.25, 0.05]$, which also says that dog is a plausible mistake and
+  car is not, so each example carries more information. The loss is the
+  cross-entropy against these targets, so its floor is their entropy, about
+  0.75 here, rather than 0: a student that matches the teacher exactly
+  stops at 0.75.
 
 #### Mutual information
 
