@@ -837,37 +837,35 @@ models, because each charges for a different mistake:
 
 #### Mutual information
 
-Mutual information measures how much knowing one variable tells you about
-another. Say $X$ is whether it rains today, with a 50/50 chance, so you start
-with 1 bit of uncertainty about it. Now you get to read a sensor $Y$:
+Mutual information answers one question: how much does learning $Y$ reduce
+your uncertainty about $X$?
 
-- If the sensor is always right, reading it removes all the uncertainty.
-  The mutual information is 1 bit.
-- If the sensor is right 90% of the time, the uncertainty left is that of a
-  90/10 coin, 0.47 bits (the figure in §3.5.1). The mutual information is
+Take $X$ to be whether it rains today. It's 50/50, so before you learn
+anything your uncertainty is 1 bit, the fair coin from §3.5.1. Now you read
+a rain sensor $Y$ and ask how much uncertainty is left.
+
+- **A perfect sensor.** If it says "rain", it is raining. No uncertainty is
+  left, so the sensor removed the full 1 bit.
+- **A sensor that is right 90% of the time.** If it says "rain", it is
+  raining 90% of the time (Bayes rule from §3.3, with the 50/50 prior). So
+  you're left with a 90/10 coin, which has 0.47 bits of uncertainty, and the
+  same holds when it says "no rain". The sensor removed
   $1 - 0.47 = 0.53$ bits.
-- If the sensor is just a coin flip, reading it tells you nothing about the
-  rain. The mutual information is 0.
+- **A useless sensor.** It is just a coin flip. After reading it, rain is
+  still 50/50, so 1 bit is left and the sensor removed nothing.
 
-So mutual information is the uncertainty before minus the uncertainty
-after:
+The amount removed is the **mutual information**:
 
 $$I(X; Y) = H(X) - H(X \mid Y)$$
 
-$H(X \mid Y)$, the **conditional entropy**, is the uncertainty about $X$ left
-once you know $Y$: the entropy of $X$ for each value of $Y$, averaged over
-$Y$.
-
-It can also be written as a KL. If $X$ and $Y$ were unrelated, each pair of
-values would occur with probability $p(x)\,p(y)$. Mutual information is the
-KL between how often pairs actually occur, $p(x, y)$, and that unrelated
-version:
-
-$$I(X; Y) = \sum_{x, y} p(x, y)\log\frac{p(x, y)}{p(x)\,p(y)}$$
-
-(Writing $\frac{p(x, y)}{p(x)\,p(y)} = \frac{p(x \mid y)}{p(x)}$ and splitting
-the log gives the first form.) Since it's a KL, it is never negative, and it
-is 0 exactly when $X$ and $Y$ are independent.
+$H(X)$ is the uncertainty before, and $H(X \mid Y)$, the **conditional
+entropy**, is the uncertainty left after reading $Y$, averaged over what $Y$
+says. Mutual information is never negative, since on average learning $Y$
+can't leave you more uncertain, and it is 0 exactly when $X$ and $Y$ are
+independent. (It can also be written as a KL, between the actual pair
+probabilities $p(x, y)$ and the ones the two would have if independent,
+$p(x)\,p(y)$:
+$I(X; Y) = \sum_{x, y} p(x, y)\log\frac{p(x, y)}{p(x)\,p(y)}$.)
 
 In ML it's used to rank input features: a feature with high mutual
 information with the label tells you a lot about the label. Contrastive
