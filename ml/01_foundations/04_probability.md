@@ -843,7 +843,7 @@ Whether it rains today is 50/50, so your uncertainty about it is 1 bit, the
 entropy of a fair coin (§3.5.1). Now you check a rain sensor first. After
 seeing its reading, how unsure are you about the rain?
 
-| sensor | after the reading, the rain is | uncertainty left | uncertainty removed |
+| sensor | after the reading, the rain is | rain uncertainty left | rain uncertainty removed |
 |---|---|---|---|
 | always right | known for sure | 0 bits | 1 bit |
 | right 90% of the time | 90% sure | 0.47 bits | 0.53 bits |
@@ -858,7 +858,9 @@ $$I(X; Y) = H(X) - H(X \mid Y)$$
 
 $H(X)$ is the uncertainty about the rain before the reading, and
 $H(X \mid Y)$, the **conditional entropy**, is the uncertainty about the rain
-after the reading: the "uncertainty left" column.
+after the reading: the "rain uncertainty left" column. Both are entropies of the rain;
+the sensor's own reading has entropy $H(Y) = 1$ bit, since it says "rain"
+half the time, but that number doesn't enter the formula.
 
 Mutual information is never negative, since a reading can't leave you less
 sure on average, and it is 0 exactly when the two are independent, like the
