@@ -809,11 +809,13 @@ $0.9 \log\frac{0.9}{0.5} + 0.1 \log\frac{0.1}{0.5} = 0.368$ instead of
   where $\pi_{ref}$ is the model before fine-tuning (module 7, §3.2). The
   penalty grows when $\pi_\theta$ gives high probability to outputs that
   $\pi_{ref}$ rarely produces, so the fine-tuned model stays near the
-  original. Here the model being trained comes first in the KL, the
-  opposite order from maximum likelihood. The first distribution is the one
-  the KL averages over, and each method averages over what it has samples
-  of: maximum likelihood has samples of the data, while RLHF has the outputs
-  the model generates during training.
+  original.
+
+  Why is the order the opposite of maximum likelihood's? A KL is an average
+  over samples from its first distribution. Maximum likelihood has samples
+  of the data, so the data comes first. RLHF has samples of the model's own
+  outputs, because it generates them during training, so the model comes
+  first.
 - **Distillation trains on soft targets.** A small student model is trained
   on a large teacher's output probabilities instead of one-hot labels.
   These targets have nonzero entropy, so the loss bottoms out at the
