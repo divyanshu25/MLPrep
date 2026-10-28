@@ -790,16 +790,18 @@ $0.9 \log\frac{0.9}{0.5} + 0.1 \log\frac{0.1}{0.5} = 0.368$ instead of
 $p = q$. When it can't, which is the usual case, they prefer different
 models, because each charges for a different mistake:
 
-- $\mathrm{KL}(q\|p)$ averages over outcomes the truth produces, so the
-  model is charged for every outcome the truth produces that it gives a
-  small probability. A model of the fair coin that says "always heads",
+- $\mathrm{KL}(q\|p) = \sum_x q(x)\log\frac{q(x)}{p(x)}$ multiplies each
+  outcome's term by the truth's probability $q(x)$. So every outcome the
+  truth produces counts, and the model is charged when it gives one of them
+  a small probability. A model of the fair coin that says "always heads",
   $p = [1, 0]$, gets an infinite $\mathrm{KL}(q\|p)$: the truth produces
   tails half the time, and the model gives tails probability 0.
-- $\mathrm{KL}(p\|q)$ averages over outcomes the model produces, so the model
-  is charged only for giving probability to outcomes the truth makes
-  unlikely. The same "always heads" model gets
-  $\mathrm{KL}(p\|q) = 1 \times \log\frac{1}{0.5} = 0.693$, a finite number,
-  because it never produces tails, so tails adds nothing. This direction
+- $\mathrm{KL}(p\|q) = \sum_x p(x)\log\frac{p(x)}{q(x)}$ multiplies each
+  outcome's term by the model's probability $p(x)$ instead. An outcome the
+  model gives probability 0 drops out, and the model is charged only for
+  giving probability to outcomes the truth makes unlikely. The same "always heads" model gets
+  $\mathrm{KL}(p\|q) = 1 \times \log\frac{1}{0.5} = 0.693$, a finite number:
+  the model gives tails probability 0, so the tails term drops out. This direction
   lets a model ignore some of the outcomes the truth produces.
 
 #### Where these show up in ML
