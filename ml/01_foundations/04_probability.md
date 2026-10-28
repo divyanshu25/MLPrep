@@ -837,34 +837,43 @@ models, because each charges for a different mistake:
 
 #### Mutual information
 
-Mutual information measures how much knowing one variable reduces your
-uncertainty about another:
+Mutual information measures how much knowing one variable tells you about
+another. Say $X$ is whether it rains today, with a 50/50 chance, so you start
+with 1 bit of uncertainty about it. Now you get to read a sensor $Y$:
+
+- If the sensor is always right, reading it removes all the uncertainty.
+  The mutual information is 1 bit.
+- If the sensor is right 90% of the time, the uncertainty left is that of a
+  90/10 coin, 0.47 bits (the figure in §3.5.1). The mutual information is
+  $1 - 0.47 = 0.53$ bits.
+- If the sensor is just a coin flip, reading it tells you nothing about the
+  rain. The mutual information is 0.
+
+So mutual information is the uncertainty before minus the uncertainty
+after:
 
 $$I(X; Y) = H(X) - H(X \mid Y)$$
 
-$H(X)$ is the uncertainty about $X$ before you know $Y$. $H(X \mid Y)$, the
-**conditional entropy**, is the uncertainty left once you know $Y$: the
-entropy of $X$ computed for each value of $Y$, then averaged over $Y$. Say
-$X$ is whether it rains today, 50/50, so $H(X) = 1$ bit. If $Y$ is a rain
-sensor that is always right, knowing $Y$ leaves no uncertainty, so
-$H(X \mid Y) = 0$ and $I = 1$ bit. If $Y$ is a coin flip that has nothing to
-do with the weather, knowing it leaves all the uncertainty, and $I = 0$.
+$H(X \mid Y)$, the **conditional entropy**, is the uncertainty about $X$ left
+once you know $Y$: the entropy of $X$ for each value of $Y$, averaged over
+$Y$.
 
-The same quantity can be written as a KL. If $X$ and $Y$ were independent,
-each pair of values would occur with probability $p(x)\,p(y)$. Mutual
-information is the KL between how often pairs actually occur, $p(x, y)$,
-and that independent version:
+It can also be written as a KL. If $X$ and $Y$ were unrelated, each pair of
+values would occur with probability $p(x)\,p(y)$. Mutual information is the
+KL between how often pairs actually occur, $p(x, y)$, and that unrelated
+version:
 
 $$I(X; Y) = \sum_{x, y} p(x, y)\log\frac{p(x, y)}{p(x)\,p(y)}$$
 
-(The two forms match: write $\frac{p(x, y)}{p(x)\,p(y)} = \frac{p(x \mid y)}{p(x)}$
-and split the log into two sums.) Because it's a KL, it is never negative,
-and it is 0 exactly when $p(x, y) = p(x)\,p(y)$, which is independence.
+(Writing $\frac{p(x, y)}{p(x)\,p(y)} = \frac{p(x \mid y)}{p(x)}$ and splitting
+the log gives the first form.) Since it's a KL, it is never negative, and it
+is 0 exactly when $X$ and $Y$ are independent.
 
-You can rank features by their mutual information with the label. The
-contrastive loss of module 4, which trains embeddings by matching pairs such
-as an image and its caption, is built so that lowering the loss raises a
-lower bound on the mutual information between the two.
+In ML it's used to rank input features: a feature with high mutual
+information with the label tells you a lot about the label. Contrastive
+learning (module 4) trains a model to match pairs, such as a photo and its
+caption, and lowering its loss pushes up the mutual information between the
+two.
 
 #### Entropy of a Gaussian, and why it's the maximum
 
