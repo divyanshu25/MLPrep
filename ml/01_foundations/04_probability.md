@@ -843,12 +843,15 @@ a 50/50 chance. That's a fair coin, so each outcome has surprise
 $\log_2 2 = 1$ bit and the entropy is $H(X) = 1$ bit. Then you read a rain
 sensor $Y$:
 
-- **Perfect sensor:** you now know for sure. 0 bits are left, so it removed
-  1 bit.
-- **Right 90% of the time:** you're now 90% sure (Bayes rule, §3.3), a 90/10
-  coin with 0.47 bits left. It removed 0.53 bits.
-- **Coin-flip sensor:** rain is still 50/50. 1 bit is left, so it removed
-  nothing.
+- **Perfect sensor:** once it says "rain", rain has probability 1. A
+  certain outcome has entropy $1 \times \log_2 1 = 0$, so 0 bits are left
+  and the sensor removed $1 - 0 = 1$ bit.
+- **Right 90% of the time:** once it says "rain", rain has probability 0.9
+  (Bayes rule, §3.3). That's a 90/10 coin, with entropy
+  $0.9 \log_2\frac{1}{0.9} + 0.1 \log_2\frac{1}{0.1} = 0.47$ bits, so the
+  sensor removed $1 - 0.47 = 0.53$ bits.
+- **Coin-flip sensor:** whatever it says, rain is still 50/50, so 1 bit is
+  left and the sensor removed $1 - 1 = 0$.
 
 The amount removed is the mutual information:
 
