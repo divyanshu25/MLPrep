@@ -858,7 +858,7 @@ $$I(X; Y) = H(X) - H(X \mid Y)$$
 
 $H(X)$ is the uncertainty about the rain before the reading, and
 $H(X \mid Y)$, the **conditional entropy**, is the uncertainty about the rain
-after it: the "uncertainty left" column. (Here "rain" and "no rain" readings
+after the reading: the "uncertainty left" column. (Here "rain" and "no rain" readings
 leave the same amount. When they don't, $H(X \mid Y)$ is the average of the
 two, weighted by how often each reading comes up.)
 
