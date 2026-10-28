@@ -789,11 +789,15 @@ $0.9 \log\frac{0.9}{0.5} + 0.1 \log\frac{0.1}{0.5} = 0.368$ instead of
 0.511, and the two directions behave differently:
 
 - $\mathrm{KL}(q\|p)$ averages over outcomes the truth produces. If the
-  model gives one of them a probability near 0, its term is huge, so
-  minimizing it makes the model cover everything the truth produces.
-- $\mathrm{KL}(p\|q)$ averages over outcomes the model produces, so
-  outcomes the model ignores cost nothing. Minimizing it lets the model
-  concentrate on one region where the truth is high.
+  model gives one of them a probability near 0, the term
+  $q(x)\log\frac{q(x)}{p(x)}$ for that outcome becomes huge. So the model
+  that minimizes this KL gives every outcome the truth produces a
+  probability well above 0.
+- $\mathrm{KL}(p\|q)$ averages over outcomes the model produces. An outcome
+  the model gives probability 0 adds nothing, even if the truth produces it
+  often. So the model that minimizes this KL can skip some of the truth's
+  outcomes and put its probability on the ones where the truth's
+  probability is high.
 
 #### Where these show up in ML
 
