@@ -858,7 +858,9 @@ The amount removed is the mutual information:
 $$I(X; Y) = H(X) - H(X \mid Y)$$
 
 $H(X \mid Y)$, the **conditional entropy**, is the uncertainty left after
-reading $Y$, averaged over its readings. Mutual information is never
+reading $Y$, averaged over its readings. It is not $H(Y)$: the coin-flip
+sensor's readings have $H(Y) = 1$ bit, yet they tell you nothing about the
+rain. Mutual information is never
 negative, and it is 0 exactly when $X$ and $Y$ are independent. It also
 equals the KL between the actual pair probabilities and the independent
 ones: $I(X; Y) = \sum_{x, y} p(x, y)\log\frac{p(x, y)}{p(x)\,p(y)}$.
