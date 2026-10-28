@@ -858,9 +858,10 @@ $$I(X; Y) = H(X) - H(X \mid Y)$$
 
 $H(X)$ is the uncertainty about the rain before the reading, and
 $H(X \mid Y)$, the **conditional entropy**, is the uncertainty about the rain
-after the reading: the "rain uncertainty left" column. Both are entropies of the rain;
-the sensor's own reading has entropy $H(Y) = 1$ bit, since it says "rain"
-half the time, but that number doesn't enter the formula.
+after the reading: the "rain uncertainty left" column. Both are about the rain, not
+the sensor. Over 100 days the 90% sensor says "rain" on 50 (45 rainy, 5
+dry), so its display is 50/50 and $H(Y) = 1$ bit. The 0.47 is how unsure you
+still are about the rain on those 50 days, when 45 of them are rainy.
 
 Mutual information is never negative, since a reading can't leave you less
 sure on average, and it is 0 exactly when the two are independent, like the
