@@ -858,9 +858,7 @@ $$I(X; Y) = H(X) - H(X \mid Y)$$
 
 $H(X)$ is the uncertainty about the rain before the reading, and
 $H(X \mid Y)$, the **conditional entropy**, is the uncertainty about the rain
-after the reading: the "uncertainty left" column. (Here "rain" and "no rain" readings
-leave the same amount. When they don't, $H(X \mid Y)$ is the average of the
-two, weighted by how often each reading comes up.)
+after the reading: the "uncertainty left" column.
 
 Mutual information is never negative, since a reading can't leave you less
 sure on average, and it is 0 exactly when the two are independent, like the
