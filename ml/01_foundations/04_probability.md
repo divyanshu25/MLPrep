@@ -870,41 +870,40 @@ a photo and its caption, raises the mutual information between the two.
 
 ## 3.6 Averages: error bars and the central limit theorem
 
-Almost every number you compute from data is an average. A test accuracy is
-the average of a 0 or 1 per example; a minibatch gradient (computed on a small
-random subset of the training set) is the average of per-example gradients. So it's worth knowing exactly how much an average can
-be trusted. Two things happen as you average more draws: the typical error
-shrinks like $\sigma/\sqrt{n}$, and the distribution of the average turns into
-a bell, whatever the individual draws looked like, as long as their variance
-is finite.
+Almost every number you compute from data is an average. Test accuracy is
+the average of a 0 or 1 per example. A minibatch gradient, computed on a
+small random subset of the training set, is the average of per-example
+gradients. So how far off can an average be? Two facts answer that: its
+error shrinks like $\sigma/\sqrt{n}$, and its distribution becomes a bell.
 
 #### The $\sigma/\sqrt{n}$ error bar
 
-Take $n$ draws that are independent and all come from the same distribution,
-with mean $\mu$ and variance $\sigma^2$. Their average $\bar X$ has mean $\mu$,
-by linearity. Its variance is $\sigma^2/n$: the sum of the $n$ draws has
-variance $n\sigma^2$, because independent variances add, and dividing the
-sum by $n$ divides the variance by $n^2$ (the $\mathrm{Var}(aX) =
-a^2\,\mathrm{Var}(X)$ rule with $a = 1/n$). So the typical
-error of the average, its standard deviation, is $\sigma/\sqrt{n}$. This is
-called the **standard error**, and it's the error bar on anything you compute
-by averaging.
+Averaging cancels noise. Some draws land high and some low, and the highs
+and lows partly cancel. The more draws, the more they cancel.
 
-For example, the **exponential distribution**, with density $e^{-x}$ for
-$x \ge 0$, describes waiting times: most values near zero and a long tail to
-the right. Its mean and standard deviation are both 1. (Integrating
-$x e^{-x}$ and $x^2 e^{-x}$ over $x \ge 0$ gives $\mathbb{E}[X] = 1$ and
-$\mathbb{E}[X^2] = 2$, so the variance is $2 - 1^2 = 1$.) Average 30 independent
-draws from it and the average has a standard deviation of only
-$1/\sqrt{30} \approx 0.18$.
+To see exactly how much, take $n$ independent draws from one distribution
+with mean $\mu$ and variance $\sigma^2$. Their average $\bar X$ has:
 
-The error does shrink as $n$ grows, but slowly. Because of the square root,
-halving your error bar takes four times as much data.
+- mean $\mu$, by linearity;
+- variance $\sigma^2/n$. The sum of the $n$ draws has variance $n\sigma^2$,
+  because independent variances add, and dividing by $n$ divides the
+  variance by $n^2$, because $\mathrm{Var}(aX) = a^2\,\mathrm{Var}(X)$.
+
+So the typical error of the average, its standard deviation, is
+$\sigma/\sqrt{n}$. This is the **standard error**, the error bar on anything
+computed by averaging. Because of the square root, halving the error bar
+takes four times as much data.
+
+For example, waiting times often follow the **exponential distribution**,
+with density $e^{-x}$ for $x \ge 0$: mostly short waits, occasionally long
+ones. One draw has mean 1 and standard deviation 1. (Integrating $x e^{-x}$
+and $x^2 e^{-x}$ over $x \ge 0$ gives $\mathbb{E}[X] = 1$ and
+$\mathbb{E}[X^2] = 2$, so the variance is $2 - 1^2 = 1$.) The average of 30
+draws has standard deviation $1/\sqrt{30} \approx 0.18$.
 
 #### The bell shape
 
-The exponential distribution is very lopsided, but averages of its draws are
-not:
+A single exponential draw is lopsided. Averages of many draws are not:
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 205" role="img" aria-label="Three panels showing the distribution of the average of n exponential draws for n equal to 1, 4, and 30: the lopsided exponential becomes a narrow symmetric bell centered on the mean 1" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -945,24 +944,23 @@ $\sigma/\sqrt{n}$) and becomes a symmetric bell (that's the central limit
 theorem).*
 
 The **central limit theorem** (CLT) says this happens for any distribution
-with a finite variance. If you measure
-how far the average lands from $\mu$ in units of its standard error, that
-number follows the standard bell, centered at 0 with standard deviation 1, more and more
-closely as $n$ grows:
+with a finite variance. As $n$ grows, the average's distribution approaches
+a bell centered at $\mu$ with standard deviation $\sigma/\sqrt{n}$. Measured
+in standard errors from $\mu$, it approaches the standard bell, with mean 0
+and standard deviation 1:
 
 $$\frac{\bar X - \mu}{\sigma / \sqrt{n}} \to \mathcal{N}(0, 1)$$
 
-The house-price table in §3.2 was this effect. Each push was uniform on
-−1k to +1k, with variance $1/3$, so the sum of 20 had standard deviation
-$\sqrt{20/3} \approx 2.6$k, and its histogram was already a bell.
+The house-price table in §3.2 was this effect: each push was flat, but the
+sum of 20 pushes was already a bell.
 
-Why should sums turn into bells? Think about two dice. A total of 7 can
-happen six ways (1+6, 2+5, and so on up to 6+1), but a total of 2 or 12 only
-one way each. Middle totals have lots of combinations and extreme totals have
-few, so one die's flat distribution becomes a triangle for two. The figure
-below builds that triangle by adding six shifted copies of one die's
-distribution, one for each value of the second die. That shift-and-add has a
-name, **convolution**.
+Why do sums become bells? Take two dice. A total of 7 can happen six ways
+(1+6, 2+5, and so on up to 6+1), but a total of 2 or 12 only one way each.
+Middle totals have many combinations and extreme totals have few, so one
+die's flat distribution becomes a triangle for two. The figure builds that
+triangle by adding six shifted copies of one die's distribution, one for
+each value of the second die. That shift-and-add is called
+**convolution**.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="-32 0 552 250" role="img" aria-label="Six copies of a die's flat distribution, each slid one step further right, stack into a triangle: the total 7 is covered by all six copies while the totals 2 and 12 are covered by one each" style="max-width:560px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1053,27 +1051,27 @@ name, **convolution**.
 the second die, shifted one step apart. Bottom: adding the cells in each
 column counts the ways to make each total $t$, out of 36.*
 
-Every extra draw repeats the shift-and-add. Each value of the result is a sum
-over many values of the input, so each repeat averages away a bit more of the
-original shape, like the exponential's spike at zero, while the
-mean and variance just keep adding. And once the shape is a bell it stays a
-bell, because the sum of independent Gaussians is again a Gaussian. (`probability_demos.ipynb`
-tracks this numerically.)
+Each extra draw repeats the shift-and-add. Every value of the result is a
+sum over many values of the input, so each repeat smooths the shape a little
+more, until it is a bell. Once it is a bell it stays one, because a sum of
+independent Gaussians is a Gaussian. (`probability_demos.ipynb` tracks this
+numerically.)
 
 #### Where ML uses it
 
-A minibatch gradient is an average
-of per-example gradients, so its noise shrinks like $1/\sqrt{\text{batch
-size}}$: quadrupling the batch only halves the noise. Test accuracy is an
-average of Bernoulli draws with variance $p(1-p)$, so on $n$ examples its
-error bar is $\sigma/\sqrt{n} = \sqrt{p(1-p)/n}$. With 1,000 test examples at 90% accuracy,
-that's $\sqrt{0.9 \times 0.1 / 1000} \approx 0.0095$, about ±1 point, which
-is why a half-point improvement on that test set means very little. And an
-error bar of ±2 standard errors is called a 95% **confidence interval**,
-because about 95% of a bell lies within 2 standard deviations of its center
-(95.4%, or exactly 95% at 1.96). If you repeated the
-experiment many times, intervals built this way would contain the true value
-about 95% of the time.
+- **Minibatch noise.** A minibatch gradient is an average, so its noise
+  shrinks like $1/\sqrt{\text{batch size}}$. Quadrupling the batch only
+  halves the noise.
+- **Error bars on test accuracy.** Accuracy is an average of Bernoulli
+  draws with variance $p(1-p)$, so on $n$ examples its error bar is
+  $\sqrt{p(1-p)/n}$. At 90% accuracy on 1,000 examples that's
+  $\sqrt{0.9 \times 0.1 / 1000} \approx 0.0095$, about ±1 point, so a
+  half-point improvement means very little.
+- **Confidence intervals.** About 95% of a bell lies within 2 standard
+  deviations of its center (exactly 95% within 1.96). So "estimate ± 2
+  standard errors" is called a 95% **confidence interval**: if you repeated
+  the experiment many times, intervals built this way would contain the
+  true value about 95% of the time.
 
 ## 3.7 Bias and variance: two ways an estimate misses
 
