@@ -837,35 +837,32 @@ models, because each charges for a different mistake:
 
 #### Mutual information
 
-Mutual information measures how much one thing tells you about another.
+Mutual information measures how much learning one thing tells you about
+another.
 
-Whether it rains today is 50/50, so your uncertainty about it is 1 bit, the
-entropy of a fair coin (§3.5.1). Now you check a rain sensor first. After
-seeing its reading, how unsure are you about the rain?
+Roll a fair die. Before you learn anything, there are 6 equally likely
+rolls. Each has probability $1/6$ and surprise $\log_2 6$, so your
+uncertainty about the roll is $\log_2 6 = 2.58$ bits. In general, $k$ equally
+likely options carry $\log_2 k$ bits. Now someone tells you something:
 
-| sensor | after the reading, the rain is | rain uncertainty left | rain uncertainty removed |
+| what you learn | rolls still possible | uncertainty left | uncertainty removed |
 |---|---|---|---|
-| always right | known for sure | 0 bits | 1 bit |
-| right 90% of the time | 90% sure | 0.47 bits | 0.53 bits |
-| random | still 50/50 | 1 bit | 0 bits |
-
-(0.47 bits is the entropy of a 90/10 coin, marked on the figure in §3.5.1.)
+| the exact roll | 1 | $\log_2 1 = 0$ bits | 2.58 bits |
+| whether it's even | 3 | $\log_2 3 = 1.58$ bits | 1 bit |
+| an unrelated coin flip | 6 | $\log_2 6 = 2.58$ bits | 0 bits |
 
 The uncertainty removed is the **mutual information**. Writing $X$ for the
-rain and $Y$ for the sensor's reading,
+roll and $Y$ for what you learn,
 
 $$I(X; Y) = H(X) - H(X \mid Y)$$
 
-$H(X)$ is the uncertainty about the rain before the reading, and
-$H(X \mid Y)$, the **conditional entropy**, is the uncertainty about the rain
-after the reading: the "rain uncertainty left" column. Both are about the rain, not
-the sensor. Over 100 days the 90% sensor says "rain" on 50 (45 rainy, 5
-dry), so its display is 50/50 and $H(Y) = 1$ bit. The 0.47 is how unsure you
-still are about the rain on those 50 days, when 45 of them are rainy.
+$H(X) = 2.58$ bits is the uncertainty about the roll before, and
+$H(X \mid Y)$, the **conditional entropy**, is the uncertainty about the roll
+after learning $Y$: the "uncertainty left" column.
 
-Mutual information is never negative, since a reading can't leave you less
-sure on average, and it is 0 exactly when the two are independent, like the
-random sensor.
+Mutual information is never negative, since learning something can't leave
+you less sure on average, and it is 0 exactly when the two are independent,
+like the coin flip.
 
 In ML it ranks input features by how much they tell you about the label.
 Contrastive learning (module 4), which trains a model to match pairs such as
