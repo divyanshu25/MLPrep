@@ -838,8 +838,10 @@ models, because each charges for a different mistake:
 #### Mutual information
 
 Mutual information is how much learning $Y$ reduces your uncertainty about
-$X$. Say $X$ is whether it rains today, 50/50, so you start with 1 bit of
-uncertainty (the fair coin from §3.5.1). Then you read a rain sensor $Y$:
+$X$, where uncertainty means entropy. Say $X$ is whether it rains today, with
+a 50/50 chance. That's a fair coin, so each outcome has surprise
+$\log_2 2 = 1$ bit and the entropy is $H(X) = 1$ bit. Then you read a rain
+sensor $Y$:
 
 - **Perfect sensor:** you now know for sure. 0 bits are left, so it removed
   1 bit.
