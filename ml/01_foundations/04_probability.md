@@ -873,8 +873,15 @@ a photo and its caption, raises the mutual information between the two.
 Almost every number you compute from data is an average. Test accuracy is
 the average of a 0 or 1 per example. A minibatch gradient, computed on a
 small random subset of the training set, is the average of per-example
-gradients. So how far off can an average be? Two facts answer that: its
-error shrinks like $\sigma/\sqrt{n}$, and its distribution becomes a bell.
+gradients. Measure the same thing on different data and the average comes
+out a little different, so you need to know how different. Two facts answer
+that:
+
+- The typical error shrinks as you average more examples: with $n$
+  examples it is $\sigma/\sqrt{n}$, where $\sigma$ is the standard deviation
+  of a single example.
+- The possible values of the average follow a bell curve, whatever a single
+  example looks like.
 
 #### The $\sigma/\sqrt{n}$ error bar
 
