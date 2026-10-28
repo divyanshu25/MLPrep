@@ -837,26 +837,29 @@ models, because each charges for a different mistake:
 
 #### Mutual information
 
-Mutual information measures how much knowing one variable tells you about
-another. Compare how often pairs of values actually occur together,
-$p(x, y)$, with how often they would if the two were independent,
-$p(x)\,p(y)$. Mutual information is the KL between the two:
-
-$$I(X; Y) = \sum_{x, y} p(x, y)\log\frac{p(x, y)}{p(x)\,p(y)}$$
-
-Since it's a KL, it is never negative, and it is 0 exactly when
-$p(x, y) = p(x)\,p(y)$, which is independence.
-
-It has a second, more intuitive form:
+Mutual information measures how much knowing one variable reduces your
+uncertainty about another:
 
 $$I(X; Y) = H(X) - H(X \mid Y)$$
 
-the uncertainty about $X$, minus the uncertainty left once you know $Y$.
-Here $H(X \mid Y)$, the **conditional entropy**, is the entropy of $X$
-computed for each value of $Y$ and then averaged over $Y$. (To get this
-form, write $\frac{p(x, y)}{p(x)\,p(y)} = \frac{p(x \mid y)}{p(x)}$ and split
-the log into two sums.) If $Y$ is a copy of $X$, knowing $Y$ removes all
-uncertainty and $I = H(X)$; if they are independent, $I = 0$.
+$H(X)$ is the uncertainty about $X$ before you know $Y$. $H(X \mid Y)$, the
+**conditional entropy**, is the uncertainty left once you know $Y$: the
+entropy of $X$ computed for each value of $Y$, then averaged over $Y$. Say
+$X$ is whether it rains today, 50/50, so $H(X) = 1$ bit. If $Y$ is a rain
+sensor that is always right, knowing $Y$ leaves no uncertainty, so
+$H(X \mid Y) = 0$ and $I = 1$ bit. If $Y$ is a coin flip that has nothing to
+do with the weather, knowing it leaves all the uncertainty, and $I = 0$.
+
+The same quantity can be written as a KL. If $X$ and $Y$ were independent,
+each pair of values would occur with probability $p(x)\,p(y)$. Mutual
+information is the KL between how often pairs actually occur, $p(x, y)$,
+and that independent version:
+
+$$I(X; Y) = \sum_{x, y} p(x, y)\log\frac{p(x, y)}{p(x)\,p(y)}$$
+
+(The two forms match: write $\frac{p(x, y)}{p(x)\,p(y)} = \frac{p(x \mid y)}{p(x)}$
+and split the log into two sums.) Because it's a KL, it is never negative,
+and it is 0 exactly when $p(x, y) = p(x)\,p(y)$, which is independence.
 
 You can rank features by their mutual information with the label. The
 contrastive loss of module 4, which trains embeddings by matching pairs such
