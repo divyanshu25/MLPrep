@@ -797,26 +797,25 @@ $0.9 \log\frac{0.9}{0.5} + 0.1 \log\frac{0.1}{0.5} = 0.368$ instead of
 
 #### Where these show up in ML
 
-Maximum likelihood minimizes $\mathrm{KL}(q\|p_\theta)$, where $q$ is the
-true distribution of the data. Training minimizes the average of
-$-\log p_\theta(x)$ over the dataset, and on a large dataset that average is
-the cross-entropy $H(q, p_\theta) = H(q) + \mathrm{KL}(q\|p_\theta)$. $H(q)$
-is fixed by the data, so training can only lower the KL. This is the
-covering direction, which is why a model trained by maximum likelihood puts
-some probability on everything that appears in its data.
-
-RLHF uses the other direction. A language model's distribution over outputs
-is called its **policy**, $\pi_\theta$. RLHF fine-tunes it with a penalty
-$\mathrm{KL}(\pi_\theta\|\pi_{ref})$, where $\pi_{ref}$ is the model before
-fine-tuning (module 7, §3.2). The penalty is large when $\pi_\theta$ puts
-probability on outputs that $\pi_{ref}$ rarely produces, so the fine-tuned
-model stays close to the original.
-
-Knowledge distillation trains a small student model on a large teacher's
-full output probabilities instead of one-hot labels. These targets have
-entropy, so the loss floor is the teacher's entropy rather than 0, and they
-include the teacher's probabilities on the wrong classes, not just its top
-answer.
+- **Maximum likelihood minimizes a KL.** The training loss is the average of
+  $-\log p_\theta(x)$ over the data. On a large dataset that average is the
+  cross-entropy $H(q, p_\theta) = H(q) + \mathrm{KL}(q\|p_\theta)$, where
+  $q$ is the true distribution of the data. $H(q)$ depends only on the data,
+  so lowering the loss means lowering $\mathrm{KL}(q\|p_\theta)$, which
+  moves the model's probabilities toward the data's.
+- **RLHF keeps a fine-tuned model close to the original.** A language
+  model's distribution over outputs is called its **policy**, $\pi_\theta$.
+  RLHF fine-tunes it and adds the penalty $\mathrm{KL}(\pi_\theta\|\pi_{ref})$,
+  where $\pi_{ref}$ is the model before fine-tuning (module 7, §3.2). The
+  penalty grows when $\pi_\theta$ gives high probability to outputs that
+  $\pi_{ref}$ rarely produces, so the fine-tuned model stays near the
+  original. Here the model being trained comes first in the KL, the
+  opposite order from maximum likelihood.
+- **Distillation trains on soft targets.** A small student model is trained
+  on a large teacher's output probabilities instead of one-hot labels.
+  These targets have nonzero entropy, so the loss bottoms out at the
+  teacher's entropy rather than 0, and they include the teacher's
+  probabilities on the wrong classes, not just its top answer.
 
 #### Mutual information
 
