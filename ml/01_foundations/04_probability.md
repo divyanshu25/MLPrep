@@ -868,34 +868,6 @@ In ML it ranks input features by how much they tell you about the label.
 Contrastive learning (module 4), which trains a model to match pairs such as
 a photo and its caption, raises the mutual information between the two.
 
-#### Entropy of a Gaussian, and why it's the maximum
-
-The entropy of a bell with standard deviation $\sigma$ is
-
-$$H = \tfrac{1}{2}\log(2\pi e\sigma^2)$$
-
-A wider bell is less predictable, so $H$ grows with $\sigma$. It doesn't
-depend on the mean $\mu$, since sliding a bell sideways doesn't change how
-predictable it is. For $\sigma = 2$ it's about 2.11 nats.
-
-The formula comes from averaging the bell's $-\log$ density from §3.2,
-$\frac{(x-\mu)^2}{2\sigma^2} + \frac{1}{2}\log(2\pi\sigma^2)$. The average
-of $(x-\mu)^2$ is $\sigma^2$, which is what variance means, so the first term
-averages to $\frac{1}{2}$. Adding the second term, and writing $\frac{1}{2}$
-as $\frac{1}{2}\log e$, gives $\frac{1}{2}\log(2\pi e\sigma^2)$.
-
-Among all distributions with the same mean and variance, the Gaussian has
-the highest entropy. So if the mean and variance are all you know about some
-noise, the Gaussian is the choice that assumes nothing else, which is one
-more reason it's the default.
-
-To see why, take any distribution $p$ with the same mean and variance as a
-Gaussian $g$, and compute the cross-entropy $H(p, g)$, the average of
-$-\log g(x)$ over $p$'s outcomes. $-\log g(x)$ only involves $(x-\mu)^2$, and
-that averages to $\sigma^2$ under $p$ just as under $g$, so
-$H(p, g) = H(g)$. Cross-entropy is entropy plus KL, and KL is never
-negative, so $H(g) = H(p) + \mathrm{KL}(p\|g) \ge H(p)$.
-
 ## 3.6 Averages: error bars and the central limit theorem
 
 Almost every number you compute from data is an average. A test accuracy is
