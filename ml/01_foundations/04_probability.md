@@ -874,26 +874,27 @@ The entropy of a bell with standard deviation $\sigma$ is
 
 $$H = \tfrac{1}{2}\log(2\pi e\sigma^2)$$
 
-To get it, average the bell's $-\log$ density from §3.2,
-$\frac{(x-\mu)^2}{2\sigma^2} + \frac{1}{2}\log(2\pi\sigma^2)$. The
-$(x - \mu)^2$ averages to $\sigma^2$, since that is what variance means, so
-the first term averages to $\frac{1}{2}$, and
-$\frac{1}{2} + \frac{1}{2}\log(2\pi\sigma^2) = \frac{1}{2}\log(2\pi e\sigma^2)$.
-For $\sigma = 2$ that's about 2.11 nats. It grows with $\sigma$ and doesn't
-depend on $\mu$: sliding a bell left or right doesn't make it more or less
-predictable.
+A wider bell is less predictable, so $H$ grows with $\sigma$. It doesn't
+depend on the mean $\mu$, since sliding a bell sideways doesn't change how
+predictable it is. For $\sigma = 2$ it's about 2.11 nats.
 
-Among all distributions with a given mean and variance, the Gaussian has the
-highest entropy. That is one more reason it's the default choice for noise:
-if the mean and variance are all you know, the Gaussian is the most
-unpredictable choice, so it assumes nothing beyond them.
+The formula comes from averaging the bell's $-\log$ density from §3.2,
+$\frac{(x-\mu)^2}{2\sigma^2} + \frac{1}{2}\log(2\pi\sigma^2)$. The average
+of $(x-\mu)^2$ is $\sigma^2$, which is what variance means, so the first term
+averages to $\frac{1}{2}$. Adding the second term, and writing $\frac{1}{2}$
+as $\frac{1}{2}\log e$, gives $\frac{1}{2}\log(2\pi e\sigma^2)$.
 
-The proof takes three lines. Let $p$ be any distribution with mean $\mu$ and
-variance $\sigma^2$, and $g$ the Gaussian with the same two numbers. The
-cross-entropy $H(p, g)$ is the average of $-\log g(x)$ under $p$. $-\log g(x)$
-depends on $x$ only through $(x - \mu)^2$, which averages to $\sigma^2$
-under $p$ and under $g$ alike, so $H(p, g) = H(g)$. And since cross-entropy
-is entropy plus KL, $H(g) = H(p) + \mathrm{KL}(p\|g) \ge H(p)$.
+Among all distributions with the same mean and variance, the Gaussian has
+the highest entropy. So if the mean and variance are all you know about some
+noise, the Gaussian is the choice that assumes nothing else, which is one
+more reason it's the default.
+
+To see why, take any distribution $p$ with the same mean and variance as a
+Gaussian $g$, and compute the cross-entropy $H(p, g)$, the average of
+$-\log g(x)$ over $p$'s outcomes. $-\log g(x)$ only involves $(x-\mu)^2$, and
+that averages to $\sigma^2$ under $p$ just as under $g$, so
+$H(p, g) = H(g)$. Cross-entropy is entropy plus KL, and KL is never
+negative, so $H(g) = H(p) + \mathrm{KL}(p\|g) \ge H(p)$.
 
 ## 3.6 Averages: error bars and the central limit theorem
 
