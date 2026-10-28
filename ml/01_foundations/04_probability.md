@@ -788,16 +788,17 @@ Swapping $p$ and $q$ in the coin example gives
 $0.9 \log\frac{0.9}{0.5} + 0.1 \log\frac{0.1}{0.5} = 0.368$ instead of
 0.511, and the two directions behave differently:
 
-- $\mathrm{KL}(q\|p)$ averages over outcomes the truth produces. If the
-  model gives one of them a probability near 0, the term
-  $q(x)\log\frac{q(x)}{p(x)}$ for that outcome becomes huge. So the model
-  that minimizes this KL gives every outcome the truth produces a
-  probability well above 0.
-- $\mathrm{KL}(p\|q)$ averages over outcomes the model produces. An outcome
-  the model gives probability 0 adds nothing, even if the truth produces it
-  often. So the model that minimizes this KL can skip some of the truth's
-  outcomes and put its probability on the ones where the truth's
-  probability is high.
+- $\mathrm{KL}(q\|p)$ averages over outcomes the truth produces, so the
+  model is charged for every outcome the truth produces that it gives a
+  small probability. A model of the fair coin that says "always heads",
+  $p = [1, 0]$, gets an infinite $\mathrm{KL}(q\|p)$: the truth produces
+  tails half the time, and the model gives tails probability 0.
+- $\mathrm{KL}(p\|q)$ averages over outcomes the model produces, so the model
+  is charged only for giving probability to outcomes the truth makes
+  unlikely. The same "always heads" model gets
+  $\mathrm{KL}(p\|q) = 1 \times \log\frac{1}{0.5} = 0.693$, a finite number,
+  because it never produces tails, so tails adds nothing. This direction
+  lets a model ignore some of the outcomes the truth produces.
 
 #### Where these show up in ML
 
