@@ -837,40 +837,32 @@ models, because each charges for a different mistake:
 
 #### Mutual information
 
-Mutual information is how much learning $Y$ reduces your uncertainty about
-$X$, where uncertainty means entropy. Say $X$ is whether it rains today, with
-a 50/50 chance. That's a fair coin, so each outcome has surprise
-$\log_2 2 = 1$ bit and the entropy is $H(X) = 1$ bit. Then you read a rain
-sensor $Y$:
+Mutual information measures how much one thing tells you about another.
 
-- **Perfect sensor:** once it says "rain", rain has probability 1. A
-  certain outcome has entropy $1 \times \log_2 1 = 0$, so 0 bits are left
-  and the sensor removed $1 - 0 = 1$ bit.
-- **Right 90% of the time:** once it says "rain", rain has probability 0.9
-  (Bayes rule, §3.3). That's a 90/10 coin, with entropy
-  $0.9 \log_2\frac{1}{0.9} + 0.1 \log_2\frac{1}{0.1} = 0.47$ bits, so the
-  sensor removed $1 - 0.47 = 0.53$ bits.
-- **Coin-flip sensor:** whatever it says, rain is still 50/50, so 1 bit is
-  left and the sensor removed $1 - 1 = 0$.
+Whether it rains today is 50/50, so your uncertainty about it is 1 bit, the
+entropy of a fair coin (§3.5.1). Now you check a rain sensor first. After
+seeing its reading, how unsure are you about the rain?
 
-The amount removed is the mutual information:
+| sensor | after the reading, the rain is | uncertainty left | uncertainty removed |
+|---|---|---|---|
+| always right | known for sure | 0 bits | 1 bit |
+| right 90% of the time | 90% sure | 0.47 bits | 0.53 bits |
+| random | still 50/50 | 1 bit | 0 bits |
+
+(0.47 bits is the entropy of a 90/10 coin, marked on the figure in §3.5.1.)
+
+The uncertainty removed is the **mutual information**. Writing $X$ for the
+rain and $Y$ for the sensor's reading,
 
 $$I(X; Y) = H(X) - H(X \mid Y)$$
 
-$H(X \mid Y)$, the **conditional entropy**, is the uncertainty left after
-reading $Y$, averaged over its readings:
+$H(X)$ is the uncertainty about the rain before the reading, and
+$H(X \mid Y)$, the **conditional entropy**, is the uncertainty about the rain
+after it: the "uncertainty left" column, averaged over the readings.
 
-$$H(X \mid Y) = \sum_y p(y)\, H(X \mid Y = y), \qquad H(X \mid Y = y) = -\sum_x p(x \mid y)\log p(x \mid y)$$
-
-For the 90% sensor, each reading comes up half the time and leaves 0.47
-bits, so $H(X \mid Y) = 0.5 \times 0.47 + 0.5 \times 0.47 = 0.47$ bits.
-
-It is not $H(Y)$: the coin-flip
-sensor's readings have $H(Y) = 1$ bit, yet they tell you nothing about the
-rain. Mutual information is never
-negative, and it is 0 exactly when $X$ and $Y$ are independent. It also
-equals the KL between the actual pair probabilities and the independent
-ones: $I(X; Y) = \sum_{x, y} p(x, y)\log\frac{p(x, y)}{p(x)\,p(y)}$.
+Mutual information is never negative, since a reading can't leave you less
+sure on average, and it is 0 exactly when the two are independent, like the
+random sensor.
 
 In ML it ranks input features by how much they tell you about the label.
 Contrastive learning (module 4), which trains a model to match pairs such as
