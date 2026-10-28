@@ -858,7 +858,14 @@ The amount removed is the mutual information:
 $$I(X; Y) = H(X) - H(X \mid Y)$$
 
 $H(X \mid Y)$, the **conditional entropy**, is the uncertainty left after
-reading $Y$, averaged over its readings. It is not $H(Y)$: the coin-flip
+reading $Y$, averaged over its readings:
+
+$$H(X \mid Y) = \sum_y p(y)\, H(X \mid Y = y), \qquad H(X \mid Y = y) = -\sum_x p(x \mid y)\log p(x \mid y)$$
+
+For the 90% sensor, each reading comes up half the time and leaves 0.47
+bits, so $H(X \mid Y) = 0.5 \times 0.47 + 0.5 \times 0.47 = 0.47$ bits.
+
+It is not $H(Y)$: the coin-flip
 sensor's readings have $H(Y) = 1$ bit, yet they tell you nothing about the
 rain. Mutual information is never
 negative, and it is 0 exactly when $X$ and $Y$ are independent. It also
