@@ -1081,15 +1081,14 @@ numerically.)
 - **Confidence intervals.** Take the model from the previous bullet: it
   scored 90% on 1,000 test examples. Testing it on a different 1,000
   examples would give a slightly different score, typically about 1 point
-  higher or lower; that 1 point is the standard error computed above. So how
-  far could the model's true accuracy, its score on all possible examples,
-  be from 90%? The
-  measured accuracy follows a bell around the true accuracy, and 95% of a
-  bell lies within 2 standard deviations of its center (1.96, to be exact).
-  So 95% of the time, the measurement lands within 2 standard errors, about
-  1.9 points, of the truth. Turning that around gives a range for the truth:
-  90% ± 1.9 points, or 88.1% to 91.9%. That range is a 95% **confidence
-  interval**.
+  higher or lower; that is the standard error computed above, 0.95 points.
+  So how far could the model's true accuracy, its score on all possible
+  examples, be from 90%? The measured accuracy follows a bell around the
+  true accuracy, and 95% of a bell lies within 1.96 standard deviations of
+  its center. So 95% of the time, the measurement lands within 1.96 standard
+  errors of the truth, which is $1.96 \times 0.95 \approx 1.9$ points.
+  Turning that around gives a range for the truth: 90% ± 1.9 points, or
+  88.1% to 91.9%. That range is a 95% **confidence interval**.
 
 ## 3.7 Bias and variance: two ways an estimate misses
 
