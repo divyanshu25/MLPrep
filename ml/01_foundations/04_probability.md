@@ -1146,11 +1146,11 @@ center, holds 68% of the area. Adding the green bands, out to ±1.96, gives
 
 ## 3.7 Bias and variance: two ways an estimate misses
 
-Anything you compute from a random sample is itself random: a different
-sample gives a different number. That number can miss the truth in two
-ways, like darts thrown at a board. The throws can be scattered, which is
-**variance**, or they can be centered on the wrong spot, which is
-**bias**.
+When a model makes mistakes, is it too simple to capture the pattern, or
+has it latched onto quirks of its training data? Those are the two ways any
+estimate computed from data can miss. Think of darts: the throws can be
+centered on the wrong spot, which is **bias**, or scattered, which is
+**variance**.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 320 220" role="img" aria-label="Four dartboards showing the combinations of low and high bias with low and high variance" style="max-width:340px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1176,62 +1176,113 @@ ways, like darts thrown at a board. The throws can be scattered, which is
 *Each dot is the estimate from one sample. Bias is how far the cloud's
 center sits from the bullseye; variance is how scattered it is.*
 
-Some names first. The **target** $\theta$ is the true number you want, like
-the die's mean. An **estimator** is the formula you apply to a sample, and
-its output is the **estimate** $\hat\theta$. The coin's $\hat p = h/n$ from
-§3.4 is an estimator, and so is anything fit by maximum likelihood.
-
-Take the estimator "roll the die three times and average". One sample gives
-rolls 2, 6, 3 and an estimate of 3.67; the next gives 1, 2, 4 and 2.33; the
-next 5, 3, 6 and 4.67. Each estimate misses, sometimes by more than a point.
-But averaged over many samples the estimates land on 3.5, so there is no
-bias, and they scatter around it with variance $2.92/3 \approx 0.97$
-(§3.6). In symbols:
+The **target** $\theta$ is the true number you want. An **estimator** is the
+recipe you apply to a sample, and its output is the **estimate**
+$\hat\theta$. The sample is random, so the estimate is too: a new sample
+gives a new estimate. Bias is how far the estimates are from the truth on
+average, and variance is how much they scatter:
 
 $$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
   \mathrm{Var} = \mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big]$$
 
-The total error combines both: how far off the estimates are on average,
-and how much they scatter. Measured as the **mean squared error**, the
-average of $(\hat\theta - \theta)^2$ over samples, the two simply add:
+#### One example, three estimators
+
+Estimate the die's mean, 3.5, from three rolls. Here are three recipes:
+
+| estimator | bias | variance | total error (MSE) |
+|---|---|---|---|
+| always answer 2, ignoring the rolls | −1.5 | 0 | 2.25 |
+| the average of the 3 rolls | 0 | 0.97 | 0.97 |
+| halfway between the average and 2 | −0.75 | 0.24 | 0.81 |
+
+- **Always 2** never changes, so its variance is 0, but it is off by 1.5
+  every time.
+- **The average** is right on average, so its bias is 0, but it scatters:
+  rolls 2, 6, 3 give 3.67, and rolls 1, 2, 4 give 2.33. Its variance is
+  $2.92/3 = 0.97$ (§3.6).
+- **Halfway**, (average + 2)/2, moves half as much as the average, so its
+  variance is a quarter as large ($\mathrm{Var}(aX) = a^2\,\mathrm{Var}(X)$
+  with $a = \frac{1}{2}$). It is pulled halfway toward 2, so its bias is half
+  of 1.5.
+
+The last column is the **mean squared error**, the average of
+$(\hat\theta - \theta)^2$, which measures the total error. In every row it is
+bias squared plus variance:
 
 $$\mathrm{MSE} = \mathrm{Bias}^2 + \mathrm{Var}$$
 
-For example, say the truth is 3.5 and four samples give the estimates 4, 5,
-4, 5:
+For the halfway row, $0.75^2 + 0.243 \approx 0.81$. The two add because each
+estimate's miss is the bias plus that estimate's distance from the
+estimator's average. Squaring gives
+$\text{bias}^2 + \text{distance}^2 + 2 \times \text{bias} \times \text{distance}$.
+Averaged over samples, the second term is the variance, and the last term is
+zero because the distances average to zero.
 
-| estimate | distance from their average, 4.5 | miss from the truth, 3.5 | miss squared |
-|---|---|---|---|
-| 4 | −0.5 | 0.5 | 0.25 |
-| 5 | +0.5 | 1.5 | 2.25 |
-| 4 | −0.5 | 0.5 | 0.25 |
-| 5 | +0.5 | 1.5 | 2.25 |
-| **average** | 0 | **1** (the bias) | **1.25** (the MSE) |
+Now look at the halfway estimator again. It is biased, yet its total error
+is lower than the unbiased average's, 0.81 against 0.97. Pulling the
+estimate toward a fixed guess cuts its variance by 4×, which saves more than
+the bias costs. Unbiased is not the same as best.
 
-The estimates scatter 0.5 either side of their average, so the variance is
-$0.5^2 = 0.25$. And the MSE is $1.25 = 1^2 + 0.25$.
+#### The tradeoff in ML terms
 
-It adds up because each miss is the bias, 1, plus or minus the scatter,
-0.5. Squaring gives $(1 + 0.5)^2 = 1 + 0.25 + 1$ and
-$(1 - 0.5)^2 = 1 + 0.25 - 1$. The $+1$ and $-1$ cancel when you average,
-leaving $1 + 0.25$: bias squared plus variance.
+Training a model is an estimator too: the sample is the training set, the
+recipe is the training procedure, and the estimate is the model's
+prediction. The three die estimators are the three kinds of model:
 
-#### Bessel's correction: a biased estimator you've used
+- **Too rigid**, like "always 2": a model too simple to follow the data,
+  such as a straight line fit to a curved relationship. It misses in the
+  same places whatever the training set: high bias, low variance.
+- **Too flexible**, like the raw average: a model that follows every
+  training example, such as a deep net or a decision tree with no depth
+  limit. Each training set's noise moves it: low bias, high variance.
+- **In between**, like the halfway estimator: a flexible model pulled toward
+  a simpler one. That is what **regularization** does. It adds a penalty on
+  large weights to the loss, trading a little bias for less variance.
 
-To estimate a variance from a sample, the obvious method is to average the
-squared distances from the sample mean, dividing by $n$. (NumPy's variance
-function does this by default.) On average, it comes out too small.
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 380 205" role="img" aria-label="Bias squared falls and variance rises as model flexibility grows; their sum is a U shaped curve with a minimum at intermediate flexibility" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <line x1="50" y1="170" x2="348" y2="170" stroke="currentColor" opacity="0.5"/>
+  <line x1="50" y1="170" x2="50" y2="28" stroke="currentColor" opacity="0.5"/>
+  <line x1="195" y1="103.3" x2="195" y2="170" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
+  <path d="M 50 36.7 Q 195 170 340 170" fill="none" stroke="#10b981" stroke-width="2"/>
+  <path d="M 50 170 Q 195 170 340 36.7" fill="none" stroke="#f59e0b" stroke-width="2"/>
+  <path d="M 50 36.7 Q 195 170 340 36.7" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <circle cx="195" cy="103.3" r="3.5" fill="#6366f1"/>
+  <text x="195" y="90" text-anchor="middle" fill="#6366f1" font-weight="600">Bias² + Var</text>
+  <text x="72" y="120" fill="#10b981">Bias²</text>
+  <text x="318" y="120" text-anchor="end" fill="#f59e0b">Var</text>
+  <text x="52" y="18" fill="currentColor" fill-opacity="0.7">error</text>
+  <text x="50" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">simple</text>
+  <text x="195" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">model flexibility</text>
+  <text x="340" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">flexible</text>
+</svg>
+</div>
 
-Check it on dice. There are 216 equally likely samples of three rolls.
-Compute the divide-by-$n$ variance of each and average them: you get 1.94,
-though the true variance is 2.92. Divide by $n - 1$ instead and the average
-is exactly 2.92.
+*As model flexibility grows, $\mathrm{Bias}^2$ falls and $\mathrm{Var}$ rises.
+Their sum is smallest somewhere in between (the dot).*
 
-The reason is that the sample mean $\bar X$ is the point closest to the
-sample: it makes the sum of squared distances as small as possible. (The
-derivative of $\sum_i (x_i - c)^2$ with respect to $c$ is
-$-2\sum_i (x_i - c)$, which is zero when $c$ is the average.) So distances
-measured from $\bar X$ are smaller than distances from the true mean $\mu$:
+Two other fixes target variance. **More data** lowers it directly, the same
+way averaging more draws shrinks $\sigma^2/n$. **Bagging** trains several
+flexible models on resampled data and averages them, which cancels much of
+their variance. And a model's test error has one more term,
+$\mathrm{Bias}^2 + \mathrm{Var} + \text{irreducible noise}$: the noise in the
+labels themselves (§3.4), which no model can predict.
+
+#### Bessel's correction
+
+A well-known biased estimator is the obvious way to estimate a variance:
+average the squared distances from the sample mean, dividing by $n$.
+(NumPy's variance function does this by default.) On average it comes out
+too small. Over all 216 equally likely samples of three rolls, it averages
+1.94, while the true variance is 2.92. Dividing by $n - 1$ instead gives
+exactly 2.92 on average.
+
+The reason is that the distances are measured from the sample mean
+$\bar x$, and $\bar x$ is the point closest to the sample: it makes the sum
+of squared distances as small as possible. (The derivative of
+$\sum_i (x_i - c)^2$ with respect to $c$ is $-2\sum_i (x_i - c)$, which is
+zero when $c$ is the average.) So the sum measured from $\bar x$ comes out
+smaller than the sum measured from the true mean $\mu$:
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 220" role="img" aria-label="The sum of squared deviations of the rolls 2, 6 and 3 from a point c, plotted against c: a parabola with its minimum at c equal to x bar, so the value at c equal to mu is higher by n times x bar minus mu squared" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1261,77 +1312,12 @@ measured from $\bar X$ are smaller than distances from the true mean $\mu$:
 smallest at the sample mean $\bar x$, and higher at the true mean $\mu$ by
 exactly $n(\bar x - \mu)^2$.*
 
-How much smaller, on average? Exactly one draw's worth of variance. Write
-$X_i - \mu = (X_i - \bar X) + (\bar X - \mu)$, square, and sum; the cross
-term vanishes because deviations from the sample mean add up to zero:
-
-$$\sum_i (X_i - \bar X)^2 = \sum_i (X_i - \mu)^2 - n(\bar X - \mu)^2$$
-
-On average the first sum on the right is $n\sigma^2$ (each term averages
-$\sigma^2$), and the subtracted term is $n \cdot \mathrm{Var}(\bar X) =
-n \cdot \sigma^2/n = \sigma^2$ (§3.6). So the left side averages
-$(n - 1)\sigma^2$, and dividing by $n - 1$ instead of $n$ makes the estimate
-right on average. That's **Bessel's correction**.
-
-The extreme case shows why it matters. With a single draw, its distance from
-the sample mean is zero. Dividing by $n$ says the distribution has no spread
-at all; dividing by $n - 1$ gives $0/0$, undefined, which is the correct
-answer to "how spread out is this, based on one example?"
-
-#### The tradeoff in ML terms
-
-Training a model is also an estimator. The sample is the training set, the
-formula is the training procedure, and the estimate is the trained model's
-prediction at some input $x$. A different sample means a different training
-set.
-
-- **Bias** is how far the predictions would be from the truth even averaged
-  over many training sets. It comes from what the model can't express.
-- **Variance** is how much the predictions change from one training set to
-  the next. It comes from fitting the noise of a particular training set.
-
-A linear model is high-bias and low-variance. If the true relationship
-curves, a straight line misses it in the same places every time, but
-retraining on new data gives nearly the same line. A deep net, or a decision
-tree grown without a depth limit, is the opposite: it can fit almost any
-shape, but each fit also follows its own training set's noise, so two fits
-on two samples disagree.
-
-<div style="margin:1.25rem 0">
-<svg viewBox="0 0 380 205" role="img" aria-label="Bias squared falls and variance rises as model flexibility grows; their sum is a U shaped curve with a minimum at intermediate flexibility" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
-  <line x1="50" y1="170" x2="348" y2="170" stroke="currentColor" opacity="0.5"/>
-  <line x1="50" y1="170" x2="50" y2="28" stroke="currentColor" opacity="0.5"/>
-  <line x1="195" y1="103.3" x2="195" y2="170" stroke="currentColor" opacity="0.35" stroke-dasharray="4 4"/>
-  <path d="M 50 36.7 Q 195 170 340 170" fill="none" stroke="#10b981" stroke-width="2"/>
-  <path d="M 50 170 Q 195 170 340 36.7" fill="none" stroke="#f59e0b" stroke-width="2"/>
-  <path d="M 50 36.7 Q 195 170 340 36.7" fill="none" stroke="#6366f1" stroke-width="2.5"/>
-  <circle cx="195" cy="103.3" r="3.5" fill="#6366f1"/>
-  <text x="195" y="90" text-anchor="middle" fill="#6366f1" font-weight="600">Bias² + Var</text>
-  <text x="72" y="120" fill="#10b981">Bias²</text>
-  <text x="318" y="120" text-anchor="end" fill="#f59e0b">Var</text>
-  <text x="52" y="18" fill="currentColor" fill-opacity="0.7">error</text>
-  <text x="50" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">simple</text>
-  <text x="195" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">model flexibility</text>
-  <text x="340" y="190" text-anchor="middle" fill="currentColor" fill-opacity="0.7">flexible</text>
-</svg>
-</div>
-
-*As model flexibility grows, $\mathrm{Bias}^2$ falls and $\mathrm{Var}$ rises.
-Their sum is smallest somewhere in between (the dot).*
-
-The standard fixes each move one of the two:
-
-- **Regularization** adds a penalty on large weights to the loss, so the fit
-  follows the training set less closely: a little more bias, less variance.
-- **More data** lowers variance directly, the same way averaging more draws
-  shrinks $\sigma^2/n$.
-- **Bagging** trains several high-variance models on resampled data and
-  averages them, which cancels much of the variance and leaves the bias
-  about where it was.
-
-A model's test error has one more term:
-$\mathrm{Bias}^2 + \mathrm{Var} + \text{irreducible noise}$. The last term is
-the noise in the labels themselves (§3.4), which no model can predict.
+Measured from $\mu$, each squared distance averages $\sigma^2$, so the sum
+averages $n\sigma^2$. The shortfall is $n(\bar x - \mu)^2$, and on average
+$(\bar x - \mu)^2$ is $\mathrm{Var}(\bar x) = \sigma^2/n$ (§3.6), so the
+shortfall averages $n \cdot \sigma^2/n = \sigma^2$, exactly one draw's worth
+of variance. That leaves $(n - 1)\sigma^2$, and dividing by $n - 1$ instead
+of $n$ corrects it. That's **Bessel's correction**.
 
 ## 3.8 Hypothesis tests: is the difference real?
 
