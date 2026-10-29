@@ -1078,8 +1078,12 @@ numerically.)
   $0.3/\sqrt{1000} \approx 0.0095$, about ±1 point. So if a new model scores
   half a point higher on that test set, the difference is smaller than the
   noise.
-- **Confidence intervals.** The test accuracy came out 90%, with a standard
-  error of about 1 point. How far could the true accuracy be from 90%? The
+- **Confidence intervals.** Take the model from the previous bullet: it
+  scored 90% on 1,000 test examples. Testing it on a different 1,000
+  examples would give a slightly different score, typically about 1 point
+  higher or lower; that 1 point is the standard error computed above. So how
+  far could the model's true accuracy, its score on all possible examples,
+  be from 90%? The
   measured accuracy follows a bell around the true accuracy, and 95% of a
   bell lies within 2 standard deviations of its center (1.96, to be exact).
   So 95% of the time, the measurement lands within 2 standard errors, about
