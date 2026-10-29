@@ -905,16 +905,18 @@ $\sigma/\sqrt{n}$. This is the **standard error**, the error bar on anything
 computed by averaging. Because of the square root, halving the error bar
 takes four times as much data.
 
-For example, waiting times often follow the **exponential distribution**,
-with density $e^{-x}$ for $x \ge 0$: mostly short waits, occasionally long
-ones. One draw has mean 1 and standard deviation 1. (Integrating $x e^{-x}$
-and $x^2 e^{-x}$ over $x \ge 0$ gives $\mathbb{E}[X] = 1$ and
-$\mathbb{E}[X^2] = 2$, so the variance is $2 - 1^2 = 1$.) The average of 30
-draws has standard deviation $1/\sqrt{30} \approx 0.18$.
+For example, one die roll has standard deviation 1.71 (§3.1): a single
+roll typically lands about 1.7 away from 3.5. The average of 4 rolls has
+standard error $1.71/\sqrt{4} \approx 0.85$, and the average of 100 rolls
+$1.71/\sqrt{100} \approx 0.17$. So the average of 100 rolls usually lands
+within a few tenths of 3.5.
 
 #### The bell shape
 
-A single exponential draw is lopsided. Averages of many draws are not:
+Take something lopsided, like waiting times. They often follow the
+**exponential distribution**: mostly short waits, occasionally long ones,
+with an average wait of 1 (its density is $e^{-x}$ for $x \ge 0$). A single
+wait is lopsided, but the average of many waits is not:
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 205" role="img" aria-label="Three panels showing the distribution of the average of n exponential draws for n equal to 1, 4, and 30: the lopsided exponential becomes a narrow symmetric bell centered on the mean 1" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
