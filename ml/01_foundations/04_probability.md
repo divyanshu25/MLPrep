@@ -888,13 +888,17 @@ that:
 Averaging cancels noise. Some draws land high and some low, and the highs
 and lows partly cancel. The more draws, the more they cancel.
 
-To see exactly how much, take $n$ independent draws from one distribution
-with mean $\mu$ and variance $\sigma^2$. Their average $\bar X$ has:
+To see exactly how much, take $n$ independent draws $X_1, \dots, X_n$ from
+one distribution with mean $\mu$ and variance $\sigma^2$. Their average is
+$\bar X = \frac{1}{n}(X_1 + \dots + X_n)$.
 
-- mean $\mu$, by linearity;
-- variance $\sigma^2/n$. The sum of the $n$ draws has variance $n\sigma^2$,
-  because independent variances add, and dividing by $n$ divides the
-  variance by $n^2$, because $\mathrm{Var}(aX) = a^2\,\mathrm{Var}(X)$.
+- **Its mean is $\mu$.** Expectations split over sums (linearity, §3.1),
+  so $\mathbb{E}[\bar X] = \frac{1}{n}(\mu + \dots + \mu) = \frac{1}{n} \cdot n\mu = \mu$.
+  On average, the average lands on the true mean.
+- **Its variance is $\sigma^2/n$.** Independent variances add, so the sum
+  has variance $n\sigma^2$. Multiplying by $\frac{1}{n}$ multiplies the
+  variance by $\frac{1}{n^2}$ (the rule $\mathrm{Var}(aX) = a^2\,\mathrm{Var}(X)$),
+  so $\mathrm{Var}(\bar X) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$.
 
 So the typical error of the average, its standard deviation, is
 $\sigma/\sqrt{n}$. This is the **standard error**, the error bar on anything
