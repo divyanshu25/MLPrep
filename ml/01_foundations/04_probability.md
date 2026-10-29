@@ -1146,11 +1146,28 @@ center, holds 68% of the area. Adding the green bands, out to ±1.96, gives
 
 ## 3.7 Bias and variance: two ways an estimate misses
 
-When a model makes mistakes, is it too simple to capture the pattern, or
-has it latched onto quirks of its training data? Those are the two ways any
-estimate computed from data can miss. Think of darts: the throws can be
-centered on the wrong spot, which is **bias**, or scattered, which is
-**variance**.
+A bathroom scale can be wrong in two different ways. It can be **biased**:
+it always reads 2 kg heavy. Or it can be **noisy**: step on it twice and you
+get two different numbers. Any number computed from data can be wrong in the
+same two ways, and the noise part is called **variance**.
+
+Here are four scales, each weighing a 70 kg person four times:
+
+| scale | readings | average | bias | variance | total error (MSE) |
+|---|---|---|---|---|---|
+| good | 69, 71, 70, 70 | 70 | 0 | 0.5 | 0.5 |
+| steady but off | 72, 72, 72, 72 | 72 | 2 | 0 | 4 |
+| right on average, jumpy | 64, 76, 66, 74 | 70 | 0 | 26 | 26 |
+| off and jumpy | 70, 74, 71, 73 | 72 | 2 | 2.5 | 6.5 |
+
+- **Bias** is how far the average reading is from the truth: $72 - 70 = 2$
+  for the two off scales.
+- **Variance** is how much the readings scatter around their own average:
+  the average squared distance from it. For the jumpy scale, the readings
+  are 6, 6, 4 and 4 away from 70, so the variance is
+  $(36 + 36 + 16 + 16)/4 = 26$.
+- **Total error**, the **mean squared error** (MSE), is the average squared
+  distance from the *truth*.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 320 220" role="img" aria-label="Four dartboards showing the combinations of low and high bias with low and high variance" style="max-width:340px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1173,71 +1190,42 @@ centered on the wrong spot, which is **bias**, or scattered, which is
 </svg>
 </div>
 
-*Each dot is the estimate from one sample. Bias is how far the cloud's
-center sits from the bullseye; variance is how scattered it is.*
+*The four scales as darts. Bias is how far the cloud's center sits from the
+bullseye; variance is how scattered it is.*
 
-The **target** $\theta$ is the true number you want. An **estimator** is the
-recipe you apply to a sample, and its output is the **estimate**
-$\hat\theta$. The sample is random, so the estimate is too: a new sample
-gives a new estimate. Bias is how far the estimates are from the truth on
-average, and variance is how much they scatter:
+Look at the last column: total error is always bias squared plus variance.
+For the off-and-jumpy scale, $2^2 + 2.5 = 6.5$. In symbols, with $\theta$ the
+truth and $\hat\theta$ an estimate:
 
 $$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
-  \mathrm{Var} = \mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big]$$
+  \mathrm{Var} = \mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big] \qquad
+  \mathrm{MSE} = \mathrm{Bias}^2 + \mathrm{Var}$$
 
-#### One example, three estimators
+The two add because each reading's miss is the bias plus that reading's
+distance from the scale's average. Squaring gives
+$\text{bias}^2 + \text{distance}^2 + 2 \times \text{bias} \times \text{distance}$,
+and the last term averages to zero because the distances average to zero.
 
-Estimate the die's mean, 3.5, from three rolls. Here are three recipes:
-
-| estimator | bias | variance | total error (MSE) |
-|---|---|---|---|
-| always answer 2, ignoring the rolls | −1.5 | 0 | 2.25 |
-| the average of the 3 rolls | 0 | 0.97 | 0.97 |
-| halfway between the average and 2 | −0.75 | 0.24 | 0.81 |
-
-- **Always 2** never changes, so its variance is 0, but it is off by 1.5
-  every time.
-- **The average** is right on average, so its bias is 0, but it scatters:
-  rolls 2, 6, 3 give 3.67, and rolls 1, 2, 4 give 2.33. Its variance is
-  $2.92/3 = 0.97$ (§3.6).
-- **Halfway**, (average + 2)/2, moves half as much as the average, so its
-  variance is a quarter as large ($\mathrm{Var}(aX) = a^2\,\mathrm{Var}(X)$
-  with $a = \frac{1}{2}$). It is pulled halfway toward 2, so its bias is half
-  of 1.5.
-
-The last column is the **mean squared error**, the average of
-$(\hat\theta - \theta)^2$, which measures the total error. In every row it is
-bias squared plus variance:
-
-$$\mathrm{MSE} = \mathrm{Bias}^2 + \mathrm{Var}$$
-
-For the halfway row, $0.75^2 + 0.243 \approx 0.81$. The two add because each
-estimate's miss is the bias plus that estimate's distance from the
-estimator's average. Squaring gives
-$\text{bias}^2 + \text{distance}^2 + 2 \times \text{bias} \times \text{distance}$.
-Averaged over samples, the second term is the variance, and the last term is
-zero because the distances average to zero.
-
-Now look at the halfway estimator again. It is biased, yet its total error
-is lower than the unbiased average's, 0.81 against 0.97. Pulling the
-estimate toward a fixed guess cuts its variance by 4×, which saves more than
-the bias costs. Unbiased is not the same as best.
+The table also shows that unbiased is not the same as best. The steady scale
+is always 2 kg off, yet its total error, 4, is far smaller than the jumpy
+scale's 26, which is right on average. A little bias can be worth it if it
+removes a lot of variance.
 
 #### The tradeoff in ML terms
 
-Training a model is an estimator too: the sample is the training set, the
-recipe is the training procedure, and the estimate is the model's
-prediction. The three die estimators are the three kinds of model:
+A trained model's prediction is an estimate too. Training on one dataset is
+one reading; a different training set would give a slightly different
+model.
 
-- **Too rigid**, like "always 2": a model too simple to follow the data,
-  such as a straight line fit to a curved relationship. It misses in the
-  same places whatever the training set: high bias, low variance.
-- **Too flexible**, like the raw average: a model that follows every
-  training example, such as a deep net or a decision tree with no depth
-  limit. Each training set's noise moves it: low bias, high variance.
-- **In between**, like the halfway estimator: a flexible model pulled toward
-  a simpler one. That is what **regularization** does. It adds a penalty on
-  large weights to the loss, trading a little bias for less variance.
+- **A too-simple model is the steady-but-off scale.** A straight line fit to
+  a curved relationship misses in the same places whatever the training set:
+  high bias, low variance.
+- **A too-flexible model is the jumpy scale.** A deep net or a decision tree
+  with no depth limit follows every training example, so each training set's
+  noise moves it: low bias, high variance.
+- **The best model is in between.** **Regularization** gets there by adding
+  a penalty on large weights to the loss, which pulls a flexible model toward
+  a simpler one: a little more bias for a lot less variance.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 380 205" role="img" aria-label="Bias squared falls and variance rises as model flexibility grows; their sum is a U shaped curve with a minimum at intermediate flexibility" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1262,20 +1250,21 @@ prediction. The three die estimators are the three kinds of model:
 Their sum is smallest somewhere in between (the dot).*
 
 Two other fixes target variance. **More data** lowers it directly, the same
-way averaging more draws shrinks $\sigma^2/n$. **Bagging** trains several
-flexible models on resampled data and averages them, which cancels much of
-their variance. And a model's test error has one more term,
-$\mathrm{Bias}^2 + \mathrm{Var} + \text{irreducible noise}$: the noise in the
-labels themselves (§3.4), which no model can predict.
+way averaging more draws shrinks $\sigma^2/n$ (§3.6). **Bagging** trains
+several flexible models on resampled data and averages them, like averaging
+several readings of the jumpy scale. And a model's test error has one more
+term, $\mathrm{Bias}^2 + \mathrm{Var} + \text{irreducible noise}$: the noise
+in the labels themselves (§3.4), which no model can predict.
 
 #### Bessel's correction
 
 A well-known biased estimator is the obvious way to estimate a variance:
 average the squared distances from the sample mean, dividing by $n$.
 (NumPy's variance function does this by default.) On average it comes out
-too small. Over all 216 equally likely samples of three rolls, it averages
-1.94, while the true variance is 2.92. Dividing by $n - 1$ instead gives
-exactly 2.92 on average.
+too small. Check it on a die rolled three times: there are 216 equally
+likely sets of rolls, and averaged over all of them this estimate is 1.94,
+while the die's true variance is 2.92 (§3.1). Dividing by $n - 1$ instead
+gives exactly 2.92 on average.
 
 The reason is that the distances are measured from the sample mean
 $\bar x$, and $\bar x$ is the point closest to the sample: it makes the sum
