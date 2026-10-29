@@ -1308,15 +1308,30 @@ smaller than the sum measured from the true mean $\mu$:
 smallest at the sample mean $\bar x$, and higher at the true mean $\mu$ by
 exactly $n(\bar x - \mu)^2$.*
 
-Measured from $\mu$, each squared distance averages $\sigma^2$, so the sum
-averages $n\sigma^2$. The shortfall is $n(\bar x - \mu)^2$, and on average
-$(\bar x - \mu)^2$ is $\mathrm{Var}(\bar x) = \sigma^2/n$ (§3.6), so the
-shortfall averages $n \cdot \sigma^2/n = \sigma^2$, exactly one draw's worth
-of variance. So $\sum_i (x_i - \bar x)^2$ averages $(n - 1)\sigma^2$.
-Dividing it by $n$ gives $\hat\sigma^2$, which averages
-$\frac{n-1}{n}\sigma^2$: for three rolls, $\frac{2}{3} \times 2.92 = 1.94$.
-Dividing it by $n - 1$ gives $s^2$, which averages exactly $\sigma^2$.
-That's **Bessel's correction**.
+As an equation, with the rolls 2, 6, 3 as a check ($8.75 = 8.67 + 0.08$):
+
+$$\underbrace{\sum_i (x_i - \mu)^2}_{\text{from the true mean}}
+= \underbrace{\sum_i (x_i - \bar x)^2}_{\text{from the sample mean}}
++ \underbrace{n(\bar x - \mu)^2}_{\text{the gap}}$$
+
+(To get it, write each $x_i - \mu$ as $(x_i - \bar x) + (\bar x - \mu)$ and
+square. The cross terms add up to $2(\bar x - \mu)$ times
+$\sum_i (x_i - \bar x)$, and that sum is zero because distances from the
+average sum to zero.)
+
+Now average each term over all possible samples:
+
+- **From the true mean:** each $(x_i - \mu)^2$ averages $\sigma^2$, which is
+  the definition of variance, so the sum of $n$ of them averages $n\sigma^2$.
+- **The gap:** $(\bar x - \mu)^2$ averages $\mathrm{Var}(\bar x) = \sigma^2/n$
+  (§3.6), so $n(\bar x - \mu)^2$ averages $\sigma^2$.
+- **From the sample mean**, the sum we actually compute: whatever is left,
+  $n\sigma^2 - \sigma^2 = (n - 1)\sigma^2$.
+
+So dividing that sum by $n$ gives $\hat\sigma^2$, which averages
+$\frac{n-1}{n}\sigma^2$, too small: for three rolls,
+$\frac{2}{3} \times 2.92 = 1.94$. Dividing it by $n - 1$ gives $s^2$, which
+averages exactly $\sigma^2$. That's **Bessel's correction**.
 
 ## 3.8 Hypothesis tests: is the difference real?
 
