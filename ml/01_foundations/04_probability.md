@@ -1092,50 +1092,11 @@ numerically.)
 
 ## 3.7 Bias and variance: two ways an estimate misses
 
-Anything you compute from a random sample is itself random: draw a different
-sample and you'd get a different number. §3.6 measured how much an average
-jumps around. But there's a second, separate way for an estimate to be wrong,
-and it matters just as much: it can be off on average.
-
-Some vocabulary first. The **target** $\theta$ is the true number you want to
-know, like the die's mean. An **estimator** is the formula you apply to a
-sample, and its output is the **estimate** $\hat\theta$. The coin's
-$\hat p = h/n$ from §3.4 is an estimator, and so is anything fit by maximum
-likelihood.
-
-One estimator for the die's mean is to roll three times and average. One
-sample might give rolls 2, 6, 3 and an estimate of 3.67; the next might give
-1, 2, 4 and 2.33; the next 5, 3, 6 and 4.67. Each individual estimate is off,
-sometimes by more than a full point. But averaged over many samples, the
-estimates land right on 3.5, and they scatter around it with variance about
-0.97, which is $2.92/3$ from §3.6. That gives us the
-two kinds of error:
-
-$$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
-  \mathrm{Var} = \mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big]$$
-
-**Bias** is a systematic miss, the kind that wouldn't go away even if you
-averaged estimates from thousands of fresh samples. **Variance** is how much
-the estimate jumps around from sample to sample. Our three-roll average has
-zero bias and a variance of about 0.97.
-
-If you score an estimator by its mean squared error,
-$\mathbb{E}[(\hat\theta - \theta)^2]$ (the same formula as the MSE loss, now
-averaged over samples), the two kinds of error simply add. Split the miss
-into how far this estimate is from the estimator's own average, plus how far
-that average is from the truth:
-
-$$\hat\theta - \theta = \big(\hat\theta - \mathbb{E}[\hat\theta]\big) + \big(\mathbb{E}[\hat\theta] - \theta\big)$$
-
-The second piece is the bias, a fixed number. Square both sides with
-$(a + b)^2 = a^2 + b^2 + 2ab$ and average:
-
-$$\mathbb{E}[(\hat\theta - \theta)^2] = \underbrace{\mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big]}_{\mathrm{Var}} + \mathrm{Bias}^2 + 2\,\mathrm{Bias} \cdot \mathbb{E}\big[\hat\theta - \mathbb{E}[\hat\theta]\big]$$
-
-The last average is zero by linearity, since
-$\mathbb{E}[\hat\theta] - \mathbb{E}[\hat\theta] = 0$. What's left is
-
-$$\mathrm{MSE} = \mathrm{Bias}^2 + \mathrm{Var}$$
+Anything you compute from a random sample is itself random: a different
+sample gives a different number. That number can miss the truth in two
+ways, like darts thrown at a board. The throws can be scattered, which is
+**variance**, or they can be centered on the wrong spot, which is
+**bias**.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 320 220" role="img" aria-label="Four dartboards showing the combinations of low and high bias with low and high variance" style="max-width:340px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1158,28 +1119,52 @@ $$\mathrm{MSE} = \mathrm{Bias}^2 + \mathrm{Var}$$
 </svg>
 </div>
 
-*Each dot is the estimate from one resampled dataset. Bias is how far the
-cloud's center sits from the bullseye; variance is how scattered it is.*
+*Each dot is the estimate from one sample. Bias is how far the cloud's
+center sits from the bullseye; variance is how scattered it is.*
 
-#### Estimating a variance from data (Bessel's correction)
+Some names first. The **target** $\theta$ is the true number you want, like
+the die's mean. An **estimator** is the formula you apply to a sample, and
+its output is the **estimate** $\hat\theta$. The coin's $\hat p = h/n$ from
+§3.4 is an estimator, and so is anything fit by maximum likelihood.
 
-Some estimators *are* biased, including one you've probably used. To
-estimate a variance from a sample, the obvious thing is to average the
+Take the estimator "roll the die three times and average". One sample gives
+rolls 2, 6, 3 and an estimate of 3.67; the next gives 1, 2, 4 and 2.33; the
+next 5, 3, 6 and 4.67. Each estimate misses, sometimes by more than a point.
+But averaged over many samples the estimates land on 3.5, so there is no
+bias, and they scatter around it with variance $2.92/3 \approx 0.97$
+(§3.6). In symbols:
+
+$$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
+  \mathrm{Var} = \mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big]$$
+
+The total error, the **mean squared error** $\mathbb{E}[(\hat\theta - \theta)^2]$,
+is the two added together:
+
+$$\mathrm{MSE} = \mathrm{Bias}^2 + \mathrm{Var}$$
+
+To see why, split each miss into two pieces: how far this estimate is from
+the estimator's own average, $\hat\theta - \mathbb{E}[\hat\theta]$, plus how
+far that average is from the truth, which is the bias. Squaring the sum gives
+the square of each piece plus a cross term. Averaged over samples, the first
+square is the variance, the second is $\mathrm{Bias}^2$, and the cross term
+is zero, because the first piece averages to zero.
+
+#### Bessel's correction: a biased estimator you've used
+
+To estimate a variance from a sample, the obvious method is to average the
 squared distances from the sample mean, dividing by $n$. (NumPy's variance
-function divides by $n$ by default.)
+function does this by default.) On average, it comes out too small.
 
 Check it on dice. There are 216 equally likely samples of three rolls.
-Compute the divide-by-$n$ variance of each and average them: you get 1.94.
-The true variance is 2.92, so the estimate is a third short on average.
-Divide by $n - 1$ instead and the average is exactly 2.92. Why?
+Compute the divide-by-$n$ variance of each and average them: you get 1.94,
+though the true variance is 2.92. Divide by $n - 1$ instead and the average
+is exactly 2.92.
 
-The variance is defined as the average squared distance from the *true*
-mean. But the true mean isn't available from the sample, so you measure from
-the sample's own mean $\bar X$ instead. And $\bar X$ is special: it's the
-point that makes the sum of squared distances to that particular sample as
-small as possible. (The derivative of $\sum_i (x_i - c)^2$ with respect to
-$c$ is $-2\sum_i (x_i - c)$, which is zero when $c$ is the average of the
-$x_i$.)
+The reason is that the sample mean $\bar X$ is the point closest to the
+sample: it makes the sum of squared distances as small as possible. (The
+derivative of $\sum_i (x_i - c)^2$ with respect to $c$ is
+$-2\sum_i (x_i - c)$, which is zero when $c$ is the average.) So distances
+measured from $\bar X$ are smaller than distances from the true mean $\mu$:
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 220" role="img" aria-label="The sum of squared deviations of the rolls 2, 6 and 3 from a point c, plotted against c: a parabola with its minimum at c equal to x bar, so the value at c equal to mu is higher by n times x bar minus mu squared" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1209,50 +1194,41 @@ $x_i$.)
 smallest at the sample mean $\bar x$, and higher at the true mean $\mu$ by
 exactly $n(\bar x - \mu)^2$.*
 
-So measuring from $\bar X$ always undercounts the spread a little. How much?
-Write $X_i - \mu = (X_i - \bar X) + (\bar X - \mu)$ and sum the squares. The
-deviations from the sample mean always add up to zero, so the cross term
-$2(\bar X - \mu)\sum_i (X_i - \bar X)$ vanishes, which leaves
+How much smaller, on average? Exactly one draw's worth of variance. Write
+$X_i - \mu = (X_i - \bar X) + (\bar X - \mu)$, square, and sum; the cross
+term vanishes because deviations from the sample mean add up to zero:
 
 $$\sum_i (X_i - \bar X)^2 = \sum_i (X_i - \mu)^2 - n(\bar X - \mu)^2$$
 
-Now average both sides over samples. Each $(X_i - \mu)^2$ averages to
-$\sigma^2$ by the definition of variance, so the first sum on the right
-averages $n\sigma^2$. $\bar X$ has mean $\mu$, so $(\bar X - \mu)^2$ averages
-to $\mathrm{Var}(\bar X) = \sigma^2/n$ (§3.6), and the subtracted term
-averages $n \cdot \sigma^2/n = \sigma^2$, exactly one draw's worth of
-variance. So the sum of squared deviations
-averages $(n-1)\sigma^2$, and dividing by $n - 1$ instead of $n$ makes the
-estimate exactly right on average. That's **Bessel's correction**.
+On average the first sum on the right is $n\sigma^2$ (each term averages
+$\sigma^2$), and the subtracted term is $n \cdot \mathrm{Var}(\bar X) =
+n \cdot \sigma^2/n = \sigma^2$ (§3.6). So the left side averages
+$(n - 1)\sigma^2$, and dividing by $n - 1$ instead of $n$ makes the estimate
+right on average. That's **Bessel's correction**.
 
-The fact that the deviations from the sample mean add up to zero also gives
-another way to see
-the $n - 1$: once you know $n - 1$ of them, the last one is fixed, so a
-sample of $n$ only has $n - 1$ free deviations. Take the extreme case of a
-single draw. Its one deviation is zero. Dividing by $n$ would claim the
-distribution has no spread at all; dividing by $n - 1$ gives $0/0$,
-undefined, which is the correct answer to "how spread out is this,
-based on one example?"
+The extreme case shows why it matters. With a single draw, its distance from
+the sample mean is zero. Dividing by $n$ says the distribution has no spread
+at all; dividing by $n - 1$ gives $0/0$, undefined, which is the correct
+answer to "how spread out is this, based on one example?"
 
 #### The tradeoff in ML terms
 
-Training a model is also an estimator. The sample is your training set, the formula is the whole
-training procedure, and the estimate is the trained model's prediction at
-some input $x$. "Drawing a different sample" means collecting a different
-training set and retraining.
+Training a model is also an estimator. The sample is the training set, the
+formula is the training procedure, and the estimate is the trained model's
+prediction at some input $x$. A different sample means a different training
+set.
 
-Seen this way, bias is how far the model's predictions would be from the
-truth even if you averaged over many training sets. It comes from what the
-model simply can't express. Variance is how much the predictions change from
-one training set to the next. It comes from the model fitting the quirks and
-noise of its particular training set.
+- **Bias** is how far the predictions would be from the truth even averaged
+  over many training sets. It comes from what the model can't express.
+- **Variance** is how much the predictions change from one training set to
+  the next. It comes from fitting the noise of a particular training set.
 
 A linear model is high-bias and low-variance. If the true relationship
-curves, a straight line will miss it in the same places every time, but
-retrain it on new data and you get nearly the same line. A deep net or a
-decision tree grown without a depth limit is the opposite: it can fit almost any shape, but each
-fit also follows its own training set's noise, so two fits on two samples
-disagree.
+curves, a straight line misses it in the same places every time, but
+retraining on new data gives nearly the same line. A deep net, or a decision
+tree grown without a depth limit, is the opposite: it can fit almost any
+shape, but each fit also follows its own training set's noise, so two fits
+on two samples disagree.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 380 205" role="img" aria-label="Bias squared falls and variance rises as model flexibility grows; their sum is a U shaped curve with a minimum at intermediate flexibility" style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1276,18 +1252,19 @@ disagree.
 *As model flexibility grows, $\mathrm{Bias}^2$ falls and $\mathrm{Var}$ rises.
 Their sum is smallest somewhere in between (the dot).*
 
-The standard fixes each move one of the two. **Regularization**
-adds a penalty on large weights to the loss, which reduces how closely the
-fit follows the training set, trading a little bias for less
-variance. More data lowers variance directly, the same way averaging more
-draws shrinks $\sigma^2/n$. Bagging trains several high-variance models on
-resampled data and averages them, which cancels much of the variance while
-leaving the bias about where it was.
+The standard fixes each move one of the two:
 
-For a model's test error there's one more term:
-$\mathrm{Bias}^2 + \mathrm{Var} + \text{irreducible noise}$. That last term is
-the noise in the labels themselves (§3.4), which no model can predict. The
-evaluation module derives it in full.
+- **Regularization** adds a penalty on large weights to the loss, so the fit
+  follows the training set less closely: a little more bias, less variance.
+- **More data** lowers variance directly, the same way averaging more draws
+  shrinks $\sigma^2/n$.
+- **Bagging** trains several high-variance models on resampled data and
+  averages them, which cancels much of the variance and leaves the bias
+  about where it was.
+
+A model's test error has one more term:
+$\mathrm{Bias}^2 + \mathrm{Var} + \text{irreducible noise}$. The last term is
+the noise in the labels themselves (§3.4), which no model can predict.
 
 ## 3.8 Hypothesis tests: is the difference real?
 
