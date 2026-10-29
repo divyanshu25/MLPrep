@@ -1067,19 +1067,22 @@ numerically.)
 
 #### Where ML uses it
 
-- **Minibatch noise.** A minibatch gradient is an average, so its noise
-  shrinks like $1/\sqrt{\text{batch size}}$. Quadrupling the batch only
-  halves the noise.
-- **Error bars on test accuracy.** Accuracy is an average of Bernoulli
-  draws with variance $p(1-p)$, so on $n$ examples its error bar is
-  $\sqrt{p(1-p)/n}$. At 90% accuracy on 1,000 examples that's
-  $\sqrt{0.9 \times 0.1 / 1000} \approx 0.0095$, about ±1 point, so a
-  half-point improvement means very little.
+- **Minibatch noise.** A minibatch gradient is the average of per-example
+  gradients over a batch, so its noise is $\sigma/\sqrt{\text{batch size}}$.
+  Going from a batch of 32 to a batch of 128, four times larger, only halves
+  the noise.
+- **Error bars on test accuracy.** Each test example scores 1 if the model
+  is right and 0 if it's wrong, a Bernoulli draw with $p$ equal to the
+  accuracy. Its standard deviation is $\sqrt{p(1-p)}$, which is 0.3 at 90%
+  accuracy. Averaged over 1,000 examples, the error bar is
+  $0.3/\sqrt{1000} \approx 0.0095$, about ±1 point. So if a new model scores
+  half a point higher on that test set, the difference is smaller than the
+  noise.
 - **Confidence intervals.** About 95% of a bell lies within 2 standard
-  deviations of its center (exactly 95% within 1.96). So "estimate ± 2
-  standard errors" is called a 95% **confidence interval**: if you repeated
-  the experiment many times, intervals built this way would contain the
-  true value about 95% of the time.
+  deviations of its center (exactly 95% within 1.96). So an average lands
+  within 2 standard errors of the true value 95% of the time, and
+  "estimate ± 2 standard errors" is called a 95% **confidence interval**.
+  For the test accuracy above, that's 90% ± 1.9 points, or 88.1% to 91.9%.
 
 ## 3.7 Bias and variance: two ways an estimate misses
 
