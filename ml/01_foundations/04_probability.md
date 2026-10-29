@@ -1090,6 +1090,15 @@ numerically.)
   Turning that around gives a range for the truth: 90% ± 1.9 points, or
   88.1% to 91.9%. That range is a 95% **confidence interval**.
 
+Where does 1.96 come from? It is just where the bell's area reaches 95%: the
+area within ±1.96 standard deviations of the center is 0.95. The area under
+a bell has no simple formula, so these numbers are computed numerically.
+Other common widths:
+
+| within ± this many standard deviations | 1 | 1.96 | 2.58 | 3 |
+|---|---|---|---|---|
+| share of the bell | 68% | 95% | 99% | 99.7% |
+
 ## 3.7 Bias and variance: two ways an estimate misses
 
 Anything you compute from a random sample is itself random: a different
