@@ -1258,12 +1258,19 @@ in the labels themselves (§3.4), which no model can predict.
 
 #### Bessel's correction
 
-A well-known biased estimator is the obvious way to estimate a variance:
-average the squared distances from the sample mean, dividing by $n$.
+A well-known biased estimator is the obvious way to estimate a variance
+from a sample $x_1, \dots, x_n$: average the squared distances from the
+sample mean $\bar x$,
+
+$$\hat\sigma^2 = \frac{1}{n}\sum_{i=1}^{n} (x_i - \bar x)^2.$$
+
 (NumPy's variance function does this by default.) On average it comes out
 too small. Check it on a die rolled three times: there are 216 equally
-likely sets of rolls, and averaged over all of them this estimate is 1.94,
-while the die's true variance is 2.92 (§3.1). Dividing by $n - 1$ instead
+likely sets of rolls, and averaged over all of them $\hat\sigma^2$ is 1.94,
+while the die's true variance is 2.92 (§3.1). Dividing by $n - 1$ instead,
+
+$$s^2 = \frac{1}{n-1}\sum_{i=1}^{n} (x_i - \bar x)^2,$$
+
 gives exactly 2.92 on average.
 
 The reason is that the distances are measured from the sample mean
@@ -1305,8 +1312,11 @@ Measured from $\mu$, each squared distance averages $\sigma^2$, so the sum
 averages $n\sigma^2$. The shortfall is $n(\bar x - \mu)^2$, and on average
 $(\bar x - \mu)^2$ is $\mathrm{Var}(\bar x) = \sigma^2/n$ (§3.6), so the
 shortfall averages $n \cdot \sigma^2/n = \sigma^2$, exactly one draw's worth
-of variance. That leaves $(n - 1)\sigma^2$, and dividing by $n - 1$ instead
-of $n$ corrects it. That's **Bessel's correction**.
+of variance. So $\sum_i (x_i - \bar x)^2$ averages $(n - 1)\sigma^2$.
+Dividing it by $n$ gives $\hat\sigma^2$, which averages
+$\frac{n-1}{n}\sigma^2$: for three rolls, $\frac{2}{3} \times 2.92 = 1.94$.
+Dividing it by $n - 1$ gives $s^2$, which averages exactly $\sigma^2$.
+That's **Bessel's correction**.
 
 ## 3.8 Hypothesis tests: is the difference real?
 
