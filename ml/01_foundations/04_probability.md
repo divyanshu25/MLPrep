@@ -913,67 +913,10 @@ within a few tenths of 3.5.
 
 #### The bell shape
 
-Take something lopsided, like waiting times. They often follow the
-**exponential distribution**: mostly short waits, occasionally long ones,
-with an average wait of 1 (its density is $e^{-x}$ for $x \ge 0$). A single
-wait is lopsided, but the average of many waits is not:
-
-<div style="margin:1.25rem 0">
-<svg viewBox="0 0 520 205" role="img" aria-label="Three panels showing the distribution of the average of n exponential draws for n equal to 1, 4, and 30: the lopsided exponential becomes a narrow symmetric bell centered on the mean 1" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
-  <g fill="currentColor" fill-opacity="0.85" text-anchor="middle">
-    <text x="90" y="28">n = 1: one draw</text>
-    <text x="265" y="28">n = 4</text>
-    <text x="440" y="28">n = 30</text>
-  </g>
-  <g stroke="currentColor" stroke-opacity="0.4">
-    <line x1="20" y1="170" x2="160" y2="170"/>
-    <line x1="195" y1="170" x2="335" y2="170"/>
-    <line x1="370" y1="170" x2="510" y2="170"/>
-  </g>
-  <g stroke="#f59e0b" stroke-dasharray="4 4">
-    <line x1="66.7" y1="170" x2="66.7" y2="44"/>
-    <line x1="241.7" y1="170" x2="241.7" y2="44"/>
-    <line x1="416.7" y1="170" x2="416.7" y2="44"/>
-  </g>
-  <polyline points="20.0,48.0 25.0,60.4 30.0,71.5 35.0,81.5 40.0,90.5 45.0,98.6 50.0,105.9 55.0,112.4 60.0,118.2 65.0,123.5 70.0,128.2 75.0,132.5 80.0,136.3 85.0,139.7 90.0,142.8 95.0,145.5 100.0,148.0 105.0,150.3 110.0,152.3 115.0,154.1 120.0,155.7 125.0,157.1 130.0,158.4 135.0,159.6 140.0,160.7 145.0,161.6 150.0,162.5 155.0,163.2 160.0,163.9" fill="none" stroke="#6366f1" stroke-width="2.5"/>
-  <polyline points="195.0,170.0 200.0,165.3 205.0,145.7 210.0,116.7 215.0,87.7 220.0,65.2 225.0,52.1 230.0,48.0 235.0,51.4 240.0,60.0 245.0,71.7 250.0,84.7 255.0,97.9 260.0,110.3 265.0,121.4 270.0,131.1 275.0,139.2 280.0,145.9 285.0,151.4 290.0,155.8 295.0,159.2 300.0,161.8 305.0,163.9 310.0,165.4 315.0,166.6 320.0,167.5 325.0,168.2 330.0,168.7 335.0,169.0" fill="none" stroke="#6366f1" stroke-width="2.5"/>
-  <polyline points="370.0,170.0 375.0,170.0 380.0,170.0 385.0,170.0 390.0,169.9 395.0,168.1 400.0,155.3 405.0,118.4 410.0,70.3 415.0,48.0 420.0,65.9 425.0,103.7 430.0,136.8 435.0,156.4 440.0,165.3 445.0,168.6 450.0,169.6 455.0,169.9 460.0,170.0 465.0,170.0 470.0,170.0 475.0,170.0 480.0,170.0 485.0,170.0 490.0,170.0 495.0,170.0 500.0,170.0 505.0,170.0 510.0,170.0" fill="none" stroke="#6366f1" stroke-width="2.5"/>
-  <g fill="currentColor" fill-opacity="0.6" text-anchor="middle" font-size="10">
-    <text x="20" y="184">0</text>
-    <text x="195" y="184">0</text>
-    <text x="370" y="184">0</text>
-  </g>
-  <g fill="#f59e0b" text-anchor="middle" font-size="10">
-    <text x="66.7" y="184">&#956; = 1</text>
-    <text x="241.7" y="184">&#956; = 1</text>
-    <text x="416.7" y="184">&#956; = 1</text>
-  </g>
-</svg>
-</div>
-
-*The distribution of the average of $n$ exponential draws, with the curves
-scaled to matching heights. It narrows around the mean (that's
-$\sigma/\sqrt{n}$) and becomes a symmetric bell (that's the central limit
-theorem).*
-
-The **central limit theorem** (CLT) says this happens for any distribution
-with a finite variance. As $n$ grows, the average's distribution approaches
-a bell centered at $\mu$ with standard deviation $\sigma/\sqrt{n}$. Measured
-in standard errors from $\mu$, it approaches the standard bell, with mean 0
-and standard deviation 1:
-
-$$\frac{\bar X - \mu}{\sigma / \sqrt{n}} \to \mathcal{N}(0, 1)$$
-
-The house-price table in §3.2 was this effect: each push was flat, but the
-sum of 20 pushes was already a bell.
-
-Why do sums become bells? Take two dice. A total of 7 can happen six ways
-(1+6, 2+5, and so on up to 6+1), but a total of 2 or 12 only one way each.
-Middle totals have many combinations and extreme totals have few, so one
-die's flat distribution becomes a triangle for two. The figure builds that
-triangle by adding six shifted copies of one die's distribution, one for
-each value of the second die. That shift-and-add is called
-**convolution**.
+Roll one die and every result from 1 to 6 is equally likely: a flat
+distribution. Roll two and add them, and the totals are no longer equally
+likely. A total of 7 can happen six ways (1+6, 2+5, and so on up to 6+1),
+but 2 and 12 only one way each, so the flat shape becomes a triangle:
 
 <div style="margin:1.25rem 0">
 <svg viewBox="-32 0 552 250" role="img" aria-label="Six copies of a die's flat distribution, each slid one step further right, stack into a triangle: the total 7 is covered by all six copies while the totals 2 and 12 are covered by one each" style="max-width:560px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1060,14 +1003,66 @@ each value of the second die. That shift-and-add is called
 </svg>
 </div>
 
-*Top: six copies of one die's flat distribution, one for each value $v$ of
-the second die, shifted one step apart. Bottom: adding the cells in each
-column counts the ways to make each total $t$, out of 36.*
+*Each row is one die's flat distribution, shifted by the value $v$ of the
+second die. Adding the cells in each column counts the ways to make each
+total $t$, out of 36. This shift-and-add is called **convolution**.*
 
-Each extra draw repeats the shift-and-add. Every value of the result is a
-sum over many values of the input, so each repeat smooths the shape a little
-more, until it is a bell. Once it is a bell it stays one, because a sum of
-independent Gaussians is a Gaussian. (`probability_demos.ipynb` tracks this
+Add a third die and the triangle's corners round off. Keep adding and the
+shape becomes a bell. The reason is the same each time: middle totals can be
+made in many ways, and extreme totals in very few.
+
+This happens even when a single draw is lopsided. Waiting times often follow
+the **exponential distribution**: mostly short waits, occasionally long ones,
+with an average wait of 1 (its density is $e^{-x}$ for $x \ge 0$). One wait
+is lopsided, but the average of 30 waits is a narrow, symmetric bell:
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 520 205" role="img" aria-label="Three panels showing the distribution of the average of n exponential draws for n equal to 1, 4, and 30: the lopsided exponential becomes a narrow symmetric bell centered on the mean 1" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <g fill="currentColor" fill-opacity="0.85" text-anchor="middle">
+    <text x="90" y="28">n = 1: one draw</text>
+    <text x="265" y="28">n = 4</text>
+    <text x="440" y="28">n = 30</text>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.4">
+    <line x1="20" y1="170" x2="160" y2="170"/>
+    <line x1="195" y1="170" x2="335" y2="170"/>
+    <line x1="370" y1="170" x2="510" y2="170"/>
+  </g>
+  <g stroke="#f59e0b" stroke-dasharray="4 4">
+    <line x1="66.7" y1="170" x2="66.7" y2="44"/>
+    <line x1="241.7" y1="170" x2="241.7" y2="44"/>
+    <line x1="416.7" y1="170" x2="416.7" y2="44"/>
+  </g>
+  <polyline points="20.0,48.0 25.0,60.4 30.0,71.5 35.0,81.5 40.0,90.5 45.0,98.6 50.0,105.9 55.0,112.4 60.0,118.2 65.0,123.5 70.0,128.2 75.0,132.5 80.0,136.3 85.0,139.7 90.0,142.8 95.0,145.5 100.0,148.0 105.0,150.3 110.0,152.3 115.0,154.1 120.0,155.7 125.0,157.1 130.0,158.4 135.0,159.6 140.0,160.7 145.0,161.6 150.0,162.5 155.0,163.2 160.0,163.9" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <polyline points="195.0,170.0 200.0,165.3 205.0,145.7 210.0,116.7 215.0,87.7 220.0,65.2 225.0,52.1 230.0,48.0 235.0,51.4 240.0,60.0 245.0,71.7 250.0,84.7 255.0,97.9 260.0,110.3 265.0,121.4 270.0,131.1 275.0,139.2 280.0,145.9 285.0,151.4 290.0,155.8 295.0,159.2 300.0,161.8 305.0,163.9 310.0,165.4 315.0,166.6 320.0,167.5 325.0,168.2 330.0,168.7 335.0,169.0" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <polyline points="370.0,170.0 375.0,170.0 380.0,170.0 385.0,170.0 390.0,169.9 395.0,168.1 400.0,155.3 405.0,118.4 410.0,70.3 415.0,48.0 420.0,65.9 425.0,103.7 430.0,136.8 435.0,156.4 440.0,165.3 445.0,168.6 450.0,169.6 455.0,169.9 460.0,170.0 465.0,170.0 470.0,170.0 475.0,170.0 480.0,170.0 485.0,170.0 490.0,170.0 495.0,170.0 500.0,170.0 505.0,170.0 510.0,170.0" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <g fill="currentColor" fill-opacity="0.6" text-anchor="middle" font-size="10">
+    <text x="20" y="184">0</text>
+    <text x="195" y="184">0</text>
+    <text x="370" y="184">0</text>
+  </g>
+  <g fill="#f59e0b" text-anchor="middle" font-size="10">
+    <text x="66.7" y="184">&#956; = 1</text>
+    <text x="241.7" y="184">&#956; = 1</text>
+    <text x="416.7" y="184">&#956; = 1</text>
+  </g>
+</svg>
+</div>
+
+*The distribution of the average of $n$ exponential draws, with the curves
+scaled to matching heights. It narrows around the mean (that's
+$\sigma/\sqrt{n}$) and becomes a symmetric bell.*
+
+This is the **central limit theorem** (CLT). For any distribution with a
+finite variance, the average of $n$ independent draws approaches a bell
+centered at $\mu$ with standard deviation $\sigma/\sqrt{n}$. Equivalently,
+the distance of the average from $\mu$, measured in standard errors,
+approaches the standard bell, with mean 0 and standard deviation 1:
+
+$$\frac{\bar X - \mu}{\sigma / \sqrt{n}} \to \mathcal{N}(0, 1)$$
+
+The house-price table in §3.2 was this effect: each push was flat, but the
+sum of 20 pushes was already a bell. (`probability_demos.ipynb` tracks this
 numerically.)
 
 #### Where ML uses it
