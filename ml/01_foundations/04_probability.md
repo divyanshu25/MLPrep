@@ -1191,17 +1191,26 @@ bias, and they scatter around it with variance $2.92/3 \approx 0.97$
 $$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
   \mathrm{Var} = \mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big]$$
 
-The total error, the **mean squared error** $\mathbb{E}[(\hat\theta - \theta)^2]$,
-is the two added together:
+The total error is the **mean squared error**, the average of
+$(\hat\theta - \theta)^2$ over samples. It splits exactly into the two kinds
+of error:
 
 $$\mathrm{MSE} = \mathrm{Bias}^2 + \mathrm{Var}$$
 
-To see why, split each miss into two pieces: how far this estimate is from
-the estimator's own average, $\hat\theta - \mathbb{E}[\hat\theta]$, plus how
-far that average is from the truth, which is the bias. Squaring the sum gives
-the square of each piece plus a cross term. Averaged over samples, the first
-square is the variance, the second is $\mathrm{Bias}^2$, and the cross term
-is zero, because the first piece averages to zero.
+A small example: the truth is $\theta = 3.5$, and four samples give the
+estimates 4, 5, 4, 5.
+
+- They average 4.5, so the bias is $4.5 - 3.5 = 1$.
+- They sit 0.5 on either side of 4.5, so the variance is $0.5^2 = 0.25$.
+- Their misses from the truth are 0.5, 1.5, 0.5, 1.5, so the MSE is
+  $(0.25 + 2.25 + 0.25 + 2.25)/4 = 1.25$.
+
+And $1.25 = 1^2 + 0.25$. It always works out, because each miss is the
+bias plus the estimate's distance from the average: here $1 - 0.5$ or
+$1 + 0.5$. Squaring gives $\text{bias}^2 + \text{distance}^2 + 2 \times
+\text{bias} \times \text{distance}$. Averaged over samples, the first term
+is $\mathrm{Bias}^2$, the second is the variance, and the third is zero,
+because the distances average to zero (here −0.5 and +0.5 cancel).
 
 #### Bessel's correction: a biased estimator you've used
 
