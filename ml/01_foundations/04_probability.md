@@ -1078,11 +1078,14 @@ numerically.)
   $0.3/\sqrt{1000} \approx 0.0095$, about ±1 point. So if a new model scores
   half a point higher on that test set, the difference is smaller than the
   noise.
-- **Confidence intervals.** About 95% of a bell lies within 2 standard
-  deviations of its center (exactly 95% within 1.96). So an average lands
-  within 2 standard errors of the true value 95% of the time, and
-  "estimate ± 2 standard errors" is called a 95% **confidence interval**.
-  For the test accuracy above, that's 90% ± 1.9 points, or 88.1% to 91.9%.
+- **Confidence intervals.** The test accuracy came out 90%, with a standard
+  error of about 1 point. How far could the true accuracy be from 90%? The
+  measured accuracy follows a bell around the true accuracy, and 95% of a
+  bell lies within 2 standard deviations of its center (1.96, to be exact).
+  So 95% of the time, the measurement lands within 2 standard errors, about
+  1.9 points, of the truth. Turning that around gives a range for the truth:
+  90% ± 1.9 points, or 88.1% to 91.9%. That range is a 95% **confidence
+  interval**.
 
 ## 3.7 Bias and variance: two ways an estimate misses
 
