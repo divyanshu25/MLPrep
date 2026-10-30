@@ -375,6 +375,72 @@ the bottleneck - beyond it, bigger batches stop buying faster convergence per
 sample; (iii) for Adam the empirical rule is closer to $\sqrt{k}$ scaling,
 since Adam normalizes by gradient scale.
 
+### 2.9 Training stability: loss spikes and their fixes
+
+Large runs often show a **loss spike**: the loss jumps up within a few
+steps, then either recovers or diverges to NaN. A spike late in a run that
+cost millions of dollars is expensive, so labs stack several cheap
+safeguards. Each one targets a specific mechanism.
+
+**Mechanism 1: one oversized Adam step.** Adam divides the momentum $m$ by
+$\sqrt{v}$, the running root-mean-square of past gradients. Suppose a weight
+has seen gradients of size 0.01 for a long time, so $m \approx 0.01$ and
+$v \approx 0.01^2 = 10^{-4}$, and the normal update is $m/\sqrt v = 1$
+(times the learning rate). Now one batch gives a gradient of 1. With
+$\beta_1 = 0.9$, $\beta_2 = 0.999$:
+
+$$m = 0.9 \cdot 0.01 + 0.1 \cdot 1 = 0.109, \qquad v = 0.999 \cdot 10^{-4} + 0.001 \cdot 1 \approx 0.0011, \qquad \frac{m}{\sqrt v} \approx \frac{0.109}{0.033} \approx 3.3$$
+
+The step is 3.3 times its usual size, because $v$ averages over about
+$1/(1 - \beta_2) = 1{,}000$ steps and barely registers the new gradient.
+Fixes:
+
+- **Gradient clipping.** Before the update, if the gradient's total length
+  across all weights $\|g\|$ exceeds a threshold $c$, rescale it to length
+  $c$: $g \leftarrow g \cdot c / \|g\|$. With $c = 1$ and $\|g\| = 50$, every
+  entry is multiplied by 0.02; the direction is kept and only the size is
+  capped.
+- **Lower $\beta_2$.** With $\beta_2 = 0.95$, $v$ averages over about 20
+  steps and jumps to about 0.05 on the big gradient, so the step is
+  $0.109/0.224 \approx 0.5$ instead of 3.3. Most LLM recipes use
+  $\beta_2 = 0.95$ for this reason.
+- **Skip and restart.** If a spike happens anyway, reload a checkpoint from
+  shortly before it and skip the batches around the spike (PaLM restarted
+  about 100 steps earlier and skipped a few hundred batches).
+
+**Mechanism 2: logits drifting to large values.** Softmax does not change
+when the same number is added to every logit, so the cross-entropy loss
+never pins the logits' overall level, and it can drift upward during
+training. In bf16, which keeps only 8 bits of precision, numbers near 1,000
+are stored in steps of 4, so large logits lose the small differences that
+set the probabilities. **z-loss** adds a small penalty on the
+log-normalizer $\log Z = \log \sum_j e^{z_j}$ of the output softmax:
+$L_z = 10^{-4} (\log Z)^2$ (the coefficient PaLM used). It is zero when
+$\log Z = 0$, so it holds the logits' level near zero without changing which
+token is favored.
+
+**Mechanism 3: attention logits growing.** The attention score
+$q \cdot k / \sqrt{d}$ grows as the query and key weights grow. Once one
+score in a row is much larger than the rest, the softmax puts almost all its
+weight on one key, and the gradients through it become tiny or erratic
+(attention entropy collapse). **QK-norm** applies a normalization layer to
+$q$ and $k$ before the dot product, which fixes their lengths, so the scores
+can only grow through a learned gain.
+
+**Mechanism 4: unstable early steps.** At initialization, Adam's $v$ has
+averaged only a few squared gradients, and the loss surface is sharp, so a
+full-size learning rate can diverge in the first steps. **Warmup** raises
+the learning rate linearly from near 0 over the first few thousand steps
+(often about 1% of training), then decays it, usually with a cosine
+schedule.
+
+**Diagnosing a spike.** Log, per step: the global gradient norm, the
+largest attention score per layer, the output $\log Z$, and the ratio of
+update size to weight size per layer. A gradient-norm jump just before the
+loss jump points to mechanism 1; a steady climb in attention scores or
+$\log Z$ points to mechanisms 3 or 2. Then inspect the data batch at the
+spike: a corrupted or repetitive batch is a common trigger.
+
 ---
 
 ## 3. Post-training: from token predictor to assistant
@@ -1094,6 +1160,16 @@ agreement on a sample, fresh prompts the judge/model haven't seen, per-
 category breakdown, KL/style drift from the base model. A 10-point win-rate
 gain with a +40% length increase is a length gain, not a quality gain.
 
+**Q21. Your 30B run's loss spikes at step 40k. What do you do?**
+First look at what moved just before the spike. If the global gradient norm
+jumped, it was one oversized Adam step: Adam's $v$ averages about 1,000
+steps at $\beta_2 = 0.999$, so a gradient 100 times the usual size gives a
+step about 3 times the usual size. The fixes are gradient clipping and
+$\beta_2 = 0.95$. If the largest attention score or the output $\log Z$ had
+been climbing, add QK-norm or z-loss. For the run in hand, reload a
+checkpoint from before the spike and skip the batches around it, then check
+those batches for corrupted or repeated data.
+
 ## Exit checklist
 
 - [ ] Cold, on paper: derive C ≈ 6ND, then apply the Chinchilla 20-tokens-per-param rule to a worked budget - 5 min
@@ -1103,5 +1179,6 @@ gain with a +40% length increase is a length gain, not a quality gain.
 - [ ] Show via arithmetic intensity why decode is memory-bandwidth-bound while prefill is compute-bound - 4 min
 - [ ] Compute KV-cache memory for a given model/batch/context, and state what MQA/GQA save - 4 min
 - [ ] Explain speculative decoding: the algorithm, why outputs are exactly the target model's, expected speedup - 4 min
+- [ ] Diagnose a loss spike: the four mechanisms (Adam step, logit drift, attention-logit growth, early instability) and the fix for each - 4 min
 
 All boxes cold before moving on - a miss goes into practice/queue.tsv.

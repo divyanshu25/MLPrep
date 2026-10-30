@@ -1,6 +1,6 @@
 # Timed Drills
 
-Ten drills, each simulating a reported interview round. Protocol: read the spec,
+Thirteen drills, each simulating a reported interview round. Protocol: read the spec,
 start the timer, write code in an empty file, run it, *then* unfold the
 solution and diff. Every reference solution below has been executed and tested.
 "What good looks like" describes the bar under time pressure, not perfection.
@@ -716,4 +716,300 @@ queueing + ≤10 ms batching delay + 13 ms service. Batching trades a bounded
 per-request wait for amortizing the fixed cost - module 6's latency notes do
 this same arithmetic for GPUs, where `base_ms` is kernel-launch + weight-read
 cost and `per_item_ms` shrinks until memory bandwidth saturates.
+</details>
+
+---
+
+## Drill 11 - A training loop from scratch: AdamW, warmup + cosine, clipping
+
+**Time box: 30 min · Simulates: OpenAI / Anthropic "write the training loop" round · Reference: module 3 (Adam), module 7 §2.9 (stability)**
+
+Isolates: the three pieces every LLM training loop has, written by hand
+instead of imported: the optimizer update, the learning-rate schedule, and
+gradient clipping.
+
+Spec: PyTorch, autograd allowed for gradients, but no `torch.optim` and no
+`clip_grad_norm_`. Write `lr_at(step, max_lr, warmup, total, min_lr)`
+(linear warmup, then cosine decay to `min_lr`), `clip_grad_norm(params,
+max_norm)` (global norm, in place, returns the norm before clipping), and an
+`AdamW` class with `step()` and `zero_grad()`. Train a small MLP and show the
+loss falls.
+
+What good looks like: you test against the library, not by eye. Match
+`torch.optim.AdamW` parameter-for-parameter after 20 steps and match
+`clip_grad_norm_` exactly. The classic bugs: applying weight decay through
+the gradient (that is Adam with L2, not AdamW; AdamW shrinks the weights
+directly), forgetting bias correction, clipping each tensor separately
+instead of by the global norm, and an off-by-one that starts warmup at
+learning rate 0.
+
+<details><summary>Reference solution</summary>
+
+```python
+import math
+import torch
+
+def lr_at(step, max_lr, warmup, total, min_lr=0.0):
+    """Linear warmup to max_lr over `warmup` steps, then cosine decay to min_lr at `total`."""
+    if step < warmup:
+        return max_lr * (step + 1) / warmup
+    progress = min(1.0, (step - warmup) / max(1, total - warmup))
+    return min_lr + 0.5 * (max_lr - min_lr) * (1 + math.cos(math.pi * progress))
+
+def clip_grad_norm(params, max_norm):
+    """Global-norm clipping in place. Returns the norm before clipping."""
+    grads = [p.grad for p in params if p.grad is not None]
+    total = torch.sqrt(sum((g ** 2).sum() for g in grads))
+    scale = max_norm / (total + 1e-6)
+    if scale < 1:
+        for g in grads:
+            g.mul_(scale)
+    return total
+
+class AdamW:
+    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.01):
+        self.params = list(params)
+        self.lr, (self.b1, self.b2), self.eps, self.wd = lr, betas, eps, weight_decay
+        self.m = [torch.zeros_like(p) for p in self.params]
+        self.v = [torch.zeros_like(p) for p in self.params]
+        self.t = 0
+
+    @torch.no_grad()
+    def step(self):
+        self.t += 1
+        for p, m, v in zip(self.params, self.m, self.v):
+            if p.grad is None:
+                continue
+            g = p.grad
+            p.mul_(1 - self.lr * self.wd)                 # decoupled weight decay
+            m.mul_(self.b1).add_(g, alpha=1 - self.b1)
+            v.mul_(self.b2).addcmul_(g, g, value=1 - self.b2)
+            m_hat = m / (1 - self.b1 ** self.t)
+            v_hat = v / (1 - self.b2 ** self.t)
+            p.addcdiv_(m_hat, v_hat.sqrt() + self.eps, value=-self.lr)
+
+    def zero_grad(self):
+        for p in self.params:
+            p.grad = None
+
+def train(model, X, y, steps=300, max_lr=1e-2, warmup=30, clip=1.0):
+    opt = AdamW(model.parameters(), lr=max_lr)
+    losses = []
+    for step in range(steps):
+        opt.lr = lr_at(step, max_lr, warmup, steps, min_lr=max_lr / 10)
+        loss = ((model(X) - y) ** 2).mean()
+        opt.zero_grad()
+        loss.backward()
+        clip_grad_norm(list(model.parameters()), clip)
+        opt.step()
+        losses.append(loss.item())
+    return losses
+
+# --- tests ---
+torch.manual_seed(0)
+# 1. schedule shape
+assert abs(lr_at(9, 1.0, 10, 100) - 1.0) < 1e-12            # end of warmup = max
+assert abs(lr_at(100, 1.0, 10, 100, 0.1) - 0.1) < 1e-12      # end = min
+assert lr_at(0, 1.0, 10, 100) < lr_at(5, 1.0, 10, 100)       # rising during warmup
+
+# 2. AdamW matches torch.optim.AdamW
+def make():
+    torch.manual_seed(1)
+    return torch.nn.Sequential(torch.nn.Linear(4, 16), torch.nn.Tanh(), torch.nn.Linear(16, 1))
+X, y = torch.randn(64, 4), torch.randn(64, 1)
+a, b = make(), make()
+mine = AdamW(a.parameters(), lr=1e-2, weight_decay=0.1)
+ref = torch.optim.AdamW(b.parameters(), lr=1e-2, weight_decay=0.1)
+for _ in range(20):
+    for net, opt in ((a, mine), (b, ref)):
+        opt.zero_grad(); ((net(X) - y) ** 2).mean().backward(); opt.step()
+for pa, pb in zip(a.parameters(), b.parameters()):
+    assert torch.allclose(pa, pb, atol=1e-6)
+
+# 3. clipping matches torch
+a, b = make(), make()
+for net in (a, b):
+    (net(X * 100) ** 2).mean().backward()                    # large gradients
+n1 = clip_grad_norm(list(a.parameters()), 1.0)
+n2 = torch.nn.utils.clip_grad_norm_(b.parameters(), 1.0)
+assert torch.allclose(n1, n2)
+for pa, pb in zip(a.parameters(), b.parameters()):
+    assert torch.allclose(pa.grad, pb.grad, atol=1e-6)
+
+# 4. it trains
+Xt = torch.randn(256, 4); yt = (Xt[:, :1] * 2 - Xt[:, 1:2]).tanh()
+losses = train(make(), Xt, yt)
+assert losses[-1] < 0.1 * losses[0], (losses[0], losses[-1])
+```
+
+Say why each piece exists: warmup because Adam's second-moment estimate is
+noisy for the first steps and early updates can diverge; global clipping
+because one bad batch can produce a gradient 50 times the usual size;
+decoupled weight decay because with Adam, a decay term added to the gradient
+gets divided by $\sqrt{v}$ and shrinks weights unevenly.
+</details>
+
+---
+
+## Drill 12 - GAE and the PPO clipped loss
+
+**Time box: 25 min · Simulates: Anthropic / OpenAI post-training coding round · Reference: module 9 §5, module 7 §3.2**
+
+Isolates: the two formulas inside every PPO implementation: generalized
+advantage estimation (GAE) and the clipped policy objective.
+
+Spec: PyTorch. `gae(rewards, values, dones, last_value, gamma, lam)` returns
+advantages and returns for one rollout of length T, where `dones[t] = 1`
+means the episode ended after step t. `ppo_policy_loss(logp_new, logp_old,
+adv, eps)` returns the loss to minimize.
+
+What good looks like: you write the backward recursion
+$A_t = \delta_t + \gamma\lambda A_{t+1}$ with
+$\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$, and test the two limits:
+$\lambda = 0$ gives the one-step TD error and $\lambda = 1$ gives the
+discounted return minus $V$. Then you show the clip works: with ratio 1.5,
+$\epsilon = 0.2$ and a positive advantage the gradient is zero, and with a
+negative advantage it is not. The classic bugs: not cutting the bootstrap at
+episode ends, using `max` instead of `min`, and forgetting the minus sign.
+
+<details><summary>Reference solution</summary>
+
+```python
+import torch
+
+def gae(rewards, values, dones, last_value, gamma=0.99, lam=0.95):
+    """rewards, values, dones: (T,). dones[t] = 1 if the episode ended after step t.
+    last_value: V(s_T), the value of the state after the last step.
+    Returns (advantages, returns), each (T,)."""
+    T = len(rewards)
+    adv = torch.zeros(T)
+    next_value, next_adv = last_value, 0.0
+    for t in reversed(range(T)):
+        not_done = 1.0 - dones[t]
+        delta = rewards[t] + gamma * next_value * not_done - values[t]   # TD error
+        next_adv = delta + gamma * lam * not_done * next_adv
+        adv[t] = next_adv
+        next_value = values[t]
+    return adv, adv + values
+
+def ppo_policy_loss(logp_new, logp_old, adv, eps=0.2):
+    ratio = torch.exp(logp_new - logp_old)
+    unclipped = ratio * adv
+    clipped = torch.clamp(ratio, 1 - eps, 1 + eps) * adv
+    return -torch.min(unclipped, clipped).mean()       # minimize the negative objective
+
+# --- tests ---
+r = torch.tensor([1.0, 0.0, 2.0, 1.0]); v = torch.tensor([0.5, 0.4, 0.3, 0.2])
+d = torch.zeros(4); g = 0.9
+
+# lam = 0: advantage is the one-step TD error
+adv0, _ = gae(r, v, d, last_value=0.1, gamma=g, lam=0.0)
+td = r + g * torch.cat([v[1:], torch.tensor([0.1])]) - v
+assert torch.allclose(adv0, td)
+
+# lam = 1: advantage is the discounted return minus V
+adv1, ret1 = gae(r, v, d, last_value=0.1, gamma=g, lam=1.0)
+G = torch.zeros(4); running = 0.1
+for t in reversed(range(4)):
+    running = r[t] + g * running; G[t] = running
+assert torch.allclose(adv1, G - v) and torch.allclose(ret1, G)
+
+# a done flag cuts the bootstrap: step 1 ends the episode
+dd = torch.tensor([0.0, 1.0, 0.0, 0.0])
+adv_d, _ = gae(r, v, dd, last_value=0.1, gamma=g, lam=1.0)
+assert torch.allclose(adv_d[1], r[1] - v[1])
+
+# clipping: ratio 1.5 with eps 0.2
+logp_old = torch.zeros(1)
+for a, expect_zero in ((1.0, True), (-1.0, False)):
+    logp_new = torch.log(torch.tensor([1.5])).requires_grad_()
+    ppo_policy_loss(logp_new, logp_old, torch.tensor([a])).backward()
+    assert (logp_new.grad.abs() < 1e-12).item() == expect_zero
+# A > 0, ratio past 1+eps: no gradient. A < 0, same ratio: gradient still flows.
+```
+
+The `min` makes the objective pessimistic: once the ratio has moved past
+$1 + \epsilon$ in the direction the advantage favors, the clipped term is the
+smaller one and it is constant, so the gradient is zero. Moves in the
+unfavorable direction keep their full gradient.
+</details>
+
+---
+
+## Drill 13 - DPO loss from logits
+
+**Time box: 20 min · Simulates: post-training coding round · Reference: module 7 §3.3**
+
+Isolates: turning model logits into per-sequence log-probabilities with the
+right shift and mask, then the DPO loss on top.
+
+Spec: PyTorch. `sequence_logp(logits, labels, mask)` with logits `(B, T, V)`
+for the whole prompt plus response, labels `(B, T)`, and mask `(B, T)` equal
+to 1 on response tokens; return the summed log-probability of the response
+tokens, `(B,)`. Then `dpo_loss(pi_chosen, pi_rejected, ref_chosen,
+ref_rejected, beta)`.
+
+What good looks like: you say the shift out loud (position t's logits
+predict token t + 1), test against a plain loop, and test that changing
+predictions of prompt or padding tokens leaves the result unchanged. Then
+you check the loss is $\log 2$ when the policy equals the reference, and
+that the gradient raises the chosen log-probability and lowers the rejected
+one. The classic bugs: no shift (each position scored on its own token),
+summing over prompt or padding tokens, and using `log(sigmoid(x))` instead of
+`logsigmoid(x)`, which returns $-\infty$ for large negative $x$.
+
+<details><summary>Reference solution</summary>
+
+```python
+import math
+import torch
+import torch.nn.functional as F
+
+def sequence_logp(logits, labels, mask):
+    """logits: (B, T, V) from the model on the full prompt+response.
+    labels: (B, T) the same token ids. mask: (B, T), 1 on response tokens.
+    Returns (B,): sum of log p(token_t | tokens before t) over response tokens."""
+    logp = F.log_softmax(logits[:, :-1], dim=-1)               # position t predicts t+1
+    tok = torch.gather(logp, 2, labels[:, 1:].unsqueeze(-1)).squeeze(-1)
+    return (tok * mask[:, 1:]).sum(-1)
+
+def dpo_loss(pi_chosen, pi_rejected, ref_chosen, ref_rejected, beta=0.1):
+    margin = beta * ((pi_chosen - ref_chosen) - (pi_rejected - ref_rejected))
+    return -F.logsigmoid(margin).mean()
+
+# --- tests ---
+torch.manual_seed(0)
+B, T, V = 2, 6, 11
+labels = torch.randint(V, (B, T))
+mask = torch.tensor([[0, 0, 1, 1, 1, 1], [0, 0, 0, 1, 1, 0]], dtype=torch.float)
+
+# sequence_logp against a plain loop
+logits = torch.randn(B, T, V)
+lp = sequence_logp(logits, labels, mask)
+for b in range(B):
+    s = sum(F.log_softmax(logits[b, t - 1], -1)[labels[b, t]] for t in range(1, T) if mask[b, t])
+    assert torch.allclose(lp[b], s)
+
+# changing predictions of prompt or padding tokens must not change the result
+logits2 = logits.clone()
+logits2[:, 0] = 10 * torch.randn(B, V)     # position 0 predicts token 1: prompt in both rows
+logits2[1, 4] = 10 * torch.randn(V)        # row 1, position 4 predicts token 5: padding
+assert torch.allclose(sequence_logp(logits2, labels, mask), lp)
+logits3 = logits.clone(); logits3[0, 2] = 10 * torch.randn(V)   # predicts token 3: a response token
+assert not torch.allclose(sequence_logp(logits3, labels, mask)[0], lp[0])
+
+# policy == reference: margin 0, loss = log 2
+x = torch.randn(4)
+assert abs(dpo_loss(x, x - 1, x, x - 1).item() - math.log(2)) < 1e-6
+
+# gradient raises the chosen log-prob and lowers the rejected one
+pc = torch.zeros(1, requires_grad=True); pr = torch.zeros(1, requires_grad=True)
+dpo_loss(pc, pr, torch.zeros(1), torch.zeros(1)).backward()
+assert pc.grad.item() < 0 < pr.grad.item()                    # descent moves pc up, pr down
+```
+
+The loss is $-\log \sigma(\beta \cdot \text{margin})$, where the margin is
+how much more the policy prefers the chosen response than the reference
+does. At the start the policy equals the reference, the margin is 0, and the
+loss is $\log 2 \approx 0.693$.
 </details>

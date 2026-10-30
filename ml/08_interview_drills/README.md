@@ -11,7 +11,7 @@ taught here - every concept lives in an earlier module. What's new is the clock.
 |------|-----------|
 | [`buggy_transformer.ipynb`](buggy_transformer.ipynb) | The flagship drill: a working transformer LM with 7 planted bugs. Open it in the study app or JupyterLab, run all cells, then find and fix the bugs cell by cell before adding KV caching. |
 | [`buggy_transformer_solutions.md`](buggy_transformer_solutions.md) | Bug-by-bug solutions, the KV-cache implementation, and the general debugging playbook. **Do not open until done.** |
-| [`drills.md`](drills.md) | 10 timed implementation drills with full reference solutions folded away. |
+| [`drills.md`](drills.md) | 13 timed implementation drills with full reference solutions folded away. |
 | [`probability_puzzles.md`](probability_puzzles.md) | 15 stats-round puzzles (expected values, Bayes with counts, Markov chains on states, symmetry), each solved by naming the tool first; five minutes each, answers folded. |
 | [`rapid_fire_quiz.md`](rapid_fire_quiz.md) | 40 rapid-fire definition questions, DeepMind style. |
 | [`debugging_scenarios.md`](debugging_scenarios.md) | 12 production-debugging scenario cards: symptom → diagnosis tree. |
@@ -51,6 +51,9 @@ complete. Recognition is not recall, and interviews test recall under pressure.
 | drills.md #8 LRU cache | **OpenAI** - the SWE-style staple | 20 min |
 | drills.md #9 progressive KV store | **Anthropic** - CodeSignal-style multi-level build | 45 min |
 | drills.md #10 batched inference queue | Anthropic / systems-flavored coding; concurrency thinking | 30 min |
+| drills.md #11 training loop from scratch | OpenAI / Anthropic - "write the training loop": AdamW, schedule, clipping | 30 min |
+| drills.md #12 GAE + PPO clipped loss | Anthropic / OpenAI - post-training coding | 25 min |
+| drills.md #13 DPO loss from logits | Post-training coding - shift, mask, loss | 20 min |
 | rapid_fire_quiz.md | **DeepMind** - rapid-fire math/definitions quiz | ~2 min per answer, spoken aloud |
 | debugging_scenarios.md | OpenAI / Anthropic - "here's a symptom, debug it" discussion | 5 min per card, spoken aloud |
 

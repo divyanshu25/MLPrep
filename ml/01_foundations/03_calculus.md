@@ -272,20 +272,24 @@ supply its local derivatives.
 Training needs the derivative of one number, the loss, with respect to every
 weight. A backward walk gives all of them at once; a forward walk gives one.
 
-- A **forward walk** picks one weight $w_1$ and pushes its effect left to
-  right, computing $\partial v / \partial w_1$ for every variable $v$. At the
+- A **forward walk** (forward-mode autodiff) picks one weight $w_1$ and
+  pushes its effect left to right, computing $\partial v / \partial w_1$ for every variable $v$. At the
   end it has $\partial L / \partial w_1$. That is one weight per walk, so $n$
   weights take $n$ walks.
-- A **backward walk** starts at the loss and computes $\partial L / \partial v$
-  for every variable $v$ (the recipe above). One walk gives the derivative for
-  all $n$ weights.
+- A **backward walk** (reverse-mode autodiff, which is backprop) starts at
+  the loss and computes $\partial L / \partial v$ for every variable $v$ (the
+  recipe above). One walk gives the derivative for all $n$ weights.
 
 Each walk costs a small multiple of one forward pass (a backward walk is
 about 2 to 3 times the forward pass's arithmetic). For a billion weights,
 that is a billion forward walks or one backward walk. The price of the
 backward walk is memory: it needs every intermediate value from the forward
-pass, so those values are kept until the backward walk uses them. This is why backprop goes
-backward, and why training large networks is feasible at all.
+pass, so those values are kept until the backward walk uses them.
+
+The general rule: forward mode costs one walk per input, reverse mode one
+walk per output. A loss has one output and billions of inputs, so training
+uses reverse mode. A function with few inputs and many outputs is the
+opposite case, and there forward mode is cheaper.
 
 ## 2.3 Gradients of vector/matrix expressions
 
@@ -568,6 +572,13 @@ Frameworks compute it directly and never store $J$: for a layer of width
 4096, $J$ would have $4096 \times 4096 \approx 17$ million entries per
 example.
 
+Forward mode does the mirror image. It carries a column of input changes
+$\delta$ forward and multiplies by $J$ on the right, $J\delta$, called a
+**Jacobian–vector product** (JVP). One VJP gives one output's sensitivity to
+every input; one JVP gives every output's response to one input direction.
+That is the one-walk-per-output versus one-walk-per-input rule from §2.2,
+written with matrices.
+
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 480 230" role="img" aria-label="One layer drawn as a fully connected graph with two inputs and two outputs: amber edge labels are the Jacobian entries, red numbers at the outputs are the known sensitivities, and each input's sensitivity is the sum over its edges" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
   <defs>
@@ -675,6 +686,32 @@ step-by-step backward walk would multiply by $1/p_1$ and then by the dense
 $3 \times 3$ Jacobian; the fused step computes
 $\partial L / \partial z = p - y \approx [-.33, .09, .24]$ directly, with one
 subtraction.*
+
+#### Computing softmax without overflow: log-sum-exp
+
+Take logits $z = [1000, 999]$. The softmax needs $e^{1000}$, but the largest
+number a 64-bit float can hold is about $e^{709}$ (about $e^{88}$ in 32-bit),
+so $e^{1000}$ becomes infinity and the result is NaN.
+
+The fix uses the fact that softmax does not change when you subtract the
+same number $c$ from every logit:
+
+$$\frac{e^{z_i - c}}{\sum_j e^{z_j - c}} = \frac{e^{-c}\, e^{z_i}}{e^{-c} \sum_j e^{z_j}} = \frac{e^{z_i}}{\sum_j e^{z_j}}$$
+
+Choose $c = \max_j z_j$. Then the largest exponent is $e^0 = 1$ and nothing
+overflows. Here $z - c = [0, -1]$, so
+$p = [1, e^{-1}] / (1 + e^{-1}) \approx [0.731, 0.269]$.
+
+The loss needs $\log p_c$, and computing $p_c$ first and then its log fails
+the other way: when one logit is about 745 below the max (about 103 in
+32-bit floats), its $e^{z_i - c}$ rounds to exactly 0, and $\log 0 = -\infty$.
+So frameworks compute the log directly. Write $m = \max_j z_j$:
+
+$$\log \sum_j e^{z_j} = m + \log \sum_j e^{z_j - m}, \qquad \log p_i = z_i - m - \log \sum_j e^{z_j - m}$$
+
+The left identity is the same subtract-$c$ step, applied inside the log. It
+is called **log-sum-exp**, and every cross-entropy implementation uses it.
+For $z = [1000, 999]$: $\log \sum_j e^{z_j} = 1000 + \log(1 + e^{-1}) \approx 1000.313$.
 
 #### Vanishing and exploding gradients
 
