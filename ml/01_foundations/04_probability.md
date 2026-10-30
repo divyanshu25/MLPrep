@@ -1426,24 +1426,24 @@ chance, since the pages are the same. Here are the gaps from 10,000 such runs:
 simulated reruns. About 7 in 10 land within 50 buyers of zero. Only 314
 (3.1%) are 100 or more in either direction (red).*
 
-The real test's gap, 100 buyers, sits out in the red tail. Identical pages
-produce a gap that big only about 3 times in 100, so B is probably really
-better.
+The pile is a bell centered at zero, with a standard deviation of about 46
+buyers (the green bracket). The real gap, 100 buyers, is
+$100 / 46.4 \approx 2.16$ standard deviations from zero. A bell rarely lands
+that far out: more than 1.96 standard deviations from the center happens
+only 5% of the time (§3.6). So B is probably really better.
 
 **Naming the pieces.** Each term is something in the picture:
 
 - The **null hypothesis**, $H_0$, is the assumption the picture is built on:
   the pages are identical.
-- The **standard error** (SE) is the spread of the pile (its standard
-  deviation, the green bracket): about 46 buyers. It's the typical size of a
-  gap that comes from chance alone.
-- $z$ is the real gap measured in standard errors:
-  $100 / 46.4 \approx 2.16$.
-- The **p-value** is the fraction of the pile at least as far from zero as
-  the real gap: 0.031. Both sides count, because "B ahead by 100" and "A
-  ahead by 100" are equally far from zero.
-- The usual rule, fixed before looking at the data, calls a difference
-  **statistically significant** when $p < 0.05$. This one is.
+- The **standard error** (SE) is the standard deviation of the pile, 46.4
+  buyers: the typical size of a gap that comes from chance alone.
+- $z$ is how many standard errors the real gap is from zero: 2.16.
+- The **p-value** is the fraction of the pile more than 2.16 standard
+  errors from zero, on either side (the red bars): 0.031.
+- A difference is called **statistically significant** when $p < 0.05$,
+  which is the same as $|z| > 1.96$. The threshold is fixed before looking
+  at the data. This one is significant.
 
 **Getting the spread without simulating.** By the central limit theorem
 (§3.6) the pile is a bell, so its standard deviation is all you need. Each
