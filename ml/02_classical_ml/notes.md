@@ -1277,171 +1277,430 @@ models at scale.
 ## Common interview questions
 
 **Q1. Why does least squares correspond to Gaussian noise?**
-The negative log-likelihood of $y_i = w^\top x_i + \varepsilon$,
-$\varepsilon \sim \mathcal N(0,\sigma^2)$, is a constant plus
-$\sum_i (y_i - w^\top x_i)^2 / 2\sigma^2$. Minimizing NLL = minimizing squared
-error. Different noise ⇒ different loss (Laplace ⇒ L1).
+Take Gaussian noise with $\sigma = 1$ and two residuals, 1 and 3. The
+log-density of a residual $r$ is $-\tfrac12\log(2\pi) - r^2/2$, so the
+negative log-likelihood is a constant plus $0.5 + 4.5 = 5$, which is half the
+sum of squared residuals. In general, for $y_i = w^\top x_i + \varepsilon_i$
+with $\varepsilon_i \sim \mathcal N(0, \sigma^2)$ i.i.d., the negative
+log-likelihood is $\frac{1}{2\sigma^2}\sum_i (y_i - w^\top x_i)^2$ plus a term
+that does not depend on $w$, so the maximum-likelihood $w$ is the
+least-squares $w$ (§1.1). The loss is the negative log-density of the assumed
+noise.
+
+**If asked:** *What if the noise is Laplace?* Its log-density is $-|r|/b$
+plus a constant, so the MLE minimizes absolute error, which grows linearly in
+the residual and is less sensitive to outliers.
 
 **Q2. When would you use the normal equation vs. gradient descent?**
-Normal equation: small/medium $d$ (the $O(nd^2 + d^3)$ solve is fine), exact
-answer, no learning rate. GD/SGD: large $d$ or $n$, out-of-core/streaming
-data, or any loss without a closed form. Same optimum for OLS (convex
-quadratic).
+With $d = 100$ features, $X^\top X$ is $100 \times 100$ and the solve costs on
+the order of $d^3 = 10^6$ operations, so the normal equation gives the exact
+answer with no learning rate to tune. With $d = 10^6$ features, $X^\top X$ has
+$10^{12}$ entries (8 TB in float64) and the solve costs on the order of
+$10^{18}$ operations, which is infeasible. A full gradient step costs $O(nd)$
+and an SGD step $O(d)$ per example, and SGD can stream data that does not fit
+in memory. Rule: closed form for small-to-medium $d$ with squared loss;
+gradient methods for large $d$ or $n$, streaming data, or any loss without a
+closed form, such as logistic loss. When $X^\top X$ is invertible both reach
+the same minimizer, because the loss is a convex quadratic.
+
+**If asked:** *What if $X^\top X$ is singular?* The columns are linearly
+dependent (duplicate features, or $d > n$), so infinitely many $w$ fit
+equally well; ridge adds $\lambda I$, which makes the matrix invertible.
 
 **Q3. Derive the gradient of logistic loss.**
-$\partial L/\partial p = (p-y)/(p(1-p))$; $\partial p/\partial z = p(1-p)$;
-they cancel to $\partial L/\partial z = p - y$; chain with
-$\partial z/\partial w = x$ to get $(p-y)x$. The cancellation is the point  - 
-no vanishing gradient from the sigmoid.
+Take $y = 1$ and a confidently wrong prediction $p = 0.1$: the gradient of
+the loss with respect to the logit $z$ is $p - y = -0.9$, a large correction.
+With $L = -[y\log p + (1-y)\log(1-p)]$, $p = \sigma(z)$ and $z = w^\top x$,
+the chain rule gives
+
+$$\frac{\partial L}{\partial p} = \frac{p-y}{p(1-p)}, \qquad \frac{\partial p}{\partial z} = p(1-p), \qquad \frac{\partial z}{\partial w} = x \quad\Rightarrow\quad \nabla_w L = (p - y)\,x.$$
+
+The factor $p(1-p)$ cancels. With squared loss $\tfrac12(p-y)^2$ on top of
+the sigmoid it would not cancel, and the gradient on $z$ would be
+$(p-y)\,p(1-p) = -0.9 \times 0.09 = -0.081$, about 11 times smaller exactly
+when the prediction is most wrong.
+
+**If asked:** *Is the loss convex in $w$?* Yes: its Hessian is
+$\sum_i p_i(1-p_i)\,x_i x_i^\top$, which is positive semidefinite.
 
 **Q4. Why does L1 produce exact zeros but L2 doesn't?**
-1-D picture: lasso solves
-$w^* = \operatorname{sign}(a)\max(0, |a| - \lambda/2)$ (soft threshold  - 
-clips small weights to exactly 0, possible because $|w|$ has a kink at 0);
-ridge solves $w^* = a/(1+\lambda)$ (multiplicative shrink, never 0).
-Geometrically: L1 ball has corners on the axes where loss contours make first
-contact.
+Take one weight whose unpenalized best value is $a = 0.3$, so the data loss
+is $(w - 0.3)^2$, and add a penalty with $\lambda = 1$. Ridge,
+$(w - 0.3)^2 + w^2$, has its minimum at $0.15$; lasso, $(w - 0.3)^2 + |w|$,
+has its minimum at exactly $0$. The difference is the slope of the penalty
+at zero. The slope of $w^2$ is 0 there, so the total slope at $w = 0$ is
+$-2a \ne 0$ and zero is never the minimum; ridge only rescales,
+$w^* = a/(1+\lambda)$. The slope of $|w|$ is $\pm 1$ all the way to zero,
+so moving off zero adds $\lambda = 1$ of penalty per unit while the data loss
+falls by only $2|a| = 0.6$ per unit, and the weight stays at 0. In general
+lasso gives soft thresholding,
+$w^* = \operatorname{sign}(a)\max(0, |a| - \lambda/2)$ (§3.2).
+
+**If asked:** *Geometric version?* The L1 constraint $|w_1| + |w_2| \le t$
+is a diamond with corners on the axes, and the loss contours usually first
+touch it at a corner, where one weight is 0; the L2 disk has no corners.
 
 **Q5. What's the Bayesian interpretation of ridge and lasso?**
-MAP estimation: ridge = Gaussian prior on weights
-($\lambda = \sigma^2/\tau^2$), lasso = Laplace prior. Regularizer =
-$-\log p(w)$.
+Take noise variance $\sigma^2 = 1$ and a prior $w_j \sim \mathcal N(0, \tau^2)$
+with $\tau^2 = 0.25$. With residuals $r_i = y_i - w^\top x_i$, the negative
+log-posterior is $\tfrac12\sum_i r_i^2 + \|w\|^2/(2 \cdot 0.25)$ plus a
+constant, which equals $\tfrac12\big(\sum_i r_i^2 + 4\|w\|^2\big)$:
+ridge with $\lambda = \sigma^2/\tau^2 = 4$. In general the MAP estimate
+minimizes the negative log-likelihood plus $-\log p(w)$, so the regularizer
+is $-\log p(w)$ (§3.1). A Gaussian prior gives the L2 penalty (ridge); a
+Laplace prior $p(w_j) \propto e^{-|w_j|/b}$ gives $\|w\|_1/b$ (lasso). Noisier
+data (larger $\sigma^2$) or a tighter prior (smaller $\tau^2$) gives a larger
+$\lambda$.
+
+**If asked:**
+
+- *Why does the Laplace prior give zeros?* Its density has a kink at 0, which
+  becomes the kink of $|w|$ in the loss; the Gaussian is smooth at 0.
+- *Is this fully Bayesian?* No: MAP returns the posterior mode, a single
+  point, while a full Bayesian treatment keeps the whole posterior.
 
 **Q6. What is C in an SVM and how does it relate to over/underfitting?**
-Penalty on margin violations; effectively inverse regularization
-($\lambda \sim 1/C$). Large C → hard fitting, narrow margin, overfit risk;
-small C → wide margin, more bias.
+The soft-margin objective is $\tfrac12\|w\|^2 + C\sum_i \xi_i$, where the
+slack $\xi_i$ measures how far point $i$ falls inside the margin. One
+violation of $\xi = 0.5$ adds 50 to the objective at $C = 100$ and 0.005 at
+$C = 0.01$. With large $C$ the minimum has few violations and a large
+$\|w\|$, which is a narrow margin $1/\|w\|$: low bias, high variance,
+overfitting risk. With small $C$ the minimum has a small $\|w\|$ and more
+violations: wide margin, more bias. Dividing the objective by $C$ gives
+hinge loss plus $\frac{1}{2C}\|w\|^2$, so $C$ plays the role of $1/\lambda$:
+it is inverse regularization strength.
+
+**If asked:** *What is $\xi_i$ at the optimum?*
+$\max(0, 1 - y_i(w^\top x_i + b))$, the hinge loss of point $i$.
 
 **Q7. What does the kernel trick buy you, concretely?**
-The SVM dual touches data only via inner products; replacing
-$\langle x, z\rangle$ with $K(x,z) = \langle\phi(x),\phi(z)\rangle$ runs the
-linear algorithm in a huge (even infinite-dim, RBF) feature space at the cost
-of evaluating $K$ - without ever computing $\phi$. Price: $O(n^2)$ Gram
-matrix, so poor scaling in dataset size.
+Take $x = (1, 2)$, $z = (3, 1)$ and the degree-2 feature map
+$\phi(x) = (x_1^2, \sqrt2\,x_1x_2, x_2^2)$. Explicitly,
+$\phi(x) \cdot \phi(z) = 9 + 12 + 4 = 25$; the kernel
+$K(x, z) = (x \cdot z)^2 = 5^2 = 25$ gives the same number from one 2-D dot
+product. The SVM dual and its prediction rule use the data only through
+inner products $\langle x_i, x_j\rangle$, so replacing each one by $K$
+trains a linear classifier in $\phi$-space without computing $\phi$, which
+for degree 10 in 100 dimensions has about $4 \times 10^{13}$ coordinates and
+for the RBF kernel $\exp(-\gamma\|x - z\|^2)$ is infinite-dimensional. The
+price is the $n \times n$ Gram matrix: $O(n^2)$ memory and $O(n^2)$ to
+$O(n^3)$ training time, so kernel SVMs scale poorly with the number of
+examples.
 
-**Q8. Gini vs. entropy - does the choice matter?**
-Rarely. Both are concave impurity measures, zero at purity, maximized at
-uniform; they pick the same split almost always. Gini avoids the log, so it's
-the cheaper default.
+**If asked:** *Which functions are valid kernels?* Any symmetric $K$ whose
+Gram matrix is positive semidefinite for every finite set of points
+(Mercer's condition).
+
+**Q8. Gini vs. entropy: does the choice matter?**
+Rarely. For a binary node that is 90/10, Gini impurity $2p(1-p)$ is 0.18 and
+entropy is 0.469 bits. Divided by their maxima at 50/50 (0.5 and 1), these
+are 0.36 and 0.47: two curves of nearly the same shape, both concave, zero
+at a pure node and largest at a uniform one. So they rank candidate splits
+the same way in almost all cases. Gini needs no logarithm, so it is slightly
+cheaper and is the usual default.
+
+**If asked:** *When can they disagree?* Entropy assigns relatively more
+impurity to slightly mixed nodes (0.47 vs. 0.36 at 90/10 after scaling), so
+it can prefer a split with purer children; depth and leaf-size limits change
+the tree far more than this choice.
 
 **Q9. Why do random forests use feature subsampling on top of bagging?**
-$\operatorname{Var}(\bar f) = \rho\sigma^2 + \frac{1-\rho}{B}\sigma^2$: more
-trees kill the second term but the correlation floor $\rho\sigma^2$ remains.
-Restricting each split to a random feature subset decorrelates trees (drops
-$\rho$), lowering the floor - worth a small hit to each tree.
+Average $B = 100$ trees, each with variance $\sigma^2 = 1$ and pairwise
+correlation $\rho = 0.5$: the average has variance
+$\rho\sigma^2 + \frac{1-\rho}{B}\sigma^2 = 0.5 + 0.005 = 0.505$. More trees
+shrink only the second term, so $\rho\sigma^2 = 0.5$ is a floor (§6.1).
+Bagged trees are correlated because a dominant feature gives the best root split
+in nearly every bootstrap sample, so the trees are similar. Restricting each
+split to a random subset of about $\sqrt d$ features makes different trees
+split on different features, which lowers $\rho$. Each tree gets somewhat
+worse, so $\sigma^2$ rises; for example, if $\rho$ falls to 0.2 while
+$\sigma^2$ rises to 1.2, the variance is $0.24 + 0.0096 \approx 0.25$, half
+of before.
+
+**If asked:** *Can subsampling go too far?* Yes: with few informative
+features, a small subset often contains none of them, so $\sigma^2$ rises
+faster than $\rho$ falls; the subset size is tuned.
 
 **Q10. Bagging vs. boosting in one line each?**
-Bagging: parallel, i.i.d.-ish deep trees averaged to cut **variance**; more
-trees never overfit. Boosting: sequential shallow trees, each fit to the
-current ensemble's pseudo-residuals (negative gradient), cutting **bias**;
-more rounds can overfit - early-stop on validation.
+Bagging: train many deep trees on bootstrap samples, in parallel, and average
+them; this reduces variance, and adding trees does not increase overfitting.
+Boosting: train shallow trees one after another, each fit to the current
+ensemble's residuals (more generally, the negative gradient of the loss),
+and add each with a small step; this reduces bias, and too many rounds
+overfit, so the number of rounds is set by early stopping on validation
+data. Concretely, if the true value of a point is 10 and the
+ensemble predicts 7, the next boosting tree (with squared loss) is trained on
+target 3 for that point; a bagged tree is trained on the original target 10.
+
+**If asked:** *Why deep trees for bagging and shallow for boosting?* Bagging
+reduces only variance, so it needs low-bias, high-variance members; boosting
+reduces bias over many rounds, so each member can be a high-bias,
+low-variance shallow tree.
 
 **Q11. In what sense is gradient boosting "gradient descent"?**
-Descent in function space: the parameters are the predictions $F(x_i)$; the
-negative gradient of the loss wrt them is the pseudo-residual vector; each
-weak learner is fit to approximate that vector, and $F \leftarrow F + \eta h$
-is the step. Squared loss ⇒ residuals; log-loss ⇒ $y - p$.
+Treat the training-set predictions $F(x_1), \dots, F(x_n)$ as the
+parameters. For squared loss $\tfrac12(y - F)^2$, a point with $y = 10$ and
+current prediction $F = 7$ has gradient $F - y = -3$, so a gradient step
+moves that prediction in the direction $+3$, its residual. A gradient step
+is defined only at the $n$ training points, so boosting fits a small tree
+$h_m$ to the negative gradients $r_i = -\partial \ell(y_i, F(x_i))/\partial
+F(x_i)$ (the pseudo-residuals), which gives a function defined everywhere,
+and updates $F \leftarrow F + \eta h_m$ with learning rate $\eta$ (§6.3).
+Each tree is the best tree approximation of one gradient step in function
+space. For log loss with $F$ the logit, the pseudo-residual is $y - p$: a
+positive example predicted at $p = 0.8$ gets target 0.2.
+
+**If asked:** *What does XGBoost add?* A second-order expansion of the loss:
+each leaf's value is minus the sum of the leaf's gradients divided by the
+sum of its second derivatives plus $\lambda$, a regularized Newton step.
 
 **Q12. Why does k-means always converge, and to what?**
-Each phase is an exact minimization of $J = \sum_i \|x_i - \mu_{z_i}\|^2$
-over one block (assignments; then means, which minimize summed squared
-distance), so $J$ is non-increasing and bounded below, and with finitely many
-assignments it fixes in finite steps - at a *local* optimum. Hence
-k-means++/restarts.
+Points 0, 2, 10, 12 on a line, $k = 2$, centers started at 0 and 2. The
+objective $J = \sum_i \|x_i - \mu_{z_i}\|^2$ takes the values 164 (assign
+each point to its nearest center), 56 (move the centers to the means, 0 and
+8), 24 (point 2 switches to center 0), and 4 (centers move to 1 and 11);
+then no assignment changes. Each step minimizes $J$ exactly over one block
+with the other fixed: the nearest center is optimal for fixed centers, and
+the mean minimizes summed squared distance for fixed assignments. So $J$
+never increases, it is bounded below by 0, and there are finitely many
+assignments ($k^n$), so the algorithm stops after finitely many steps at a
+fixed point (§8.2). That fixed point is a local minimum that depends on the
+initialization, not the global minimum, which is why k-means++ seeding and
+multiple restarts are used.
+
+**If asked:** *What does k-means++ do?* It picks each new initial center with
+probability proportional to its squared distance from the nearest center
+already chosen, which gives an expected $O(\log k)$ approximation to the
+optimal $J$.
 
 **Q13. Why must you standardize features for kNN, k-means, SVM, and
 regularized models, but not for trees?**
-Those methods depend on Euclidean distances or on penalized weight
-magnitudes, both scale-sensitive. Trees only compare a feature against
-thresholds - any monotone transform of a feature leaves splits equivalent.
+Take income in dollars and age in years. Two people who differ by 1,000
+dollars in income and 40 years in age have squared distance
+$1000^2 + 40^2 = 1{,}001{,}600$, of which age contributes 0.16%, so the
+distance is almost entirely income. kNN, k-means and RBF-kernel SVMs use
+Euclidean distance, so they need features on comparable scales. Penalized
+models are also scale-sensitive: measuring a feature in kilometers instead of meters
+multiplies its fitted weight by 1000 and its L2 penalty by $10^6$. A tree
+only compares one feature against a threshold, and any increasing transform
+of a feature (rescaling, log) keeps the order of its values, so the same
+partitions are available and the tree is unchanged.
+
+**If asked:** *Fit the scaler on what data?* On the training set only, then
+apply the same means and standard deviations to validation and test data;
+fitting on all data leaks test information into training.
 
 **Q14. State the curse of dimensionality with one number.**
-To capture 1% of uniform data in $[0,1]^{100}$ a cube needs side
-$0.01^{1/100} \approx 0.955$ - "local" neighborhoods span ~95% of every axis,
-and nearest/farthest distances concentrate, so distance-based methods break;
-required samples grow exponentially in $d$.
+To enclose 1% of points spread uniformly in the unit cube $[0,1]^d$, a
+sub-cube needs side $0.01^{1/d}$: 0.1 in 2 dimensions, 0.63 in 10, and 0.955
+in 100. So in 100 dimensions the neighborhood holding the nearest 1% of the
+data spans 95.5% of the range of every feature, and it is not local.
+Distances also concentrate: the ratio of the farthest to the nearest
+neighbor distance approaches 1 as $d$ grows, so ranking points by distance
+carries little information. Keeping neighborhoods at a fixed side $s$ with
+$k$ points in each needs about $k/s^d$ samples, which grows exponentially in
+$d$.
+
+**If asked:** *Why does kNN still work on some high-dimensional data?* Real
+data such as images lies near a low-dimensional manifold, so its effective
+dimension is far below the number of raw features.
 
 **Q15. PCA: variance maximization or reconstruction minimization?**
-Both, provably the same: $\|x - UU^\top x\|^2 = \|x\|^2 - \|U^\top x\|^2$, so
-minimizing lost energy = maximizing projected variance; solutions are the top
-eigenvectors of the covariance (= right singular vectors of centered $X$),
-and the lost energy equals the sum of discarded eigenvalues.
+Both, and they are the same problem. Project the point $x = (3, 4)$ onto the
+unit direction $u = (1, 0)$: the projection is $(3, 0)$, the kept squared
+length is 9, the reconstruction error is $\|(0, 4)\|^2 = 16$, and
+$9 + 16 = 25 = \|x\|^2$. In general, for an orthonormal basis $U$,
+$\|x - UU^\top x\|^2 = \|x\|^2 - \|U^\top x\|^2$, and $\sum_i \|x_i\|^2$ is
+fixed by the data, so minimizing total reconstruction error is maximizing
+total projected squared length, which for centered data is the projected
+variance (§9.2). Both are solved by the top $k$ eigenvectors of the
+covariance matrix, equal to the top right singular vectors of the centered
+data matrix, and the remaining error is $(n-1)$ times the sum of the
+discarded eigenvalues.
+
+**If asked:** *Why center first?* Without centering, the top direction
+points roughly at the data mean instead of along the spread of the data.
 
 **Q16. Why is naive Bayes often fine for classification but bad for
 probabilities?**
-The independence assumption double-counts correlated evidence, pushing
-posteriors toward 0/1 (miscalibration) - but argmax over classes often
-survives the distortion. It's optimal when features truly are conditionally
-independent given the class.
+Take a spam filter where the word "free" has likelihood ratio
+$p(\text{free} \mid \text{spam}) / p(\text{free} \mid \text{ham}) = 0.6/0.05
+= 12$ and the prior is 50/50, so seeing "free" gives spam probability
+$12/13 = 0.92$. Now add a second feature that is an exact copy of the first.
+Naive Bayes treats the two as independent given the class and multiplies by
+12 twice: odds 144, probability $144/145 = 0.993$, although the copy adds no
+information. Correlated features are counted more than once, which pushes
+posteriors toward 0 or 1. The predicted class is spam either way, so the
+argmax, and with it accuracy, often survives while the probabilities are
+overconfident. If the features are conditionally independent given the
+class, the model is correctly specified and, with the true per-feature
+distributions, it is the Bayes-optimal classifier.
+
+**If asked:** *How do you fix the probabilities?* Recalibrate on held-out
+data with Platt scaling (a logistic regression on the model's score) or
+isotonic regression.
 
 **Q17. Why does logistic regression fail on perfectly separable data?**
-The MLE doesn't exist: scaling $w$ up forever keeps increasing the
-likelihood (probabilities → hard 0/1, loss → 0), so weights diverge.
-Regularization or early stopping restores a finite solution.
+Two points in 1-D: $x = -1$ with label 0 and $x = +1$ with label 1, model
+$p = \sigma(wx)$. Each point's loss is $\log(1 + e^{-w})$: 0.313 at $w = 1$,
+0.0067 at $w = 5$, $4.5 \times 10^{-5}$ at $w = 10$. The loss decreases with
+every increase in $w$ and approaches 0 without reaching it, so no finite $w$
+minimizes it: the MLE does not exist, and gradient descent increases $w$
+without bound. The same happens whenever a hyperplane separates the classes:
+scaling up its $w$ moves every $p_i$ toward its label. An L2 penalty
+$\lambda\|w\|^2$ grows with $\|w\|$ while the data loss falls toward 0, so
+the sum has a finite minimizer; early stopping also returns a finite $w$.
 
-**Q18. Hinge loss vs. logistic loss?**
-Both are convex upper bounds on 0-1 loss. Hinge is exactly zero past margin
-1 (solution depends only on support vectors; no probabilities); logistic is
-smooth, never zero (every point contributes; gives probabilities, which are
-calibrated when the model is well-specified).
+**If asked:** *Does the direction of $w$ settle?* Yes: under gradient
+descent $w/\|w\|$ converges to the hard-margin SVM direction, while $\|w\|$
+grows like $\log t$ in the number of steps $t$.
+
+**Q18. Hinge vs. logistic loss?**
+Write the margin of a point as $m = y\,f(x)$ with $y \in \{-1, +1\}$. At
+$m = 2$, a correct and confident point, hinge loss $\max(0, 1 - m)$ is 0 and
+logistic loss $\log(1 + e^{-m})$ is 0.127; at $m = -1$, a misclassified
+point, they are 2 and 1.31. Hinge is exactly zero for every point with
+margin at least 1, so the solution depends only on the points on or inside
+the margin (the support vectors), and its output $f(x)$ is a score, not a
+probability. Logistic loss is smooth and never zero, so every point
+contributes to the gradient, and $\sigma(f(x))$ is a probability estimate,
+calibrated when the model is well specified. Both are convex.
+
+**If asked:** *Are they upper bounds on 0-1 loss?* Hinge is (it equals 1 at
+$m = 0$); logistic is after dividing by $\ln 2$, since
+$\log_2(1 + e^{0}) = 1$.
 
 **Q19. Where does the 37% out-of-bag figure come from?**
-$P(\text{a given point missed by all } n \text{ draws}) = (1 - 1/n)^n \to
-e^{-1} \approx 0.368$. Those held-out points give an unbiased error estimate
-per tree - free cross-validation for bagged ensembles.
+With $n = 10$ points, a bootstrap sample makes 10 draws with replacement; a
+given point is missed by one draw with probability 0.9, so by all ten with
+probability $0.9^{10} = 0.349$. For $n = 100$ it is $0.99^{100} = 0.366$,
+and as $n \to \infty$, $(1 - 1/n)^n \to e^{-1} \approx 0.368$. So each tree
+is trained on about 63% of the distinct points, and the other 37% are out of
+bag for that tree. Predicting each point with only the trees that did not
+train on it gives the out-of-bag error, an estimate of test error that needs
+no separate validation set.
+
+**If asked:** *Is the OOB estimate biased?* Slightly pessimistic: each
+point's OOB prediction averages only about 37% of the trees, and a smaller
+ensemble has higher variance than the full forest.
 
 **Q20. Why do gradient-boosted trees still beat neural nets on tabular
 data?**
-Trees handle mixed types, arbitrary scales/monotone transforms, missing
-values, and sharp interactions natively; boosting adds bias reduction with
-strong regularization (shrinkage, depth limits, subsampling, XGBoost's
-$\gamma T + \lambda\|w\|^2$). MLPs need heavy preprocessing/tuning to match
-on small-to-medium tabular datasets.
+Take a fraud feature, account age in days, from 0 to 10,000, where risk
+drops sharply after day 30. A tree represents this with one split,
+"age < 30", whatever the scale or skew of the feature, while an MLP needs the
+feature rescaled and several units to approximate the step with smooth
+functions. The same holds for missing values (XGBoost learns a default
+branch for them at each split), mixed feature types, and sharp interactions
+between features: trees handle them without preprocessing. Boosting reduces
+bias tree by tree, and shrinkage, depth limits, row and column subsampling,
+and XGBoost's penalty $\gamma T + \tfrac{\lambda}{2}\|w\|^2$ on the number of
+leaves $T$ and the leaf values $w$ control variance. On small-to-medium
+tabular datasets, MLPs need heavy preprocessing and tuning to match this.
+
+**If asked:** *When do neural nets win on tabular data?* With very large
+datasets, or when some columns are text, images, or sequences that a network
+can embed.
 
 **Q21. What convergence guarantee does EM actually have?**
-Monotone likelihood ascent: $\ell(\theta^{t+1}) \ge \mathcal{L}(q^t,
-\theta^{t+1}) \ge \mathcal{L}(q^t, \theta^t) = \ell(\theta^t)$ - ELBO is a
-lower bound, the M-step maximizes it, the E-step makes it tight. So $\ell$
-never decreases and (bounded, e.g. with regularized covariances) converges  - 
-but only to a **stationary point**, not the global MLE; and the unconstrained
-GMM likelihood is actually unbounded (a component collapsing onto one point
-with $\sigma \to 0$). Practice: covariance floor, k-means init, restarts.
+In a 1-D two-component GMM, the log-likelihood never goes down from one EM
+iteration to the next, yet runs from different starting means can stop at
+different values, and a run can diverge to $+\infty$: if a component's mean
+lands on one data point and its $\sigma$ shrinks, that point's density term
+$\pi_j/(\sqrt{2\pi}\,\sigma)$ (with $\pi_j = 0.5$) is about 20 at
+$\sigma = 0.01$ and 200 at $\sigma = 0.001$. The guarantee is monotone
+ascent:
 
-**Q22. GMM vs. k-means - relationship and when to prefer which?**
-k-means is EM on a constrained GMM: shared spherical covariance
-$\varepsilon I$, uniform weights, $\varepsilon \to 0$ - responsibilities
-(softmax over $-\|x - \mu_j\|^2/2\varepsilon$) collapse to hard nearest-center
-assignments and the weighted-mean M-step becomes the plain mean. Prefer GMM
-for soft memberships, elliptical/unequal clusters (learned per-cluster
-Mahalanobis metric), a usable density ($p(x)$ for anomalies, sampling,
-BIC-based choice of $k$). Prefer k-means for speed, robustness, and as GMM's
-initializer.
+$$\ell(\theta^{t+1}) \;\ge\; \mathcal{L}(q^t, \theta^{t+1}) \;\ge\; \mathcal{L}(q^t, \theta^t) \;=\; \ell(\theta^t).$$
 
-**Q23. PCA vs. t-SNE - when do you use each?**
-PCA: linear, deterministic, out-of-sample-consistent - use for compression,
-denoising, and features for downstream models; preserves global variance.
-t-SNE: nonlinear, stochastic, non-parametric - use *only* to visualize
-neighborhood/cluster structure; it preserves local neighborhoods (heavy-tail
-t-kernel solves the crowding problem) but between-cluster distances and
-cluster sizes in the map are meaningless, and there's no transform for new
-points. Standard pipeline: PCA to ~50 dims, then t-SNE for the picture.
+The ELBO $\mathcal L$ is a lower bound on $\ell$ for every $q$ (first
+inequality), the M-step maximizes it over $\theta$ (second), and the E-step
+set $q^t$ to the posterior, which makes the bound tight at $\theta^t$ (the
+equality) (§11.2). If $\ell$ is bounded above, its values converge, but only
+to a stationary point that depends on the initialization, not to the global
+maximum. In practice: add a small constant to each covariance diagonal
+(which keeps $\ell$ bounded), initialize with k-means, and use several
+restarts.
+
+**If asked:** *How fast does it converge?* Linearly; the rate depends on how
+much information the missing labels carry, so heavily overlapping components
+converge slowly.
+
+**Q22. GMM vs. k-means: relationship and when to prefer which?**
+Take a point at squared distance 1 from one center and 2 from another, in a
+GMM with shared covariance $\varepsilon I$ and equal weights. Its
+responsibility for the nearer center is $\sigma\big(\frac{2 - 1}{2\varepsilon}\big)$:
+0.62 at $\varepsilon = 1$, 0.993 at $\varepsilon = 0.1$, and within
+$2 \times 10^{-22}$ of 1 at $\varepsilon = 0.01$. As $\varepsilon \to 0$ the
+E-step becomes nearest-center assignment and the weighted-mean M-step
+becomes the plain mean, so k-means is EM on this constrained GMM (§11.4).
+Prefer a GMM for soft memberships, clusters that are elongated or of
+different sizes (a full covariance per cluster), or a density $p(x)$ for
+anomaly scores, sampling, or choosing $k$ by BIC (log-likelihood penalized by
+parameter count). Prefer k-means for speed ($O(nkd)$ per iteration, no
+covariances to estimate or to collapse), and as the initializer for a GMM.
+
+**If asked:** *What do full covariances cost?* $k\,d(d+1)/2$ parameters: 10
+clusters in 100 dimensions need 50,500, which takes a lot of data to
+estimate.
+
+**Q23. PCA vs. t-SNE: when do you use each?**
+On scikit-learn's 8×8 digits dataset (1,797 images, 64 pixels), the top two
+principal components keep 28.5% of the variance and the ten digit classes
+overlap in the 2-D PCA plot, while a t-SNE plot of the same data shows ten
+mostly separate clusters. Use PCA, a linear, deterministic map that applies
+the same matrix to new points, for compression, denoising, and features for
+downstream models. Use t-SNE, which is nonlinear, stochastic, and fits
+coordinates for these $n$ points rather than a function, only to look at
+neighborhood and cluster structure: neighbors are preserved, but distances
+between clusters and cluster sizes in the plot carry no quantitative
+information, and a new point cannot be embedded without rerunning it.
+Standard pipeline: PCA to about 50 dimensions, then t-SNE to 2 for the plot.
+
+**If asked:** *Why a t-distribution in the map?* At map distance 4 the
+t-kernel $(1 + u^2)^{-1}$ is 0.059 versus 0.00034 for the Gaussian
+$e^{-u^2/2}$, about 175 times more, so moderately dissimilar points can sit
+far apart in the map; this relieves the crowding problem (§12.2).
 
 **Q24. Why can't you just run SVD on a ratings matrix?**
-SVD's optimality (Eckart–Young) is for Frobenius error over **all** entries;
-a ratings matrix is ~99% missing. Zeros-as-missing makes the model
-reconstruct "everyone dislikes everything"; mean-imputation makes 99% of the
-objective your own fill. The right objective sums squared error over
-*observed* entries only, plus regularization - no closed form, non-convex
-jointly, solved by SGD or ALS (where each block update is exactly ridge
-regression, $p_u = (Q_u^\top Q_u + \lambda I)^{-1} Q_u^\top r_u$).
+The average Netflix Prize user rated about 200 of 17,770 movies. Fill the
+missing entries with 0, and the SVD objective, squared error over all
+entries, spends about 99% of that user's terms on reconstructing zeros, so the
+fitted values for unseen movies are close to 0, a rating nobody gave.
+Fill with the mean instead, and 99% of the objective is your own fill value,
+which the SVD then reconstructs. Eckart-Young's optimality is for error over
+all entries, the wrong objective here; the right one sums over the observed
+entries $\Omega$ only, with L2 penalties on the factors:
+
+$$\min_{P, Q} \sum_{(u,i) \in \Omega} (r_{ui} - p_u^\top q_i)^2 + \lambda\Big(\sum_u \|p_u\|^2 + \sum_i \|q_i\|^2\Big).$$
+
+It has no closed form and is non-convex jointly, so it is solved by SGD or
+ALS; in ALS each user update with item factors fixed is a ridge regression,
+$p_u = (Q_u^\top Q_u + \lambda I)^{-1} Q_u^\top r_u$, where $Q_u$ stacks the
+factor vectors of the items $u$ rated and $r_u$ holds those ratings.
+
+**If asked:** *Why add user and item biases?* Much of the rating variance is
+"this user rates harshly" or "this movie is widely liked"; the model
+$\hat r_{ui} = \mu + b_u + b_i + p_u^\top q_i$ leaves the factors to model
+taste.
 
 **Q25. What is cold start and how do you handle it?**
-New users/items have no interactions, so pure CF has nothing to generalize
-from - their latent factors are just the regularizer's zero. Fixes:
-popularity fallback; content/metadata features so unseen items get vectors
-from their attributes (the two-tower generalization of MF - item tower maps
-features, not IDs, to embeddings); hybrid CF+content models; onboarding
-questionnaires; exploration bandits to buy interaction data quickly.
+A movie added today has no ratings, so in the matrix factorization objective
+its vector $q_i$ appears only in the penalty $\lambda\|q_i\|^2$, which is
+minimized at $q_i = 0$. Its score $p_u^\top q_i$ is then 0 for every user,
+and collaborative filtering cannot rank it; a new user has the same problem
+with $p_u$. Fixes, roughly in order of how often they are deployed: fall
+back to popularity; build the vector from content features (genre, text,
+image embeddings) so a new item starts near similar existing items; combine
+CF and content in a hybrid model; ask new users a few onboarding questions;
+and show new items to some users on purpose (exploration) to collect
+interactions quickly. Content-based vectors are the idea behind two-tower
+models: two networks map user features and item features to vectors and
+the score is their dot product, so an unseen item still gets a vector.
+
+**If asked:** *How do you test a cold-start fix offline?* Hold out whole
+items (or users), not individual ratings, so the test set contains only
+items the model never saw in training.
 
 ## Exit checklist
 

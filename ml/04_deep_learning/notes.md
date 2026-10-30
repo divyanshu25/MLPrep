@@ -1479,214 +1479,432 @@ similarity; that vector is what sits in every RAG vector database.
 ## Common interview questions
 
 **Q1. Why do CNNs use so many fewer parameters than MLPs on images?**
-Weight sharing + locality: a conv layer's parameter count
-$C_{out}(C_{in}k^2 + 1)$ is independent of image size, while a dense layer
-scales with (#pixels)². Concretely, $224^2\times3$ input → 1000 hidden units
-is 150M dense parameters vs ~1.8K for a 3→64 channel 3×3 conv. The deeper
-answer: the CNN's structure hard-codes translation equivariance, which the
-MLP would have to burn data learning, position by position.
+Take a $224\times224\times3$ image, 150,528 input numbers. A dense layer to
+1000 hidden units needs $150{,}528 \times 1000 \approx 150$M weights, while a
+$3\times3$ conv from 3 to 64 channels needs $64(3\cdot 9 + 1) = 1{,}792$,
+about 84,000 times fewer. Two constraints produce the gap: locality (each
+output reads only a $k\times k$ window) and weight sharing (the same filter
+is applied at every position). So the conv count $C_{out}(C_{in}k^2 + 1)$
+does not depend on image size, while a dense layer's count is (input size)
+× (output size). The more important consequence is the inductive bias: a
+filter learned at one location is applied at every location (translation
+equivariance), so the CNN does not need training examples of each pattern
+at each position.
+
+**If asked:** *Is the CNN cheaper in compute too?* Not necessarily: each filter runs at every output position, so a 64→128 channel $3\times3$ layer on a $56\times56$ map has 74K parameters but 462 MFLOPs (§1.3).
 
 **Q2. What's the output size of a conv layer, and how many parameters?**
-$H_{out} = \lfloor (H + 2p - k)/s \rfloor + 1$; params
-$= C_{out}(C_{in}k^2 + 1)$. E.g. $32\times32$, $k=5$, $p=0$, $s=1$,
-$C_{in}=3$, $C_{out}=8$: output $28\times28\times8$, params
-$8(3\cdot25+1) = 608$.
+Take a $32\times32\times3$ input, 8 filters of size $5\times5$, no padding,
+stride 1. Each filter's left edge can sit at $32 - 5 + 1 = 28$ positions per
+axis, so the output is $28\times28\times8$. Each filter covers all 3 input
+channels, so it has $3\cdot 25 = 75$ weights plus 1 bias, and 8 filters give
+$8\cdot 76 = 608$ parameters. The general rules, with padding $p$ and stride
+$s$:
+
+$$
+H_{out} = \left\lfloor \frac{H + 2p - k}{s} \right\rfloor + 1, \qquad \#\text{params} = C_{out}(C_{in}k^2 + 1)
+$$
+
+Padding adds $2p$ positions, stride keeps every $s$-th position, and the
+parameter count does not depend on $H$ or $W$.
+
+**If asked:** *FLOPs for the same layer?* Each of the $28\cdot28\cdot8 = 6{,}272$ outputs is a 75-term dot product, so $2\cdot 75\cdot 6{,}272 \approx 0.94$ MFLOPs.
 
 **Q3. Why did ResNet's skip connections let networks go from ~20 to 150+ layers?**
-Plain deep nets underfit - *training* error rose with depth, an optimization
-failure: stacked nonlinear layers can't easily represent identity.
-$y = x + F(x)$ makes identity the default ($F=0$) and gives backprop an
-identity term $\partial y/\partial x = I + \partial F/\partial x$ - an
-unattenuated gradient path through arbitrary depth.
+In the ResNet paper, a plain 56-layer network had higher *training* error
+on CIFAR-10 than a plain 20-layer one. That is an optimization failure, not
+overfitting: the extra 36 layers could in principle copy their input (the
+identity map), but a stack of nonlinear layers does not easily reach that
+solution. A residual block computes $y = x + F(x)$, so the identity is
+$F = 0$, reached by driving the block's weights toward zero. The backward
+pass changes too: $\partial y/\partial x = I + \partial F/\partial x$, so the
+product of these Jacobians over all blocks always contains the term $I$, a
+gradient path from the loss to the first layer with no weight-matrix
+multiplications. Without it, a gradient that shrinks by a factor 0.9 per
+layer is scaled by $0.9^{50} \approx 0.005$ after 50 layers. With residual
+blocks, ResNet-152 reached lower ImageNet error than the 34-layer ResNet.
+
+**If asked:** *Do skip connections also prevent exploding gradients?* No: they guarantee one unattenuated path but do not bound the other terms, so normalization and careful initialization are still needed.
 
 **Q4. Derive why RNN gradients vanish or explode.**
-$\partial h_t/\partial h_{t-1} = \operatorname{diag}(\tanh')\,W_{hh}$; over a
-gap of $n$ steps you multiply $n$ such Jacobians, so the norm behaves like
-$(\gamma\,\sigma_{\max}(W))^n$ - geometric decay if the effective spectral
-factor is below 1 (vanish), geometric growth if above (explode). Only
-$\approx 1$ transmits, and nothing pins a learned $W$ there.
+In the scalar case, $h_t = w\,h_{t-1}$ gives
+$\partial h_{50}/\partial h_0 = w^{50}$, which is about 0.005 for $w = 0.9$
+and about 117 for $w = 1.1$. The vector RNN
+$h_t = \tanh(W_{hh}h_{t-1} + W_{xh}x_t + b)$ has one-step Jacobian
+$\operatorname{diag}(1 - h_t^2)\,W_{hh}$, and backprop across a gap of $n$
+steps multiplies $n$ of these, all containing the same $W_{hh}$. Since
+$|\tanh'| \le 1$:
+
+$$
+\Big\| \prod_{i=1}^{n} \frac{\partial h_i}{\partial h_{i-1}} \Big\| \le \sigma_{\max}(W_{hh})^{n}
+$$
+
+with $\sigma_{\max}$ the largest singular value. If $\sigma_{\max} < 1$, the
+long-range gradient decays geometrically in the gap (vanishing). If
+$W_{hh}$ has an eigenvalue of magnitude above 1 and the units stay out of
+saturation, gradient components along that direction grow geometrically
+(exploding). Only a per-step gain near 1 carries gradient across long gaps,
+and nothing in training holds a learned $W_{hh}$ there.
+
+**If asked:** *Why does clipping fix explosion but not vanishing?* Clipping rescales an oversized gradient to a fixed norm, but a vanished long-range term is already negligible next to the short-range terms in the sum, and rescaling the sum does not recover it.
 
 **Q5. How exactly does the LSTM fix vanishing gradients?**
-The cell state updates additively: $c_t = f_t \odot c_{t-1} + i_t \odot \tilde c_t$,
-so $\partial c_t/\partial c_{t-1} \approx \operatorname{diag}(f_t)$ - no
-repeated $W$ multiplication, no squashing on the main path. Where the learned
-forget gate $\approx 1$, gradients pass essentially unchanged: a
-data-dependent gradient highway (same principle as ResNet). It does *not* fix
-exploding gradients (still clip) or the sequential bottleneck.
+If the forget gate holds one cell dimension at $f_t = 0.99$, the gradient
+along that dimension after 100 steps is scaled by $0.99^{100} \approx 0.37$;
+a plain RNN with per-step gain 0.9 gives $0.9^{100} \approx 3\times10^{-5}$.
+The reason is the additive cell update
+$c_t = f_t \odot c_{t-1} + i_t \odot \tilde c_t$, whose direct-path
+Jacobian is $\partial c_t/\partial c_{t-1} = \operatorname{diag}(f_t)$ (plus
+terms through the gates): no multiplication by a weight matrix and no tanh
+derivative on that path. The forget gate is a sigmoid of the current input
+and hidden state, so training can set it near 1 on dimensions that must be
+kept, the same identity-path argument as ResNet's $y = x + F(x)$. The LSTM
+does not fix exploding gradients (clipping is still used) or the $O(T)$
+sequential computation.
+
+**If asked:** *Why initialize the forget-gate bias to 1?* $\sigma(1) \approx 0.73$ instead of $\sigma(0) = 0.5$, so the cell starts by keeping most of its memory and early gradients reach further back.
 
 **Q6. Write down attention and explain each part.**
-$\operatorname{softmax}(QK^\top/\sqrt{d_k})\,V$ - for each query (what a
-token seeks), dot with all keys (what tokens advertise) to get relevance
-scores; scale; softmax into a distribution; take that convex combination of
-values (what tokens hand over). A soft, differentiable dictionary lookup,
-with $Q, K, V$ as learned projections of the same token states.
+Take three 2-dimensional tokens $x_1 = (1,0)$, $x_2 = (0,1)$, $x_3 = (1,1)$
+with identity projections (§3.3). Token 3's query dotted with the three keys
+gives scores $(1, 1, 2)$; dividing by $\sqrt 2$ gives $(0.71, 0.71, 1.41)$;
+softmax gives weights $(0.248, 0.248, 0.503)$; the output is
+$0.248\,x_1 + 0.248\,x_2 + 0.503\,x_3 = (0.75, 0.75)$. In matrix form:
+
+$$
+\operatorname{Attention}(Q, K, V) = \operatorname{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V
+$$
+
+Each token vector $x_i$ is projected three ways: query $q_i = W_Q x_i$,
+key $k_j = W_K x_j$, value $v_j = W_V x_j$. $QK^\top$ is the $T\times T$
+matrix of all query-key dot products, $\sqrt{d_k}$ keeps their variance at 1,
+the row-wise softmax turns each row into nonnegative weights summing to 1,
+and multiplying by $V$ gives each position a weighted average of the
+values. It is a differentiable dictionary lookup: every key matches to some
+degree, and the output blends all values by match strength.
+
+**If asked:** *What changes in cross-attention?* $Q$ comes from one sequence and $K, V$ from another (decoder queries, encoder keys and values); the formula is the same.
 
 **Q7. Why divide by $\sqrt{d_k}$?**
-$q^\top k = \sum_i q_i k_i$ with unit-variance uncorrelated entries has mean
-0 and variance $d_k$ (variances of uncorrelated terms add). At $d_k=64$,
-std 8: softmax saturates to near one-hot, its Jacobian
-$\operatorname{diag}(w) - ww^\top \to 0$, gradients vanish at init. Dividing
-by $\sqrt{d_k}$ restores unit variance for any $d_k$.
+With $d_k = 64$ and query and key entries independent with mean 0 and
+variance 1, $q^\top k$ is a sum of 64 terms each of variance 1, so its
+variance is 64 and its standard deviation 8. Scores spread over roughly
+$\pm 16$ make the softmax nearly one-hot: one weight near 1, the rest near 0.
+The softmax Jacobian $\operatorname{diag}(w) - ww^\top$ goes to zero as $w$
+approaches one-hot, so gradients through the attention weights vanish at
+initialization. Dividing by $\sqrt{64} = 8$ brings the standard deviation
+back to 1, and dividing by $\sqrt{d_k}$ does this for any $d_k$. The §3.2
+notebook measures it: at $d_k = 64$, $T = 16$, mean attention entropy is
+about 0.46 nats unscaled versus 2.37 nats scaled, out of a maximum
+$\ln 16 \approx 2.77$.
+
+**If asked:** *Why $\sqrt{d_k}$ and not $d_k$?* Dividing a variable by $c$ divides its variance by $c^2$, so $\sqrt{d_k}$ gives variance exactly 1; dividing by $d_k$ would give variance $1/d_k$ and nearly uniform attention.
 
 **Q8. Why does attention need positional encodings when RNNs and CNNs don't?**
-Attention computes only content-based pairwise dot products - it is
-permutation equivariant, so "dog bites man" ≡ "man bites dog" without
-position info. RNNs get order from sequential processing, CNNs from kernel
-layout. Fix: add learned/sinusoidal absolute embeddings to the inputs, or
-encode relative position in the scores (RoPE, relative bias).
+Compare "dog bites man" with "man bites dog" in a self-attention layer with
+no position information. The token "dog" computes the same three dot
+products against the same three keys in both sentences, so it gets the same
+weights and the same output vector; the layer outputs the same set of
+vectors in a different order. In general, permuting the input rows permutes
+the output rows the same way (permutation equivariance), because the scores
+depend only on content. An RNN reads tokens one after another, so order
+enters through the recurrence; a CNN kernel has a separate weight for each
+relative offset, so order enters through the kernel layout. Transformers add
+position explicitly: learned or sinusoidal vectors added to the inputs, or
+relative schemes inside the score such as RoPE.
+
+**If asked:** *Does a causal mask already supply position?* Partly: position $t$ averages over exactly $t$ tokens, which carries some position information, and some decoder-only models train without positional encodings, but explicit encodings remain standard.
 
 **Q9. What do multiple heads buy over one big head?**
-$h$ independent attention *distributions* per token, each measuring
-similarity in its own learned subspace ($d/h$ dims) - one head can track
-previous-token position while another tracks coreference. Compute matches a
-single full-width head (dimensions are split, not multiplied); a single head
-gives only one convex combination per position.
+With $d_{\text{model}} = 512$ and $h = 8$ heads, each head projects to
+$d_{\text{head}} = 64$ dimensions, so the $Q, K, V$ projections are still
+$512\times512$ in total and the compute matches one 512-wide head. What
+changes is the number of attention distributions: one head gives each token
+one set of weights, one weighted average of values, while 8 heads give 8
+independent sets, each computed from dot products in its own learned
+64-dimensional subspace. One head can put its weight on the previous token
+while another puts its weight on a pronoun's referent; a single head would
+have to combine both into one average. The 8 head outputs are concatenated
+and mixed by the output projection $W_O$.
+
+**If asked:** *Why not use many tiny heads?* Each head's $T\times T$ score matrix has rank at most $d_{\text{head}}$, so very small heads cannot express many attention patterns; 64 or 128 dimensions per head is typical.
 
 **Q10. Explain the KV-cache. Why doesn't it help training?**
-By causality, generating token $t$ leaves the keys/values of tokens $<t$
-unchanged, so cache them per layer; each new token computes only its own
-$q,k,v$ and attends one query against $t$ cached keys: $O(td)$ per layer per
-token (linear) instead of re-running the $O(t^2 d)$ prefix. Training already
-computes all positions in one parallel masked pass - every K/V is used
-immediately and exactly once per step, and weights change every step, so
-there's nothing valid to reuse.
+At step 1001 of generation, the keys and values of the first 1000 tokens
+are the same as at step 1000, because under the causal mask earlier tokens
+never attend to later ones. So each layer stores them, and the new token
+computes only its own $q, k, v$, appends $k, v$ to the cache, and attends
+one query against 1001 keys: $O(td)$ attention work per layer at context
+length $t$, instead of $O(t^2 d)$ for rerunning the whole prefix. The price
+is memory, $2\cdot n_{\text{layers}}\cdot T\cdot d$ values per sequence: for
+32 layers, $d = 4096$, $T = 4096$ in fp16 that is
+$2\cdot 32\cdot 4096\cdot 4096\cdot 2$ bytes = 2 GiB. Training gains nothing:
+one masked forward pass already computes every position's $K$ and $V$ once
+and uses them immediately, and the weights change before the next step, so
+there is nothing to reuse.
+
+**If asked:** *Total cost of generating $n$ tokens?* $O(n^2 d)$ with the cache versus $O(n^3 d)$ without, since step $t$ costs $O(td)$ instead of $O(t^2 d)$.
 
 **Q11. What is the complexity of self-attention, and what dominates when?**
-Scores + weighted sum: $O(T^2 d)$ compute, $O(T^2)$ attention-matrix memory
-per head (FlashAttention removes the memory term, not the FLOPs); the MLP
-adds $O(T d^2)$. Quadratic term dominates once $T \gtrsim d$ - hence the
-cottage industry of long-context approximations.
+Take $d = 4096$. Per token per layer, the weight matmuls cost one
+multiply-add per weight: $4d^2$ for the Q, K, V, O projections plus $8d^2$
+for the MLP, $12d^2 \approx 201$M. Attention costs $2Td$: $Td$ for the dot
+products with $T$ keys and $Td$ for the weighted sum of $T$ values. The two
+are equal at $2Td = 12d^2$, that is $T = 6d \approx 24{,}600$ tokens, and
+beyond that the attention term dominates. Summed over the $T$ tokens,
+attention is $O(T^2 d)$ compute and stores a $T\times T$ score matrix per
+head, $O(T^2)$ memory, while the matmuls are $O(Td^2)$; in big-O terms the
+quadratic term takes over once $T$ exceeds $d$ by a constant factor.
+FlashAttention removes the $O(T^2)$ memory by never storing the score
+matrix, but the FLOPs stay $O(T^2 d)$.
 
-**Q12. Pre-LN vs post-LN - why does it matter?**
-Post-LN puts LayerNorm on the residual path: every gradient to the bottom
-passes through dozens of rescalings, no identity path survives, deep stacks
-need lr warmup and still can be unstable. Pre-LN
-($x + f(\operatorname{LN}(x))$) keeps the residual stream addition-only, so
-$I$ appears in every layer's Jacobian - stable at depth. Interviewers use
-this to check you reason about gradient paths.
+**If asked:** *Does the causal mask change this?* Only the lower triangle of the score matrix is needed, so kernels that skip masked blocks halve the attention FLOPs and move the crossover to about $T = 12d$.
+
+**Q12. Pre-LN vs post-LN: why does it matter?**
+In a 24-layer post-LN transformer, $x \leftarrow \operatorname{LN}(x + f(x))$
+puts a LayerNorm on the residual path after every sublayer, so the gradient
+from the loss to the embeddings passes through 48 LayerNorm Jacobians and
+the residual path has no identity term left. Empirically, gradients near the
+input are small at initialization and deep post-LN stacks diverge without a
+careful learning-rate warmup. Pre-LN, $x \leftarrow x + f(\operatorname{LN}(x))$,
+changes the residual path only by addition, so each sublayer's Jacobian is
+$I + \partial f(\operatorname{LN}(x))/\partial x$, the same identity path as
+ResNet. Deep pre-LN stacks train much more stably, though learning-rate
+warmup is still standard. The cost is that the residual stream's magnitude
+grows with depth, so pre-LN models apply one final LayerNorm before the
+output layer.
+
+**If asked:** *Is post-LN ever preferred?* When it trains, post-LN can reach slightly better final quality, which is why variants such as DeepNorm rescale the residual branch to make post-LN stable at depth.
 
 **Q13. What is perplexity and what does a value of, say, 20 mean?**
-$\operatorname{PPL} = e^{H}$ with $H$ the mean per-token cross-entropy in
-nats (i.e. exponentiated validation loss). PPL 20 ⇒ on average the model is
-as uncertain as a uniform choice among 20 tokens (effective branching
-factor). Only comparable under the same tokenizer; use bits-per-byte across
-tokenizers.
+A validation loss of 3.0 nats per token gives perplexity
+$e^{3.0} \approx 20$. The same number comes from a model that assigns
+probability $1/20$ to every correct token: $H = \ln 20 \approx 3.0$, so
+$\operatorname{PPL} = 20$. In general $\operatorname{PPL} = e^H$, with $H$
+the mean per-token cross-entropy in nats (the training loss), so a
+perplexity of 20 means the geometric-mean probability given to the correct
+token is $1/20$: as uncertain as a uniform choice among 20 tokens. The
+bounds are 1 for perfect prediction and $V$ for a uniform guess over a
+vocabulary of size $V$. Perplexities are comparable only under the same
+tokenizer, since a tokenizer with longer tokens makes fewer, harder
+predictions per text; across tokenizers, compare bits per byte.
+
+**If asked:** *And if the loss is measured in bits?* Then $\operatorname{PPL} = 2^H$.
 
 **Q14. How do temperature, top-k, and top-p differ?**
-Temperature rescales logits before softmax ($p_i \propto e^{z_i/\tau}$),
-exponentiating odds ratios by $1/\tau$: it reshapes the whole distribution.
-Top-k truncates to the $k$ most likely then renormalizes (fixed-size
-nucleus); top-p truncates to the smallest set with cumulative mass $\ge p$
-(adaptive size: narrow when the model is confident, wide when not). They
-compose: typically temperature then top-p.
+Take logits $(2, 1, 0)$. Softmax gives $(0.665, 0.245, 0.090)$; temperature
+$\tau = 0.5$ divides the logits by $\tau$ and gives $(0.867, 0.117, 0.016)$,
+while $\tau > 1$ flattens toward uniform. Temperature changes every
+probability: each odds ratio $p_i/p_j$ is raised to the power $1/\tau$.
+Top-k keeps the $k$ most likely tokens and renormalizes: $k = 2$ gives
+$(0.731, 0.269, 0)$. Top-p keeps the smallest set whose cumulative
+probability reaches $p$: for $p = 0.9$ that is the same two tokens here
+($0.665 + 0.245 = 0.910$), but for $(0.95, 0.03, 0.02)$ it keeps one token
+and for a flat distribution it keeps many, which a fixed $k$ cannot do. In
+practice they compose: apply temperature, truncate with top-p, then sample.
 
-**Q15. What is BPE and why not just use characters or words?**
-Iteratively merge the most frequent adjacent token pair, starting from bytes,
-until the vocab budget is hit; tokenizing applies merges in learned order.
-Characters ⇒ very long sequences (quadratic attention pain) and every word
-must be re-composed; word-level ⇒ huge vocab, OOV failures, no morphology
-sharing. BPE interpolates: common words are single tokens, rare words split
-into meaningful subwords, and byte fallback means nothing is ever OOV.
+**If asked:** *What does $\tau \to 0$ give?* Greedy decoding: the argmax token every time.
+
+**Q15. What is BPE and why not use characters or words?**
+Start from bytes. If "t" followed by "h" is the most frequent adjacent pair
+in the training corpus, merge it into a new token "th" and record the rule;
+if "th" followed by "e" is next, "the" becomes one token; repeat until the
+vocabulary reaches its target size, for example 50k. To tokenize new text,
+apply the recorded merges in the order they were learned. Characters alone
+make English sequences about 4 times longer (attention cost grows as $T^2$)
+and force the model to build every word from letters; whole words need a
+huge vocabulary, fail on unseen words, and treat "run" and "running" as
+unrelated. BPE sits between: frequent words become single tokens, a rare
+word splits into a few subword pieces, and because every byte is in the base
+vocabulary, no input is ever out of vocabulary.
+
+**If asked:** *Why do LLMs struggle to count letters?* The model receives token IDs, not characters, so a word like "strawberry" may arrive as two or three tokens whose spelling is never directly visible.
 
 **Q16. Explain LoRA and why it's so cheap.**
-Freeze pretrained $W$; learn $\Delta W = \frac{\alpha}{r}BA$ with
-$B \in \mathbb{R}^{d\times r}, A \in \mathbb{R}^{r\times k}$, $r \ll d$  - 
-$r(d+k)$ params instead of $dk$ (~250× fewer at $d{=}k{=}4096, r{=}8$).
-Works because the adaptation delta is empirically low-rank even when $W$
-isn't. $B{=}0$ init starts at the pretrained model; merging $W + BA$ after
-training adds zero inference latency; optimizer memory shrinks with the
-trainable-param count.
+For one $4096\times4096$ weight matrix, a full fine-tuning update has
+16.8M parameters. LoRA freezes $W$ and learns
+$\Delta W = \frac{\alpha}{r}BA$ with $B \in \mathbb{R}^{4096\times r}$ and
+$A \in \mathbb{R}^{r\times 4096}$; at $r = 8$ that is
+$8\cdot(4096 + 4096) = 65{,}536$ parameters, 256 times fewer. In general it
+is $r(d + k)$ instead of $dk$. It works because the update needed to adapt a
+pretrained model is empirically close to low rank, even though $W$ itself is
+full rank. $B$ starts at zero, so training begins exactly at the pretrained
+model; after training, $W + \frac{\alpha}{r}BA$ is merged into one matrix,
+so inference has no extra latency; and gradients plus Adam's two extra
+values per trainable parameter now cover 65K parameters instead of 16.8M.
+
+**If asked:** *What does $\alpha/r$ do?* It keeps the update's scale roughly fixed when $r$ changes, so the learning rate need not be retuned for each rank.
 
 **Q17. Sketch RLHF.**
-(1) SFT on human demonstrations; (2) train a reward model on human pairwise
-preferences with the Bradley–Terry loss
-$-\log\sigma(r(x,y_w) - r(x,y_l))$; (3) RL (e.g. PPO) maximizing learned
-reward minus $\beta\,\mathrm{KL}(\pi\|\pi_{\text{SFT}})$ - the KL stops the
-policy from hacking the imperfect reward. DPO folds (2)+(3) into one
-supervised loss on preference pairs.
+Start from a pretrained LM and a labeler who, for one prompt, prefers
+response $y_w$ over $y_l$. (1) Supervised fine-tuning (SFT) on human-written
+demonstrations teaches the response format. (2) A reward model $r(x, y)$ is
+trained on such comparisons with the Bradley–Terry loss
+$-\log\sigma(r(x,y_w) - r(x,y_l))$: if it scores $y_w$ at 2.0 and $y_l$ at
+0.5, it gives probability $\sigma(1.5) \approx 0.82$ to the labeler's
+choice and the loss is 0.20. (3) RL, classically PPO, trains the policy to
+maximize learned reward minus $\beta\,\mathrm{KL}(\pi\,\|\,\pi_{\text{SFT}})$;
+the KL penalty keeps the policy close to the SFT model, so it cannot drift to
+text that the imperfect reward model scores highly but humans would not
+(reward hacking). DPO replaces stages 2 and 3 with one supervised loss on
+the preference pairs, using the closed-form optimum of the KL-regularized
+objective so that the policy itself serves as the reward model.
+
+**If asked:** *Why comparisons rather than absolute scores?* Labelers agree more often on which of two responses is better than on a numeric score, and comparing is faster than writing an ideal answer.
 
 **Q18. Why LayerNorm in transformers rather than BatchNorm?**
-LN normalizes across the feature dimension per token: no dependence on batch
-statistics, so it handles variable sequence lengths, tiny/streaming batches,
-and behaves identically in training and inference. BN's cross-example
-statistics are noisy and ill-defined over padded, variable-length token
-batches.
+Take a batch of 4 sequences of lengths 10, 50, 300 and 512, padded to 512.
+BatchNorm normalizes each feature with statistics across the batch, so at
+position 400 only one of the four entries is a real token, and at inference
+with batch size 1 it must use running averages from training, which may not
+match. LayerNorm normalizes each token's $d$ features with that token's own
+mean and standard deviation,
+$\operatorname{LN}(x) = \gamma \odot (x - \mu)/\sigma + \beta$, so it does
+not depend on batch size, sequence length or padding, and it computes the
+same function in training and inference. That also makes it suitable for
+autoregressive decoding, where one token is processed at a time.
+
+**If asked:** *What is RMSNorm?* LayerNorm without the mean subtraction: divide by the root-mean-square of the features and scale by $\gamma$; slightly cheaper, and used in Llama-style models.
 
 **Q19. Why is generation with a transformer still slow if training is so parallel?**
-Training parallelizes across the $T$ positions of known text (teacher
-forcing under a causal mask). Generation is inherently sequential - token
-$t{+}1$'s input includes sampled token $t$ - so it's $n$ dependent forward
-passes; the KV-cache makes each pass $O(td)$ per layer but can't remove the
-sequential dependency. Each step is also memory-bandwidth-bound (stream all
-weights to produce one token), hence batching/speculative decoding.
+A training step on a 500-token document is one forward pass: the tokens are
+known, so the causal mask lets all 500 positions be predicted in parallel
+(teacher forcing). Generating 500 tokens takes 500 sequential forward
+passes, because the input to step $t+1$ includes the token sampled at step
+$t$. The KV-cache reduces each pass to $O(td)$ attention work per layer but
+cannot remove that dependency. Each pass is also memory-bandwidth-bound:
+producing one token at batch size 1 reads every weight once, so a 7B model
+in fp16 (14 GB) on a GPU with about 2 TB/s of memory bandwidth needs at
+least 7 ms per token, about 140 tokens per second, regardless of available
+FLOPs. Batching many requests reuses each weight read across sequences, and
+speculative decoding has a small model propose several tokens that the large
+model checks in one pass.
+
+**If asked:** *Why does batching raise throughput but not per-sequence speed?* Each weight read serves every sequence in the batch, but each sequence still needs one sequential pass per token.
 
 **Q20. A conv net trains fine but test images shifted by a few pixels break it. Isn't it translation invariant?**
-Conv layers are translation *equivariant* (output shifts with input), not
-invariant; invariance only accumulates from pooling/downsampling, and
-striding/padding/boundary effects break exact equivariance (aliasing). Global
-average pooling at the end and shift augmentation are the practical fixes  - 
-and this distinction (equivariance vs invariance) is precisely what the
-question is probing.
+Shift an image 2 pixels to the right and a stride-1 conv layer's feature map
+shifts 2 pixels to the right, away from the borders: the layer is
+translation *equivariant* (the output moves with the input), not *invariant*
+(the output stays the same). Invariance has to come from later operations,
+pooling and the final reduction; if the network flattens the feature map
+into a fully connected layer, the shifted features are multiplied by
+different weights and the prediction can change. Strided convs and pooling also break exact
+equivariance: after a stride-2 layer, a 1-pixel input shift corresponds to
+half a pixel on the output grid, which the grid cannot represent, so the
+features change (aliasing); zero padding adds boundary effects. The
+practical fixes are global average pooling at the end, which removes
+position from the final features, and training with shift augmentation.
+
+**If asked:** *Is max-pooling invariant?* Only within its window: a $2\times2$ max-pool gives the same output if the maximum moves inside the same window, but not if it crosses into the next one.
 
 **Q21. Why has RoPE replaced learned absolute positional embeddings?**
-Learned absolute: a lookup table added to the input - position is content
-by the time attention sees it, every offset pattern must be learned per
-position, and nothing exists past $T_{\max}$. RoPE rotates $q$ and $k$ by
-position-proportional angles so
-$q_m^\top k_n = q^\top R((n-m)\theta)k$ - the score's positional
-dependence is *exactly* the gap $n - m$, by rotation algebra
-($R(a)^\top R(b) = R(b-a)$), not by learning. Relative structure is shared
-across all positions, and any position is defined. It still degrades past
-the training length on its own; context extension rescales the rotation
-frequencies (position interpolation, NTK scaling, YaRN).
+Take one rotation frequency $\theta = 30°$ and $q = k = (1, 0)$. Rotating
+the query at position 1 by 30° and the key at position 3 by 90° gives score
+$\cos 60° = 0.5$; at positions 5 and 7 the rotations are 150° and 210°, and
+the score is again $\cos 60° = 0.5$. In general, with $R(\alpha)$ the 2D
+rotation by $\alpha$:
+
+$$
+q_m^\top k_n = q^\top R(m\theta)^\top R(n\theta)\,k = q^\top R\big((n-m)\theta\big)\,k
+$$
+
+so position enters the score only through the gap $n - m$, by rotation
+algebra rather than by learning; real models rotate each pair of dimensions
+at its own frequency $\theta_i = 10000^{-2i/d}$. A learned absolute table
+adds a vector $P[t]$ to the input instead, so a pattern such as "the token
+two back" must be learned separately at every position, and the table has
+no rows beyond the training length $T_{\max}$. RoPE scores are defined at
+any position, but quality still degrades beyond the training length unless
+the frequencies are rescaled (position interpolation, NTK scaling, YaRN).
+
+**If asked:** *Does RoPE make attention depend only on distance?* No: the score depends on the content $q, k$ and on the gap; only its positional part reduces to the gap.
 
 **Q22. Why grouped-query attention?**
-KV-cache size (and per-token cache bandwidth) scales with the number of
-KV heads: $2\,n_{\text{layers}} T\, n_{\text{kv}} d_{\text{head}}$ values.
-GQA shares one K,V among each group of query heads: $h/g$ times less cache
-(32 heads, $g{=}8$: 4×), so bigger serving batches and faster
-bandwidth-bound decoding. Quality survives because the $h$ query subspaces - hence $h$ attention distributions per token - are kept; only K/V
-diversity is reduced. MQA ($g{=}1$) is the extreme and costs a little
-quality; GQA is the modern default.
+A model with 32 layers and 32 heads of dimension 128, at $T = 8192$ in fp16,
+stores $2\cdot 32\cdot 8192\cdot 32\cdot 128\cdot 2$ bytes = 4 GiB of
+KV-cache per sequence with standard multi-head attention, because every
+query head has its own $K$ and $V$. Grouped-query attention splits the 32
+query heads into $g = 8$ groups that each share one $K, V$ pair, so the
+cache drops to 1 GiB; in general it shrinks by a factor $h/g$. At batch 16
+that is 64 GiB versus 16 GiB, the difference between not fitting next to
+14 GB of weights on an 80 GB GPU and fitting easily, and each decoding step
+reads 4 times less cache from memory, which matters because decoding is
+bandwidth-bound. Quality is largely preserved because all 32 query heads
+remain, so each token still gets 32 separate attention distributions; only
+the variety of keys and values is reduced. Multi-query attention ($g = 1$)
+is the extreme, 32 times smaller, with a small quality loss; GQA is the
+default in most current LLMs.
 
-**Q23. An "8×7B" MoE - how many parameters run per token, and why bother?**
-Per token, per MoE layer, the router picks top-$k$ (say 2) of 8 expert
-MLPs: you own 8 experts' parameters but spend ~2 experts' FLOPs
-(Mixtral: ~47B total - not 56B, attention is shared - ~13B active). Point:
-loss scales with parameters, cost scales with FLOPs; MoE is conditional
-computation that buys parameters without buying per-token compute. Prices:
-all params in memory, all-to-all routing communication, and a
-load-balancing aux loss ($\alpha E\sum_i f_i \bar p_i$) to stop
-rich-get-richer router collapse.
+**If asked:** *Can an existing MHA model be converted to GQA?* Yes: mean-pool the K and V projection weights within each group, then continue training for a small fraction of the original compute (uptraining).
+
+**Q23. An "8×7B" MoE: how many parameters run per token, and why bother?**
+In Mixtral "8×7B", each layer's MLP is replaced by 8 expert MLPs and a
+router that sends each token to its top 2. Total parameters are about 47B,
+not $8\times7 = 56$B, because attention and embeddings are shared and only
+the MLPs are replicated; about 13B are active per token. The reason to do
+this: loss improves with parameter count, while cost per token tracks the
+active FLOPs. With $d = 4096$ and 8 experts of $8d^2 \approx 134$M
+parameters each, one MoE layer holds 8 times the MLP parameters for 2 times
+the MLP compute. The costs: all experts' weights must sit in memory, expert
+parallelism needs an all-to-all exchange of tokens between devices at every
+MoE layer, and routing tends to collapse onto a few experts, so training
+adds a load-balancing loss $\alpha E\sum_i f_i\bar p_i$, with $f_i$ the
+fraction of tokens sent to expert $i$ and $\bar p_i$ its mean router
+probability.
+
+**If asked:** *Is decoding then as cheap as a dense 13B model?* No: decoding is bandwidth-bound, and a batch of tokens routes to most of the experts, so most of the 47B weights are read at every step.
 
 **Q24. VAE vs GAN vs diffusion, one line each.**
-VAE: maximize a likelihood lower bound (ELBO) through a stochastic latent
-bottleneck - stable, fast sampling, blurry (reconstruction averaging).
-GAN: generator vs discriminator minimax, implicitly minimizing JS
-divergence - fast, sharp, unstable, mode-collapses. Diffusion: fixed
-Gaussian noising chain, learn the reverse as noise-prediction regression  - 
-stable *and* sharp *and* mode-covering, but sampling needs many passes.
-(Autoregressive: exact likelihood, sequential sampling, owns text.)
+To generate one image, a VAE decoder or a GAN generator runs one forward
+pass, while a DDPM diffusion model runs its denoiser up to 1000 times (tens
+with DDIM-style samplers). VAE: maximize the ELBO, a lower bound on the
+log-likelihood, through a Gaussian latent; stable and fast to sample, but
+blurry, because a Gaussian likelihood is a squared-error reconstruction that
+averages over details the latent does not determine. GAN: a generator and a
+discriminator play a minimax game, and against the optimal discriminator the
+generator minimizes the Jensen–Shannon divergence; fast and sharp, but
+unstable to train and prone to mode collapse. Diffusion: a fixed process
+adds Gaussian noise over $T$ steps, and a network learns to reverse it by
+predicting the added noise with an MSE loss; stable, sharp and covering all
+modes, but slow to sample. For comparison, autoregressive models have exact
+likelihood and sequential sampling, and dominate text.
+
+**If asked:** *How much signal is left at the end of the forward process?* With the linear schedule ($\beta_t$ from $10^{-4}$ to 0.02 over 1000 steps), $\sqrt{\bar\alpha_T} \approx 0.006$, so under 1% of the signal remains.
 
 **Q25. Why does contrastive learning need large batches (or memory banks)?**
-InfoNCE is an $N$-way cross-entropy: classify the positive among $N{-}1$
-negatives, usually the rest of the batch. Small $N$ = a coarse, easy
-discrimination task with weak gradients; large $N$ = more (and more
-likely *hard*) negatives, a finer-grained task, and a tighter mutual-
-information bound - hard negatives carry most of the gradient because the
-push on each negative scales with its softmax probability. Hence SimCLR's
-4096 batches, or MoCo's momentum-encoder queue to fake large $N$ cheaply.
+InfoNCE is an $N$-way softmax cross-entropy: identify the positive among 1
+positive and $N - 1$ negatives, usually the rest of the batch. With $N = 2$,
+the one negative is usually easy to separate, so the loss soon approaches
+zero and gives little gradient. With $N = 4096$, the batch is likely to
+contain negatives that resemble the anchor (hard negatives), and these
+dominate the gradient, because each negative is pushed away in proportion to
+its softmax probability. The loss also bounds mutual information by
+$I \ge \ln N - L$, so the bound can reach at most $\ln 2 \approx 0.69$ nats
+at $N = 2$ versus $\ln 4096 \approx 8.3$ nats at $N = 4096$. Hence SimCLR's
+batches of up to 4096, and MoCo's queue of past embeddings from a slowly
+updated (momentum) encoder, which supplies many negatives without a large
+batch.
 
-**Q26. BERT or GPT - which do you use when?**
-BERT: masked-LM encoder, bidirectional attention - each token's vector
-sees the whole input, best for representing *given* text (classification,
-NER, retrieval/embeddings), but it defines no sampleable joint, so it
-can't generate. GPT: causal-LM decoder - models
-$\prod_t p(x_t\mid x_{<t})$, so generation is native and every position is
-a training target. Rule: representation of complete text → encoder;
-producing text → decoder; at frontier scale decoder-only does both via
-prompting, but small encoders still win latency/cost for classification
+**If asked:** *What goes wrong with a very small temperature?* The push concentrates on the hardest negatives, some of which are false negatives (genuinely similar images), so the model is trained to separate examples that should be close.
+
+**Q26. BERT or GPT: which do you use when?**
+In "I sat by the bank of the river", BERT computes the vector for "bank"
+from both sides, including "river" on its right, while GPT computes the
+vector at "bank" from "I sat by the" only.
+BERT is a bidirectional encoder trained by masked language modeling: mask
+about 15% of tokens and predict them from both sides, so each position's
+vector summarizes the whole input, which suits classification, tagging and
+retrieval embeddings. It models $p(\text{masked}\mid\text{rest})$, not
+$\prod_t p(x_t\mid x_{<t})$, so it has no direct way to sample text. GPT is
+a causal decoder trained to predict each next token, so generation is
+native and every position is a training target, versus 15% for BERT. Rule:
+to represent a complete given text, use an encoder; to produce text, use a
+decoder. At frontier scale decoder-only models do both through prompting,
+but small fine-tuned encoders remain cheaper and faster for classification
 and search.
+
+**If asked:** *What is a sentence-embedding model?* An encoder whose token vectors are pooled into one vector and fine-tuned with InfoNCE so that cosine similarity tracks meaning; retrieval systems search over these vectors.
 
 ## Exit checklist
 

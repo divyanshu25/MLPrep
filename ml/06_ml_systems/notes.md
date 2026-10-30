@@ -803,132 +803,276 @@ the result against something real ("~100 machines for feed ranking at $10^8$ DAU
 
 **Q1. Your model's offline AUC improved but the online A/B shows no gain. Name
 three reasons.**
-A: (1) Offline eval is on logged data biased by the old policy - the gain is in
-re-ranking already-shown items, which doesn't transfer once the model changes
-what's shown. (2) Training/serving skew - the serving features differ from
-training features, so the offline model isn't the online model. (3) AUC measures
-global ranking, but the product only exposes the top-k slots - the improvement
-lives in a region users never see. (Bonus: underpowered A/B test.)
+A: Say AUC rises from 0.80 to 0.82 on last month's logs and the A/B test is
+flat. (1) The logs contain only items the old model chose to show, so the
+offline gain measures a better ordering of those items; once the new model
+changes what is shown, that comparison no longer applies (selection bias, C3).
+(2) Training/serving skew: the features computed at serving differ from the
+training features, so the model in the A/B test is not the model that was
+evaluated offline. (3) AUC is the probability that a random positive scores
+above a random negative, over all pairs, while users see only the top 30
+slots; the gain can sit in ranks 200 to 1000, which nobody views. A fourth
+reason is an underpowered test: detecting a 0.5% lift can take weeks of
+traffic (D4).
+
+**If asked:** *How do you check for skew?* Log the feature values served at
+prediction time and diff them against the training pipeline's values for the
+same users and timestamps; any mismatch is skew.
 
 **Q2. Why do recommendation systems use two stages instead of one great model?**
-A: Arithmetic. An expressive model at even 1µs/item over $10^9$ items is $10^3$s
-per request. So a cheap stage (dot-product retrieval via ANN, ~10ms over $10^9$)
-cuts the corpus to $10^3$, and the expressive model runs only there. Each stage
-trades expressiveness for throughput.
+A: Take $10^9$ items and an expressive model at 1 µs per item: one request
+costs $10^9 \times 10^{-6}\,\text{s} = 10^3$ s of compute, and at 100K requests
+per second that is $10^8$ CPU-seconds every second. So the first stage restricts
+the score to a dot product $f(u) \cdot g(i)$, which an approximate nearest
+neighbor (ANN) index answers in about 10 ms over $10^9$ precomputed item
+vectors, and keeps about $10^3$ candidates. The expressive model then scores
+only those, $10^3 \times 1\,\mu\text{s} = 1$ ms. The general rule: each stage
+trades expressiveness for throughput, and the expensive stage sees one
+millionth of the corpus.
+
+**If asked:** *Why several candidate sources?* Each misses different items
+(embedding retrieval misses new items with no interactions), so systems union
+two-tower ANN, recently popular, and followed-creator sources.
 
 **Q3. What structural constraint defines a two-tower model, and what does it buy
 and cost?**
-A: The score must be $f(u) \cdot g(i)$ - user and item features never interact
-before the final dot product. Buys: item embeddings precomputable and servable by
-an ANN index → sublinear retrieval over the full corpus. Costs: no cross features
-(e.g., user's history with this specific creator), so accuracy is ceilinged  - 
-which is fine, because the ranking stage handles that.
+A: The user tower outputs a vector $f(u)$, the item tower outputs $g(i)$, say
+64 numbers each, and the score is $f(u) \cdot g(i)$: user and item features
+never interact before that final dot product. Buys: $g(i)$ does not depend on
+the user, so all $10^9$ item vectors are computed offline and loaded into an
+ANN index, and a request costs one user-tower forward pass (a few ms) plus one
+ANN query (under 10 ms). Costs: a cross feature such as "this user's click rate
+on this creator" depends on both sides, so neither tower can compute it, and
+accuracy is capped. The ranking stage adds those cross features back on the
+$10^3$ retrieved candidates.
+
+**If asked:** *How is it trained?* Softmax over (user, engaged item) pairs with
+the other items in the batch as negatives, plus a $\log q(i)$ correction to the
+logits, where $q(i)$ is how often item $i$ appears in batches, because popular
+items appear as negatives too often.
 
 **Q4. Data drift vs concept drift?**
-A: Data drift: $P(x)$ changes, $P(y|x)$ fixed - inputs move (new market
-launches); retrain on recent data. Concept drift: $P(y|x)$ changes - same input,
-new meaning (fraud tactics shift); retraining helps only after labels reflecting
-the new concept arrive, so you also need fast label proxies and rule layers.
+A: Write $P(x, y) = P(y \mid x)\,P(x)$. A fraud model launches in Brazil and
+20% of transactions are now in a new currency at new hours: $P(x)$ moved, but
+the same features still imply the same fraud probability. That is data drift;
+input monitoring shows it immediately, and retraining on recent data fixes it.
+Concept drift is $P(y \mid x)$ changing: fraudsters change tactics, so a
+feature pattern that meant "legit" last month now means "fraud". Inputs can
+look unchanged, and retraining helps only after labels for the new pattern
+arrive (chargebacks take 30 to 90 days), so fraud systems also use fast proxy
+labels and a rules layer.
+
+**If asked:** *How do you detect each?* Data drift: per-feature PSI against the
+training distribution, no labels needed. Concept drift: calibration
+$\sum \hat{p} / \sum y$ moving away from 1 on the freshest labeled cohort.
 
 **Q5. What is training/serving skew and its most common cause?**
-A: Systematic difference between features at training vs serving time. Most
-common cause: the feature is implemented twice - a batch pipeline for training
-and a service for serving - and the implementations diverge (time semantics,
-nulls, casing, freshness). Fix: single feature definition materialized to both
-offline and online stores (a feature store), plus logging served features and
-diffing against training-pipeline recomputation.
+A: The spec says "user's 7-day click count". The training job in Spark counts
+by event time and stores missing users as 0; the serving service in Java counts
+by processing time and stores missing users as null. That is training/serving
+skew: a systematic difference between the features the model saw in training
+and the features it receives at serving. The most common cause is this one,
+the feature implemented twice in two systems that diverge. The fix is to define
+each feature once and have one system compute it both for training sets and for
+the online store (a feature store, C1), and to log served values and diff them
+against the training pipeline.
+
+**If asked:** *Other causes?* Freshness mismatch (a 2am aggregation job leaves
+the feature 21 hours stale at 11pm) and normalization statistics or
+vocabularies that were not exported with the model.
 
 **Q6. What is point-in-time correctness?**
-A: Every training feature must be computed only from data timestamped strictly
-before that example's prediction time. Violating it (e.g., a full-day aggregate
-for a 2pm prediction) leaks the label into features: offline metrics inflate,
-online performance craters. Enforced by as-of joins over feature *history*.
+A: Predict fraud for a 2:00pm transaction using "card's transaction count
+today" computed over the full day. Fraudulent cards get bursts of transactions
+after the fraud starts, so the 2pm to midnight part of that count encodes the
+label: offline AUC jumps, and online, where the count covers only the hours
+before 2pm, the feature carries much less signal. The rule: every training
+feature uses only data timestamped strictly before the example's prediction
+time $t$. It is enforced with an as-of join, which takes each feature's latest
+value with timestamp $< t$; that requires storing feature history, not only
+current values.
+
+**If asked:** *Why use $< t - \delta$ instead?* Serving receives features with
+a pipeline delay $\delta$ (for example a counter updated every 5 minutes), so
+training should see only what serving would have had.
 
 **Q7. Why is accuracy the wrong metric for fraud, and what's right?**
-A: At 0.2% fraud rate, always-predict-legit is 99.8% accurate. Use
-precision/recall at the operating threshold, PR-AUC (ROC-AUC is flattered by the
-enormous true-negative pool), money-weighted recall (fraud caught in dollars),
-and calibration - because the block/step-up/approve decision is an
-expected-value computation needing honest probabilities.
+A: At a 0.2% fraud rate, predicting "legit" for every transaction is 99.8%
+accurate and catches no fraud. Use precision and recall at the operating
+threshold, and PR-AUC rather than ROC-AUC: per 100,000 transactions there are
+200 frauds and 99,800 legit ones, so a 1% false positive rate, which looks small
+on a ROC curve, is 998 false alarms, about 5 per fraud. Add money-weighted
+recall, since catching a \$10,000 fraud matters more than a \$5 one. Finally
+require calibrated probabilities, because the action is an expected-value
+comparison: block when
+$p \cdot \text{loss}_{\text{fraud}} > (1-p) \cdot \text{cost}_{\text{block}}$.
+
+**If asked:** *Is the output binary?* No: a middle action, step-up
+authentication (SMS code or 3DS challenge), gathers more information at a small
+friction cost for mid-range $p$.
 
 **Q8. How do you handle position bias in click labels?**
-A: Clicks confound relevance with exposure - slot 1 gets clicked partly for
-being slot 1. Options: (a) position as a training feature, frozen to a constant
-at serving; (b) inverse-propensity weighting with propensities from small
-randomization experiments; (c) factor click into examination × relevance. Doing
-nothing means distilling the old ranker into the new one.
+A: Suppose the same item gets a 10% click rate in slot 1 and 4% in slot 5.
+Clicks measure relevance times the chance of being seen, so training on raw
+clicks teaches the new model to reproduce the old ranker's order. Three fixes.
+(a) Use position as a training feature and set it to a constant at serving.
+(b) Inverse propensity weighting: weight each click by
+$1/P(\text{examined at its position})$, estimated from small randomization
+experiments that swap adjacent results; with the numbers above, slot 5 is
+examined 0.4 times as often as slot 1, so a click there gets weight 2.5
+relative to slot 1. (c) Model
+$P(\text{click}) = P(\text{examined}) \cdot P(\text{relevant})$ and rank by
+$P(\text{relevant})$.
 
-**Q9. Shadow vs canary vs A/B - what does each uniquely tell you?**
-A: Shadow (predictions logged, never acted on): latency at real traffic, feature
-availability, prediction-diff vs prod - safety, zero outcome signal. Canary
-(1–5% of real decisions): guardrail harms - errors, complaints, latency - with
-fast rollback. A/B (powered, user-randomized, weeks): the only stage that
-*measures improvement* on the product metric.
+**If asked:** *Why a constant position at serving?* Position is what serving
+decides, so it is unknown; a constant gives every candidate the same position
+term, and the ranking depends only on the other features.
+
+**Q9. Shadow vs canary vs A/B: what does each uniquely tell you?**
+A: Take a new fraud model. In shadow it scores all live traffic and its
+predictions are logged but never acted on: this measures latency at real QPS,
+whether serving-time features exist, and how often it disagrees with the
+production model (40% disagreement needs explaining before launch). It has zero
+user risk and zero outcome signal. In canary it makes 1 to 5% of real decisions
+while guardrails (errors, latency, complaints, revenue) trigger automatic
+rollback; this detects harm, but the slice is too small and short to measure
+improvement. The A/B test, randomized by user and sized by power analysis
+(often weeks), is the only stage that measures whether the product metric
+improves.
+
+**If asked:** *What can shadow miss in a recommender?* Feedback effects: its
+recommendations are never shown, so it cannot reveal how users respond to them.
 
 **Q10. Why does increasing batch size call for increasing learning rate?**
-A: $k\times$ the batch cuts gradient variance by $k$ while leaving its
-expectation unchanged, and gives you $k\times$ fewer updates per epoch. To make
-equivalent progress you take proportionally larger steps: $\eta \to k\eta$
-(linear scaling rule), with warmup because the rule fails early in training and
-at very large $k$ where curvature bounds step size.
+A: Go from batch 256 to 1024, so $k = 4$. The averaged gradient has the same
+expectation, its variance drops by 4, and an epoch now has a quarter as many
+steps. Four small steps of size $\eta$ along nearly the same gradient move the
+weights about as far as one step of size $4\eta$, so to make similar progress per epoch
+set $\eta \to k\eta$ (the linear scaling rule). This assumes the gradient
+changes little over those $k$ steps. It fails early in training, when weights
+are random and curvature is high (hence learning-rate warmup), and at very
+large $k$, where curvature caps the stable step size and past the critical
+batch size extra examples stop reducing time to accuracy.
+
+**If asked:** *Does it hold for Adam?* Adam divides each step by a running RMS
+of the gradient, so the linear rule does not carry over; the common heuristic is
+square-root scaling, $\eta \to \sqrt{k}\,\eta$.
 
 **Q11. When would you choose batch inference over online inference?**
-A: When the input space is enumerable in advance and staleness of hours is
-acceptable: precompute scores for all (user, item-shortlist) pairs nightly and
-serve from a KV store - trivial latency, no serving model. Online inference is
-forced when the input exists only at request time (search query, session
-context, real-time velocity features).
+A: A daily email recommends 10 videos to each of $10^8$ users. Scoring a
+1,000-item shortlist per user overnight is $10^{11}$ scores; at 5,000 GBDT
+scores per second per core that is $2 \times 10^7$ core-seconds, about 700
+cores for an 8-hour window. The top 10 per user go into a key-value store and
+are served with one read of about 1 ms, with no model in the request path. The
+rule: choose batch when the inputs can be enumerated in advance and hours of
+staleness are acceptable. Online inference is required when the input exists
+only at request time: a search query, the current session, real-time velocity
+features for fraud.
+
+**If asked:** *Main cost of batch?* Compute spent on users who do not visit
+that day, and scores that ignore anything the user did since the last run.
 
 **Q12. Why does RAG exist instead of fine-tuning knowledge in, or pasting all
 docs into the prompt?**
-A: Fine-tuning is slow/expensive per update, unreliable for verbatim facts, and
-can't cite. Pasting everything breaks on context limits, linear cost in prompt
-length, and long-context attention degradation. Retrieval gives the model just
-the relevant passage: knowledge updates become index updates, and answers carry
-citations.
+A: A support corpus of 100K docs at 2 KB each is 200 MB, about 50M tokens at 4
+bytes per token. Context windows hold $10^5$ to $10^6$ tokens, so pasting it
+all does not fit, and even within the window cost grows linearly with prompt
+length and models use facts in the middle of long prompts less reliably.
+Fine-tuning takes hours to days per update, does not reliably store specific
+facts verbatim, and cannot cite a source. Retrieval inserts the top 5 chunks of
+200 to 500 tokens, 1,000 to 2,500 tokens per question; a knowledge update
+becomes re-indexing the changed documents, and the answer can cite the chunk it
+used.
+
+**If asked:** *When is fine-tuning the right tool?* For behavior and format
+(tone, output schema, domain style), not for facts that change.
 
 **Q13. How do you evaluate a RAG system?**
-A: Decompose. Retrieval: recall@k against (question, gold passage) pairs - if
-the passage isn't retrieved, nothing downstream can work. Generation:
-faithfulness to retrieved context (human + validated LLM judge) and correctness
-on a golden Q&A set, plus abstention rate on unanswerable questions. Online:
-deflection/escalation rates and user feedback.
+A: Build 200 (question, gold passage) pairs and measure recall@5, the fraction
+of questions whose gold passage is among the top 5 retrieved chunks. If it is
+60%, then 40% of questions reach the model without the passage that answers
+them, so measure retrieval first. Then score generation: faithfulness (every
+claim supported by the retrieved context, judged by humans on a sample and by an
+LLM judge validated against a few hundred human labels), correctness on a
+golden Q&A set, and the abstention rate on questions the corpus cannot answer.
+Online, track deflection rate (tickets avoided), escalation-to-human rate, and
+user ratings.
+
+**If asked:** *Why not one end-to-end score?* A 70% end-to-end score does not
+say whether retrieval or generation failed, so it does not say what to fix.
 
 **Q14. What do you monitor when labels arrive 60 days late?**
-A: The label-free layers: per-feature input distributions (null rates,
-PSI/JS-divergence vs training reference, unseen-category rates) and prediction
-distributions (mean score, histogram, above-threshold rate), sliced by segment  - 
-plus fast proxy labels (user fraud reports, manual-review decisions) as an early
-outcome signal, with true-label metrics computed by maturity cohort as they land.
+A: Take a fraud model whose chargeback labels arrive after 30 to 90 days.
+Monitor inputs per feature against the training reference: null rate (a
+feature jumping to 40% null means a broken upstream join), PSI with an alert
+near 0.2, and the rate of unseen categories. Monitor predictions: mean score,
+score histogram, fraction above the action threshold; if the mean predicted
+fraud probability doubles overnight, either the world or a feature changed.
+Slice both by segment. Add proxy labels that arrive in days (customer fraud
+reports, manual-review decisions), and compute true-label metrics by
+label-maturity cohort as labels arrive.
+
+**If asked:** *Why slice by segment?* A drop in one country and a rise in
+another can cancel in the aggregate.
 
 **Q15. Your input features look stable but online performance is decaying. What
 is it and what do you do?**
-A: Signature of concept drift: $P(x)$ stable, $P(y|x)$ moving - likely
-adversarial adaptation or a world shift. Confirm via calibration decay on the
-freshest labels/proxies. Respond with faster-horizon labels, more frequent
-retraining on recent windows, and (in adversarial domains) rules for the new
-pattern while the labels catch up.
+A: Suppose every feature has PSI below 0.1 while precision at the threshold
+falls from 60% to 45% over a month. $P(x)$ is stable and $P(y \mid x)$ is
+moving: concept drift, in fraud usually attackers adapting to the model.
+Confirm it with calibration $\sum \hat{p} / \sum y$ moving away from 1 on the
+freshest labeled or proxy-labeled cohort, and rule out a change in the label
+pipeline. Respond with faster labels (proxies, manual review), more frequent
+retraining on a recent window, rules for the new pattern while labels arrive,
+and features that are costly for attackers to change (device fingerprints, card
+and account graph features).
+
+**If asked:** *Why not auto-retrain and auto-deploy?* If the cause is a broken
+pipeline, the retrained model learns the broken data; the same offline gate and
+canary as a manual release catch that.
 
 **Q16. How do you serve a model that must score 500 items in under 100ms?**
-A: Budget it: ~15ms candidate fetch, ~20ms features, ~25ms model, ~10ms
-re-rank, ~25ms headroom. Keys: one batched multi-get for all 500 items' features
-(one blob per item), one batched forward pass (never 500 calls), hot-item
-caching, timeout-with-logged-defaults, and hedged requests for tail latency.
+A: Budget it: 5 ms parsing and routing, 15 ms candidate generation, 20 ms
+feature fetch, 25 ms model, 10 ms re-ranking, 75 ms in total, leaving 25 ms for
+the p99 tail. The feature fetch decides feasibility: 500 sequential lookups at
+0.5 ms is 250 ms, so issue one multi-get for all 500 keys and store each item's
+features as one blob (500 keys, not 25,000). Score all 500 in one batched
+forward pass, not 500 calls. With 500 parallel lookups, the chance that none
+lands in the store's slowest 1% is $0.99^{500} \approx 0.7\%$, so nearly every
+request waits on a tail lookup; hedged requests (resend a slow lookup to a
+second replica, take the first reply) and caching hot items reduce that.
+
+**If asked:** *What if features miss the 20 ms budget?* Serve with default
+values and log it, because unlogged defaults change the input distribution the
+model sees.
 
 **Q17. Why keep a rules engine alongside an ML fraud model?**
-A: Speed of response (a rule ships in minutes; a retrain waits for labels that
-lag 30–90 days), coverage of the model's blind spots against adversaries who
-probe them, hard business/regulatory constraints (sanctions lists), and
-interpretability for the review team. Rules are also the emergency brake when
-the model degrades.
+A: A fraud ring switches to \$499 gift cards from aged accounts on Monday. A
+rule for that pattern ships the same day; the chargeback labels that would teach
+a retrained model arrive 30 to 90 days later. Beyond speed, rules cover patterns
+attackers find by probing the model, enforce hard constraints such as sanctions
+lists that must hold regardless of the score, and give the review team a
+readable reason for each block. They are also the fallback control when the
+model degrades.
+
+**If asked:** *Cost of rules?* Each one is maintained by hand and attackers
+route around it (a \$500 rule produced \$499 gift cards), so rules need owners,
+hit-rate monitoring and expiry dates.
 
 **Q18. The PM asks for "just one metric" for the new recommender. What do you
 say?**
-A: Push back with structure: one *primary* online metric aligned to the product
-goal (e.g., long-watch rate), plus guardrails that must not regress (reports,
-diversity, latency, revenue) and a counter-metric for the primary's known
-failure mode (dwell/bounce against clickbait). A single unguarded metric will be
-Goodharted - the system will find the degenerate optimum.
+A: Optimize click rate alone and the model learns thumbnails that get clicks
+followed by 5-second bounces. Give one primary online metric aligned to the
+goal (for example long-watch rate), which is the number the launch decision
+uses, plus guardrails that must not regress (report rate, diversity, latency,
+revenue) and a counter-metric for the primary's known failure mode (bounce rate
+against clickbait). Goodhart's law: once a measure becomes the optimization
+target, the system finds the cheapest way to raise it, and the measure stops
+tracking the goal.
+
+**If asked:** *How are the weights in a multi-head score set?* As a product
+decision tuned by A/B tests under guardrails, because logged data has no label
+for how much a share is worth relative to a click.
 
 ## Exit checklist
 

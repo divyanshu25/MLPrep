@@ -408,76 +408,269 @@ selection and recommendation exploration, and it isolates the
 
 ## Common interview questions
 
-1. **Why discount future rewards?** So the infinite sum converges, and to
-   set a horizon: the weights sum to $1/(1-\gamma)$, so $\gamma = 0.99$
-   means caring about roughly 100 steps. It also gives the recursion
-   $G_t = r_{t+1} + \gamma G_{t+1}$ that the Bellman equation comes from.
-2. **Derive the Bellman expectation equation.** Take
-   $G_t = r_{t+1} + \gamma G_{t+1}$, condition on $s_t = s$, average over
-   the policy's action and the dynamics' next state, and note that the
-   expected $G_{t+1}$ given $s_{t+1}$ is $V^\pi(s_{t+1})$ by definition.
+1. **Why discount future rewards?** Take a task that never ends and pays a
+   reward of 1 on every step. With $\gamma = 0.9$ the return is
+   $1 + 0.9 + 0.81 + \dots = 1/(1-0.9) = 10$; with $\gamma = 1$ it is
+   infinite, and two policies that both earn an infinite return cannot be
+   ranked. In general, rewards bounded by $r_{max}$ give a return of at most
+   $r_{max}/(1-\gamma)$, and because the weights $\gamma^k$ sum to
+   $1/(1-\gamma)$, $\gamma$ also sets an effective horizon: about 10 steps
+   at $\gamma = 0.9$, about 100 at $\gamma = 0.99$. The discounted return
+   also satisfies $G_t = r_{t+1} + \gamma G_{t+1}$, the recursion every
+   Bellman equation is built from.
+
+   **If asked:** *Is $\gamma = 1$ ever used?* Yes, in tasks that always
+   terminate, such as generating one LLM completion, because the sum then
+   has finitely many terms.
+
+2. **Derive the Bellman expectation equation.** On the chain from §2: from
+   $s_1$, stay with probability 0.5 or move to $s_2$ with probability 0.5,
+   both with reward 0; from $s_2$, end with reward 1; $\gamma = 0.9$. Then
+   $V(s_2) = 1$ and $V(s_1) = 0.5(0 + 0.9\,V(s_1)) + 0.5(0 + 0.9 \cdot 1)$,
+   so $V(s_1) = 0.45/0.55 \approx 0.818$. Each term is the reward of one
+   transition plus the discounted value of the state it lands in, weighted
+   by the probability of that transition. In general, take
+   $G_t = r_{t+1} + \gamma G_{t+1}$, condition on $s_t = s$, and average
+   over the action $a \sim \pi(\cdot \mid s)$ and the next state
+   $s' \sim P(\cdot \mid s, a)$. By the Markov property and the definition
+   of $V^\pi$, the expected $G_{t+1}$ given $s_{t+1} = s'$ is $V^\pi(s')$,
+   which gives
+
+   $$V^\pi(s) = \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s, a)\big[R(s, a) + \gamma\, V^\pi(s')\big]$$
+
+   **If asked:** *How do you solve it?* It is one linear equation per state,
+   so solve the linear system directly (cost cubic in the number of states)
+   or iterate the equation to its fixed point.
+
 3. **Why is there a max in the optimality equation but a sum in the
-   expectation equation?** The expectation equation describes a fixed
-   policy, which averages over its action distribution. The optimal policy
-   picks the best action, so the average becomes a maximum.
-4. **Why does value iteration converge?** The Bellman operator is a
-   $\gamma$-contraction in the max norm: each sweep shrinks the largest
-   error by a factor $\gamma$, so the iterates converge geometrically to
-   the unique fixed point.
-5. **Monte Carlo vs TD?** MC uses actual returns: unbiased, high variance,
-   needs complete episodes. TD bootstraps from the current value estimate:
-   biased while the estimate is wrong, low variance, learns online. Module
-   1's bias-variance tradeoff, applied to value estimation.
-6. **Q-learning vs SARSA?** One term: SARSA's target uses the action the
-   policy actually took ($Q(s', a')$), Q-learning's uses the best action
-   ($\max_{a'} Q(s', a')$). SARSA learns the value of the exploring policy
-   it follows; Q-learning learns $Q^*$ off-policy.
-7. **Derive the policy gradient.** Write $J = \sum_\tau p_\theta(\tau) R(\tau)$,
-   use $\nabla p = p \nabla \log p$ to get
-   $\mathbb{E}[\nabla \log p_\theta(\tau) R(\tau)]$, expand
-   $\log p_\theta(\tau)$ as a sum in which the dynamics terms carry no
-   $\theta$ and vanish, leaving
-   $\mathbb{E}[\sum_t \nabla \log \pi_\theta(a_t \mid s_t) R(\tau)]$.
-8. **Why does subtracting a baseline not bias the gradient?**
-   $\sum_a \pi(a \mid s) \nabla \log \pi(a \mid s) = \nabla \sum_a \pi(a \mid s) = \nabla 1 = 0$,
-   so any function of the state alone multiplies a zero-mean quantity.
-9. **What is the advantage and why use it?** $A(s, a) = Q(s, a) - V(s)$,
-   how much better an action is than the state's average under the policy.
-   Using it instead of the raw return keeps the gradient unbiased and
-   removes the variance from the state's baseline level of reward.
-10. **Why does PPO have a probability ratio, and why clip it?** The ratio
-    $\pi_\theta / \pi_{old}$ is the importance weight that lets samples
-    from an older policy estimate the current policy's gradient. The
-    objective $\min(\rho A, \operatorname{clip}(\rho, 1 \pm \epsilon) A)$
-    removes the incentive to move the policy far enough in one update that
-    the reweighting stops being trustworthy: past $1 \pm \epsilon$ in the
-    favored direction, the gradient is zero.
-11. **What does GRPO change relative to PPO?** It drops the critic. The
-    baseline is the mean reward of a group of completions sampled for the
-    same prompt, and the advantage is normalized by the group's standard
-    deviation. Nearly the baseline lemma, but the group mean includes the
-    sample's own reward, which shrinks the gradient by $(G-1)/G$; a
-    leave-one-out mean (RLOO) removes that bias.
+   expectation equation?** Take a state with two actions, each of which ends
+   the episode: action 1 pays 2 and action 2 pays 4. A policy that picks
+   each with probability 0.5 has $V = 0.5 \cdot 2 + 0.5 \cdot 4 = 3$, a sum
+   over its action probabilities; the optimal policy picks action 2 and has
+   $V^* = 4 = \max(2, 4)$. In general the expectation equation describes a
+   fixed policy, so it averages $Q^\pi(s, a)$ over $\pi(a \mid s)$, while
+   the optimal policy puts all its probability on the best action, so the
+   weighted average becomes a maximum.
+
+   **If asked:** *Why is the max outside the sum over next states?* The
+   action is chosen before the dynamics pick $s'$, so the maximum can only
+   be taken over each action's expected outcome, not over outcomes.
+
+4. **Why does value iteration converge?** On the two-state chain from
+   $V_0 = 0$, sweeps 1 to 4 give $V(s_1) = 0, 0.45, 0.6525, 0.744$ on the
+   way to $0.818$, so the errors are $0.818, 0.368, 0.166, 0.075$: each is
+   $0.45$ times the previous, within the factor $\gamma = 0.9$ that the
+   theorem guarantees. In general the update $T$ is a $\gamma$-contraction
+   in the max norm, $\max_s |TV(s)-TU(s)| \le \gamma \max_s |V(s)-U(s)|$:
+   the reward terms cancel, a difference of two maxima is at most the
+   largest difference, and a probability-weighted average is at most its
+   largest term. Taking $U = V^*$, which satisfies $TV^* = V^*$, the error
+   after $k$ sweeps is at most $\gamma^k$ times the initial error. The fixed
+   point is unique, because two fixed points at distance $d$ would satisfy
+   $d \le \gamma d$, so $d = 0$.
+
+   **If asked:** *How many sweeps for a 1000-fold error reduction at
+   $\gamma = 0.99$?* $\ln 1000 / (-\ln 0.99) \approx 6.91 / 0.01005 \approx 690$.
+
+5. **Monte Carlo vs TD?** Take an episode $s_0 \to s_1 \to s_2 \to$ end
+   with rewards $0, 0, 1$, $\gamma = 1$, and a current estimate
+   $V(s_1) = 0.3$. Monte Carlo moves $V(s_0)$ toward the observed return 1,
+   but only after the episode ends; TD moves it right after the first step,
+   toward $r_1 + V(s_1) = 0 + 0.3 = 0.3$. The Monte Carlo target is unbiased
+   but sums every random reward in the episode, so its variance is high. The
+   TD target contains one random reward, so its variance is low, but it is
+   biased while $V(s_1)$ is wrong, because it is built on another estimate
+   (bootstrapping). This is module 1's bias-variance tradeoff applied to
+   value estimation.
+
+   **If asked:** *Is there anything in between?* An $n$-step return uses $n$
+   observed rewards and then $V(s_{t+n})$; PPO's generalized advantage
+   estimation (GAE) averages $n$-step advantage estimates with weights
+   proportional to $\lambda^{n-1}$, so $\lambda$ sets the tradeoff.
+
+6. **Q-learning vs SARSA?** Take a transition with $r = -1$,
+   $\gamma = 0.9$, next-state values $Q(s', \cdot) = [5, 2]$, and an
+   $\varepsilon$-greedy policy that happened to take the exploratory second
+   action in $s'$. SARSA's target uses the action actually taken:
+   $-1 + 0.9 \cdot 2 = 0.8$. Q-learning's target uses the best action:
+   $-1 + 0.9 \cdot 5 = 3.5$. So SARSA samples the Bellman expectation
+   equation and learns $Q^\pi$ of the exploring policy it follows
+   (on-policy), while Q-learning samples the optimality equation and learns
+   $Q^*$ from data collected by any policy (off-policy), provided every
+   state-action pair keeps being visited.
+
+   **If asked:** *Which one walks closer to the cliff in cliff walking?*
+   Q-learning: it learns the shortest path along the edge, which is optimal
+   without exploration, and falls off during training when an exploratory
+   step is taken; SARSA's targets include those steps, so it learns a path
+   further from the edge.
+
+7. **Derive the policy gradient.** On a two-armed bandit with a softmax
+   policy at $\theta = [0, 0]$, so $\pi = [0.5, 0.5]$, pulling arm 1 and
+   receiving $r = 1$ gives the sample gradient
+   $r\,\nabla_\theta \log \pi(1) = [1, 0]-[0.5, 0.5] = [0.5, -0.5]$, a
+   step that raises arm 1's probability to $0.73$ at learning rate 1. The
+   derivation shows why this sample is an unbiased estimate of $\nabla J$.
+   Write $J(\theta) = \sum_\tau p_\theta(\tau) R(\tau)$ and use
+   $\nabla_\theta p_\theta = p_\theta \nabla_\theta \log p_\theta$ to get
+   $\nabla J = \mathbb{E}_\tau[\nabla_\theta \log p_\theta(\tau)\, R(\tau)]$.
+   Then $\log p_\theta(\tau)$ is a sum of $\log p(s_0)$, the policy terms
+   $\log \pi_\theta(a_t \mid s_t)$ and the dynamics terms
+   $\log P(s_{t+1} \mid s_t, a_t)$; only the policy terms depend on
+   $\theta$, so
+
+   $$\nabla_\theta J = \mathbb{E}_{\tau \sim p_\theta}\Big[\sum_t \nabla_\theta \log \pi_\theta(a_t \mid s_t)\; R(\tau)\Big]$$
+
+   **If asked:** *Why does the environment not need to be differentiable?*
+   The gradient passes only through $\log \pi_\theta$; rewards and
+   transitions enter as sampled numbers and are never differentiated.
+
+8. **Why does subtracting a baseline not bias the gradient?** In the bandit
+   at $\pi = [0.5, 0.5]$, the score $\nabla_\theta \log \pi(a)$ is
+   $[0.5, -0.5]$ for arm 1 and $[-0.5, 0.5]$ for arm 2, and its average
+   under the policy is $0.5[0.5, -0.5] + 0.5[-0.5, 0.5] = [0, 0]$. So
+   subtracting a constant $b$ from every reward changes each sample (with
+   $b = 0.5$ and $r = 1$ the arm-1 update shrinks from $[0.5, -0.5]$ to
+   $[0.25, -0.25]$) but adds zero in expectation. In general,
+   $\sum_a \pi(a \mid s) \nabla \log \pi(a \mid s) = \sum_a \nabla \pi(a \mid s) = \nabla 1 = 0$,
+   because the probabilities sum to 1 for every $\theta$. Any $b(s)$ that
+   depends only on the state factors out of that sum, so its contribution
+   is zero.
+
+   **If asked:** *What if the baseline depends on the action?* Then it does
+   not factor out of the sum and the gradient is biased; GRPO's group mean
+   is a mild case of this (question 11).
+
+9. **What is the advantage and why use it?** Take a state with $V(s) = 10$
+   and two equally likely actions with $Q = 11$ and $Q = 9$. Weighting by
+   the raw return gives both actions a positive weight of about 10, so both
+   become more likely and only the difference across many samples sorts
+   them. Weighting by the advantage $A(s, a) = Q(s, a)-V(s)$ gives $+1$ and
+   $-1$: the better action is raised, the worse one lowered, and the
+   weights are about 10 times smaller, so the estimate has less variance.
+   Since $V(s)$ is a baseline, the expected gradient is unchanged. In
+   practice $G_t-V(s_t)$ is a sample estimate of the advantage, since $G_t$
+   is one sample of $Q(s_t, a_t)$.
+
+   **If asked:** *What else estimates it?* The TD error
+   $\delta_t = r_{t+1} + \gamma V(s_{t+1})-V(s_t)$, whose expectation is the
+   advantage when $V$ is exact: lower variance than $G_t-V(s_t)$, but biased
+   while $V$ is wrong.
+
+10. **Why does PPO have a probability ratio, and why clip it?** Take
+    $\epsilon = 0.2$ and an action with advantage $A = +1$. At $\rho = 1.1$
+    the objective is $1.1$ and its gradient still raises the action's
+    probability; at $\rho = 1.3$ it is $\min(1.3, 1.2) = 1.2$, a constant,
+    so the gradient is zero. The ratio
+    $\rho = \pi_\theta(a \mid s)/\pi_{old}(a \mid s)$ is the importance
+    weight that makes $\mathbb{E}_{a \sim \pi_{old}}[\rho A]$ equal
+    $\mathbb{E}_{a \sim \pi_\theta}[A]$, so one batch sampled from
+    $\pi_{old}$ can serve several gradient steps. That reweighting has high
+    variance once $\pi_\theta$ is far from $\pi_{old}$, and the objective
+
+    $$L = \min\big(\rho A,\ \operatorname{clip}(\rho, 1-\epsilon, 1+\epsilon)\,A\big)$$
+
+    removes the incentive to move $\rho$ past $1 \pm \epsilon$ in the
+    direction the advantage favors. Moves in the unfavorable direction are
+    not clipped.
+
+    **If asked:** *Why the min, and not the clip alone?* With $A = -1$ and
+    $\rho = 1.3$ the clip alone gives a constant $-1.2$ and no gradient,
+    although the action became more likely; the min keeps $-1.3$, whose
+    gradient lowers $\rho$.
+
+11. **What does GRPO change relative to PPO?** For one prompt, sample
+    $G = 5$ completions with rewards $[1, 0, 0, 1, 1]$. The group mean $0.6$
+    is the baseline, so the successes get $+0.4$ and the failures $-0.6$;
+    dividing by the group's standard deviation $0.49$ gives $+0.82$ and
+    $-1.22$. That is the change: GRPO drops the critic, a second network as
+    large as the policy, computes advantages from the group, and keeps PPO's
+    clipped ratio objective. It is not exactly the baseline lemma, because
+    the mean includes the sample's own reward:
+    $r_i-\bar r = \frac{G-1}{G}(r_i-\bar r_{-i})$, where $\bar r_{-i}$ is
+    the mean of the other $G-1$ rewards. The baseline $\bar r_{-i}$ does
+    not depend on sample $i$'s action, so before the division by the
+    standard deviation, the expected gradient with the group mean is
+    $(G-1)/G = 0.8$ times the true one. Using $\bar r_{-i}$ directly
+    (leave-one-out, RLOO) removes this bias: here $+0.5$ for the successes
+    and $-0.75$ for the failures.
+
+    **If asked:** *What if every completion in a group gets the same
+    reward?* All advantages are 0 (and the standard deviation is 0, so
+    implementations add a small constant), so that prompt contributes no
+    gradient.
+
 12. **Why is off-policy learning with a neural network unstable, and what
-    did DQN do about it?** Bootstrapping, off-policy data and function
-    approximation together can diverge (the deadly triad). DQN decorrelates
-    updates with a replay buffer and stabilizes the target with a frozen
-    target network.
-13. **UCB's bonus term: where does it come from?** A confidence interval on
-    the arm's average reward: after $n_a$ pulls the average is uncertain by
-    about $1/\sqrt{n_a}$, and $\sqrt{2\ln t / n_a}$ is the width that keeps
-    the probability of the true mean lying above the bound small as $t$
-    grows.
-14. **How is an LLM an RL policy?** State: prompt plus tokens so far.
-    Action: next token. Policy: the softmax over the vocabulary.
-    Reward: the reward model's score, delivered once at the end. Trajectory
-    probability is the product of token probabilities, so
-    $\nabla \log p_\theta(\tau)$ is the sum of per-token log-prob gradients,
-    the same quantity the SFT loss differentiates.
-15. **On-policy vs off-policy in one sentence?** On-policy methods learn
-    about the policy that generated the data; off-policy methods learn
-    about a different policy, usually the greedy one, from data collected
-    by any policy.
+    did DQN do about it?** A standard example: two states share one weight
+    $w$, with estimated values $w$ and $2w$, and every reward is 0, so the
+    true values are 0. The data contains only the transition from the first
+    state to the second, and the TD update on it is
+    $w \leftarrow w + \alpha(\gamma \cdot 2w-w)$; with $\gamma = 0.9$ and
+    $\alpha = 0.1$ this multiplies $w$ by $1.08$ per update, so any nonzero
+    $w$ grows without bound. All three parts of the deadly triad are there:
+    bootstrapping (the target contains $2w$), function approximation (one
+    shared weight, so raising one value raises the other), and off-policy
+    data (the second state is never updated toward its own target of 0).
+    DQN reduces the instability with a replay buffer, which samples past
+    transitions at random so consecutive updates are not correlated, and a
+    target network, a frozen copy of the weights used in the target and
+    refreshed every few thousand steps.
+
+    **If asked:** *Removing which ingredient restores convergence?* Any one:
+    Monte Carlo targets (no bootstrapping), on-policy TD with linear
+    features, and tabular Q-learning all converge.
+
+13. **UCB's bonus term: where does it come from?** After $t = 100$ pulls,
+    arm A has average $0.6$ from 50 pulls and arm B average $0.4$ from 5
+    pulls. With $2 \ln 100 = 9.21$, A's bonus is $\sqrt{9.21/50} = 0.43$ and
+    B's is $\sqrt{9.21/5} = 1.36$, so the scores are $1.03$ and $1.76$ and
+    UCB pulls B: 5 pulls are too few to rule it out. The bonus comes from
+    Hoeffding's inequality: for $n_a$ independent rewards in $[0, 1]$ with
+    true mean $\mu_a$,
+
+    $$P(\mu_a > \bar r_a + c) \le e^{-2 n_a c^2}$$
+
+    Setting the right side to $t^{-4}$ gives $2 n_a c^2 = 4 \ln t$, so
+    $c = \sqrt{2 \ln t / n_a}$: the bonus is the width at which the true
+    mean lies above the bound with probability at most $t^{-4}$. Because the
+    bonus grows with $\ln t$, an arm that is not pulled sees its bound rise
+    until it is tried again.
+
+    **If asked:** *How often is a bad arm pulled?* About $8 \ln t / \Delta^2$
+    times by step $t$, where $\Delta$ is its gap to the best arm's mean, so
+    the regret (reward lost relative to always pulling the best arm) grows
+    logarithmically in $t$.
+
+14. **How is an LLM an RL policy?** Prompt "2+2=", completion "4" followed
+    by the end-of-sequence token: two actions, with probabilities $0.9$ and
+    $0.95$, so the trajectory probability is $0.9 \cdot 0.95 = 0.855$, and a
+    reward model scores the finished completion, say $r = 1$. In general the
+    state is the prompt plus the tokens so far, an action is the next token,
+    the policy is the softmax over the vocabulary, the transition appends
+    the token (deterministic), and the reward arrives once at the end.
+    Because the trajectory probability is a product of token probabilities,
+    $\nabla \log p_\theta(\tau)$ is the sum of per-token log-probability
+    gradients, the negative of the SFT loss gradient on that completion. So
+    a REINFORCE step on a completion is an SFT step on it scaled by its
+    reward (or advantage).
+
+    **If asked:** *What is $\gamma$ here?* Usually 1: every completion
+    terminates, so the sum is finite, and with one reward at the end
+    $G_t = r$ for every token.
+
+15. **On-policy vs off-policy in one sentence?** From the same transitions
+    of an $\varepsilon$-greedy agent with $\varepsilon = 0.1$, SARSA learns
+    the value of that $\varepsilon$-greedy policy and Q-learning learns the
+    value of the greedy policy. In one sentence: on-policy methods learn
+    about the policy that generated the data; off-policy methods learn about
+    a different policy, usually the greedy one, from data collected by any
+    policy. Only off-policy methods can learn from a replay buffer, whose
+    transitions come from older policies.
+
+    **If asked:** *Where does PPO sit?* On-policy, but each batch is reused
+    for a few gradient steps while $\pi_\theta$ moves away from the
+    $\pi_{old}$ that sampled it; the ratio $\rho$ corrects for that and the
+    clip keeps the gap small.
 
 ## Exit checklist
 

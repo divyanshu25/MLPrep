@@ -1030,145 +1030,364 @@ breakdowns - i.e., you check the *proxy gap*.
 ## Common interview questions
 
 **Q1. You have $10^{23}$ FLOPs of compute. What model do you train?**
-Chinchilla: $D \approx 20N$ and $C = 6ND = 120N^2$, so
-$N = \sqrt{10^{23}/120} \approx 29$B params, $D = 20N \approx 580$B tokens.
-Then caveat: if this model will serve heavy traffic, overtrain a smaller
-model instead (Llama-3 style) - Chinchilla optimizes training loss per
-training FLOP, not lifetime cost.
+Use two facts: training costs $C \approx 6ND$ FLOPs, and at Chinchilla's
+scale the loss-optimal split is about $D \approx 20N$ tokens per parameter.
+Substituting gives $C = 120N^2$, so $N = \sqrt{10^{23}/120} \approx 2.9
+\times 10^{10}$ (about 29B parameters) and $D = 20N \approx 580$B tokens.
+Check: $6 \times 2.9\times10^{10} \times 5.8\times10^{11} \approx 1.0 \times
+10^{23}$. Then add the caveat: this split minimizes training loss per
+training FLOP, while serving cost grows with $N$. If the model will serve
+heavy traffic, train a smaller model on more tokens; Llama-3-8B saw about 15T
+tokens, roughly 1,900 per parameter.
+
+**If asked:** *Is 20 exact?* No. It is a rule of thumb at Chinchilla's
+compute scale: the fitted exponents make the ratio drift with $C$, and a 2024
+replication found errors in the original fit.
 
 **Q2. Derive the 6ND rule.**
-Forward: each param does one multiply-add per token = 2 FLOPs → $2N$/token.
-Backward: two matmuls per layer matmul ($\partial X = \partial Y W^\top$,
-$\partial W = X^\top \partial Y$) → $4N$/token. Total $6N$ per token × $D$
-tokens.
+Take one $4096 \times 4096$ weight matrix (16.8M parameters) and one token's
+vector. The forward product does one multiply and one add per weight: 33.6M
+FLOPs, which is 2 FLOPs per parameter. The backward pass through $Y = XW$
+needs two products of the same size: $\partial X = \partial Y\, W^\top$ to
+pass the gradient to the previous layer, and $\partial W = X^\top \partial Y$
+for the weight gradient, so 4 FLOPs per parameter. Almost all parameters of
+a dense transformer sit in such matrices, so a token costs $2N + 4N = 6N$
+FLOPs, and $D$ tokens cost $C \approx 6ND$.
+
+**If asked:** *What does it leave out?* The attention products $QK^\top$ and
+$AV$, which have no parameters; they add about $s/(6d)$ relative to the
+parameter FLOPs ($s/(12d)$ with a causal mask), a few percent at typical
+contexts (§1.2).
 
 **Q3. How much memory to train a 70B model with Adam in mixed precision?**
-Per param: fp16 weights (2) + fp16 grads (2) + fp32 master (4) + Adam $m$ (4)
-+ $v$ (4) = 16 B. $16 \times 70\text{e}9 = 1.12$ TB of state, plus
-activations (hundreds of GB at long context without checkpointing). ≥14 H100s
-just to hold state, and only with ZeRO-3/FSDP sharding.
+Count bytes per parameter: fp16 weights 2, fp16 gradients 2, fp32 master
+weights 4, Adam's $m$ 4 and $v$ 4, so 16 bytes. For 70B parameters that is
+$16 \times 70 \times 10^9 = 1.12$ TB (weights 140 GB, gradients 140 GB,
+optimizer state 840 GB). An H100 holds 80 GB, so at least $1120/80 = 14$
+GPUs are needed to store the state alone, and only if each GPU stores a
+$1/G$ shard of it (ZeRO-3 or FSDP), because plain data parallelism keeps a
+full copy on every GPU. Activations come on top: at 4k context and batch 1
+per GPU, about 6.5 GB per layer and about 520 GB over 80 layers, which
+gradient checkpointing cuts to about 5 GB of stored layer inputs. The rule:
+16 to 20 bytes per parameter before activations (20 if gradients are
+accumulated in fp32).
+
+**If asked:** *And a 7B?* $16 \times 7 \times 10^9 = 112$ GB, which does not
+fit on one 80 GB GPU either.
 
 **Q4. Why fp32 master weights at all?**
-The update $\eta g$ is often smaller than the fp16 ulp near the weight's
-magnitude (fp16 has ~11 bits of mantissa; near 1.0 increments below $2^{-11}$
-vanish; with typical $\eta g \sim 10^{-6}$ the update rounds to zero).
-Accumulate in fp32, round to fp16 for the matmuls.
+Take a weight equal to 1.0 stored in fp16, learning rate $3 \times 10^{-4}$
+and gradient 0.01, so the update is $\eta g = 3 \times 10^{-6}$. fp16 values
+near 1 are spaced $2^{-10} \approx 0.00098$ apart, so with round-to-nearest
+any change below $2^{-11} \approx 0.00049$ rounds back to 1.0. This update
+is about 160 times smaller than that, so the weight never changes, and
+10,000 such steps also vanish one at a time where in fp32 they would add up
+to 0.03. So the optimizer keeps an fp32 master copy (spacing near 1 is
+$2^{-23} \approx 1.2 \times 10^{-7}$), applies every update to it, and
+rounds to fp16 only for the forward and backward matmuls, at a cost of 4
+extra bytes per parameter.
 
-**Q5. ZeRO stages - what does each shard, and per-GPU memory for 70B on 64
+**If asked:** *Does bf16 remove the need?* No. bf16 keeps 8 bits of
+precision, so values near 1 are spaced $2^{-7}$ apart and small updates
+vanish even sooner; bf16 widens the exponent range, not the precision.
+
+**Q5. ZeRO stages: what does each shard, and per-GPU memory for 70B on 64
 GPUs?**
-Stage 1: optimizer state (12B/param) → $4\Psi + 12\Psi/G$ = 293 GB. Stage 2:
-+gradients → $2\Psi + 14\Psi/G$ = 155 GB. Stage 3: +weights → $16\Psi/G$ =
-17.5 GB. Only stage 3 fits an 80 GB GPU; it costs ~1.5× DP communication
-(extra weight all-gather in backward). FSDP ≈ ZeRO-3.
+Split Q3's 16 bytes per parameter into 2 for fp16 weights, 2 for gradients
+and 12 for optimizer state (fp32 master, $m$, $v$), with $\Psi = 70$B and
+$G = 64$. Plain data parallelism stores all 16 on every GPU: 1,120 GB each.
+ZeRO-1 shards the optimizer state: $280 + 840/64 = 293$ GB. ZeRO-2 also
+shards gradients: $140 + 980/64 = 155$ GB. ZeRO-3 also shards weights:
+$1120/64 = 17.5$ GB, the only stage that fits an 80 GB GPU. Stages 1 and 2
+move the same bytes as data parallelism (about two gradient-sized transfers
+per step, a reduce-scatter and an all-gather). Stage 3 all-gathers each
+layer's weights before its use in forward and again in backward, plus the
+gradient reduce-scatter: three transfers instead of two, about 1.5 times the
+communication. Use the lowest stage that fits; FSDP is PyTorch's
+implementation of ZeRO-3.
+
+**If asked:** *When is stage 2 enough?* A 7B on 8 GPUs: 14 GB of fp16
+weights plus $98/8 \approx 12$ GB of sharded gradients and optimizer state,
+about 26 GB per GPU.
 
 **Q6. Where do the all-reduces land in tensor parallelism?**
-Column-split first matmul (no comm, nonlinearity is elementwise-local), row-
-split second matmul (each GPU holds a partial sum) → one all-reduce per MLP
-block forward, one per attention block (heads = column split, $W_O$ = row
-split), mirrored in backward. Frequent + unhideable → TP stays within a
-node's NVLink.
+Take the MLP $Z = \sigma(XW_1)W_2$ on 2 GPUs. Split $W_1$ by columns: each
+GPU computes half of the hidden units with no communication, and applies
+$\sigma$ locally because it acts on each coordinate separately. Split $W_2$
+by rows to match: each GPU multiplies its half of the hidden vector by its
+row block and gets a full-size output that is only a partial sum, so one
+all-reduce adds the two. Attention works the same way: heads are divided
+across GPUs (a column split of $W_Q, W_K, W_V$) and $W_O$ is split by rows,
+then one all-reduce. That gives 2 all-reduces per layer in forward and 2 in
+backward (at the input of each column-split matmul, where each GPU holds a
+partial sum of $\partial X$). Each moves $s \cdot b \cdot h$ values (67 MB
+in fp16 at $s = 4096$, $b = 1$, $h = 8192$), and the next operation needs
+the sum, so the transfer cannot overlap with compute. That is why tensor
+parallelism stays inside a node on NVLink (about 900 GB/s) and rarely
+crosses InfiniBand (about 50 GB/s per GPU), with degree at most 8.
 
 **Q7. Pipeline bubble fraction?**
-$(p-1)/(m+p-1)$ for $p$ stages, $m$ microbatches: the pipe takes $m+p-1$
-slots, $m$ useful. $p=8, m=32$: 18%. Increase $m$ to amortize; 1F1B schedules
-cap live activation memory at ~$p$ microbatches.
+Take $p = 4$ stages and $m = 8$ microbatches. The first microbatch reaches
+stage 4 in time slot 4, and the last one leaves stage 4 in slot $8 + 3 = 11$;
+each stage is busy in 8 of the 11 slots, so $3/11 \approx 27\%$ of the time
+is idle. In general the pipeline takes $m + p - 1$ slots of which $m$ are
+useful:
+
+$$\text{bubble fraction} = \frac{p-1}{m+p-1}$$
+
+With $p = 8$, $m = 32$ it is $7/39 \approx 18\%$. Raising $m$ shrinks it,
+but each microbatch in flight holds activations, so 1F1B scheduling (each
+stage alternates one forward and one backward once the pipeline is full)
+caps the stored activations at about $p$ microbatches instead of $m$.
 
 **Q8. How does gradient checkpointing get $O(\sqrt L)$ memory?**
-Store $k$ checkpoints, recompute segments of $L/k$ layers during backward:
-peak $\propto k + L/k$, minimized at $k = \sqrt L$ → $2\sqrt L$. Cost: one
-extra forward ≈ +33% FLOPs (forward is $2N$ of $6N$).
+Take $L = 64$ layers and store only the input of every 8th layer: 8
+checkpoints. During backward, each 8-layer segment is recomputed forward from
+its checkpoint, so at most 8 layers of full activations exist at once. Peak
+memory is 8 checkpoints plus 8 layers, 16 layers' worth instead of 64. In
+general, $k$ checkpoints give peak memory proportional to $k + L/k$, which is
+smallest at $k = \sqrt L$, where it equals $2\sqrt L$. The cost is one extra
+forward pass, since every layer is recomputed once; forward is $2N$ of the
+$6N$ FLOPs per token, so training costs about 33% more compute.
+
+**If asked:** *What is used in practice?* Checkpointing at every layer
+boundary: memory stays proportional to $L$ but stores only each layer's
+input, which for a 70B at 4k context cuts about 520 GB of activations to
+about 5 GB.
 
 **Q9. Batch 256 → 2048. What do you do to the LR?**
-Linear scaling: 8× (one big-batch step ≈ 8 small steps when gradients are
-locally stable), with warmup because that assumption fails early in
-training; watch for the critical batch size beyond which returns vanish; for
-Adam, $\sqrt{8}$× is often better.
+The batch grows by $k = 8$. Eight SGD steps at batch 256 and learning rate
+$\eta$ move the weights by about $\eta (g_1 + \dots + g_8)$, if the gradient
+changes little over those 8 steps. One step at batch 2048 averages the same
+8 mini-batch gradients, so it moves by $\hat\eta (g_1 + \dots + g_8)/8$. The
+two match when $\hat\eta = 8\eta$: scale the learning rate linearly with
+batch size. Three caveats: early in training the gradient changes quickly,
+so the assumption fails and you add warmup; beyond the critical batch size,
+a larger batch no longer reduces the number of steps needed, so the extra
+compute is wasted; and for Adam, which divides by the gradient's scale,
+$\sqrt 8 \approx 2.8$ times is the usual starting point. Confirm with a short
+learning-rate sweep at the new batch size.
 
 **Q10. Derive DPO from the RLHF objective.**
-KL-regularized reward maximization has closed form
-$\pi^* = \frac{1}{Z}\pi_{ref} e^{r/\beta}$ (complete the KL). Invert:
-$r = \beta\log(\pi^*/\pi_{ref}) + \beta\log Z$. Substitute into
-Bradley–Terry $\sigma(r_w - r_l)$: $Z$ cancels →
-$\mathcal{L} = -\log\sigma(\beta\log\frac{\pi_\theta(y_w)}{\pi_{ref}(y_w)} -
-\beta\log\frac{\pi_\theta(y_l)}{\pi_{ref}(y_l)})$. RM + RL collapse into
-supervised learning on preferences.
+Start from one prompt with two responses, $\pi_{ref} = 0.5$ each, rewards 1
+and 0, $\beta = 1$. The KL-regularized objective
+$\mathbb{E}_\pi[r] - \beta\,\mathbb{D}_{KL}(\pi \| \pi_{ref})$ is maximized by
+$\pi^* = \pi_{ref}\, e^{r/\beta}/Z$, here $0.5e$ and $0.5$ normalized, which
+is 0.73 and 0.27. Taking logs inverts it:
+$r = \beta \log(\pi^*/\pi_{ref}) + \beta \log Z$. Bradley–Terry uses only
+the difference $r_w - r_l$ for two responses to the same prompt, so
+$\beta \log Z$, a sum over all possible responses that cannot be computed,
+cancels. Replace $\pi^*$ with the trainable $\pi_\theta$ and maximize the
+likelihood of the preference labels:
+
+$$\mathcal{L}_{DPO} = -\log \sigma\!\left(\beta \log \frac{\pi_\theta(y_w)}{\pi_{ref}(y_w)} - \beta \log \frac{\pi_\theta(y_l)}{\pi_{ref}(y_l)}\right)$$
+
+The reward model and the RL sampling loop are gone; what remains is a
+classification loss on fixed preference pairs, with one forward pass through
+the policy and one through the frozen reference (§3.3 has the full
+derivation).
+
+**If asked:** *What does DPO give up relative to PPO?* It trains on fixed
+pairs and never samples from the improving policy, so it can only reweight
+responses already in the data, and it can drive $\pi_\theta(y_l)$ toward 0.
 
 **Q11. Why the KL term in PPO-RLHF? Why the clip?**
-KL-to-reference: the RM is only valid near the SFT distribution; unpenalized
-optimization finds adversarial text the RM loves and humans hate (reward
-hacking) and collapses diversity. Clip: updates use stale samples from
-$\pi_{old}$; the min-of-clipped objective zeroes the gradient for tokens whose
-ratio has already moved past $1 \pm \epsilon$ in the direction their advantage
-favors (moves in the other direction are not clipped), bounding each update (trust-region-lite) so
-one bad batch can't crater the policy.
+They address two different problems. The KL term
+$\beta\,\mathbb{D}_{KL}(\pi_\theta \| \pi_{ref})$: the reward model was
+trained on responses near the SFT policy, so its scores are unreliable far
+from it. Without the penalty, the policy moves toward text the reward model
+scores highly and humans rate poorly (padding, sycophancy), which is reward
+hacking, and its output diversity collapses. The clip: take a token with
+advantage $\hat A = +2$, $\epsilon = 0.2$, and $\rho = \pi_\theta/\pi_{old}$.
+Once an update raises $\rho$ past 1.2, the objective
+$\min(\rho \hat A, \text{clip}(\rho, 0.8, 1.2)\hat A)$ takes the clipped
+value $2.4$, a constant, so the token contributes zero gradient. If instead
+$\rho$ fell to 0.7, the minimum is the unclipped $1.4$ (below $0.8 \times 2 =
+1.6$), and the gradient still pushes the probability back up. Clipping only
+in the direction the advantage favors limits how far each update moves from
+$\pi_{old}$, which keeps the samples drawn from $\pi_{old}$ approximately
+valid for the update.
+
+**If asked:** *What does $\beta$ control?* How much reward a given amount of
+drift from the reference policy must buy; larger $\beta$ keeps the policy
+closer to the SFT model.
 
 **Q12. GRPO vs PPO?**
-GRPO deletes the value network: sample $G$ completions per prompt, advantage
-= (reward − group mean)/group std. Fits verifiable-reward reasoning RL:
-sparse exact rewards are hard for critics to fit but trivial to baseline
-with a group mean; saves an LM-sized model; the relative signal ("which
-attempt won") is what you actually want.
+Sample $G = 4$ answers to one math problem; a checker scores them 1, 0, 0,
+1. The group mean is 0.5 and the standard deviation 0.5, so the advantages
+$(r_i - \text{mean})/\text{std}$ are $+1, -1, -1, +1$: correct answers are
+pushed up and wrong ones down. GRPO keeps PPO's clipped-ratio objective but
+takes the baseline from this group mean instead of a learned value network.
+That removes an LM-sized critic from memory and training, and it suits
+verifiable rewards, which are exact but sparse and binary, a setting where a
+value network is hard to fit and a group mean is easy to compute. The costs
+are $G$ generations per prompt, and no signal from a prompt where all $G$
+answers get the same reward, since every advantage is then zero.
+
+**If asked:** *Is the group-mean baseline unbiased?* Not exactly: the mean
+includes the sample's own reward, which scales the expected gradient by
+$(G-1)/G$ (0.75 at $G = 4$); a leave-one-out mean removes that factor.
 
 **Q13. LoRA: parameter math for adapting $W_Q, W_V$ of a 7B, rank 16?**
-$d = 4096$: per matrix $2 \times 4096 \times 16 = 131$k; ×2 matrices ×32
-layers ≈ 8.4M params ≈ 0.12% of 7B. Init $B=0$ so training starts at the
-pretrained model; merge $W + \frac{\alpha}{r}BA$ after training for zero
-inference overhead.
+Llama-7B has $d = 4096$ and 32 layers. A full update to one $4096 \times
+4096$ matrix has 16.8M entries; LoRA replaces it with $\frac{\alpha}{r}BA$,
+with $B$ of size $4096 \times 16$ and $A$ of size $16 \times 4096$, so $2
+\times 4096 \times 16 = 131{,}072$ parameters, 128 times fewer. Two matrices
+per layer times 32 layers gives about 8.4M trainable parameters, 0.12% of
+the model's 6.7B. At 16 bytes per trainable parameter that is about 134 MB
+of training state instead of 107 GB for full fine-tuning, while the frozen
+base still takes about 13.4 GB in fp16. Initialize $B = 0$ and $A$ random,
+so $BA = 0$ and training starts exactly at the pretrained model; after
+training, add $\frac{\alpha}{r}BA$ into $W$, so inference costs nothing
+extra.
+
+**If asked:**
+- *Why not initialize both to zero?* The gradient of $A$ is proportional to
+  $B^\top$ and the gradient of $B$ to $A^\top$, so both would stay zero.
+- *When does LoRA fall short?* When the task needs new features rather than
+  re-weighting existing ones, such as a new language or a domain far from
+  pretraining.
 
 **Q14. Why is single-stream decode memory-bound? Ceiling for 7B fp16 on
 2 TB/s?**
-Decode is GEMV: 2 FLOPs per 2 bytes of weight read → intensity ~1 FLOP/B vs
-ridge ~156 (A100). Every token streams all weights:
-$2\text{e}12 / 14\text{e}9 \approx 143$ tok/s max. Batching/speculation raise
-arithmetic intensity; quantization shrinks the bytes.
+Generating one token for one sequence multiplies a single vector by every
+weight matrix: each fp16 weight is read once (2 bytes) and used in one
+multiply and one add (2 FLOPs), so about 1 FLOP per byte. An A100 does 312
+TFLOP/s against 2 TB/s of bandwidth, so it needs about 156 FLOPs per byte to
+keep its compute units busy; at 1 FLOP per byte it spends its time waiting
+on memory. Each token must read all 14 GB of weights, so the ceiling is
+$2 \times 10^{12} / 14 \times 10^9 \approx 143$ tokens/s, and real systems
+reach about 60 to 80% of it. The fixes raise tokens per weight read or
+shrink the read: batching $B$ sequences shares one read across $B$ tokens,
+speculative decoding verifies several tokens per read, and int4 weights
+(3.5 GB) raise the ceiling to about 570 tokens/s.
+
+**If asked:** *Why is prefill different?* A prompt of $s$ tokens reuses each
+weight for all $s$ rows, about $s$ FLOPs per byte, so a 512-token prompt is
+already above the 156 needed to be compute-bound.
 
 **Q15. KV cache for a 7B at batch 32, 4k context?**
-$2_{KV} \times 32_{layers} \times 4096_{d} \times 2_{fp16} = 512$ KB/token;
-$\times 4096 \times 32 = 68.7$ GB - 5× the 14 GB weights; doesn't fit an
-A100 with the model. Hence GQA (÷8), KV quantization (÷2), PagedAttention
-(reclaim the 60–80% fragmentation waste).
+For each token and each layer the cache stores one key and one value vector
+of size $d_{model} = 4096$ in fp16: $2 \times 4096 \times 2 = 16$ KB. Over
+32 layers that is 512 KB per token. Batch 32 at 4,096 tokens is 131,072
+tokens, so $524{,}288 \times 131{,}072 \approx 68.7$ GB, about 5 times the
+14 GB of weights; the total of 83 GB does not fit an 80 GB A100. KV memory,
+not weights, sets the batch size at long context. The fixes: grouped-query
+attention (GQA) stores K and V for $g$ shared heads instead of all $h$, a
+factor $h/g$ (8 KV heads instead of 32 brings this cache to about 17 GB);
+int8 or fp8 KV storage halves it; PagedAttention allocates the cache in
+fixed 16-token blocks on demand, recovering the 60 to 80% that contiguous
+max-length reservations waste.
+
+**If asked:** *How does the formula change with GQA?* Replace $d_{model}$
+with $g \cdot d_{head}$, the number of KV heads times the head dimension.
 
 **Q16. Why does speculative decoding not change the output distribution?**
-Accept draft $x \sim q$ w.p. $\min(1, p(x)/q(x))$, else resample from
-$(p-q)^+$ normalized. $P(x) = \min(p,q) + \max(0, p-q) = p(x)$ exactly
-(rejection mass equals the residual normalizer). Acceptance rate
-$= 1 - \text{TV}(p, q)$; expected tokens/pass $= (1-a^{k+1})/(1-a)$.
+Take a two-token vocabulary with target $p = (0.6, 0.4)$ and draft
+$q = (0.8, 0.2)$. The draft proposes A with probability 0.8 and it is
+accepted with probability $\min(1, 0.6/0.8) = 0.75$, so A is emitted with
+probability 0.6. B is proposed with probability 0.2 and always accepted,
+since $p/q = 2$. The rejection probability is $0.8 \times 0.25 = 0.2$, and a
+rejection samples from the residual $\max(0, p - q) = (0, 0.2)$ normalized,
+which is B. So B is emitted with probability $0.2 + 0.2 = 0.4$, exactly $p$.
+In general accepted drafts contribute $\min(p, q)$, and the rejection
+probability equals the residual's normalizer $\sum_y \max(0, p - q)$, so
+
+$$P(X = x) = \min(p(x), q(x)) + \max(0,\, p(x) - q(x)) = p(x)$$
+
+(§5.4 has the proof).
+
+**If asked:** *What sets the speedup?* The acceptance rate
+$a = \sum_y \min(p, q) = 1 - \text{TV}(p, q)$ (0.8 here); with $k$ drafted
+tokens, a target pass emits $(1 - a^{k+1})/(1 - a)$ tokens on average, 3.36
+at $a = 0.8$, $k = 4$.
 
 **Q17. Is FlashAttention approximate?**
-No - exact. It's an IO reorganization: tile $K,V$ through SRAM with online
-softmax (running max $m$, normalizer $\ell$, rescale by $e^{m-m'}$), never
-materializing the $s \times s$ matrix in HBM. Attention is bandwidth-bound;
-cutting HBM traffic ~10× gives 2–4× speed and $O(s)$ memory.
+No, it is exact. Take one row of scores $[1, 2, 3]$ processed in two blocks.
+After the block $[1, 2]$ the running max is 2 and the running normalizer is
+$e^{-1} + e^{0} = 1.368$. The next block brings a new max of 3, so the old
+normalizer is rescaled by $e^{2-3}$ to $0.503$ and $e^{0}$ is added: 1.503,
+the same as $e^{-2} + e^{-1} + e^{0}$ computed on the whole row.
+FlashAttention applies this online softmax to tiles: it streams blocks of
+$K$ and $V$ through on-chip SRAM, keeps a running max, normalizer and output
+per query row, and never writes the $s \times s$ score matrix to HBM.
+Attention at long context is limited by memory traffic, not FLOPs, so
+cutting HBM accesses 5 to 10 times gives 2 to 4 times wall-clock speed and
+$O(s)$ memory instead of $O(s^2)$. The output matches standard attention up
+to floating-point rounding order.
+
+**If asked:** *How does backward work without the stored score matrix?* It
+recomputes score tiles from $Q$, $K$ and the saved per-row max and
+normalizer: more FLOPs, fewer HBM bytes.
 
 **Q18. What breaks in naive int8 LLM quantization?**
-Outlier channels: a few activations 20–100× larger dominate the absmax
-scale, crushing everything else's resolution. Fix with per-channel/group
-scales, mixed-precision decomposition (LLM.int8), or scale migration onto
-weights (AWQ/SmoothQuant-style).
+Take values that are mostly between $-1$ and $1$ plus one outlier at 60.
+Absmax int8 uses the scale $s = 60/127 \approx 0.47$, so every value of size
+1 becomes $\text{round}(1/0.47) = 2$, and anything smaller than about 0.24
+in magnitude becomes 0: the ordinary values get 5 of the 255 levels. In LLMs
+past about 7B parameters, a few hidden channels carry activations 20 to 100
+times larger than the rest, so a per-tensor scale loses precision exactly
+this way. Fixes: per-channel or per-group scales (for example, 128 values
+share one scale), so an outlier affects only its own group; LLM.int8, which
+computes the roughly 0.1% outlier columns in fp16 and the rest in int8; and
+per-channel rescaling that divides an activation channel by a factor and
+multiplies the matching weight row by it, leaving $XW$ unchanged
+(SmoothQuant uses this to move activation outliers into the weights; AWQ
+uses it to give salient weights finer resolution).
+
+**If asked:** *Why does 4-bit GPTQ beat rounding to nearest?* It quantizes
+one column at a time and adjusts the not-yet-quantized columns to cancel the
+output error $\|XW - X\hat W\|^2$, using $X^\top X$, so rounding errors do not
+accumulate.
 
 **Q19. How would you detect benchmark contamination?**
-N-gram (13-gram) overlap between test set and training corpus; canary-GUID
-completion; verbatim-completion probes of test items; accuracy drop on
-newly-authored items of matched difficulty (strongest); paraphrase
-sensitivity. Prevent: decontamination filters + private held-out sets.
+Suppose a model scores 90% on GSM8K but 78% on newly written problems of
+matched difficulty: a 12-point drop on items that could not have been in
+training is the strongest evidence that it saw the test set. N-gram overlap
+is the cheapest check: flag test items that share any 13-gram with a
+training document; this catches verbatim copies and misses paraphrases.
+Canary strings: some benchmarks embed a unique GUID in their files, and a
+model that completes it was trained on those files. Completion probes: give
+the first half of a test question and see whether the model reproduces the
+rest word for word. Paraphrase sensitivity: accuracy that drops when only
+the wording changes points to memorized items. To prevent it, filter
+training data against known test sets and keep private held-out sets off
+the internet.
 
 **Q20. Your new model improved the LLM-judge win-rate by 10 points. What
 do you check before believing it?**
-Judge biases: position (swap orders), verbosity (length-controlled score),
-self-preference (different-family judge). Then Goodhart checks: human
-agreement on a sample, fresh prompts the judge/model haven't seen, per-
-category breakdown, KL/style drift from the base model. A 10-point win-rate
-gain with a +40% length increase is a length gain, not a quality gain.
+Say the win rate went from 50% to 60% and the average response got 40%
+longer. First rule out the judge's known biases: judge each pair in both
+orders and count only consistent verdicts (position bias); compute a
+length-controlled win rate by regressing out length (verbosity bias), and if
+that gain is near zero, the 10 points came from length; use a judge from a
+different model family (self-preference). Then check the judge against
+people: have humans label a sample of pairs and measure agreement. Finally
+test on fresh prompts neither the model nor the judge has seen, break the
+gain down by category, and measure drift from the base model in KL and
+style.
+
+**If asked:** *Could it be noise?* The standard error of a win rate near 50%
+on $n$ prompts is about $\sqrt{0.25/n}$: 2.2 points at 500 prompts, so a
+10-point gain is about 4.5 standard errors, while at 50 prompts it is 7
+points and the gain is not significant.
 
 **Q21. Your 30B run's loss spikes at step 40k. What do you do?**
-First look at what moved just before the spike. If the global gradient norm
-jumped, it was one oversized Adam step: Adam's $v$ averages about 1,000
-steps at $\beta_2 = 0.999$, so a gradient 100 times the usual size gives a
-step about 3 times the usual size. The fixes are gradient clipping and
-$\beta_2 = 0.95$. If the largest attention score or the output $\log Z$ had
-been climbing, add QK-norm or z-loss. For the run in hand, reload a
-checkpoint from before the spike and skip the batches around it, then check
-those batches for corrupted or repeated data.
+Read the per-step logs for the steps before the spike. Case 1: the global
+gradient norm jumped about 100 times a few steps before the loss did. That is
+one oversized Adam step: with $\beta_2 = 0.999$, $v$ averages about 1,000
+steps and barely registers one large gradient, so a gradient 100 times the
+usual size gives a step about 3.3 times the usual size. The fixes are
+gradient clipping (rescale the gradient to a fixed maximum norm) and
+$\beta_2 = 0.95$, which brings that step down to about 0.5 times. Case 2:
+the largest attention score or the output $\log Z$ climbed steadily over
+thousands of steps; add QK-norm or z-loss. For the run in hand, reload a
+checkpoint from a few hundred steps before the spike, skip the batches
+around it, and inspect those batches for corrupted or repeated data.
+
+**If asked:** *Why does z-loss not change the predictions?* Adding the same
+constant to every logit leaves the softmax unchanged, so the penalty
+$10^{-4} (\log Z)^2$ only holds the logits' overall level near zero.
 
 ## Exit checklist
 
