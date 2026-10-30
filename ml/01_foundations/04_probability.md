@@ -1460,14 +1460,20 @@ only about half the time. The other half, you might throw away a real
 improvement. The chance that a test catches a real improvement is its
 **power**: here about 50%.
 
-To catch it 80% of the time, the expected result must sit 2.8 standard
-errors above 50 (1.96 to reach significance, plus 0.84 because 80% of a bell
-lies above 0.84 below its center). Over $m$ disagreements, a model that
-wins 60% expects $0.6m$ wins, which is $0.1m$ above the $0.5m$ an equally
-good model expects. The standard error is $\sqrt m / 2$, so the expected $z$
-is $0.1m / (\sqrt m / 2) = 0.2\sqrt m$. Setting
-$0.2\sqrt m = 2.8$ gives $\sqrt m = 14$: about 200 disagreements, twice as
-many as this test had.
+To catch it more often, use more examples. With 200 disagreements:
+
+- **The bar.** An equally good model would get about 100 wins, give or take
+  $\sqrt{200}/2 \approx 7$. So significance needs about
+  $100 + 1.96 \times 7 \approx 114$ wins.
+- **What the better model gets.** 60% of 200 is 120 wins, give or take
+  about 7. That's 6 wins, almost one standard deviation, above the bar. A
+  bell lands above "one standard deviation below its center" 84% of the
+  time (§3.6), so the better model clears the bar about 80% of the time.
+
+Doubling the disagreements raised the power from 50% to 80%. The better
+model's lead grows in step with the number of disagreements (10 extra wins,
+then 20), while luck grows only with its square root (5, then 7). So the
+lead stands out more and more from the luck.
 
 #### Common traps
 
