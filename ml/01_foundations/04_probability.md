@@ -1433,15 +1433,26 @@ That's the whole test. The rest is names for its pieces:
 - **Statistically significant**: by convention, $p < 0.05$. This result is.
 - **Standard error** (SE): the standard deviation of the pile, 5 wins. It's
   the typical size of luck.
-- $z$: how far the real result is from 50, in standard errors:
+- $z$: the distance above the middle divided by the typical luck,
   $(62 - 50)/5 = 2.4$. The pile is a bell, so $p < 0.05$ is the same as
   $|z| > 1.96$ (§3.6).
 
 You don't need the simulation to get the 5. Heads in 100 fair flips are
 Binomial, with standard deviation $\sqrt{100 \times \frac12 \times \frac12} = 5$
 (§3.2). For $m$ disagreements it's $\sqrt{m \times \frac12 \times \frac12} = \sqrt m / 2$.
-This recipe, keeping only the disagreements and treating each one as a coin
-flip, is called **McNemar's test**.
+
+You can also get $z$ straight from the lead. The new model leads 62 to 38,
+by 24 wins, and the lead splits in half around the middle: 12 above 50 for
+the new model, 12 below for the old one. So with a lead of $L$ wins over $m$
+disagreements,
+
+$$z = \frac{L/2}{\sqrt m / 2} = \frac{L}{\sqrt m}$$
+
+The two halves cancel. Here $24/\sqrt{100} = 2.4$, the same as before.
+Writing $b$ for the new model's wins and $c$ for the old one's, the lead is
+$b - c$ and $m = b + c$, so $z = (b - c)/\sqrt{b + c}$. This recipe, keeping
+only the disagreements and treating each one as a coin flip, is called
+**McNemar's test**.
 
 #### Power: how many examples you need
 
