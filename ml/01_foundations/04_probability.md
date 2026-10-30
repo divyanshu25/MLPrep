@@ -1479,8 +1479,11 @@ flip between "A wins" and "B wins". Then:
 
 - A's wins out of 49 are Binomial, with standard deviation
   $\sqrt{49 \times \frac12 \times \frac12} = 3.5$ (§3.2).
-- The gap is A's wins minus B's wins, $a - (49 - a) = 2a - 49$, so its
-  standard deviation is twice as big: $2 \times 3.5 = 7$.
+- Every disagreement goes to A or to B, so each extra win for A is one
+  fewer for B, and the gap (A's wins minus B's wins) moves by 2. Going from
+  A 25, B 24 (gap 1) to A 28, B 21 (gap 7), A's wins moved by 3 and the gap
+  by 6. So the gap moves twice as much as A's wins, and its standard
+  deviation is $2 \times 3.5 = 7$.
 
 The real gap of 7 is just 1 standard deviation from zero, and a bell lands
 more than 1 standard deviation out about 32% of the time (§3.6). So the gap
