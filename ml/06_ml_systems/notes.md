@@ -787,8 +787,9 @@ requests, or replicas.
    fits one server; $10^9$ items × 256 dims × 4B ≈ 1TB - must shard or
    quantize (int8 → 256GB). ANN index over $10^9$ × 64B-quantized codes ≈
    64GB - one big box.
-5. **LLM case:** 7B params in fp16 = 14GB weights; KV cache per token ≈
-   2 bytes/param-layer-fraction (order 0.5MB/token for 7B) - memory, not
+5. **LLM case:** 7B params in fp16 = 14GB weights; KV cache per token =
+   2 (K and V) × layers × width × 2 bytes = 2 × 32 × 4096 × 2 ≈ 0.5MB for a
+   7B - memory, not
    compute, caps concurrent streams. Generation ≈ 2 × params FLOPs/token =
    14 GFLOPs/token; a modern accelerator's usable throughput then gives
    tokens/sec; divide demand by it. (Worked fully in `exercises.md`.)

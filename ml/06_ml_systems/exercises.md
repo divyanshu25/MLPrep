@@ -155,27 +155,31 @@ generate; 1000 × 500 = $5\times10^5$ input tokens/s to prefill.
 **Weights:** 7B params × 2 bytes (fp16) = **14 GB** - fits on one 80 GB
 accelerator with room to spare; the question is throughput, not fitting.
 
-**Decode is memory-bandwidth-bound.** Each decoding step must read all weights:
-14 GB/step. At ~3 TB/s HBM bandwidth → ~200 forward steps/s per GPU,
-*regardless of batch size* - so batch hard: with a batch of 64 concurrent
-streams, one GPU produces ~$200 \times 64 \approx 13\text{K}$ tokens/s. Need
-$2\times10^5$ → **~15–16 GPUs for decode**. (Sanity check per-stream speed: 200
-steps/s ≈ 200 tokens/s? No - each stream advances once per step only if
-scheduled every step; realistically ~30–60 tok/s/stream → 200 tokens in ~4–7s.
-Meets the 10s target.)
+**Decode is memory-bandwidth-bound at moderate batch.** Each decoding step must
+read all weights: 14 GB/step. At ~3 TB/s HBM bandwidth → ~200 forward steps/s per
+GPU. That stays true while the batch is small enough: the compute per step is
+14 GFLOPs × batch, which must stay well under the GPU's usable FLOP rate (a batch
+of a few hundred at most), and the batch's KV reads must stay small next to the
+weights. With a batch of 64 streams, one GPU produces ~$200 \times 64 \approx
+13\text{K}$ tokens/s. Need $2\times10^5$ → **~15–16 GPUs for decode**, holding
+about 1,000 streams at once. Every scheduled stream advances once per step, so
+each stream gets up to ~200 tokens/s; a 200-token answer takes about 1–2 s once
+prefill interleaving is counted. Meets the 10 s target.
 
 **Prefill is compute-bound:** ~$2 \times 7\times10^9 = 14$ GFLOPs/token ×
 $5\times10^5$ tok/s = 7 PFLOP/s. At ~1 PFLOP/s peak and ~40% utilization →
 **~18 GPUs for prefill**. Same order as decode.
 
 **KV cache - the hidden constraint.** Concurrency = arrival rate × residence
-time ≈ 1000 req/s × ~5 s = **5000 concurrent requests**, each holding ~700
+time ≈ 1000 req/s × ~1.5 s ≈ **1,500 concurrent requests**, each holding ~700
 tokens of context. Naive fp16 KV for a 7B (32 layers × 4096 dim × 2 (K,V) × 2
-bytes) ≈ 0.5 MB/token → 700 × 0.5 MB × 5000 ≈ **1.75 TB** - dwarfs weights!
-This is why serving stacks exist: grouped-query attention (~4–8× smaller KV),
-KV quantization (2×), paged allocation (no fragmentation) → ~200–400 GB total,
-spread over the same ~30 GPUs (66 GB free per GPU after weights) - feasible,
-but KV, not weights, decides the GPU count's memory side.
+bytes) ≈ 0.5 MB/token → 700 × 0.5 MB × 1500 ≈ **0.5 TB** - several times the
+weights, and per decode GPU about 22 GB of KV to read every step, more than the
+14 GB of weights. This is why serving stacks exist: grouped-query attention
+(~4–8× smaller KV), KV quantization (2×), paged allocation (no fragmentation) →
+~30–60 GB total, a few GB of KV reads per GPU per step, spread over the same ~30
+GPUs (66 GB free per GPU after weights). Without those, KV, not weights, would
+decide both the memory and the per-step bandwidth.
 
 **Answer:** ~30–40 H100-class GPUs (≈16 decode + ≈18 prefill, with KV fitting
 in their spare memory), plus ~30–50% headroom for peaks and redundancy →

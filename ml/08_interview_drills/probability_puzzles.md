@@ -9,10 +9,11 @@ names the tool first. Cover the solution, set a five-minute timer, and
 write your answer before unfolding. Every number was checked by exact
 computation or simulation.
 
-The tools, and which puzzles use them: geometric distribution (1, 12),
+The tools, and which puzzles use them: geometric distribution (1),
 linearity of expectation (2, 6, 15), Markov chain on states (7), Bayes
-rule with counts (3, 4, 13), symmetry (8, 11, 14), geometry of the sample
-space (9, 11), complement counting (5, 12).
+rule with counts (3, 4, 13), a fair game whose expected position stays
+fixed (8), symmetry (10, 11, 14), geometry of the sample space (9, 11),
+complement counting (5, 12).
 
 ---
 

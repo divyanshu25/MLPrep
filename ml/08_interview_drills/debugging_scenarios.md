@@ -307,9 +307,12 @@ Periodicity is the clue - find what shares the period.
    prefetch-buffer exhaustion - check whether the period matches a data
    service's rotation rather than the math.
 
-Mechanism note for the recovery shape: Adam absorbs a transient gradient
-scale change within ~1/(1−β₂) steps, which is why spikes self-heal - the
-spike is information about *inputs*, the recovery about the optimizer.
+Mechanism note for the recovery shape: a gradient spike inflates Adam's
+second-moment estimate $v$, which then decays over roughly 1/(1−β₂) steps
+(about 1,000 at β₂ = 0.999). While $v$ is inflated the effective step size
+is smaller, so the spike does little lasting damage and the loss can
+recover. The spike is information about the *inputs*; the recovery shape is
+about the optimizer.
 </details>
 
 ---

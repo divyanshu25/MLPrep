@@ -244,8 +244,10 @@ The two classic mistakes to avoid (both silent-wrong, not crashes):
    against `S` keys crashes or silently truncates. The `[S-T:S, :S]` slice
    above handles prompt-pass and single-token-pass uniformly.
 
-**Acceptance test** (do this in the interview unprompted): greedy-decode 50
-tokens with and without cache from the same prompt and `assert torch.equal`.
+**Acceptance test** (do this in the interview unprompted): decode 50 tokens
+with and without cache from the same prompt using greedy decoding (the
+provided `generate` samples with `torch.multinomial`, so add a flag that takes
+the argmax instead) and `assert torch.equal`.
 Also compare final-position logits of an incremental pass against one full
 forward with `torch.allclose(atol=1e-5)`. Both checks pass on this
 implementation (verified).

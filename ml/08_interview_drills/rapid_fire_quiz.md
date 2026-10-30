@@ -258,11 +258,12 @@ the input. It's the single cheapest sanity check in deep learning.
 **24. float16 vs bfloat16 - why does fp16 need loss scaling?**
 <details><summary>Answer</summary>
 
-fp16 has a 5-bit exponent: it can't represent values below ~6e-5 (normal), so
-small gradients flush to zero - loss scaling multiplies the loss by ~2¹⁰ to
+fp16 has a 5-bit exponent: its smallest normal value is ~6e-5, and subnormals
+reach down to ~6e-8 with fewer and fewer bits of precision, so small gradients
+lose precision or flush to zero - loss scaling multiplies the loss by ~2¹⁰ to
 push gradients into range, then unscales before the update. bf16 keeps
 float32's 8-bit exponent (same range, less precision), so it trains without
-scaling, which is why it's the modern default. *[Module 6, hardware notes]*
+scaling, which is why it's the modern default. *[Module 7, mixed-precision memory arithmetic]*
 </details>
 
 ---
@@ -346,8 +347,9 @@ it on and quietly degrades eval metrics. *[Module 3]*
 Zero (or any constant) init makes units in a layer compute identical outputs
 and receive identical gradients - symmetry never breaks and the layer
 collapses to one effective unit. The right scale keeps activation variance
-constant across layers: Var(w) = 1/fan_in (Xavier, for tanh) or 2/fan_in
-(Kaiming, for ReLU, which halves variance). Too big saturates; too small
+constant across layers: Var(w) = 1/fan_in (LeCun; Xavier's 2/(fan_in + fan_out)
+balances the forward and backward passes, for tanh) or 2/fan_in (Kaiming, for
+ReLU, which halves variance). Too big saturates; too small
 vanishes. *[Module 3, derived by variance tracking]*
 </details>
 
@@ -393,7 +395,7 @@ sequence length in both compute and (naively) memory. Mitigations attack
 different terms: FlashAttention keeps O(n²) compute but avoids materializing
 the matrix (tiled, IO-aware - exact); sliding-window/sparse attention and
 linear-attention variants cut compute to O(n·w) or O(n) by restricting or
-approximating who attends to whom. *[Modules 4, 6]*
+approximating who attends to whom. *[Modules 4, 7]*
 </details>
 
 **37. What exactly does the causal mask do?**
@@ -427,7 +429,7 @@ take clipped policy-gradient steps under a KL leash to the reference model.
 DPO skips the reward model and RL entirely: a change of variables turns the
 same preference objective into a direct classification-style loss on
 preference pairs - simpler and more stable, at the cost of being offline.
-*[Module 6 notes touch this; the one-liners are what's expected]*
+*[Module 7 derives DPO; the one-liners are what's expected]*
 </details>
 
 **40. What is perplexity?**
