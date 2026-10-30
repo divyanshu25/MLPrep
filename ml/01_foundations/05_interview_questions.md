@@ -444,20 +444,20 @@ Your model improved test accuracy from 91.0% to 91.5% on 1,000 examples. Real?
 
 Probably not. 0.5 points on 1,000 examples is 5 more examples right.
 
-Only the examples where the models disagree matter. If the models were
-equally good, each disagreement would be a coin flip. With $m$
-disagreements, the 5-example lead puts the new model $5/2$ wins above the
-middle, and the standard error is $\sqrt m / 2$, so
-
-$$z = \frac{5/2}{\sqrt m / 2} = \frac{5}{\sqrt m}$$
-
-$z > 1.96$ would need $m \le 6$: the models would have to disagree on almost
-nothing. Two models at 91% usually disagree on dozens of examples, so it's
-noise.
+Each test example is right or wrong, so the number of correct answers is
+Binomial with $p \approx 0.91$. Its variance is
+$1000 \times 0.91 \times 0.09 \approx 82$, so its standard error is
+$\sqrt{82} \approx 9$ examples. The gain, 5 examples, is less than one
+standard error, and significance needs about two (1.96). It's noise.
 
 **If asked:** *What else would you do?* Retrain with several seeds (seed
 spread is often about 0.5 points) and use a bigger test set (Probability
 §3.8).
+
+**If asked:** *Both models saw the same test set. Does that change it?* It
+can shrink the noise in the gap, because only the examples where they
+disagree count (McNemar's test, Probability §3.8). But a 5-example gain
+still only counts if the two models make almost exactly the same mistakes.
 </details>
 
 ## Exit checklist
