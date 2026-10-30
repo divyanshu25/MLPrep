@@ -1476,9 +1476,9 @@ true win rate $q$ (here 0.6).
   $\sqrt m / 2$. (Exactly, it's $\sqrt{m \times 0.6 \times 0.4} \approx 0.49\sqrt m$,
   close enough.)
 
-The better model clears the bar 80% of the time when its expected wins sit
-0.84 standard deviations above the bar, because 80% of a bell lies above
-"0.84 standard deviations below its center". So you need
+For 80% power, the bar should sit 0.84 standard deviations below the
+better model's expected wins, since 80% of a bell lies above that point. So
+you need
 
 $$qm \;\ge\; \frac m2 + (1.96 + 0.84)\,\frac{\sqrt m}{2}$$
 
