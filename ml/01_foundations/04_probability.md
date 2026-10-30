@@ -1331,50 +1331,38 @@ averages exactly $\sigma^2$. That's **Bessel's correction**.
 ## 3.8 Hypothesis tests: is the difference real?
 
 Checkout page A was shown to 50,000 users and 2.1% of them bought. Page B
-was shown to another 50,000 and 2.3% bought. B is ahead by 0.2 percentage
-points (a **percentage point** is a difference of 1% between two rates).
-But even if the two pages were identical, two random groups of 50,000 users
-would not buy at exactly the same rate, so noise alone produces some gap. A
-**hypothesis test** asks: if the pages were identical, how often would noise
-produce a gap at least this big? If the answer is "rarely", you call the
-difference real.
+was shown to another 50,000 and 2.3% bought. Is B really better? Not
+necessarily: even two identical pages would not get exactly the same rate
+from two random groups of users, so some gap appears from noise alone.
 
-#### The procedure
+So the question becomes: if the pages were identical, would noise often
+produce a gap as big as this one? If rarely, the gap is probably real. That
+is a **hypothesis test**, and the assumption that the pages are identical is
+called the **null hypothesis**, $H_0$.
 
-1. Assume there is no real difference. This assumption is called the **null
-   hypothesis**, $H_0$.
-2. Compute the **standard error** (SE) of the gap under $H_0$: the typical
-   size of the gap that noise alone produces.
-3. Compute $z = \text{gap} / \text{SE}$, the observed gap measured in
-   standard errors.
-4. Compute the **p-value**: how often noise alone would produce a $z$ as
-   big as yours or bigger, counting both directions. If you got $z = 2$,
-   the p-value is the chance that noise alone gives $z$ above 2 or below
-   $-2$. Under $H_0$, $z$ follows the standard bell (by the central limit
-   theorem, §3.6), so that chance is the area of the bell beyond $\pm 2$,
-   about 0.046.
-5. If the p-value is below a threshold you chose in advance, usually 0.05,
-   call the difference **statistically significant**.
+#### The checkout test
 
-#### The checkout test, step by step
-
-**The standard error.** Each conversion rate $\hat p$ is an average of 0/1
-outcomes (bought or not), so it has variance $p(1 - p)/n$ (§3.2, §3.6). The
-two pages were shown to different users, so the two rates are independent,
-and the variance of their difference is the sum of their variances
-(subtracting multiplies by $-1$, and $(-1)^2 = 1$, §3.1). Under $H_0$ both
-pages share one true rate, so you estimate it by **pooling**: treating all
-100,000 users as one group. That's $1{,}050 + 1{,}150 = 2{,}200$ buyers out
-of 100,000, a rate of $\hat p = 0.022$. Adding the two variances and taking
-the square root:
+**How big is a noise gap?** If the pages are identical, the typical size of
+the gap is its standard deviation, called the **standard error** (SE). Each
+rate is an average of 0/1 outcomes, so its variance is $p(1-p)/n$ (§3.2,
+§3.6). The two groups are different users, so the variance of the difference
+is the sum of the two variances (§3.1). Under $H_0$ both pages share one
+rate, estimated from all 100,000 users: 2,200 buyers, so $\hat p = 0.022$.
 
 $$\text{SE} = \sqrt{\hat p(1-\hat p)\Big(\frac{1}{n_A} + \frac{1}{n_B}\Big)}
 = \sqrt{0.022 \times 0.978 \times \frac{2}{50{,}000}} \approx 0.000928$$
 
-**The z and the p-value.** The gap is $0.023 - 0.021 = 0.002$, so
-$z = 0.002 / 0.000928 \approx 2.16$. The area of the standard bell beyond
-$\pm 2.16$ is $p \approx 0.031$. That's below 0.05 (as it must be: 2.16 is
-past 1.96, §3.6), so the difference is significant.
+So noise alone typically moves the gap by about 0.09 percentage points.
+
+**Is the observed gap big compared to that?** The gap is
+$0.023 - 0.021 = 0.002$, and in standard errors it is
+
+$$z = \frac{\text{gap}}{\text{SE}} = \frac{0.002}{0.000928} \approx 2.16$$
+
+**How often does noise do that?** Under $H_0$, $z$ follows the standard bell
+(by the central limit theorem, §3.6). The chance that noise alone gives a
+$z$ above 2.16 or below $-2.16$ (either page could have come out ahead) is
+the shaded area, 0.031. That chance is the **p-value**.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 190" role="img" aria-label="Standard normal curve with both tails beyond plus and minus 2.16 shaded; the shaded area is the two-sided p-value of 0.031" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1392,110 +1380,83 @@ past 1.96, §3.6), so the difference is significant.
 </svg>
 </div>
 
-*The checkout test lands at $z = 2.16$. The p-value is the shaded area: how
-often noise alone would push $z$ that far from zero in either direction.*
+*If the pages were identical, $z$ would follow this bell. The shaded tails
+beyond $\pm 2.16$ hold 3.1% of it.*
 
-**The confidence interval.** The 95% interval for the gap (§3.6) gives the
-same verdict and more. It is the gap $\pm 1.96$ SE, so it excludes zero
-exactly when the gap is more than 1.96 SE from zero, which is the same as
-$|z| > 1.96$, which is the same as $p < 0.05$. Here it's
-$0.002 \pm 1.96 \times 0.000928 = 0.002 \pm 0.0018$: from 0.02 to 0.38
-percentage points. So B is better, but the size of the lift is barely pinned
-down: anywhere from almost nothing to almost double the observed 0.2.
+So noise alone produces a gap this big about 3 times in 100. The usual rule,
+fixed before looking at the data, is to call a difference **statistically
+significant** when $p < 0.05$. This one is.
+
+**The same answer as a range.** The 95% interval for the gap (§3.6) is
+$0.002 \pm 1.96 \times 0.000928$, from 0.02 to 0.38 percentage points. It
+excludes zero exactly when $|z| > 1.96$, which is when $p < 0.05$. It also
+shows how loosely the lift is pinned down: anywhere from almost nothing to
+almost double the observed 0.2.
 
 #### Two models on the same test set
 
-Model A scores 91.2% and model B 90.5% on the same 1,000 test examples. The
-formula above, with the pooled accuracy 0.9085, gives
-
-$$\text{SE} = \sqrt{0.9085 \times 0.0915 \times \frac{2}{1000}} \approx 0.0129,
-  \qquad z = \frac{0.007}{0.0129} \approx 0.54, \qquad p \approx 0.59$$
-
-Nowhere near significant: a 0.7-point gap on 1,000 examples is well within
-noise.
-
-That formula assumes the two scores are independent, and here they aren't:
-both models answered the same 1,000 questions. The test built for this case
-is **McNemar's test**. It ignores the examples both models got right or both
-got wrong, since those say nothing about which model is better, and looks
-only at the disagreements:
+Model A scores 91.2% and model B 90.5% on the same 1,000 test examples, so
+A got 7 more right. Only the examples where the models disagree say which
+one is better. Let
 
 - $b$ = examples where A is right and B is wrong,
-- $c$ = examples where B is right and A is wrong.
+- $c$ = examples where B is right and A is wrong,
 
-A got 912 right and B got 905, so $b - c = 7$. Under $H_0$ each disagreement
-is a fair coin flip between "A wins" and "B wins". With $m = b + c$
-disagreements, $b$ is Binomial($m$, 1/2), with mean $m/2$ and variance
-$m \cdot \frac12 \cdot \frac12 = m/4$ (§3.2). Then $b - c = b - (m - b) = 2b - m$
-has mean $2 \cdot m/2 - m = 0$ and variance $2^2 \cdot m/4 = m$, so
+so $b - c = 7$. If the models are equally good, each disagreement is a fair
+coin flip. With $m = b + c$ disagreements, $b$ is Binomial($m$, 1/2) with
+variance $m/4$ (§3.2), and $b - c = 2b - m$ has mean 0 and variance
+$2^2 \cdot m/4 = m$. So
 
 $$z = \frac{b - c}{\sqrt{b + c}}$$
 
-A 7-example gap is significant only if $7/\sqrt{m} > 1.96$, which means
-$m \le 12$: the models would have to disagree on 12 or fewer examples. With
-88 and 95 errors they usually disagree on many more. At $m = 50$, for
-example, $z = 7/\sqrt{50} \approx 0.99$ and $p \approx 0.32$: noise.
+This is **McNemar's test**. A gap of 7 is significant only if
+$7/\sqrt{m} > 1.96$, which needs $m \le 12$. Models with 88 and 95 errors
+usually disagree on far more: at $m = 50$, $z \approx 0.99$ and
+$p \approx 0.32$, so the gap is noise.
 
 #### What a p-value is not
 
-A p-value is the probability of data this extreme *if* there's no effect. It
-is not the probability that there's no effect. Getting from one to the other
-is the Bayes problem from §3.3, and it needs a prior: how often the ideas you
-test are real. Say a team tests 1,000 ideas, 10% of them are real, and the
-test catches 80% of real effects. The 100 real ideas give 80 significant
-results. The 900 duds, each passing with probability 0.05, give 45 more. So
-45 of the 125 significant results, 36%, are false alarms, even though every
-one of them had $p < 0.05$. This is the same reason most positive tests in
-the rare-disease example came from healthy people.
+A p-value of 0.03 is the chance of a gap this big *if* the pages are
+identical. It is not a 3% chance that they are identical. Getting from one
+to the other needs a prior, as in §3.3. Say a team tests 1,000 ideas, 10% of
+them real, and the test catches 80% of real effects. The 100 real ideas give
+80 significant results, and the 900 duds give $0.05 \times 900 = 45$ more.
+So 45 of the 125 significant results, 36%, are false alarms.
 
-#### Errors, power and sample size
+#### Power: how big a test needs to be
 
-A test can go wrong in two ways:
+A test can be wrong in two ways. A **false positive** calls a difference
+real when it isn't; with a 0.05 threshold that happens 5% of the time. A
+**false negative** misses a real effect. The chance of catching a real
+effect is the test's **power**.
 
-- **False positive** (type I error): calling a difference real when it
-  isn't. The threshold sets this rate: with a threshold of 0.05, it's 5%.
-- **False negative** (type II error): missing a real effect. The chance of
-  catching a real effect is the test's **power**.
+Suppose B's lift is real and exactly 0.2 points. Then the measured $z$ is a
+bell centered at 2.16, and it is significant when it lands above 1.96, which
+is 0.2 below the center. About 58% of a bell lies above $-0.2$ standard
+deviations, so the power is 58%: the test misses this lift 4 times in 10.
 
-Power decides how big a test needs to be. Say the real lift is $\delta$. The
-measured gap is then a bell centered at $\delta$ with standard deviation SE,
-and the test comes out significant when the gap lands above 1.96 SE. For
-that to happen 80% of the time, the center $\delta$ has to sit 0.84 SE above
-the bar, because 80% of a bell lies above $-0.84$ standard deviations from
-its center. So you need $\delta \ge (1.96 + 0.84)\,\text{SE} = 2.8\,\text{SE}$.
+For 80% power, the center has to sit 0.84 above 1.96, because 80% of a bell
+lies above $-0.84$. So the lift $\delta$ must be at least
+$(1.96 + 0.84)\,\text{SE} = 2.8\,\text{SE}$. With $n$ users per group,
+$\text{SE} = \sqrt{2p(1-p)/n}$, and solving
+$\delta \ge 2.8\sqrt{2p(1-p)/n}$ for $n$ gives
 
-With $n$ users in each group, the SE formula becomes
-$\text{SE} = \sqrt{2p(1-p)/n}$. Squaring $\delta \ge 2.8\sqrt{2p(1-p)/n}$ and
-solving for $n$:
+$$n \;\ge\; \frac{2 \cdot 2.8^2 \cdot p(1-p)}{\delta^2}
+= \frac{2 \times 7.84 \times 0.022 \times 0.978}{0.002^2} \approx 84{,}000
+\text{ per group}$$
 
-$$n \;\ge\; \frac{2 \cdot 2.8^2 \cdot p(1-p)}{\delta^2} \quad\text{per group}$$
-
-For the checkout test, with $p = 0.022$ and a 0.2-point lift worth
-detecting, that's $2 \times 7.84 \times 0.022 \times 0.978 / 0.002^2
-\approx 84{,}000$ users per group. The test ran only 50,000, so it was
-**underpowered**. At 50,000 a real 0.2-point lift sits 2.16 SE from zero, so
-the measured gap is a bell centered at 2.16 SE and has to land above 1.96 SE,
-which is 0.2 SE below its center. About 58% of a bell lies above $-0.2$
-standard deviations, so the power is about 58%: the test would miss a real
-lift this size about 4 times in 10.
-
-An underpowered test also overstates the effects it does catch. Only the
-runs where noise pushed the gap up clear the bar, so the gaps that pass
-average more than the true lift.
+The test ran 50,000 per group, so it was **underpowered**. Underpowered
+tests also overstate the effects they catch: only the runs where noise
+pushed the gap up clear the bar.
 
 #### Multiple comparisons and peeking
 
-Two habits raise the false-alarm rate above 5%.
+Test 20 metrics when nothing real is going on, and each has a 5% chance of
+a false positive. The chance that at least one comes out significant is
+$1 - 0.95^{20} \approx 0.64$ (if the tests are independent). The fixes: pick
+one primary metric in advance, or divide the threshold by the number of
+tests, $0.05/20 = 0.0025$ (the **Bonferroni correction**).
 
-**Testing many things at once.** Test 20 metrics when nothing real is going
-on. Each one comes out not significant with probability 0.95, so all 20 do
-with probability $0.95^{20} \approx 0.36$, and at least one comes out
-significant with probability $1 - 0.36 = 0.64$ (if the tests are
-independent; correlated metrics give a somewhat lower figure). The fixes:
-pick one primary metric before you start, or divide the threshold by the
-number of tests, $0.05/20 = 0.0025$ here (the **Bonferroni correction**).
-
-**Peeking.** Checking the p-value every day and stopping the moment it dips
-below 0.05 is many tests disguised as one, with the same inflated
-false-alarm rate. The fixes: set the sample size in advance from a power
-calculation, or use a test designed for repeated looks.
+Checking the p-value every day and stopping the first time it dips below
+0.05 is the same problem: many tests disguised as one. Fix the sample size
+in advance, or use a test built for repeated looks.
