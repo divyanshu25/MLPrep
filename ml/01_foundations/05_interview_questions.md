@@ -444,17 +444,16 @@ Your model improved test accuracy from 91.0% to 91.5% on 1,000 examples. Real?
 
 Probably not. 0.5 points on 1,000 examples is 5 more examples right.
 
-Only the examples where the models disagree matter. Say there are 51: the
-new model wins 28, the old one 23. If the models were equally good, each
-disagreement would be a coin flip, so the new model would expect 25.5 wins,
-give or take $\sqrt{51 \times \frac12 \times \frac12} \approx 3.6$. It got
-28, just 2.5 above the middle:
+Only the examples where the models disagree matter. If the models were
+equally good, each disagreement would be a coin flip. With $m$
+disagreements, the 5-example lead puts the new model $5/2$ wins above the
+middle, and the standard error is $\sqrt m / 2$, so
 
-$$z = \frac{2.5}{3.6} \approx 0.7$$
+$$z = \frac{5/2}{\sqrt m / 2} = \frac{5}{\sqrt m}$$
 
-Well under 1.96, so it's noise. In general $z = 5/\sqrt m$ for $m$
-disagreements, and $z > 1.96$ would need $m \le 6$: the models would have
-to disagree on almost nothing.
+$z > 1.96$ would need $m \le 6$: the models would have to disagree on almost
+nothing. Two models at 91% usually disagree on dozens of examples, so it's
+noise.
 
 **If asked:** *What else would you do?* Retrain with several seeds (seed
 spread is often about 0.5 points) and use a bigger test set (Probability
