@@ -1434,7 +1434,9 @@ That's the whole test. The rest is names for its pieces:
   real result. Here 0.021.
 - **Statistically significant**: by convention, $p < 0.05$. This result is.
 - **Standard error** (SE): the standard deviation of the pile, 5 wins: the
-  typical distance from 50 that chance alone produces.
+  typical distance from 50 that chance alone produces. (In §3.6 terms: each
+  flip has $\sigma = \frac12$, so the fraction of wins has SE
+  $\frac12/\sqrt{100} = 0.05$, which is 5 wins out of 100.)
 - $z$: the distance from the middle in standard errors,
   $(62 - 50)/5 = 2.4$. The count is a sum of 100 flips, so by the central
   limit theorem the pile is close to a bell (§3.6). 95% of a bell lies
@@ -1591,7 +1593,10 @@ disagreements take about 7,800 test examples.
 
 **Reading p as the chance the models are equal.** $p = 0.021$ is the chance
 of a result this lopsided *if* the models are equal. It is not the chance
-that they are equal.
+that they are equal. It's the same mix-up as the rare-disease test (§3.3).
+Say you try 200 changes and 20 of them really help. At 80% power, 16 of the
+20 pass. Of the 180 useless ones, 5% pass: 9. So 9 of the 25 changes that
+pass, 36%, are useless, not 5%.
 
 **Testing many things.** Try 20 useless changes. A useless change behaves
 like the equal-models simulation, so each one passes 5% of the time. If the
