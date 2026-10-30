@@ -1345,9 +1345,17 @@ called the **null hypothesis**, $H_0$.
 **How big is a noise gap?** If the pages are identical, the typical size of
 the gap is its standard deviation, called the **standard error** (SE). Each
 rate is an average of 0/1 outcomes, so its variance is $p(1-p)/n$ (§3.2,
-§3.6). The two groups are different users, so the variance of the difference
-is the sum of the two variances (§3.1). Under $H_0$ both pages share one
-rate, estimated from all 100,000 users: 2,200 buyers, so $\hat p = 0.022$.
+§3.6). The gap is $\hat p_B - \hat p_A = \hat p_B + (-1)\,\hat p_A$. The two
+groups are different users, so the two rates are independent and their
+variances add (§3.1). Multiplying by $-1$ leaves a variance unchanged, since
+$\mathrm{Var}(aX) = a^2\,\mathrm{Var}(X)$ and $(-1)^2 = 1$. So
+
+$$\mathrm{Var}(\hat p_B - \hat p_A) = \mathrm{Var}(\hat p_B) + \mathrm{Var}(\hat p_A)$$
+
+Each rate has its own noise, and subtracting one from the other does not
+cancel it: the gap carries the noise of both. Under $H_0$ both pages share
+one rate, estimated from all 100,000 users: 2,200 buyers, so
+$\hat p = 0.022$. Adding the two variances and taking the square root:
 
 $$\text{SE} = \sqrt{\hat p(1-\hat p)\Big(\frac{1}{n_A} + \frac{1}{n_B}\Big)}
 = \sqrt{0.022 \times 0.978 \times \frac{2}{50{,}000}} \approx 0.000928$$
