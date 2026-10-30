@@ -1496,12 +1496,21 @@ would have to exceed 1.96, which needs 12 or fewer disagreements in total.
 
 #### What a p-value is not
 
-A p-value of 0.03 is the chance of a gap this big *if* the pages are
-identical. It is not a 3% chance that they are identical. Getting from one
-to the other needs a prior, as in §3.3. Say a team tests 1,000 ideas, 10% of
-them real, and the test catches 80% of real effects. The 100 real ideas give
-80 significant results, and the 900 duds give $0.05 \times 900 = 45$ more.
-So 45 of the 125 significant results, 36%, are false alarms.
+The checkout test gave $p = 0.031$. That is the chance of a gap this big
+*if the pages are identical*. It is not the chance that the pages are
+identical. The two sound alike but can be far apart, just as in the
+rare-disease test (§3.3), where a healthy person tests positive 5% of the
+time but a person who tests positive is healthy 83% of the time.
+
+Say a team tests 1,000 ideas, and only 100 of them really work:
+
+- Of the 100 that work, the test catches 80% as significant: 80 ideas.
+- Of the 900 that don't, 5% come out significant by chance:
+  $0.05 \times 900 = 45$ ideas.
+
+That's 125 significant results, and 45 of them, 36%, are ideas that don't
+work, even though every one had $p < 0.05$. How often a significant result is
+real depends on how many of the ideas you test are real to begin with.
 
 #### Power: how big a test needs to be
 
