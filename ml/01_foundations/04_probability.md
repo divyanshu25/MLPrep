@@ -1445,13 +1445,20 @@ and treating each one as a coin flip, is called **McNemar's test**.
 
 #### Power: how many examples you need
 
-A test can also miss a real improvement. The chance it catches one is its
-**power**.
+A test can also miss a real improvement. Say the new model really is
+better: it wins 60% of disagreements, not 50%. Will a test with 100
+disagreements notice?
 
-Suppose the new model really wins 60% of disagreements. With 100 of them,
-its wins land around 60, but significance needs about 60 or more
-($50 + 1.96 \times 5$). So the test catches the improvement only about half
-the time.
+- **The bar.** To be significant, the new model needs about
+  $50 + 1.96 \times 5 \approx 60$ wins out of 100.
+- **What the better model gets.** About 60 wins on average, but luck moves
+  it up or down by around 5. So half the time it lands above 60 and half the
+  time below.
+
+So even though the new model really is better, the test says "significant"
+only about half the time. The other half, you might throw away a real
+improvement. The chance that a test catches a real improvement is its
+**power**: here about 50%.
 
 To catch it 80% of the time, the expected result must sit 2.8 standard
 errors above 50 (1.96 to reach significance, plus 0.84 because 80% of a bell
