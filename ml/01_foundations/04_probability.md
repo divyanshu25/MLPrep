@@ -1330,226 +1330,145 @@ averages exactly $\sigma^2$. That's **Bessel's correction**.
 
 ## 3.8 Hypothesis tests: is the difference real?
 
-Checkout page A was shown to 50,000 users and 1,050 of them (2.1%) bought.
-Page B was shown to another 50,000 and 1,150 (2.3%) bought. Is B really
-better? Not
-necessarily: even two identical pages would not get exactly the same rate
-from two random groups of users, so some gap appears from noise alone.
+You train a new model and compare it with the old one on the same 1,000
+test examples. On most examples they agree, both right or both wrong, and
+those say nothing about which model is better. They disagree on 100: the new
+model is right on 62 of them and the old one on 38. Is the new model really
+better, or did it get lucky on this test set? A **hypothesis test** answers
+that by asking: if the two models were equally good, how often would luck
+alone give a result this lopsided?
 
-So the question becomes: if the pages were identical, would noise often
-produce a gap as big as this one? If rarely, the gap is probably real.
-Answering that question is called a **hypothesis test**.
+#### The test
 
-#### The checkout test
-
-**Rerun it with identical pages.** Suppose the pages really were
-identical, both with a 2.2% buying rate (the overall rate: 2,200 buyers out
-of 100,000 users). A computer can fake the whole experiment:
-
-1. For each of 50,000 users in group A, draw "buys" with probability 2.2%,
-   and count the buyers.
-2. Do the same for another 50,000 users in group B.
-3. Subtract: B's count minus A's count is the gap.
-
-The first fake run gave A 1,107 buyers and B 1,122, a gap of +15. The next
-few gave $-3$, $+26$, $+53$ and $-54$. Every one of these gaps is pure
-chance, since the pages are the same. Here are the gaps from 10,000 such runs:
+**Rerun it with equally good models.** If the models were equally good, each
+disagreement would be a fair coin flip between them. A computer can fake
+that: flip 100 fair coins and count how many the new model wins. One run gave
+57, the next 44, the next 50. Here are 10,000 runs:
 
 <div style="margin:1.25rem 0">
-<svg viewBox="0 0 520 270" role="img" aria-label="Histogram of the gap in buyers between two groups of 50,000 shown the same page, over 10,000 simulated reruns: a bell centered at zero with a spread of about 46 buyers; the 314 reruns with a gap of 100 or more in either direction are colored red" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
-  <text x="260.0" y="20" text-anchor="middle" fill="#6366f1" font-weight="600">10,000 reruns with identical pages</text>
-  <rect x="40.5" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="51.5" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="62.5" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="73.5" y="209.4" width="10.0" height="0.6" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="84.5" y="209.1" width="10.0" height="0.9" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="95.5" y="208.5" width="10.0" height="1.5" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="106.5" y="207.8" width="10.0" height="2.2" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="117.5" y="205.7" width="10.0" height="4.3" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="128.5" y="202.0" width="10.0" height="8.0" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="139.5" y="197.1" width="10.0" height="12.9" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="150.5" y="190.4" width="10.0" height="19.6" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="161.5" y="180.4" width="10.0" height="29.6" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="172.5" y="165.8" width="10.0" height="44.2" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="183.5" y="150.4" width="10.0" height="59.6" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="194.5" y="129.4" width="10.0" height="80.6" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="205.5" y="111.6" width="10.0" height="98.4" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="216.5" y="93.5" width="10.0" height="116.5" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="227.5" y="78.9" width="10.0" height="131.1" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="238.5" y="60.2" width="10.0" height="149.8" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="249.5" y="55.4" width="10.0" height="154.6" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="260.5" y="50.0" width="10.0" height="160.0" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="271.5" y="56.3" width="10.0" height="153.7" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="282.5" y="68.9" width="10.0" height="141.1" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="293.5" y="89.0" width="10.0" height="121.0" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="304.5" y="106.2" width="10.0" height="103.8" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="315.5" y="130.1" width="10.0" height="79.9" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="326.5" y="156.4" width="10.0" height="53.6" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="337.5" y="166.2" width="10.0" height="43.8" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="348.5" y="176.5" width="10.0" height="33.5" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="359.5" y="191.9" width="10.0" height="18.1" fill="#6366f1" fill-opacity="0.45"/>
-  <rect x="370.5" y="199.8" width="10.0" height="10.2" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="381.5" y="202.2" width="10.0" height="7.8" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="392.5" y="205.7" width="10.0" height="4.3" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="403.5" y="208.0" width="10.0" height="2.0" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="414.5" y="208.5" width="10.0" height="1.5" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="425.5" y="209.1" width="10.0" height="0.9" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="436.5" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="447.5" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="458.5" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
-  <rect x="469.5" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
-  <line x1="40" y1="210" x2="480" y2="210" stroke="currentColor" opacity="0.5"/>
+<svg viewBox="0 0 520 270" role="img" aria-label="Histogram of how many of 100 disagreements the new model wins, over 10,000 simulated runs where both models are equally good: a bell centered at 50 with a standard deviation of 5; the 206 runs at 62 or more, or 38 or fewer, are colored red" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <text x="260.0" y="20" text-anchor="middle" fill="#6366f1" font-weight="600">10,000 runs with equally good models</text>
+  <rect x="35.0" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="46.0" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="57.0" y="209.8" width="10.0" height="0.2" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="68.0" y="209.4" width="10.0" height="0.6" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="79.0" y="209.4" width="10.0" height="0.6" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="90.0" y="208.1" width="10.0" height="1.9" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="101.0" y="207.7" width="10.0" height="2.3" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="112.0" y="206.1" width="10.0" height="3.9" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="123.0" y="199.7" width="10.0" height="10.3" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="134.0" y="195.2" width="10.0" height="14.8" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="145.0" y="192.5" width="10.0" height="17.5" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="156.0" y="180.0" width="10.0" height="30.0" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="167.0" y="165.0" width="10.0" height="45.0" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="178.0" y="151.5" width="10.0" height="58.5" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="189.0" y="133.6" width="10.0" height="76.4" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="200.0" y="118.4" width="10.0" height="91.6" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="211.0" y="102.4" width="10.0" height="107.6" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="222.0" y="79.8" width="10.0" height="130.2" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="233.0" y="68.5" width="10.0" height="141.5" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="244.0" y="52.9" width="10.0" height="157.1" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="255.0" y="50.0" width="10.0" height="160.0" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="266.0" y="61.5" width="10.0" height="148.5" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="277.0" y="64.6" width="10.0" height="145.4" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="288.0" y="83.3" width="10.0" height="126.7" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="299.0" y="100.5" width="10.0" height="109.5" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="310.0" y="110.2" width="10.0" height="99.8" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="321.0" y="132.2" width="10.0" height="77.8" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="332.0" y="151.0" width="10.0" height="59.0" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="343.0" y="158.4" width="10.0" height="51.6" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="354.0" y="182.1" width="10.0" height="27.9" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="365.0" y="190.1" width="10.0" height="19.9" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="376.0" y="197.5" width="10.0" height="12.5" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="387.0" y="201.8" width="10.0" height="8.2" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="398.0" y="204.7" width="10.0" height="5.3" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="409.0" y="206.5" width="10.0" height="3.5" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="420.0" y="208.8" width="10.0" height="1.2" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="431.0" y="209.0" width="10.0" height="1.0" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="442.0" y="209.2" width="10.0" height="0.8" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="453.0" y="209.6" width="10.0" height="0.4" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="464.0" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="475.0" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
+  <line x1="34" y1="210" x2="486" y2="210" stroke="currentColor" opacity="0.5"/>
   <line x1="40.0" y1="210" x2="40.0" y2="214" stroke="currentColor" opacity="0.5"/>
-  <text x="40.0" y="227" text-anchor="middle" fill="currentColor" fill-opacity="0.7">−200</text>
-  <line x1="150.0" y1="210" x2="150.0" y2="214" stroke="currentColor" opacity="0.5"/>
-  <text x="150.0" y="227" text-anchor="middle" fill="#f43f5e">−100</text>
+  <text x="40.0" y="227" text-anchor="middle" fill="currentColor" fill-opacity="0.7">30</text>
+  <line x1="128.0" y1="210" x2="128.0" y2="214" stroke="currentColor" opacity="0.5"/>
+  <text x="128.0" y="227" text-anchor="middle" fill="#f43f5e">38</text>
   <line x1="260.0" y1="210" x2="260.0" y2="214" stroke="currentColor" opacity="0.5"/>
-  <text x="260.0" y="227" text-anchor="middle" fill="currentColor" fill-opacity="0.7">0</text>
-  <line x1="370.0" y1="210" x2="370.0" y2="214" stroke="currentColor" opacity="0.5"/>
-  <text x="370.0" y="227" text-anchor="middle" fill="#f43f5e">+100</text>
+  <text x="260.0" y="227" text-anchor="middle" fill="currentColor" fill-opacity="0.7">50</text>
+  <line x1="392.0" y1="210" x2="392.0" y2="214" stroke="currentColor" opacity="0.5"/>
+  <text x="392.0" y="227" text-anchor="middle" fill="#f43f5e">62</text>
   <line x1="480.0" y1="210" x2="480.0" y2="214" stroke="currentColor" opacity="0.5"/>
-  <text x="480.0" y="227" text-anchor="middle" fill="currentColor" fill-opacity="0.7">+200</text>
-  <line x1="370.0" y1="210" x2="370.0" y2="70" stroke="#f43f5e" stroke-dasharray="4 4"/>
-  <line x1="150.0" y1="210" x2="150.0" y2="70" stroke="#f43f5e" stroke-dasharray="4 4"/>
-  <text x="376.0" y="80" fill="#f43f5e" font-size="11">real gap: +100</text>
-  <text x="376.0" y="95" fill="#f43f5e" font-size="11">314 reruns (3.1%)</text>
-  <text x="376.0" y="109" fill="#f43f5e" font-size="11">reach ±100</text>
-  <line x1="208.96" y1="113.5" x2="311.04" y2="113.5" stroke="#10b981" stroke-width="1.5"/>
-  <line x1="209.0" y1="109.5" x2="209.0" y2="117.5" stroke="#10b981" stroke-width="1.5"/>
-  <line x1="311.0" y1="109.5" x2="311.0" y2="117.5" stroke="#10b981" stroke-width="1.5"/>
-  <text x="260.0" y="106.5" text-anchor="middle" fill="#10b981" font-size="11" font-weight="600">±46</text>
-  <text x="260.0" y="250" text-anchor="middle" fill="currentColor" fill-opacity="0.8">gap in buyers (B − A)</text>
+  <text x="480.0" y="227" text-anchor="middle" fill="currentColor" fill-opacity="0.7">70</text>
+  <line x1="133.5" y1="210" x2="133.5" y2="70" stroke="#f43f5e" stroke-dasharray="4 4"/>
+  <line x1="386.5" y1="210" x2="386.5" y2="70" stroke="#f43f5e" stroke-dasharray="4 4"/>
+  <text x="392.5" y="80" fill="#f43f5e" font-size="11">real result: 62</text>
+  <text x="392.5" y="95" fill="#f43f5e" font-size="11">206 runs (2.1%)</text>
+  <text x="392.5" y="109" fill="#f43f5e" font-size="11">this far from 50</text>
+  <line x1="205.0" y1="115.7" x2="315.0" y2="115.7" stroke="#10b981" stroke-width="1.5"/>
+  <line x1="205.0" y1="111.7" x2="205.0" y2="119.7" stroke="#10b981" stroke-width="1.5"/>
+  <line x1="315.0" y1="111.7" x2="315.0" y2="119.7" stroke="#10b981" stroke-width="1.5"/>
+  <text x="260.0" y="108.7" text-anchor="middle" fill="#10b981" font-size="11" font-weight="600">±5</text>
+  <text x="260.0" y="250" text-anchor="middle" fill="currentColor" fill-opacity="0.8">disagreements won by the new model (out of 100)</text>
 </svg>
 </div>
 
-*The gap between two groups of 50,000 shown the same page, in 10,000
-simulated reruns. About 7 in 10 land within 50 buyers of zero. Only 314
-(3.1%) are 100 or more in either direction (red).*
+*How many of the 100 disagreements the new model wins, in 10,000 fake runs
+with equally good models. Only 206 runs (2.1%, red) are as far from 50 as
+the real result of 62.*
 
-The pile is a bell centered at zero, with a standard deviation of about 46
-buyers (the green bracket). The real gap, 100 buyers, is
-$100 / 46.4 \approx 2.16$ standard deviations from zero. A bell rarely lands
-that far out: more than 1.96 standard deviations from the center happens
-only 5% of the time (§3.6). So B is probably really better.
+The pile is a bell centered at 50 with a standard deviation of 5. The real
+result, 62, is $(62 - 50)/5 = 2.4$ standard deviations out, and a bell lands
+more than 1.96 standard deviations out only 5% of the time (§3.6). So the
+new model is probably really better.
 
-**Naming the pieces.** Each term is something in the picture:
+**The names.**
 
-- The **null hypothesis**, $H_0$, is the assumption the picture is built on:
-  the pages are identical.
-- The **standard error** (SE) is the standard deviation of the pile, 46.4
-  buyers: the typical size of a gap that comes from chance alone.
-- $z$ is how many standard errors the real gap is from zero: 2.16.
-- The **p-value** is the fraction of the pile more than 2.16 standard
-  errors from zero, on either side (the red bars): 0.031.
-- A difference is called **statistically significant** when $p < 0.05$,
-  which is the same as $|z| > 1.96$. The threshold is fixed before looking
-  at the data. This one is significant.
+- **Null hypothesis** ($H_0$): the assumption behind the picture, that the
+  models are equally good.
+- **Standard error** (SE): the standard deviation of the pile, 5 wins.
+- $z$: how far the real result is from 50, in standard errors: 2.4.
+- **p-value**: the fraction of the pile at least that far from 50, on
+  either side: 0.021.
+- **Statistically significant**: $p < 0.05$, which is the same as
+  $|z| > 1.96$. This result is.
 
-**Getting the spread without simulating.** By the central limit theorem
-(§3.6) the pile is a bell, so its standard deviation is all you need. Each
-group's buyer count is Binomial, with standard deviation
-$\sqrt{50{,}000 \times 0.022 \times 0.978} \approx 32.8$ (§3.2). The two
-counts vary independently, so their variances add, and subtracting doesn't
-cancel them, since $\mathrm{Var}(-X) = (-1)^2\,\mathrm{Var}(X)$ (§3.1):
+**Without simulating.** The new model's wins are Binomial with 100 flips and
+probability $\frac12$, so the standard deviation is
+$\sqrt{100 \times \frac12 \times \frac12} = 5$ (§3.2). With $m$
+disagreements it is $\sqrt{m}/2$. Comparing two models this way is called
+**McNemar's test**.
 
-$$\text{SE} = \sqrt{32.8^2 + 32.8^2} \approx 46.4 \text{ buyers}$$
+#### Power: how many examples you need
 
-The area of the standard bell beyond $\pm 2.16$ is 0.031, the same as the
-simulation's fraction.
+A test can also miss a real improvement. The chance it catches one is its
+**power**.
 
-**The same answer as a range.** The 95% interval for the gap (§3.6) is
-$100 \pm 1.96 \times 46.4 \approx 100 \pm 91$ buyers, from 9 to 191 extra buyers
-out of 50,000, or 0.02 to 0.38 percentage points. It
-excludes zero exactly when $|z| > 1.96$, which is when $p < 0.05$. It also
-shows how loosely the lift is pinned down: anywhere from almost nothing (9
-buyers) to almost double the observed 100.
+Suppose the new model really wins 60% of disagreements. With 100 of them,
+its wins land around 60, but significance needs about 60 or more
+($50 + 1.96 \times 5$). So the test catches the improvement only about half
+the time.
 
-#### Two models on the same test set
+To catch it 80% of the time, the expected result must sit 2.8 standard
+errors above 50 (1.96 to reach significance, plus 0.84 because 80% of a bell
+lies above 0.84 below its center). Over $m$ disagreements, a model that
+wins 60% expects $0.6m$ wins, which is $0.1m$ above the $0.5m$ an equally
+good model expects. The standard error is $\sqrt m / 2$, so the expected $z$
+is $0.1m / (\sqrt m / 2) = 0.2\sqrt m$. Setting
+$0.2\sqrt m = 2.8$ gives $\sqrt m = 14$: about 200 disagreements, twice as
+many as this test had.
 
-Model A scores 91.2% and model B 90.5% on the same 1,000 test examples, so
-A got 7 more right. Is A really better?
+#### Common traps
 
-Most examples can't answer that. If both models got an example right, or
-both got it wrong, it says nothing about which one is better. Only the
-examples where they disagree count. Say there are 49 of them: A was right
-(and B wrong) on 28, and B was right (and A wrong) on 21. That's the gap of 7.
-
-If the models were equally good, each disagreement would be a fair coin
-flip between "A wins" and "B wins". Then:
-
-- A's wins out of 49 are Binomial, with standard deviation
-  $\sqrt{49 \times \frac12 \times \frac12} = 3.5$ (§3.2).
-- Every disagreement goes to A or to B, so each extra win for A is one
-  fewer for B, and the gap (A's wins minus B's wins) moves by 2. Going from
-  A 25, B 24 (gap 1) to A 28, B 21 (gap 7), A's wins moved by 3 and the gap
-  by 6. So the gap moves twice as much as A's wins, and its standard
-  deviation is $2 \times 3.5 = 7$.
-
-The real gap of 7 is just 1 standard deviation from zero, and a bell lands
-more than 1 standard deviation out about 32% of the time (§3.6). So the gap
-is noise: no evidence that A is better.
-
-With $b$ examples won only by A and $c$ won only by B, the same steps give a
-standard deviation of $\sqrt{b + c}$, so
-
-$$z = \frac{b - c}{\sqrt{b + c}}$$
-
-This is **McNemar's test**. For a gap of 7 to be significant, $7/\sqrt{b+c}$
-would have to exceed 1.96, which needs 12 or fewer disagreements in total.
-
-#### What a p-value is not
-
-The checkout test gave $p = 0.031$. That is the chance of a gap this big
-*if the pages are identical*. It is not the chance that the pages are
-identical. The two sound alike but can be far apart, just as in the
-rare-disease test (§3.3), where a healthy person tests positive 5% of the
-time but a person who tests positive is healthy 83% of the time.
-
-Say a team tests 1,000 ideas, and only 100 of them really work:
-
-- Of the 100 that work, the test catches 80% as significant: 80 ideas.
-- Of the 900 that don't, 5% come out significant by chance:
-  $0.05 \times 900 = 45$ ideas.
-
-That's 125 significant results, and 45 of them, 36%, are ideas that don't
-work, even though every one had $p < 0.05$. How often a significant result is
-real depends on how many of the ideas you test are real to begin with.
-
-#### Power: how big a test needs to be
-
-A test can be wrong in two ways. A **false positive** calls a difference
-real when it isn't; with a 0.05 threshold that happens 5% of the time. A
-**false negative** misses a real effect. The chance of catching a real
-effect is the test's **power**.
-
-Suppose B's lift is real and exactly 0.2 points. Then the measured $z$ is a
-bell centered at 2.16, and it is significant when it lands above 1.96, which
-is 0.2 below the center. About 58% of a bell lies above $-0.2$ standard
-deviations, so the power is 58%: the test misses this lift 4 times in 10.
-
-For 80% power, the center has to sit 0.84 above 1.96, because 80% of a bell
-lies above $-0.84$. So the lift $\delta$ must be at least
-$(1.96 + 0.84)\,\text{SE} = 2.8\,\text{SE}$. With $n$ users per group, the
-SE in buyers is $\sqrt{2np(1-p)}$ (the 46.4 above, for $n = 50{,}000$), and as
-a rate it is that divided by $n$, $\text{SE} = \sqrt{2p(1-p)/n}$. Solving
-$\delta \ge 2.8\sqrt{2p(1-p)/n}$ for $n$ gives
-
-$$n \;\ge\; \frac{2 \cdot 2.8^2 \cdot p(1-p)}{\delta^2}
-= \frac{2 \times 7.84 \times 0.022 \times 0.978}{0.002^2} \approx 84{,}000
-\text{ per group}$$
-
-The test ran 50,000 per group, so it was **underpowered**. Underpowered
-tests also overstate the effects they catch: only the runs where noise
-pushed the gap up clear the bar.
-
-#### Multiple comparisons and peeking
-
-Test 20 metrics when nothing real is going on, and each has a 5% chance of
-a false positive. The chance that at least one comes out significant is
-$1 - 0.95^{20} \approx 0.64$ (if the tests are independent). The fixes: pick
-one primary metric in advance, or divide the threshold by the number of
-tests, $0.05/20 = 0.0025$ (the **Bonferroni correction**).
-
-Checking the p-value every day and stopping the first time it dips below
-0.05 is the same problem: many tests disguised as one. Fix the sample size
-in advance, or use a test built for repeated looks.
+- **Reading p as the chance of no effect.** $p = 0.021$ is the chance of a
+  result this lopsided *if* the models are equally good, not the chance that
+  they are. Say a team tries 1,000 model changes and 100 really help. The
+  test catches about 80 of those, and 5% of the 900 useless ones, 45, pass
+  by luck. So 45 of 125 "significant" changes, 36%, don't help. It's the
+  same trap as the rare-disease test (§3.3).
+- **Testing many things.** Try 20 useless changes and the chance that at
+  least one passes is $1 - 0.95^{20} \approx 0.64$. Either decide on one
+  comparison in advance or use the threshold $0.05/20 = 0.0025$ (the
+  **Bonferroni correction**).
+- **Peeking.** Checking the result again and again and stopping the first
+  time $p < 0.05$ is also many tests. Fix the test size in advance.
