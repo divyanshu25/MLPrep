@@ -44,10 +44,11 @@ Forward: each weight in a matmul does one multiply and one add per token
 $\partial X = \partial Y W^\top$ and $\partial W = X^\top \partial Y$ - two
 matmuls of the same size → $4N$ FLOPs/token. Total $6N$/token, × $D$ tokens.
 
-Ignored: attention's $QK^\top$ and $AV$ ($O(s \cdot d_{model})$/token/layer,
-no *parameters* involved - bad approximation when $s$ is large relative to
-model width: at $s \gtrsim d_{model} \cdot L /$ (a few), attention FLOPs
-rival parameter FLOPs, i.e. very long contexts); embedding/unembedding
+Ignored: attention's $QK^\top$ and $AV$ (about $4 s\, d_{model}$ FLOPs per
+token per layer, no *parameters* involved, against about $24 d_{model}^2$ for
+the layer's weights). The ratio is about $s/(6 d_{model})$, independent of the
+number of layers, so the approximation breaks down once $s$ approaches a few
+times $d_{model}$, i.e. very long contexts; embedding/unembedding
 lookups; and it assumes no recomputation (gradient checkpointing adds ~$2N$
 for the extra forward → $8ND$).
 </details>
@@ -280,9 +281,10 @@ all-reduce.
 (b) 2 all-reduces forward (one per sub-block), 2 backward (mirrored, on the
 input gradients).
 
-(c) Each all-reduce moves $\approx 2 \times$ tensor size per GPU (ring):
-tensor $= 8192 \times 8192 \times 2$ B $= 128$ MB → $\approx 256$ MB per
-all-reduce, ~1 GB per layer per step (4 ops), × 80 layers ≈ 80 GB per step  - 
+(c) A ring all-reduce over $G$ GPUs moves $2(G-1)/G$ times the tensor size
+per GPU, which is $1\times$ for $G = 2$: tensor
+$= 8192 \times 8192 \times 2$ B $= 128$ MB → 128 MB per all-reduce, ~0.5 GB
+per layer per step (4 ops), × 80 layers ≈ 40 GB per step  - 
 every step, poorly overlappable because the next op *needs* the result.
 Feasible on 900 GB/s NVLink within a node; ruinous over ~50 GB/s inter-node
 links. Hence TP ≤ 8 (node size), with PP/DP across nodes.
@@ -356,9 +358,10 @@ A defensible design (numbers are the point, not the exact choices):
    compute-bound prefill doesn't stall everyone's decode; FlashAttention
    keeps long-context attention from becoming an HBM-traffic problem.
 
-Sanity throughput: aggregate BW $8 \times 3.35 = 26.8$ TB/s; streaming 70 GB
-of weights → ~380 weight-streams/s; at batch ~50 sharing each stream, order
-$10^4$ tok/s aggregate ceiling; per-user decode bounded by single-stream
-latency ~1/380 s + KV reads → tens of tok/s/user. All targets met with
+Sanity throughput: aggregate BW $8 \times 3.35 = 26.8$ TB/s. Each decode
+step streams the 70 GB of weights plus the batch's KV cache (~67 GB at batch
+50 with fp16 KV), about 137 GB per step → ~195 steps/s. With 50 sequences per
+step that's order $10^4$ tok/s aggregate, and each user gets at most ~195
+tok/s, in practice tens of tok/s after prefill and scheduling overheads. All targets met with
 margin - which is what the margin analysis is for.
 </details>

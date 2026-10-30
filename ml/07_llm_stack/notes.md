@@ -53,9 +53,11 @@ matrices, and a weight matrix $W \in \mathbb{R}^{d_{in} \times d_{out}}$
 applied to one token's vector costs $d_{in} \cdot d_{out}$ multiplies plus
 $d_{in} \cdot d_{out}$ adds $= 2\,d_{in} d_{out}$ FLOPs - i.e. **2 FLOPs per
 parameter**, per token. Summing over all matrices: $2N$ FLOPs. (Attention's
-$QK^\top$ and $AV$ products cost $O(s \cdot d)$ per token extra - for
-$s \ll d \cdot n_{layers}$ this is a small correction we ignore, and for
-typical training contexts it's ~10%.)
+$QK^\top$ and $AV$ products add about $4sd$ FLOPs per token per layer, against
+about $24d^2$ for the layer's parameters, so the ratio is about $s/(6d)$, or
+$s/(12d)$ with a causal mask; the number of layers cancels. For $s \ll 6d$
+this is a small correction we ignore; for typical training contexts it is a
+few percent to ~10%.)
 
 **Backward pass ≈ $4N$ FLOPs per token.** For each matmul $Y = XW$ the
 backward needs two matmuls: $\partial X = \partial Y\, W^\top$ (to keep the
@@ -103,7 +105,12 @@ been strictly better at the same cost.
 
 At the Chinchilla optimum the fitted constants give a simple ratio:
 $D_{opt}/N_{opt} \approx 20$ tokens per parameter (Chinchilla itself: 1.4T /
-70B = 20). Combine with $C = 6ND$:
+70B = 20). Treat 20 as a rule of thumb at roughly this compute scale: the
+fitted exponents make the ratio drift slowly with $C$, and a 2024 replication
+(Besiroglu et al.) found errors in the original fit. Kaplan's earlier, more
+parameter-heavy answer differed mainly because it counted only non-embedding
+parameters and did not match the learning-rate schedule to each run's
+length. Combine with $C = 6ND$:
 
 $$C = 6 N (20N) = 120 N^2 \;\Rightarrow\; N_{opt} = \sqrt{C/120}, \quad D_{opt} = 20 N_{opt}$$
 
@@ -157,7 +164,7 @@ Everything in this section follows from one small table. Standard recipe:
 |---|---|---|---|
 | weights (working copy) | fp16/bf16 | 2 | fast matmuls on tensor cores |
 | gradients | fp16/bf16 | 2 | produced by backward at matmul precision |
-| master weights | fp32 | 4 | fp16 update $w \mathrel{-}= \eta g$ underflows: $\eta g$ is often $< 2^{-24}$, the smallest fp16 increment near 1; accumulate in fp32 and round down each step |
+| master weights | fp32 | 4 | fp16 update $w \mathrel{-}= \eta g$ gets lost: fp16 values near 1 are spaced $2^{-10}$ apart, so with round-to-nearest any update below $2^{-11}$ vanishes, and $\eta g$ is often far smaller; accumulate in fp32 and round to fp16 for the matmuls |
 | Adam first moment $m$ | fp32 | 4 | Adam's running mean of gradients |
 | Adam second moment $v$ | fp32 | 4 | Adam's running mean of squared gradients |
 
@@ -186,7 +193,8 @@ Walk it through exactly like this:
    $h$=hidden, $a$=heads. For 70B ($h=8192, a=64, L=80$), $s=4096$, $b=1$
    per GPU: $\approx 4096 \cdot 8192 \cdot (34 + 5\cdot64\cdot4096/8192)
    \approx 6.5$ GB *per layer* → ~520 GB for 80 layers. Nobody pays this  - 
-   gradient checkpointing (§2.8) reduces it to roughly the layer inputs,
+   gradient checkpointing (keep only each layer's input and recompute the
+   rest during backward; §2.7 derives it) reduces it to roughly the layer inputs,
    $2sbh L \approx 5.4$ GB, plus recompute.
 3. **Conclusion**: ~1.12 TB of state alone. One H100 has 80 GB. So you need
    at least $1120/80 = 14$ GPUs *just to hold training state*, ignoring
@@ -507,8 +515,10 @@ baseline. GRPO replaces it with an *empirical* baseline: sample a **group**
 of $G$ completions $\{y_1..y_G\}$ for the same prompt, score each, and set
 
 $$\hat A_i = \frac{r_i - \text{mean}(r_1..r_G)}{\text{std}(r_1..r_G)}$$
- - each sample's advantage is its reward relative to its siblings. No value
-model: ~25% less memory and no critic to train or to be wrong. Why this fits
+
+Each sample's advantage is its reward relative to its siblings. No value
+model: no second policy-sized network to store and train, and no critic to
+be wrong. Why this fits
 reasoning models: (i) with **verifiable rewards** (did the math answer check
 out? did tests pass?) the reward is exact but *sparse and binary*, which is
 exactly where a learned value function struggles and where a group mean is a
@@ -605,8 +615,9 @@ normally distributed, which trained weights are. Blocks of 64 weights share
 an absmax scale (plus a second-level quantization of the scales themselves  - 
 "double quantization" - bringing the overhead to ~0.127 bits/weight).
 
-Memory for 7B: base $7\times10^9 \times 0.5$ bytes $\approx 3.5$ GB (+~0.4 GB
-scales), LoRA params + Adam state ~0.15 GB, activations a few GB → fine-tune
+Memory for 7B: base $7\times10^9 \times 0.5$ bytes $\approx 3.5$ GB (plus
+$7\times10^9 \times 0.127$ bits $\approx 0.11$ GB of scales with double
+quantization; ~0.44 GB without it), LoRA params + Adam state ~0.15 GB, activations a few GB → fine-tune
 a 7B on a single 16–24 GB consumer GPU; the paper's headline was 65B on one
 48 GB card. Gradients never flow *into* the 4-bit weights (they're frozen);
 NF4 blocks are dequantized to bf16 on the fly per matmul, so compute precision
@@ -833,7 +844,8 @@ start. So: load a tile of $Q$ and stream tiles of $K, V$ through fast on-chip
 SRAM (~20 MB, ~19 TB/s on A100), maintain $(m, \ell, o)$ per row, never write
 $S$ or $P$ to HBM. It is **exact** - same output bit-for-bit-ish as naive
 attention, this is a memory-movement reorganization, not an approximation.
-HBM traffic drops from $O(s^2)$ to $O(s^2 d / M)$ ($M$ = SRAM size) - in
+HBM traffic drops from $\Theta(sd + s^2)$ to $\Theta(s^2 d^2 / M)$ ($M$ = SRAM size,
+which is much larger than $d$) - in
 practice 5–10× fewer HBM accesses, 2–4× wall-clock, and $O(s)$ memory
 (backward recomputes $S$ tile-by-tile from the saved $(m, \ell)$ - gradient
 checkpointing applied inside attention).
@@ -1019,8 +1031,9 @@ supervised learning on preferences.
 KL-to-reference: the RM is only valid near the SFT distribution; unpenalized
 optimization finds adversarial text the RM loves and humans hate (reward
 hacking) and collapses diversity. Clip: updates use stale samples from
-$\pi_{old}$; clipping the ratio at $1 \pm \epsilon$ zeroes the gradient for
-tokens that already moved far, bounding each update (trust-region-lite) so
+$\pi_{old}$; the min-of-clipped objective zeroes the gradient for tokens whose
+ratio has already moved past $1 \pm \epsilon$ in the direction their advantage
+favors (moves in the other direction are not clipped), bounding each update (trust-region-lite) so
 one bad batch can't crater the policy.
 
 **Q12. GRPO vs PPO?**
