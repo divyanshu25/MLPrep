@@ -444,38 +444,21 @@ Your model improved test accuracy from 91.0% to 91.5% on 1,000 examples. Real?
 
 Probably not. 0.5 points on 1,000 examples is 5 more examples right.
 
-Both models were scored on the same examples, so only the ones where they
-disagree matter. If the models were equally good, each disagreement would be
-a coin flip. Flip 100 coins and you expect 50 heads, but you rarely get
-exactly 50: a typical run lands about 5 away, like 45 or 55. That 5 is the
-standard deviation of the number of heads,
-$\sqrt{100 \times \frac12 \times \frac12} = 5$ (a Binomial count,
-Probability §3.2). In general, with $m$ disagreements, the new model expects
-$m/2$ wins, and luck moves that by about
-$\sqrt{m \times \frac12 \times \frac12} = \sqrt m / 2$.
+Only the examples where the models disagree matter. Say there are 51: the
+new model wins 28, the old one 23. If the models were equally good, each
+disagreement would be a coin flip, so the new model would expect 25.5 wins,
+give or take $\sqrt{51 \times \frac12 \times \frac12} \approx 3.6$. It got
+28, just 2.5 above the middle:
 
-The 5-example lead means the new model won 5 more disagreements than the
-old one. Say they disagree on 51: the new model won 28 and the old one 23.
-Equal models would split them 25.5 each, so the new model is 2.5 wins above
-that. The lead of 5 is split in half: 2.5 above the middle for the new model,
-2.5 below for the old one.
+$$z = \frac{2.5}{3.6} \approx 0.7$$
 
-$z$ measures that distance in units of luck. With 51 disagreements, luck is
-$\sqrt{51}/2 \approx 3.57$ wins, so
-
-$$z = \frac{\text{distance above the middle}}{\text{typical luck}}
-= \frac{2.5}{3.57} \approx 0.7$$
-
-In general the distance is $5/2$ and the luck is $\sqrt m / 2$. The two
-halves cancel, so $z = 5/\sqrt m$.
-
-Reaching $z > 1.96$ needs $5/\sqrt m > 1.96$, so $m \le 6$: the models would
-have to disagree on almost nothing. Two models at 91% usually disagree on
-dozens of examples, so the gain is noise.
+Well under 1.96, so it's noise. In general $z = 5/\sqrt m$ for $m$
+disagreements, and $z > 1.96$ would need $m \le 6$: the models would have
+to disagree on almost nothing.
 
 **If asked:** *What else would you do?* Retrain with several seeds (seed
-spread is often about 0.5 points) and use a bigger test set. Halving the
-edge you want to detect takes four times the examples (Probability §3.8).
+spread is often about 0.5 points) and use a bigger test set (Probability
+§3.8).
 </details>
 
 ## Exit checklist
