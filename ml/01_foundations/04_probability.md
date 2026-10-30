@@ -1437,11 +1437,12 @@ That's the whole test. The rest is names for its pieces:
   $(62 - 50)/5 = 2.4$. The pile is a bell, so $p < 0.05$ is the same as
   $|z| > 1.96$ (§3.6).
 
-You don't need the simulation to get the 5. Heads in 100 fair flips are
+**Where the 5 comes from.** The simulation measured the standard error, 5
+wins, by brute force. You can also compute it: heads in 100 fair flips are
 Binomial, with standard deviation $\sqrt{100 \times \frac12 \times \frac12} = 5$
 (§3.2). For $m$ disagreements it's $\sqrt{m \times \frac12 \times \frac12} = \sqrt m / 2$.
 
-You can also get $z$ straight from the lead. The new model leads 62 to 38,
+**$z$ from the lead.** The new model leads 62 to 38,
 by 24 wins, and the lead splits in half around the middle: 12 above 50 for
 the new model, 12 below for the old one. So with a lead of $L$ wins over $m$
 disagreements,
