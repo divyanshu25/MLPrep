@@ -1524,12 +1524,19 @@ m \;\ge\; \Big(\frac{1.4}{q - \frac12}\Big)^2$$
 For $q = 0.6$ that's $m \ge (1.4 / 0.1)^2 = 196$, about 200, which matches
 the table.
 
-The reason more examples help is the $\sqrt m$ on the left. The better
-model's lead over an equal model, $(q - \frac12)m$, grows in step with $m$,
-but luck, $\sqrt m / 2$, grows only with its square root. And the square
-makes small edges expensive: halve the edge and you need four times the
-disagreements. A 5-point edge ($q = 0.55$) needs $(1.4/0.05)^2 = 784$, and a
-1-point edge needs 19,600.
+Why more examples help: double the disagreements and the better model's
+lead doubles (10 extra wins become 20), but luck grows only by $\sqrt 2$
+(5 becomes 7). So the lead stands out more from the luck.
+
+Why small improvements are expensive: the formula squares the edge (how
+far the new model's win rate is above 50%), so halving the edge needs four
+times the disagreements.
+
+| new model wins | disagreements needed |
+|---|---|
+| 60% | 196 |
+| 55% | 784 |
+| 51% | 19,600 |
 
 #### Common traps
 
