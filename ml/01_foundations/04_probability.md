@@ -1330,8 +1330,9 @@ averages exactly $\sigma^2$. That's **Bessel's correction**.
 
 ## 3.8 Hypothesis tests: is the difference real?
 
-Checkout page A was shown to 50,000 users and 2.1% of them bought. Page B
-was shown to another 50,000 and 2.3% bought. Is B really better? Not
+Checkout page A was shown to 50,000 users and 1,050 of them (2.1%) bought.
+Page B was shown to another 50,000 and 1,150 (2.3%) bought. Is B really
+better? Not
 necessarily: even two identical pages would not get exactly the same rate
 from two random groups of users, so some gap appears from noise alone.
 
@@ -1342,30 +1343,28 @@ called the **null hypothesis**, $H_0$.
 
 #### The checkout test
 
-**How big is a noise gap?** If the pages are identical, the typical size of
-the gap is its standard deviation, called the **standard error** (SE). That
-is the square root of the gap's variance, which comes from two facts:
+**What would identical pages look like?** If the pages were identical,
+the page label wouldn't matter, so the best guess for their shared buying
+rate is the overall one: 2,200 buyers out of 100,000 users, or 2.2%. Then
+each group of 50,000 should get about $50{,}000 \times 0.022 = 1{,}100$
+buyers. Not exactly 1,100, though: the count is Binomial, with standard
+deviation $\sqrt{50{,}000 \times 0.022 \times 0.978} \approx 32.8$ (§3.2). So
+by chance alone one group might get 1,080 and the other 1,130.
 
-- Each rate is an average of 0/1 outcomes, so its variance is $p(1-p)/n$
-  (§3.2, §3.6). Under $H_0$ both pages share one rate $p$, estimated from all
-  100,000 users: 2,200 buyers, so $\hat p = 0.022$.
-- The two groups are different users, so the two rates are independent, and
-  the variance of their gap is the sum of their two variances. Subtracting
-  does not cancel noise: $\mathrm{Var}(-X) = (-1)^2\,\mathrm{Var}(X) = \mathrm{Var}(X)$
-  (§3.1).
+**How big is a noise gap?** Both counts wobble by about 32.8, independently,
+so their gap wobbles by more than that. Independent variances add, and
+subtracting doesn't cancel them, since $\mathrm{Var}(-X) = (-1)^2\,\mathrm{Var}(X)$
+(§3.1). So the gap's variance is $32.8^2 + 32.8^2$, and its standard deviation is
 
-So
+$$\sqrt{32.8^2 + 32.8^2} = 32.8\sqrt{2} \approx 46.4 \text{ buyers}$$
 
-$$\text{SE} = \sqrt{\mathrm{Var}(\hat p_B) + \mathrm{Var}(\hat p_A)}
-= \sqrt{\frac{\hat p(1-\hat p)}{n_B} + \frac{\hat p(1-\hat p)}{n_A}}
-= \sqrt{0.022 \times 0.978 \times \frac{2}{50{,}000}} \approx 0.000928$$
+This is the **standard error** (SE) of the gap: identical pages would
+typically differ by about 46 buyers.
 
-So noise alone typically moves the gap by about 0.09 percentage points.
+**Is the observed gap big compared to that?** B got $1{,}150 - 1{,}050 = 100$
+more buyers. In standard errors, that is
 
-**Is the observed gap big compared to that?** The gap is
-$0.023 - 0.021 = 0.002$, and in standard errors it is
-
-$$z = \frac{\text{gap}}{\text{SE}} = \frac{0.002}{0.000928} \approx 2.16$$
+$$z = \frac{\text{gap}}{\text{SE}} = \frac{100}{46.4} \approx 2.16$$
 
 **How often does noise do that?** Under $H_0$, $z$ follows the standard bell
 (by the central limit theorem, §3.6). The chance that noise alone gives a
@@ -1396,10 +1395,11 @@ fixed before looking at the data, is to call a difference **statistically
 significant** when $p < 0.05$. This one is.
 
 **The same answer as a range.** The 95% interval for the gap (§3.6) is
-$0.002 \pm 1.96 \times 0.000928$, from 0.02 to 0.38 percentage points. It
+$100 \pm 1.96 \times 46.4 \approx 100 \pm 91$ buyers, from 9 to 191 extra buyers
+out of 50,000, or 0.02 to 0.38 percentage points. It
 excludes zero exactly when $|z| > 1.96$, which is when $p < 0.05$. It also
-shows how loosely the lift is pinned down: anywhere from almost nothing to
-almost double the observed 0.2.
+shows how loosely the lift is pinned down: anywhere from almost nothing (9
+buyers) to almost double the observed 100.
 
 #### Two models on the same test set
 
@@ -1445,8 +1445,9 @@ deviations, so the power is 58%: the test misses this lift 4 times in 10.
 
 For 80% power, the center has to sit 0.84 above 1.96, because 80% of a bell
 lies above $-0.84$. So the lift $\delta$ must be at least
-$(1.96 + 0.84)\,\text{SE} = 2.8\,\text{SE}$. With $n$ users per group,
-$\text{SE} = \sqrt{2p(1-p)/n}$, and solving
+$(1.96 + 0.84)\,\text{SE} = 2.8\,\text{SE}$. With $n$ users per group, the
+SE in buyers is $\sqrt{2np(1-p)}$ (the 46.4 above, for $n = 50{,}000$), and as
+a rate it is that divided by $n$, $\text{SE} = \sqrt{2p(1-p)/n}$. Solving
 $\delta \ge 2.8\sqrt{2p(1-p)/n}$ for $n$ gives
 
 $$n \;\ge\; \frac{2 \cdot 2.8^2 \cdot p(1-p)}{\delta^2}
