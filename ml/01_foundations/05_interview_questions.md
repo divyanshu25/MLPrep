@@ -442,26 +442,23 @@ Your model improved test accuracy from 91.0% to 91.5% on 1,000 examples. Real?
 
 <details><summary>Model answer</summary>
 
-First measure the noise. Each test example is right or wrong, so the
-accuracy is an average of 1,000 coin flips with $p \approx 0.91$:
+Probably not. 0.5 points on 1,000 examples is 5 more examples right.
 
-```python
-np.sqrt(0.91 * 0.09 / 1000)     # 0.009, so about 0.9 points of noise
-```
+Both models were scored on the same examples, so only the ones where they
+disagree matter. If the models were equally good, each disagreement would be
+a coin flip. With $m$ disagreements, the new model expects $m/2$ wins, give
+or take $\sqrt m / 2$. A 5-example lead means wins minus losses is 5, so
+wins are $(m + 5)/2$, which is $5/2$ above $m/2$:
 
-The gap is 0.5 points, smaller than the noise in either number. Probably
-not real.
+$$z = \frac{5/2}{\sqrt m / 2} = \frac{5}{\sqrt m}$$
 
-A sharper test uses the fact that both models were scored on the same
-examples. 0.5 points is 5 more examples right. Let $b$ be the examples only
-the new model gets right and $c$ those only the old model gets right, so
-$b - c = 5$. McNemar's test: $z = (b - c)/\sqrt{b + c}$. Reaching
-$z \ge 1.96$ needs $b + c \le 6$, so the gap is real only if the two models
-disagree on almost nothing.
+Reaching $z > 1.96$ needs $m \le 6$: the models would have to disagree on
+almost nothing. Two models at 91% usually disagree on dozens of examples,
+and at $m = 50$, $z \approx 0.7$. Noise.
 
 **If asked:** *What else would you do?* Retrain with several seeds (seed
-spread is often about 0.5 points) and use a larger test set (10,000
-examples gives 0.29 points).
+spread is often about 0.5 points) and use a bigger test set. Halving the
+edge you want to detect takes four times the examples (Probability §3.8).
 </details>
 
 ## Exit checklist
