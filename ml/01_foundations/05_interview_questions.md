@@ -456,11 +456,6 @@ data, and the same model trained with two different seeds often differs by
 about 0.5 points of test accuracy. So the gain could come from the seed
 alone. Train each model with several seeds, say 5, and compare the averages.
 Also use a bigger test set (Probability §3.8).
-
-**If asked:** *Both models saw the same test set. Does that change it?* It
-can shrink the noise in the gap, because only the examples where they
-disagree count (McNemar's test, Probability §3.8). But a 5-example gain
-still only counts if the two models make almost exactly the same mistakes.
 </details>
 
 ## Exit checklist
