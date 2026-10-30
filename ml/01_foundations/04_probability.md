@@ -1467,23 +1467,32 @@ buyers) to almost double the observed 100.
 #### Two models on the same test set
 
 Model A scores 91.2% and model B 90.5% on the same 1,000 test examples, so
-A got 7 more right. Only the examples where the models disagree say which
-one is better. Let
+A got 7 more right. Is A really better?
 
-- $b$ = examples where A is right and B is wrong,
-- $c$ = examples where B is right and A is wrong,
+Most examples can't answer that. If both models got an example right, or
+both got it wrong, it says nothing about which one is better. Only the
+examples where they disagree count. Say there are 49 of them: A was right
+(and B wrong) on 28, and B was right (and A wrong) on 21. That's the gap of 7.
 
-so $b - c = 7$. If the models are equally good, each disagreement is a fair
-coin flip. With $m = b + c$ disagreements, $b$ is Binomial($m$, 1/2) with
-variance $m/4$ (§3.2), and $b - c = 2b - m$ has mean 0 and variance
-$2^2 \cdot m/4 = m$. So
+If the models were equally good, each disagreement would be a fair coin
+flip between "A wins" and "B wins". Then:
+
+- A's wins out of 49 are Binomial, with standard deviation
+  $\sqrt{49 \times \frac12 \times \frac12} = 3.5$ (§3.2).
+- The gap is A's wins minus B's wins, $a - (49 - a) = 2a - 49$, so its
+  standard deviation is twice as big: $2 \times 3.5 = 7$.
+
+The real gap of 7 is just 1 standard deviation from zero, and a bell lands
+more than 1 standard deviation out about 32% of the time (§3.6). So the gap
+is noise: no evidence that A is better.
+
+With $b$ examples won only by A and $c$ won only by B, the same steps give a
+standard deviation of $\sqrt{b + c}$, so
 
 $$z = \frac{b - c}{\sqrt{b + c}}$$
 
-This is **McNemar's test**. A gap of 7 is significant only if
-$7/\sqrt{m} > 1.96$, which needs $m \le 12$. Models with 88 and 95 errors
-usually disagree on far more: at $m = 50$, $z \approx 0.99$ and
-$p \approx 0.32$, so the gap is noise.
+This is **McNemar's test**. For a gap of 7 to be significant, $7/\sqrt{b+c}$
+would have to exceed 1.96, which needs 12 or fewer disagreements in total.
 
 #### What a p-value is not
 
