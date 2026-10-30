@@ -1343,21 +1343,21 @@ called the **null hypothesis**, $H_0$.
 #### The checkout test
 
 **How big is a noise gap?** If the pages are identical, the typical size of
-the gap is its standard deviation, called the **standard error** (SE). Each
-rate is an average of 0/1 outcomes, so its variance is $p(1-p)/n$ (§3.2,
-§3.6). The gap is $\hat p_B - \hat p_A = \hat p_B + (-1)\,\hat p_A$. The two
-groups are different users, so the two rates are independent and their
-variances add (§3.1). Multiplying by $-1$ leaves a variance unchanged, since
-$\mathrm{Var}(aX) = a^2\,\mathrm{Var}(X)$ and $(-1)^2 = 1$. So
+the gap is its standard deviation, called the **standard error** (SE). That
+is the square root of the gap's variance, which comes from two facts:
 
-$$\mathrm{Var}(\hat p_B - \hat p_A) = \mathrm{Var}(\hat p_B) + \mathrm{Var}(\hat p_A)$$
+- Each rate is an average of 0/1 outcomes, so its variance is $p(1-p)/n$
+  (§3.2, §3.6). Under $H_0$ both pages share one rate $p$, estimated from all
+  100,000 users: 2,200 buyers, so $\hat p = 0.022$.
+- The two groups are different users, so the two rates are independent, and
+  the variance of their gap is the sum of their two variances. Subtracting
+  does not cancel noise: $\mathrm{Var}(-X) = (-1)^2\,\mathrm{Var}(X) = \mathrm{Var}(X)$
+  (§3.1).
 
-Each rate has its own noise, and subtracting one from the other does not
-cancel it: the gap carries the noise of both. Under $H_0$ both pages share
-one rate, estimated from all 100,000 users: 2,200 buyers, so
-$\hat p = 0.022$. Adding the two variances and taking the square root:
+So
 
-$$\text{SE} = \sqrt{\hat p(1-\hat p)\Big(\frac{1}{n_A} + \frac{1}{n_B}\Big)}
+$$\text{SE} = \sqrt{\mathrm{Var}(\hat p_B) + \mathrm{Var}(\hat p_A)}
+= \sqrt{\frac{\hat p(1-\hat p)}{n_B} + \frac{\hat p(1-\hat p)}{n_A}}
 = \sqrt{0.022 \times 0.978 \times \frac{2}{50{,}000}} \approx 0.000928$$
 
 So noise alone typically moves the gap by about 0.09 percentage points.
