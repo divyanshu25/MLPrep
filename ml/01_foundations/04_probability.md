@@ -1258,27 +1258,31 @@ in the labels themselves (§3.4), which no model can predict.
 
 #### Bessel's correction
 
-A well-known biased estimator is the obvious way to estimate a variance
-from a sample $x_1, \dots, x_n$: average the squared distances from the
-sample mean $\bar x$,
+Variance is the average squared distance from the true mean $\mu$. With
+only a sample $x_1, \dots, x_n$ you don't know $\mu$, so the obvious
+estimate measures from the sample mean $\bar x$ instead:
 
-$$\hat\sigma^2 = \frac{1}{n}\sum_{i=1}^{n} (x_i - \bar x)^2.$$
+$$\hat\sigma^2 = \frac{1}{n}\sum_{i=1}^{n} (x_i - \bar x)^2$$
 
 (NumPy's variance function does this by default.) On average it comes out
-too small. Check it on a die rolled three times: there are 216 equally
-likely sets of rolls, and averaged over all of them $\hat\sigma^2$ is 1.94,
-while the die's true variance is 2.92 (§3.1). Dividing by $n - 1$ instead,
+too small. Roll a die three times: over all 216 equally likely sets of
+rolls, $\hat\sigma^2$ averages 1.94, while the die's true variance is 2.92
+(§3.1).
 
-$$s^2 = \frac{1}{n-1}\sum_{i=1}^{n} (x_i - \bar x)^2,$$
+The reason is that $\bar x$ is computed from the same rolls, so it sits in
+their middle, and the rolls are closer to it than to $\mu$. For the rolls
+2, 6, 3, the squared distances add up to 8.67 from $\bar x \approx 3.67$ but
+8.75 from $\mu = 3.5$. The exact relation is
 
-gives exactly 2.92 on average.
+$$\underbrace{\sum_i (x_i - \mu)^2}_{\text{from the true mean}}
+= \underbrace{\sum_i (x_i - \bar x)^2}_{\text{from the sample mean}}
++ \underbrace{n(\bar x - \mu)^2}_{\text{the gap}}$$
 
-The reason is that the distances are measured from the sample mean
-$\bar x$, and $\bar x$ is the point closest to the sample: it makes the sum
-of squared distances as small as possible. (The derivative of
-$\sum_i (x_i - c)^2$ with respect to $c$ is $-2\sum_i (x_i - c)$, which is
-zero when $c$ is the average.) So the sum measured from $\bar x$ comes out
-smaller than the sum measured from the true mean $\mu$:
+To get it, write each $x_i - \mu$ as $(x_i - \bar x) + (\bar x - \mu)$ and
+square. The cross terms add up to $2(\bar x - \mu)$ times
+$\sum_i (x_i - \bar x)$, and that sum is zero because distances from the
+average sum to zero. For the rolls 2, 6, 3, the gap is 0.08, and
+$8.67 + 0.08 = 8.75$.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 220" role="img" aria-label="The sum of squared deviations of the rolls 2, 6 and 3 from a point c, plotted against c: a parabola with its minimum at c equal to x bar, so the value at c equal to mu is higher by n times x bar minus mu squared" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1306,31 +1310,22 @@ smaller than the sum measured from the true mean $\mu$:
 
 *The sum of squared distances from the rolls 2, 6, 3 to a point $c$. It's
 smallest at the sample mean $\bar x$, and higher at the true mean $\mu$ by
-exactly $n(\bar x - \mu)^2$.*
-
-As an equation, with the rolls 2, 6, 3 as a check ($8.75 = 8.67 + 0.08$):
-
-$$\underbrace{\sum_i (x_i - \mu)^2}_{\text{from the true mean}}
-= \underbrace{\sum_i (x_i - \bar x)^2}_{\text{from the sample mean}}
-+ \underbrace{n(\bar x - \mu)^2}_{\text{the gap}}$$
-
-(To get it, write each $x_i - \mu$ as $(x_i - \bar x) + (\bar x - \mu)$ and
-square. The cross terms add up to $2(\bar x - \mu)$ times
-$\sum_i (x_i - \bar x)$, and that sum is zero because distances from the
-average sum to zero.)
+the gap $n(\bar x - \mu)^2$.*
 
 Now average each term over all possible samples:
 
-- **From the true mean:** each $(x_i - \mu)^2$ averages $\sigma^2$, which is
-  the definition of variance, so the sum of $n$ of them averages $n\sigma^2$.
+- **From the true mean:** each $(x_i - \mu)^2$ averages $\sigma^2$, by the
+  definition of variance, so the sum averages $n\sigma^2$.
 - **The gap:** $(\bar x - \mu)^2$ averages $\mathrm{Var}(\bar x) = \sigma^2/n$
   (§3.6), so $n(\bar x - \mu)^2$ averages $\sigma^2$.
-- **From the sample mean**, the sum we actually compute: whatever is left,
-  $n\sigma^2 - \sigma^2 = (n - 1)\sigma^2$.
+- **From the sample mean:** whatever is left, $n\sigma^2 - \sigma^2 = (n - 1)\sigma^2$.
 
-So dividing that sum by $n$ gives $\hat\sigma^2$, which averages
-$\frac{n-1}{n}\sigma^2$, too small: for three rolls,
-$\frac{2}{3} \times 2.92 = 1.94$. Dividing it by $n - 1$ gives $s^2$, which
+So dividing the sum from the sample mean by $n$ gives an average of
+$\frac{n-1}{n}\sigma^2$, which is $\frac{2}{3} \times 2.92 = 1.94$ for three
+rolls. Dividing by $n - 1$ instead,
+
+$$s^2 = \frac{1}{n-1}\sum_{i=1}^{n} (x_i - \bar x)^2,$$
+
 averages exactly $\sigma^2$. That's **Bessel's correction**.
 
 ## 3.8 Hypothesis tests: is the difference real?
