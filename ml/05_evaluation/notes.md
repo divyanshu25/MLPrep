@@ -293,8 +293,11 @@ probability - you can't game it by hedging.
 - **Temperature scaling**: Platt with the intercept dropped and one shared scalar  - 
   divide the logits by $T$ before softmax: $\hat{p} = \text{softmax}(z/T)$. $T > 1$
   softens (fixes overconfidence), $T < 1$ sharpens. One parameter, fit by minimizing
-  validation NLL. Crucially, $z/T$ is a monotone transform, so **argmax and AUC are
-  unchanged** - you fix the probabilities without touching accuracy. The standard fix
+  validation NLL. Crucially, $z/T$ preserves the order of an example's logits, so
+  **the argmax, and hence accuracy, is unchanged** - you fix the probabilities
+  without touching accuracy. For binary problems the ranking of examples, and so
+  AUC, is unchanged too. (With more than two classes, one class's probability can
+  reorder across examples, so one-vs-rest AUC can shift slightly.) The standard fix
   for neural nets. `calibration_scratch.ipynb` implements it with golden-section search.
 
 ---
@@ -344,8 +347,9 @@ Read it out loud:
 - **Variance**: how much does the fit *vary* across training sets - sensitivity to
   which particular sample you got. A degree-15 polynomial through 20 noisy points
   changes wildly with each resample.
-- **$\sigma^2$**: label noise. No model beats this; test MSE below $\sigma^2$ means
-  you have a bug (or leakage, §5).
+- **$\sigma^2$**: label noise. No model beats this in expectation. A finite test set
+  can come in a little below $\sigma^2$ by chance, but test MSE far below $\sigma^2$
+  on a large test set means you have a bug (or leakage, §5).
 
 **Tie to under/overfitting.** As capacity grows, bias² falls (the family can express
 $f$) while variance rises (more knobs chasing noise). Their sum is U-shaped;
@@ -460,9 +464,12 @@ sets), so the naive paired t-test over folds is anti-conservative; corrections e
 
 **Multiple seeds.** For neural nets, training noise alone (seed) moves benchmark
 scores by amounts that rival claimed SOTA improvements. One run of A vs one run of B
-compares two lottery tickets. Minimum honest practice: 3–5 seeds each, report
-mean ± std, check the intervals aren't overlapping-by-a-mile. And if you compared 20
-model variants, remember the winner is inflated by selection (same winner's curse as §5) - a Bonferroni-flavored humility applies.
+compares two random draws. Minimum honest practice: 3–5 seeds each; report the mean
+and its standard error across seeds (std divided by the square root of the number of
+seeds), and compare models with a paired test or a confidence interval on the
+difference. Overlapping ±std bands are not a test. And if you compared 20 model
+variants, the winner's score is inflated by selection (same winner's curse as §5), so
+use a stricter threshold, such as Bonferroni's 0.05/20 (foundations §3.8).
 
 ---
 
@@ -730,8 +737,9 @@ Conversely, always predicting the base rate is perfectly calibrated with AUC 0.5
 **Q6. What is temperature scaling and why doesn't it change accuracy?**
 Post-hoc calibration: divide logits by scalar $T$ (fit on validation NLL) before
 softmax. $T>1$ softens overconfident outputs. Division by a positive constant is
-monotone, so the argmax (and the entire ranking, hence AUC) is unchanged - only the
-probability values move.
+order-preserving for each example's logits, so the argmax (hence accuracy) is
+unchanged - only the probability values move. For binary problems AUC is unchanged
+too; with more classes, one-vs-rest AUC can shift slightly.
 
 **Q7. State and sketch the bias–variance decomposition.**
 $\mathbb{E}[(y-\hat{f}_D(x))^2] = (f - \bar{f})^2 + \mathbb{E}_D[(\hat{f}_D-\bar{f})^2] + \sigma^2$.
@@ -744,9 +752,10 @@ More data: variance (the fit fluctuates less across samples; the family's system
 error is unchanged). Regularization: reduces variance at the cost of some added bias.
 
 **Q9. Why can't test MSE go below $\sigma^2$, and what does it mean if it does?**
-$\sigma^2$ is the label noise, present in the decomposition regardless of the model.
-Beating it on a real test set signals a bug or leakage (e.g., a feature derived from
-the label).
+$\sigma^2$ is the label noise, present in the decomposition regardless of the model,
+so no model beats it in expectation. A small test set can dip slightly below it by
+chance; beating it clearly on a large test set signals a bug or leakage (e.g., a
+feature derived from the label).
 
 **Q10. What is double descent?**
 Past the interpolation threshold (model exactly fits training data), test error can

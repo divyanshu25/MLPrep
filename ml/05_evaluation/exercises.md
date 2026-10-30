@@ -114,8 +114,8 @@ excellent.
 
 Dataset: 10,000 examples, 100 positive. Classifier X: recall 0.7, precision 0.5.
 Classifier Y: predicts everything negative. Compute accuracy and F1 for both. Then
-construct a classifier Z with *higher accuracy than X* but F1 = 0, to show the two
-metrics can rank models oppositely.
+construct a classifier Z with *higher accuracy than X* but much lower F1, to show the
+two metrics can rank models oppositely.
 
 <details><summary>Solution</summary>
 
@@ -125,16 +125,14 @@ $TN = 9830$. Accuracy $= (70 + 9830)/10000 = 0.99$. F1 $= 2(0.5)(0.7)/1.2 = 0.58
 Y: $TP=0, FP=0$. Accuracy $= 9900/10000 = 0.99$. Precision undefined (0 by
 convention), recall 0, F1 $= 0$.
 
-Z = Y works already if we allow ties in accuracy (0.99 vs 0.99); to strictly beat X,
-note X makes $30 + 70 = 100$ errors. Any all-negative-style classifier that also
-fixes nothing but makes fewer errors: Y makes exactly 100 errors too, so tie. Make Z
-predict negative on everything *except* correctly abstaining is not allowed - so
-instead let Z predict positive on exactly one true positive: $TP=1, FP=0, FN=99$:
-errors = 99 < 100, accuracy 0.9901 > 0.99, F1 $= 2 \cdot 1/(2 \cdot 1 + 0 + 99)
-\approx 0.0198$, tiny but nonzero. For F1 exactly 0 with accuracy strictly above X
-you can't do it here (F1=0 forces TP=0, so ≥100 errors); the honest conclusion  - 
-worth stating in an interview - is that Y matches X's accuracy at F1=0, i.e.
-accuracy cannot distinguish a useful model from a useless one at 1% prevalence.
+Y already ties X on accuracy (0.99 each) with F1 = 0. To strictly beat X: X makes
+$30 + 70 = 100$ errors, and so does Y. Let Z predict positive on exactly one true
+positive and negative everywhere else: $TP = 1, FP = 0, FN = 99$. That's 99 errors,
+accuracy 0.9901 > 0.99, but F1 $= 2 \cdot 1/(2 \cdot 1 + 0 + 99) \approx 0.02$
+against X's 0.583. (F1 exactly 0 with strictly higher accuracy is impossible here:
+F1 = 0 forces $TP = 0$, which means at least 100 errors.) The point worth stating
+in an interview: at 1% prevalence, accuracy cannot tell a useful model from a
+useless one.
 </details>
 
 ---
