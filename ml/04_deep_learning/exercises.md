@@ -415,9 +415,8 @@ construction. This is the conceptual core of T5 bias, ALiBi, and RoPE.
 ## Exercise 12 (hard) - Generation FLOPs, with and without the cache
 
 For one transformer layer with width $d$ and current context length $t$,
-take attention compute as $\approx 2\cdot(4td^2)$-free - i.e. count
-separately: (i) projections $q,k,v,o$, (ii) scores + weighted sum. Per
-token generated:
+count the attention compute in two parts: (i) the projections $q, k, v, o$,
+and (ii) the scores plus the weighted sum. Per token generated:
 
 (a) Without a KV-cache (re-run the whole prefix each step), what is the cost
 of generating token $t{+}1$, and the total for $n$ tokens?

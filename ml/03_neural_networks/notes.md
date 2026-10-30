@@ -57,8 +57,11 @@ The nonlinearity $\sigma$ breaks the collapse: $W_2\,\sigma(W_1 x)$ does **not**
 simplify, because $\sigma$ is not a matrix. Intuition for what you gain: with ReLU,
 each hidden neuron folds the input space along its hyperplane; a network composes many
 folds into a piecewise-linear function with exponentially many linear regions in depth.
-That's the actual content of "deep networks are universal approximators" - enough
-folds approximate any continuous function.
+Two separate facts follow. The universal approximation theorem is about *width*: one
+hidden layer with enough neurons can approximate any continuous function on a bounded
+domain. Depth buys *efficiency*: composing folds multiplies the number of linear
+regions, so some functions need exponentially fewer neurons in a deep network than in
+a shallow one.
 
 **One-sentence summary you should be able to say in an interview:** a neuron is
 `dot product + bias + nonlinearity`; the nonlinearity is the entire point, because
@@ -332,6 +335,7 @@ $$n_{in}\,\sigma_w^2 = 1 \;\Rightarrow\; \sigma_w^2 = \frac{1}{n_{in}}$$
 ### Xavier/Glorot init
 
 The same argument run on the **backward** pass ($\partial L/\partial x = W^\top \delta$,
+where $\delta = \partial L/\partial z$ is the gradient arriving from the layer above,
 a sum over $n_{out}$ terms) demands $\sigma_w^2 = 1/n_{out}$. You can't satisfy both
 unless $n_{in} = n_{out}$, so Glorot & Bengio split the difference (harmonic-mean
 compromise):
@@ -377,9 +381,11 @@ the minibatch gradient is an **unbiased estimator** of the full gradient
    grows like $B$ - heavily diminishing returns; better to take many noisy steps.
 2. **Hardware**: matrix-matrix ops at batch size 32–1024 saturate GPUs; batch size 1
    wastes the machine.
-3. **Noise as a feature**: gradient noise helps escape saddle points and sharp minima
-   and acts as implicit regularization; small/medium batches often generalize better
-   than full batch.
+3. **Noise as a feature**: gradient noise helps escape saddle points and acts as
+   implicit regularization; small/medium batches often generalize better than full
+   batch. A popular explanation is that noise steers training toward flatter minima,
+   but "flat generalizes better" is debated: reparameterizing a ReLU net can make a
+   minimum sharp without changing its function (Dinh et al., 2017).
 
 ### Momentum: EMA of gradients, and the effective step
 
@@ -430,8 +436,11 @@ So the raw EMA is biased toward zero by exactly the factor $(1-\beta_1^t)$ - bec
 it was initialized at 0 and hasn't accumulated enough mass yet. Dividing by
 $1-\beta_1^t$ makes it unbiased: $E[\hat m_t] = g$. Same for $v_t$ with $\beta_2$.
 Why it *matters*: with $\beta_2 = 0.999$, after one step $v_1 = 0.001\,g_1^2$, so
-uncorrected $\sqrt{v_1} \approx 0.03|g_1|$ and the update $g_1/\sqrt{v_1}$ is
-$\sim 30\times$ too large - early training blows up. As $t \to \infty$,
+uncorrected $\sqrt{v_1} \approx 0.0316|g_1|$. If $m$ is corrected but $v$ is not,
+the update $g_1/\sqrt{v_1}$ is about $32\times$ too large. If neither is corrected,
+$m_1 = 0.1\,g_1$ and the update is $0.1/0.0316 \approx 3.2\times$ too large. Either
+way the first steps are mis-scaled, and correcting both gives a step of exactly
+$\pm 1$ (times $\eta$). As $t \to \infty$,
 $\beta^t \to 0$ and the correction fades to a no-op; it only matters for early steps.
 
 ### Learning-rate schedules
@@ -442,8 +451,10 @@ experiment in `training_dynamics.ipynb`). Common schedules:
 - **Step decay**: drop $\eta$ by 10× at fixed milestones.
 - **Cosine**: $\eta_t = \eta_{\min} + \tfrac12(\eta_{\max}-\eta_{\min})(1 + \cos(\pi t/T))$ - smooth decay to ~0, the modern default.
 - **Warmup**: linearly ramp $\eta$ from 0 over the first few hundred/thousand steps.
-  Rationale: Adam's $\hat v$ statistics are garbage at $t$ small and early gradients
-  are huge/atypical; warmup keeps steps tiny until statistics stabilize. Essential for
+  Rationale: even after bias correction, $\hat v$ early on averages only a few
+  squared gradients, so it is a noisy scale estimate; early gradients are also large
+  and atypical, and the loss surface near initialization is sharp, so a full-size
+  step can diverge. Warmup keeps steps small until these settle. Standard for
   transformers.
 
 Big picture: large $\eta$ early = fast progress + exploration (noise ball); small
@@ -517,7 +528,7 @@ transform per feature. This train/eval discrepancy is the classic source of the
 
 LayerNorm normalizes across the **feature dimension of a single example**:
 
-$$\mu_i = \frac{1}{D}\sum_{d} x_{i,d}, \qquad y_{i,d} = \gamma_d\,\frac{x_{i,d} - \mu_i}{\sqrt{\sigma_i^2 + \epsilon}} + \beta_d$$
+$$\mu_i = \frac{1}{D}\sum_{d} x_{i,d}, \qquad \sigma_i^2 = \frac{1}{D}\sum_{d} (x_{i,d} - \mu_i)^2, \qquad y_{i,d} = \gamma_d\,\frac{x_{i,d} - \mu_i}{\sqrt{\sigma_i^2 + \epsilon}} + \beta_d$$
 
 Same example-in, example-out statistics at train and test - **no batch dependence, no
 running stats, no train/eval mode**. Transformers use LN instead of BN because:
@@ -608,7 +619,11 @@ $$\frac{\partial h_d}{\partial h_0} = \prod_{k=0}^{d-1}\left(I + \frac{\partial 
 
 Even if every $\partial F_k/\partial h_k$ is tiny, the product contains the pure-$I$
 term: **gradient reaches layer 0 with factor exactly 1 along the skip path**, plus
-corrections. The identity path is a "gradient highway" that no block can block  - 
+corrections. The corrections are not automatically harmless: the product of
+$(I + J_k)$ can also grow like $(1+\delta)^d$ when the blocks are not small. That is
+why deep residual nets scale each block's output down at init (for example by
+$1/\sqrt{L}$, or zero-initializing the last layer of each block, as in Fixup and
+DeepNorm). The identity path is a "gradient highway" that no block can block  - 
 contrast the plain net, where the gradient *must* pass through every $J_k$ and one
 saturated layer kills everything below it. Equivalently forward: the net starts as
 approximately the identity function (if $F \approx 0$ at init, which good init gives
@@ -691,8 +706,9 @@ Adam keeps an EMA of gradients ($m$, momentum) and of squared gradients ($v$,
 RMSProp-style per-parameter scaling), updating with $\eta\,\hat m/(\sqrt{\hat v}+\epsilon)$.
 Both EMAs start at 0, so early on they underestimate: unrolling gives
 $E[m_t] = g(1-\beta_1^t)$, hence dividing by $1-\beta_1^t$ makes the estimate
-unbiased. It matters mostly for $v$: with $\beta_2 = 0.999$, $v_1 = 0.001g^2$, so the
-uncorrected step is $\sim\!\sqrt{1000}\approx 30\times$ too large on step 1. The
+unbiased. It matters mostly for $v$: with $\beta_2 = 0.999$, $v_1 = 0.001g^2$, so
+with $m$ corrected the uncorrected-$v$ step is $\sqrt{1000}\approx 32\times$ too large
+on step 1 (about $3.2\times$ if $m$ is left uncorrected too). The
 correction decays to a no-op as $t$ grows.
 
 **Q11. Weight decay vs. L2 regularization - same thing?**
@@ -750,8 +766,9 @@ $\|g\|$ and activation stats per layer and finding the first step/layer that blo
 Minibatch gradients are unbiased estimates whose standard error shrinks like
 $1/\sqrt{B}$ while cost grows like $B$ - past a modest $B$, compute is better spent on
 more steps than better steps. Batched ops also saturate parallel hardware. And the
-gradient noise itself helps: it escapes saddle points and biases toward flatter minima
-that generalize better.
+gradient noise itself helps: it escapes saddle points and acts as implicit
+regularization (often explained as a bias toward flatter minima, though whether
+flatness causes generalization is debated).
 
 **Q19. How would you verify a hand-written backward pass?**
 Finite-difference gradient check: for each parameter $\theta_i$, compare the analytic

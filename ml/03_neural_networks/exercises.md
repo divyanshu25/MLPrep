@@ -289,14 +289,17 @@ Expanding the product: $I + \sum_k J_k^F + \sum_{k<l} J_l^F J_k^F + \cdots = I +
 Bounding: $\|\prod (I + J_k^F)\| \le (1+\delta)^d$, and $E$ is everything except
 $I$, so $\|E\| \le (1+\delta)^d - 1$; for small $\delta$, $E \approx \sum_k J_k^F$.
 The point: the **identity term survives no matter how small $\delta$ is** - the
-skip path transmits gradient with factor exactly 1.
+skip path transmits gradient with factor exactly 1. (The bound also shows the
+other risk: $(1+\delta)^d$ is large when $\delta$ is not small, so the
+correction terms can make the gradient explode. Deep residual nets scale the
+blocks down at init to prevent this.)
 
 (ii) Plain chain: $\frac{\partial h_d}{\partial h_0} = \prod_k J_k^F$, and
 submultiplicativity gives $\|\prod_k J_k^F\| \le \delta^d$.
 
 (iii) $\delta = 0.9$, $d = 50$: plain chain gradient $\le 0.9^{50} \approx 5.2\times 10^{-3}$ - and with $\delta = 0.5$ it's $0.5^{50} \approx 10^{-15}$: dead. The residual
-chain *always* delivers the $I$ component: gradient of order 1 reaches layer 0
-regardless of $\delta$. That "+1 in the Jacobian" is the entire reason 50-1000
+chain *always* delivers the $I$ component, so the gradient reaching layer 0
+never vanishes, whatever $\delta$ is. That "+1 in the Jacobian" is the entire reason 50-1000
 layer networks train, and why every transformer block is
 `x = x + f(norm(x))`.
 </details>

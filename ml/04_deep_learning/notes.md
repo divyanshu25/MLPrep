@@ -538,8 +538,9 @@ Fix: inject position into the token vectors before attention sees them.
 - **Relative / rotary (RoPE, modern LLMs):** encode position *inside the
   attention score* so what matters is $t_i - t_j$, not absolute $t$: RoPE
   rotates $q$ and $k$ by position-dependent angles so that
-  $q_i^\top k_j$ depends on the offset $i - j$. Generalizes better to long
-  contexts. (Derived properly in §7.1.)
+  $q_i^\top k_j$ depends on the offset $i - j$. Scores are defined at any
+  position, but quality still degrades past the training length unless the
+  frequencies are rescaled (§7.1 derives it).
 
 ### 3.6 The full transformer block
 
@@ -564,7 +565,8 @@ $W_2: 4d \to d$, $\phi$ = GELU. Notes on each piece:
   the residual path and rescales it, which destabilizes early training deep
   stacks (needed lr warmup to survive). Pre-LN keeps the residual path
   completely clean (only additions touch it) and normalizes just the input to
-  each sublayer; it trains stably at essentially any depth. (More in §6.4.)
+  each sublayer, which makes deep stacks much easier to train (warmup is
+  still standard).
 - **LayerNorm**, not BatchNorm: normalize each token's vector across its $d$
   features, $\operatorname{LN}(x) = \gamma \odot \frac{x - \mu}{\sigma} + \beta$.
   No batch statistics → works with variable lengths, batch size 1, and
@@ -827,7 +829,8 @@ without a careful learning-rate warmup. Pre-LN (GPT-2+):
 $x \leftarrow x + f(\operatorname{LN}(x))$. The residual path is touched
 **only by additions**; since $\frac{\partial}{\partial x}(x + f(\operatorname{LN}(x))) = I + (\text{stuff})$,
 every layer's gradient contains an unattenuated identity term, exactly the
-ResNet argument. Consequence: stable training at large depth, warmup optional.
+ResNet argument. Consequence: much more stable training at large depth,
+though learning-rate warmup is still standard practice.
 Cost: the residual stream's magnitude grows with depth (each block adds to
 it), which is why there's one final LN after the last block. This tiny
 reordering is a classic interview question because it tests whether you
@@ -1040,8 +1043,8 @@ $$
 L_{\text{aux}} = \alpha \, E \sum_{i=1}^{E} f_i\, \bar p_i
 $$
 
-which equals $1$ under uniform routing ($f_i = \bar p_i = 1/E$) and $E$
-under total collapse onto one expert ($f = \bar p = 1$ there). The $f_i$
+which equals $\alpha$ under uniform routing ($f_i = \bar p_i = 1/E$) and
+$\alpha E$ under total collapse onto one expert ($f = \bar p = 1$ there). The $f_i$
 are counts and carry no gradient; the $\bar p_i$ do, and
 $\partial L_{\text{aux}}/\partial \bar p_i = \alpha E f_i$ is largest
 for the most-used expert, so the update lowers the router's probability
@@ -1256,8 +1259,10 @@ makes training cheap: no need to simulate the chain. The signal
 coefficient $\sqrt{\bar\alpha_t}$ falls from 1 toward 0. With the
 original linear schedule, $\beta_t$ from $10^{-4}$ to $0.02$ over
 $T = 1000$ steps, $\bar\alpha_T = \prod_t (1 - \beta_t) \approx e^{-\sum_t \beta_t} = e^{-10.05} \approx 4 \times 10^{-5}$:
-by $t = T$ the sample is standard normal to four decimal places, all
-structure gone. Generation is learning to run this process backwards,
+the signal coefficient is $\sqrt{\bar\alpha_T} \approx 0.006$, so under 1% of
+the signal remains and the sample is very close to standard normal. (Not
+exactly: that leftover signal is why some later schedules force
+$\bar\alpha_T = 0$, called zero terminal SNR.) Generation is learning to run this process backwards,
 starting from noise you *can* sample.
 
 **The objective, and where the noise-prediction loss comes from.** Learn
@@ -1631,8 +1636,9 @@ position-proportional angles so
 $q_m^\top k_n = q^\top R((n-m)\theta)k$ - the score's positional
 dependence is *exactly* the gap $n - m$, by rotation algebra
 ($R(a)^\top R(b) = R(b-a)$), not by learning. Relative structure is shared
-across all positions, and any position is defined, so it extrapolates far
-better (with frequency rescaling for extreme lengths).
+across all positions, and any position is defined. It still degrades past
+the training length on its own; context extension rescales the rotation
+frequencies (position interpolation, NTK scaling, YaRN).
 
 **Q22. Why grouped-query attention?**
 KV-cache size (and per-token cache bandwidth) scales with the number of
