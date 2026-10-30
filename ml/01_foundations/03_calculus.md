@@ -280,8 +280,11 @@ weight. A backward walk gives all of them at once; a forward walk gives one.
   for every variable $v$ (the recipe above). One walk gives the derivative for
   all $n$ weights.
 
-Each walk costs about one pass over the graph. For a billion weights, that is
-a billion forward walks or one backward walk. This is why backprop goes
+Each walk costs a small multiple of one forward pass (a backward walk is
+about 2 to 3 times the forward pass's arithmetic). For a billion weights,
+that is a billion forward walks or one backward walk. The price of the
+backward walk is memory: it needs every intermediate value from the forward
+pass, so those values are kept until the backward walk uses them. This is why backprop goes
 backward, and why training large networks is feasible at all.
 
 ## 2.3 Gradients of vector/matrix expressions
@@ -411,10 +414,10 @@ $2r \cdot x_1 \epsilon$:
 
 $$\frac{\partial\, r^2}{\partial w_1} = 2\, r\, x_1$$
 
-In words: **error × feature value.** An example pulls hardest on a weight's
-gradient when its error is large and that weight's feature is large in size
-(positive or negative). The signs of the two decide which way it pulls. If
-either is 0, this example contributes nothing to that weight's gradient.
+In words: **error × feature value.** This example adds $2 r x_1$ to weight
+1's gradient. The term is large when both the error and the feature value
+are large in size (positive or negative), its sign is the sign of $r$ times
+the sign of $x_1$, and it is 0 if either is 0.
 
 **Many examples: add them up.** The loss is the sum of every example's
 squared error, so the gradient is the sum of every example's
@@ -489,8 +492,9 @@ its columns, which $X^\top$ turns into rows.
 gradient has $d$ entries, one per weight. In general, **the gradient of a
 loss has the same shape as the thing you differentiate with respect to**,
 the most useful debugging rule in matrix calculus. Setting $\nabla_w L = 0$
-gives the normal equations $X^\top X w = X^\top y$, the closed-form
-least-squares solution.
+gives the normal equations $X^\top X w = X^\top y$. When the columns of $X$
+are linearly independent, $X^\top X$ is invertible and the least-squares
+solution is $w = (X^\top X)^{-1} X^\top y$.
 
 ## 2.4 Jacobians: the full sensitivity table
 
@@ -520,8 +524,9 @@ Check on the example: step $\delta = [0.01, 0]$ from $(2, 3)$. The prediction
 is $f(2, 3) + J\delta = [4, 6] + [0.04, 0.03] = [4.04,\; 6.03]$, and the exact
 value is $f(2.01, 3) = [4.0401,\; 6.03]$.
 
-Why it works: each output on its own is a function of many inputs, so §2.3.1
-applies to it: output $i$ changes by about $\nabla f_i \cdot \delta$. That
+Why it works: each output on its own is a function of many inputs, so the
+gradient rule from §2.3 ($\Delta f \approx \nabla f \cdot \text{step}$) applies
+to it: output $i$ changes by about $\nabla f_i \cdot \delta$. That
 gradient is row $i$ of $J$, and doing every row at once is $J\delta$. This is
 §2.1's tangent line $f(x+h) \approx f(x) + f'(x)\,h$ for vectors: the Jacobian
 plays the role of the slope.
@@ -614,7 +619,8 @@ in1, and both together are $sJ = [11, 12]$.*
 - **ReLU** passes the gradient through where the input was positive and
   blocks it where the input was negative. Each output depends only on its own
   input, so $J$ is diagonal, with 1 where $x_i > 0$ and 0 where $x_i < 0$
-  (written $\mathbb{1}[x_i > 0]$). With $x = [0.5, -1.2]$ and $s = [7, 9]$,
+  (written $\mathbb{1}[x_i > 0]$). At exactly $x_i = 0$ the derivative is
+  undefined, and frameworks use 0. With $x = [0.5, -1.2]$ and $s = [7, 9]$,
   the backward step gives $[7, 0]$.
 - **A linear layer** $f(x) = Wx$ passes the gradient back through $W$. Output
   $j$ is $\sum_i W_{ji}\, x_i$, so the Jacobian is $W$ itself, and the backward
@@ -624,8 +630,13 @@ in1, and both together are $sJ = [11, 12]$.*
   entry of $J$ is zero. The entries are $J_{ij} = p_i(\delta_{ij} - p_j)$, where
   $\delta_{ij}$ is 1 if $i = j$ and 0 otherwise (derived in exercise 9). In
   practice softmax is followed by the cross-entropy loss, and frameworks
-  differentiate the two together. The combined backward step is just $p - y$,
-  which skips the dense Jacobian and the numerically risky $1/p_i$ factor.
+  differentiate the two together. With true class $c$ and $y$ the one-hot
+  target (1 at $c$, 0 elsewhere), the loss is
+  $L = -\log p_c = -z_c + \log \sum_j e^{z_j}$, so
+  $\partial L / \partial z_i = -y_i + e^{z_i} / \sum_j e^{z_j} = p_i - y_i$.
+  The combined backward step $p - y$ skips the dense Jacobian and the $1/p_c$
+  factor from differentiating $-\log p_c$ on its own, which becomes infinite
+  when $p_c$ rounds to 0.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 190" role="img" aria-label="Softmax followed by cross-entropy on three classes: forward boxes compute probabilities and the loss; the step-by-step backward path through 1 over p and the dense Jacobian is skipped, replaced by the single fused step p minus y" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -675,6 +686,8 @@ happens when the Jacobians' singular values (§1.6 of the linear algebra
 notes) are consistently below or above 1.
 
 Residual connections help. A residual layer computes $h + F(h)$, so its
-Jacobian is $I + \partial F / \partial h$. Multiplying these over many layers
-always leaves a path through the identity terms, so some gradient reaches
-every layer unchanged.
+Jacobian is $I + \partial F / \partial h$. Expanding the product of these over
+many layers gives one term that is the identity alone, with no Jacobian
+factors, so the top gradient always has a direct path to every layer. The
+other terms add to it, and they can still grow large, which is why deep
+residual networks scale each $F$ down at initialization.

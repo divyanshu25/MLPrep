@@ -408,8 +408,8 @@ keeps only the people consistent with the new evidence: 10,000 shrink to the
 One idea ties the common losses together. A model, whatever its
 architecture, is making a claim about how probable each possible outcome is.
 Training it means adjusting it until the things that actually happened look
-as probable as possible. And every standard loss turns out to be the same
-quantity in disguise: $-\log$ of the probability the model gave to what
+as probable as possible. And the most common losses, cross-entropy, MSE and
+L1, turn out to be the same quantity in disguise: $-\log$ of the probability the model gave to what
 actually happened. For a classifier, that's cross-entropy. For a regression
 model, if you think of its output as the center of a bell of likely values,
 it works out to squared error.
@@ -554,10 +554,11 @@ More generally, cross-entropy compares a target distribution $q$ with the
 model's distribution $p$: $H(q, p) = -\sum_k q_k \log p_k$. With a one-hot
 target, where $q_k$ is 1 for the true class and 0 elsewhere, only the true
 class's term survives and you get exactly the negative log-likelihood above.
-With soft targets, such as **label smoothing** (replacing the one-hot 1 with
-0.9 and spreading the other 0.1 over the remaining classes),
-$q = [0.9, 0.05, 0.05]$, it's still a
-perfectly good loss, just no longer a likelihood.
+With soft targets, such as **label smoothing**, it's still a perfectly good
+loss, just no longer a likelihood. The version used here replaces the
+one-hot 1 with 0.9 and spreads the other 0.1 over the remaining classes,
+$q = [0.9, 0.05, 0.05]$. (PyTorch's version spreads the 0.1 over all three
+classes instead, giving $[0.933, 0.033, 0.033]$.)
 
 With only two classes the same idea gives **binary cross-entropy**. If the
 model outputs $\hat y = 0.9$ for "spam", it's saying the label is
@@ -659,7 +660,7 @@ however far above it is.
 
 ## 3.5 Entropy and KL: what a loss value means
 
-We now know every loss is $-\log$ of a probability. But what does a loss of
+We now know cross-entropy, MSE and L1 are each $-\log$ of a probability. But what does a loss of
 1.97 actually mean? And why does a label-smoothed loss never reach zero, or
 an RLHF objective (reinforcement learning from human feedback, the method used
 to fine-tune chat models) include a "KL penalty"? These all come from a few
@@ -858,15 +859,26 @@ $$I(X; Y) = H(X) - H(X \mid Y)$$
 
 $H(X) = 2.58$ bits is the uncertainty about the roll before, and
 $H(X \mid Y)$, the **conditional entropy**, is the uncertainty about the roll
-after learning $Y$: the "uncertainty left" column.
+after learning $Y$, averaged over the possible answers:
+$H(X \mid Y) = \sum_y p(y)\, H(X \mid Y = y)$. In the table every answer
+leaves the same number of rolls ("even" and "odd" both leave 3), so the
+average is just the "uncertainty left" column.
 
-Mutual information is never negative, since learning something can't leave
-you less sure on average, and it is 0 exactly when the two are independent,
-like the coin flip.
+Mutual information is never negative, and it is 0 exactly when the two are
+independent, like the coin flip. Both facts follow from writing it as a KL:
+
+$$I(X; Y) = \sum_{x,y} p(x,y) \log \frac{p(x \mid y)}{p(x)} = \sum_{x,y} p(x,y) \log \frac{p(x,y)}{p(x)\,p(y)} = \mathrm{KL}\big(p(x,y) \,\|\, p(x)\,p(y)\big)$$
+
+(The first form is $H(X) - H(X \mid Y)$ with both entropies written as
+averages over the joint distribution $p(x,y)$.) A KL is never negative, and
+it is 0 only when the two distributions are equal, which here means
+$p(x,y) = p(x)\,p(y)$: independence.
 
 In ML it ranks input features by how much they tell you about the label.
-Contrastive learning (module 4), which trains a model to match pairs such as
-a photo and its caption, raises the mutual information between the two.
+Contrastive learning, which trains a model to match pairs such as a photo
+and its caption, raises a lower bound on the mutual information between the
+two (with $N$ candidate pairs per batch, the bound can never exceed
+$\log N$).
 
 ## 3.6 Averages: error bars and the central limit theorem
 
@@ -1077,7 +1089,7 @@ numerically.)
   accuracy. Averaged over 1,000 examples, the error bar is
   $0.3/\sqrt{1000} \approx 0.0095$, about ±1 point. So if a new model scores
   half a point higher on that test set, the difference is smaller than the
-  noise.
+  noise in either score, too small on its own to show a real improvement.
 - **Confidence intervals.** Take the model from the previous bullet: it
   scored 90% on 1,000 test examples. Testing it on a different 1,000
   examples would give a slightly different score, typically about 1 point
@@ -1088,7 +1100,11 @@ numerically.)
   its center. So 95% of the time, the measurement lands within 1.96 standard
   errors of the truth, which is $1.96 \times 0.95 \approx 1.9$ points.
   Turning that around gives a range for the truth: 90% ± 1.9 points, or
-  88.1% to 91.9%. That range is a 95% **confidence interval**.
+  88.1% to 91.9%. That range is a 95% **confidence interval**. The 95%
+  describes the procedure: if you repeated the test many times, about 95% of
+  the intervals built this way would contain the true accuracy. (This
+  standard error uses the measured 90% in place of the unknown true
+  accuracy, which works poorly when accuracy is close to 0% or 100%.)
 
 Where does 1.96 come from? It is just where the bell's area reaches 95%: the
 area within ±1.96 standard deviations of the center is 0.95. The area under
@@ -1222,7 +1238,9 @@ model.
   high bias, low variance.
 - **A too-flexible model is the jumpy scale.** A deep net or a decision tree
   with no depth limit follows every training example, so each training set's
-  noise moves it: low bias, high variance.
+  noise moves it: low bias, high variance. (Very large networks complicate
+  this: past the size where they fit the training data exactly, test error
+  can fall again, which is called double descent.)
 - **The best model is in between.** **Regularization** gets there by adding
   a penalty on large weights to the loss, which pulls a flexible model toward
   a simpler one: a little more bias for a lot less variance.

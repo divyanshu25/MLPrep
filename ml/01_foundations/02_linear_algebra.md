@@ -4,7 +4,7 @@
 
 In ML, a vector is **a list of measurements
 about one thing**. A house might be $x = [1400, 3, 1985]$ - square feet, bedrooms,
-year built. A word in a transformer is a vector of 768 learned numbers.
+year built. A token in a transformer is a vector of 768 learned numbers.
 
 The "arrow" picture is still useful for one reason: it gives us geometry. Once data
 points are vectors, we can ask geometric questions: *how long is it? how similar are
@@ -20,9 +20,14 @@ $$a \cdot b = 1\cdot 3 + 2 \cdot 1 = 5$$
 Mechanically: multiply matching entries, add them up. But *why* is this number
 meaningful? Two views, both essential:
 
-**View 1: similarity.** The identity (provable from the law of cosines):
+**View 1: similarity.** The identity:
 
 $$a \cdot b = \|a\| \, \|b\| \cos\theta$$
+
+(Why: the third side of the triangle with sides $a$ and $b$ is $a - b$.
+Expanding, $\|a - b\|^2 = \|a\|^2 + \|b\|^2 - 2\,a \cdot b$, and the law of
+cosines says the same length is $\|a\|^2 + \|b\|^2 - 2\|a\|\|b\|\cos\theta$.
+Matching the two gives the identity.)
 
 where $\theta$ is the angle between them. Hold the two lengths constant;
 then the dot product depends only on $\cos\theta$, and there are three
@@ -38,11 +43,13 @@ cases:
 So the dot product is an (unnormalized) **agreement score**. Divide out the
 lengths and you get **cosine similarity** -
 the thing every embedding search engine computes. Attention scores in a
-transformer are literally $q \cdot k$: "how much does this query agree with this
-key?"
+transformer are $q \cdot k / \sqrt{d_k}$: "how much does this query agree with this
+key?", scaled by the square root of the vector length $d_k$.
 
-**View 2: projection.** $\frac{a \cdot b}{\|b\|}$ is the length of the shadow $a$ casts
-onto the direction of $b$. So a dot product asks: *how much of $a$ lives along $b$'s
+**View 2: projection.** $\frac{a \cdot b}{\|b\|}$ is the signed length of the shadow
+$a$ casts onto the direction of $b$ (negative when the angle is over 90°). The
+shadow itself, as a vector, is that length times the unit vector $b/\|b\|$:
+$\frac{a \cdot b}{\|b\|^2}\, b$. So a dot product asks: *how much of $a$ lives along $b$'s
 direction?* Why not the other way? Both are true: $a \cdot b = b \cdot a$, so the same
 number is also "$b$'s shadow on $a$" - just normalized differently
 ($a \cdot b / \|a\|$ instead of $a \cdot b / \|b\|$). Which reading you pick depends on
@@ -325,7 +332,10 @@ Why care in ML:
   vector and repeat two steps: multiply by $A$, then rescale to length 1. Each
   multiplication makes the top component larger relative to all the others, so
   the vector converges to the top eigenvector. The rescaling only keeps the
-  numbers from overflowing.
+  numbers from overflowing. This needs two conditions: the top $|\lambda_1|$
+  must be strictly larger than the next $|\lambda_2|$, and the starting vector
+  must have some component along the top eigenvector. The error then shrinks
+  by a factor $|\lambda_2/\lambda_1|$ per multiplication.
 - **PageRank** is power iteration on the web's link graph. The idea: a page is
   important if a reader who clicks links at random for a long time often ends
   up on it.
@@ -340,7 +350,11 @@ Why care in ML:
     that one more round does not change, $Ap = p$. So $p$ is an eigenvector of
     $A$ with eigenvalue 1.
   - Google computed $p$ by power iteration: spread the readers evenly, then
-    multiply by $A$ until $p$ stops changing.
+    multiply by $A$ until $p$ stops changing. In practice the reader also
+    jumps to a random page with some probability (about 15%) at every step,
+    and pages with no outgoing links send readers to random pages. Without
+    those two fixes, eigenvalue 1 can have several eigenvectors, or the
+    iteration can cycle instead of settling.
 - **Optimization.** In 1-D, the second derivative is curvature: how fast the
   slope changes as you move. A loss over $n$ weights has no single
   curvature - it depends on which direction you move in - and the
@@ -443,8 +457,8 @@ height (emerald just above the minimum, then amber, then rose). The indigo
 path is gradient descent. Each step moves perpendicular to the contour ring
 at the current point. In the round bowl that direction points at the
 minimum. In the stretched bowl it points across the valley, so each step
-crosses to the opposite wall and the path bounces from side to side. This
-picture is why momentum and Adam exist.*
+crosses to the opposite wall and the path bounces from side to side.
+Momentum damps this bouncing by averaging successive steps.*
 
 ## 1.6 SVD: every matrix is rotate → stretch → rotate
 
@@ -621,14 +635,18 @@ $$A = U \Sigma V^\top \tag{1.6b}$$
   $v_i$ (§1.2). This is the job $Q^{-1}$ did.
 - **$\Sigma$ stretches** amount $i$ by $\sigma_i \ge 0$. These are the
   **singular values**, numbered largest first. (Σ also changes the length
-  from $d$ to $n$, padding with zeros.)
+  from $d$ to $n$: it pads with zeros when $n > d$ and drops entries when
+  $n < d$.)
 - **$U$ rebuilds the output** from the stretched amounts: $(a_1, a_2, \dots)$
   becomes $a_1 u_1 + a_2 u_2 + \dots$. Its columns are the $u_i$. This is the
   job $Q$ did.
 
-A matrix whose rows or columns are perpendicular unit vectors is a rotation
-(possibly with a reflection), so $V^\top$ and $U$ are rotations. That gives
-the section title: rotate, stretch, rotate.
+In the full SVD, $U$ is $n \times n$ and $V$ is $d \times d$, and both are
+square with perpendicular unit columns. A square matrix like that is a
+rotation (possibly with a reflection), so $V^\top$ and $U$ are rotations.
+That gives the section title: rotate, stretch, rotate. (The compact SVD keeps
+only the first few columns of $U$; that $U$ is not square, so it is not a
+rotation, but its columns are still perpendicular unit vectors.)
 
 In one sentence: $v_1$ is the input direction $A$ stretches most, $\sigma_1$
 is how much, and $u_1$ is the direction it lands on. $v_2$ is the same among
@@ -676,10 +694,17 @@ directions $A$ stretches most. The squared length of an output is
 
 $$\|A v\|^2 = (Av) \cdot (Av) = v^\top A^\top A\, v$$
 
-so the $d \times d$ matrix $A^\top A$ records how much $A$ stretches every
+so the $d \times d$ matrix $M = A^\top A$ records how much $A$ stretches every
 input direction. It is symmetric, $(A^\top A)^\top = A^\top A$, so Part A
-applies: its eigenvectors are perpendicular, and they are the $v_i$. Its
-eigenvalues are the squared stretches $\sigma_i^2$. Substituting (1.6b), with
+applies: its eigenvectors $q_1, q_2, \dots$ are perpendicular unit vectors,
+with eigenvalues $\lambda_1 \ge \lambda_2 \ge \dots$. The most-stretched
+direction is $q_1$. Write any unit vector as $v = \sum_i c_i q_i$, with
+$\sum_i c_i^2 = 1$. Then $v^\top M v = \sum_i \lambda_i c_i^2$, an average of
+the $\lambda_i$ with weights $c_i^2$, so it is at most $\lambda_1$, and it
+equals $\lambda_1$ when $v = q_1$. Among directions perpendicular to $q_1$ the
+same argument picks $q_2$, and so on. (This ratio $v^\top M v$ for unit $v$ is
+called the **Rayleigh quotient**.) So the $v_i$ are the eigenvectors of
+$A^\top A$, and its eigenvalues are the squared stretches $\sigma_i^2$. Substituting (1.6b), with
 $U^\top U = I$, confirms this:
 
 $$A^\top A = V \Sigma^\top U^\top U \Sigma V^\top = V \Sigma^2 V^\top \tag{1.6c}$$
@@ -793,8 +818,10 @@ $$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6e}$$
 The dropped terms are the ones with the smallest $\sigma$, so the loss is
 small when the $\sigma_i$ fall off quickly, which they usually do for real
 data. No other choice of $k$ patterns does better: the **Eckart–Young
-theorem** says (1.6e) is the best approximation of $A$ that uses $k$
-patterns.
+theorem** says (1.6e) is the best rank-$k$ approximation of $A$, with error
+$\|A - A_k\|_F^2 = \sum_{i > k} \sigma_i^2$ in the Frobenius norm (the square
+root of the sum of squared entries) and $\sigma_{k+1}$ in the spectral norm
+(the largest stretch).
 
 **How much it saves.** A ratings matrix with $n = 10{,}000$ users and
 $d = 500$ movies holds $5{,}000{,}000$ numbers. The top $k$ terms store $k$
@@ -883,8 +910,9 @@ $20 \times 10{,}501 = 210{,}020$, about 4% of the original.
 - **Model compression**: replace a trained weight matrix with its truncated
   SVD.
 - **LoRA**: assume the *fine-tuning update* $\Delta W$ is low-rank and learn
-  it directly as $\Delta W = BA$ with a small inner dimension, a few patterns'
-  worth of change instead of a whole new matrix.
+  it directly as $\Delta W = W_B W_A$, a tall matrix times a wide one with a
+  small inner dimension: a few patterns' worth of change instead of a whole
+  new matrix.
 
 ## 1.7 Norms: what "big" means
 
@@ -920,10 +948,12 @@ exactly zero.
 $\lambda \|w\|_1 = \lambda \sum_i |w_i|$ adds $+\lambda$ or $-\lambda$ to each
 weight's gradient: a pull of the same strength no matter how small the
 weight is. For a small weight $w = 0.05$ with $\lambda = 0.1$, L2 pulls with
-$2 \cdot 0.1 \cdot 0.05 = 0.01$ while L1 pulls with the full $0.1$. So L1
-keeps pushing small weights all the way to zero. Once a weight is at zero,
-moving it either way costs $\lambda$ per unit, so it stays at zero unless the
-loss gradient for that weight is bigger than $\lambda$. This is the
+$2 \cdot 0.1 \cdot 0.05 = 0.01$ while L1 pulls with the full $0.1$. So under
+L1 a small weight does not just shrink, it reaches zero. At zero, moving it
+either way costs $\lambda$ per unit, so the best value is exactly zero unless
+the loss gradient for that weight is bigger than $\lambda$. (Plain gradient
+steps overshoot and jitter around zero; solvers that hit zero exactly use a
+step that clips to zero, called soft-thresholding.) This is the
 **lasso**, and it is why "L1 selects features": the features whose weights
 survive are the selected ones.
 

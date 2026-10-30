@@ -5,10 +5,9 @@ question, answer out loud or on paper as if the interviewer just asked it,
 and only then open the model answer. Any answer you could not produce cold
 goes into `practice/queue.tsv`.
 
-Each model answer starts from a tiny concrete case, often a few lines of
-numpy you could type into a notebook, and states the general rule after.
-That is also a good way to answer in the room: show the small case, then
-generalize. The full derivations live in the chapters.
+Each model answer starts from a tiny concrete case with numbers and states
+the general rule after. That is also a good way to answer in the room: show
+the small case, then generalize. The full derivations live in the chapters.
 
 ## Linear algebra
 
@@ -24,11 +23,7 @@ $a \cdot c = 12 - 12 = 0$, and the vectors are perpendicular.
 
 In general $a \cdot b = \|a\|\,\|b\|\cos\theta$: largest when the vectors
 align, zero when perpendicular, negative when opposite. Dividing out the
-lengths leaves $\cos\theta$, the cosine similarity:
-
-```python
-a @ b / (np.linalg.norm(a) * np.linalg.norm(b))   # 0.96
-```
+lengths leaves $\cos\theta$, the cosine similarity, 0.96 here.
 
 **If asked:**
 
@@ -47,19 +42,18 @@ a @ b / (np.linalg.norm(a) * np.linalg.norm(b))   # 0.96
 
 Write two layers with no activation between them and expand:
 
-```python
-h = W1 @ x + b1
-y = W2 @ h + b2        # = (W2 @ W1) @ x + (W2 @ b1 + b2)
-```
+$$y = W_2(W_1 x + b_1) + b_2 = (W_2 W_1)\,x + (W_2 b_1 + b_2)$$
 
-`W2 @ W1` is just another matrix and `W2 @ b1 + b2` is just another vector,
+$W_2 W_1$ is just another matrix and $W_2 b_1 + b_2$ is just another vector,
 so the two layers compute exactly what one layer can. The same step
 collapses any number of layers. Depth only adds functions the model can
 represent when a nonlinearity sits between the layers.
 
 **If asked:** *Something no linear model can do?* XOR. Positives
 $(0,1), (1,0)$ require $w_1 + w_2 + 2b > 0$; negatives $(0,0), (1,1)$
-require $w_1 + w_2 + 2b < 0$. One ReLU unit fixes it.
+require $w_1 + w_2 + 2b < 0$. Two hidden ReLUs fix it:
+$y = \mathrm{ReLU}(x_1 + x_2) - 2\,\mathrm{ReLU}(x_1 + x_2 - 1)$ gives 0, 1,
+1, 0.
 </details>
 
 ---
@@ -69,24 +63,22 @@ require $w_1 + w_2 + 2b < 0$. One ReLU unit fixes it.
 <details><summary>Model answer</summary>
 
 Multiply a few vectors by $A = \begin{pmatrix} 2 & 1 \\ 1 & 2 \end{pmatrix}$:
-
-```python
-A @ [1, 1]     # [3, 3]    same direction, 3x longer
-A @ [1, -1]    # [1, -1]   same direction, 1x
-A @ [1, 0]     # [2, 1]    direction changed
-```
-
-The first two are eigenvectors: directions that $A$ only scales,
-$Av = \lambda v$, with eigenvalues 3 and 1.
+$A[1, 1] = [3, 3]$, same direction and 3 times longer; $A[1, -1] = [1, -1]$,
+unchanged; $A[1, 0] = [2, 1]$, a new direction. The first two are
+eigenvectors: directions that $A$ only scales, $Av = \lambda v$, with
+eigenvalues 3 and 1.
 
 In ML: the eigenvectors of the data covariance matrix $\Sigma$ are the PCA
 directions, and each eigenvalue is the variance of the data along its
-eigenvector. The reason: maximizing the projected variance
-$u^\top \Sigma u$ subject to $\|u\| = 1$ gives $\Sigma u = \lambda u$
-(Lagrange multiplier), and the variance achieved is $\lambda$.
+eigenvector. The reason: write a unit direction $u$ in $\Sigma$'s
+eigenvectors with weights $c_i$ ($\sum c_i^2 = 1$). The variance along it is
+$u^\top \Sigma u = \sum_i \lambda_i c_i^2$, a weighted average of the
+eigenvalues, so it is largest when all the weight is on the top eigenvector.
 
-**If asked:** *Another place?* Gradient descent on a quadratic converges
-only if the learning rate satisfies $\eta < 2/\lambda_{\max}$ of the Hessian.
+**If asked:** *Another place?* Gradient descent on a quadratic multiplies
+the error along each Hessian eigenvector by $1 - \eta\lambda$ per step, so it
+converges only if $|1 - \eta\lambda| < 1$ for every eigenvalue:
+$\eta < 2/\lambda_{\max}$.
 </details>
 
 ---
@@ -104,13 +96,8 @@ rotates ($V^\top$), stretches along the axes ($\Sigma$), and rotates again
 $A$ are the square roots of the eigenvalues of $A^\top A$.
 
 Why it matters: keeping the top $k$ singular values gives the best rank-$k$
-approximation of $A$, which is what PCA, matrix factorization and LoRA
-rely on.
-
-```python
-U, S, Vt = np.linalg.svd(A)
-A_k = U[:, :k] @ np.diag(S[:k]) @ Vt[:k]     # best rank-k approximation
-```
+approximation of $A$, which is what PCA and matrix factorization use. LoRA
+rests on the related assumption that a fine-tuning update has low rank.
 
 **If asked:** *When are they the same?* For symmetric positive
 semidefinite matrices, such as covariance matrices.
@@ -123,14 +110,10 @@ semidefinite matrices, such as covariance matrices.
 <details><summary>Model answer</summary>
 
 Take one weight whose unregularized best value is $a$, and minimize
-$(w - a)^2$ plus each penalty. Both have closed forms:
-
-```python
-w_l2 = a / (1 + lam)                            # L2: divide
-w_l1 = np.sign(a) * max(0, abs(a) - lam / 2)    # L1: subtract, clip at 0
-```
-
-With `lam = 1` and `a = 0.3`: L2 gives 0.15, L1 gives exactly 0.0.
+$(w - a)^2$ plus each penalty. Both have closed forms: with
+$\lambda w^2$ the minimum is $w = a/(1 + \lambda)$, and with $\lambda|w|$ it
+is $w = \mathrm{sign}(a)\max(0, |a| - \lambda/2)$. With $\lambda = 1$ and
+$a = 0.3$: L2 gives 0.15, L1 gives exactly 0.
 
 The reason is the slope of each penalty near zero. The L2 penalty
 $\lambda w^2$ has slope $2\lambda w$, which goes to 0 as $w$ does, so any
@@ -139,15 +122,16 @@ $\lambda|w|$ has slope $\lambda$ all the way down to 0, so when the loss's
 slope at zero ($2|a|$) is smaller than $\lambda$, the minimum stays at
 exactly $w = 0$. In 2D, the L1 constraint region is a diamond with corners
 on the axes, and the loss contours usually touch it first at a corner
-(figure in module 2, §3.2).
+(figure in §1.7 of the linear algebra notes).
 
 **If asked:**
 
-- *Bayesian view?* L2 is a Gaussian prior on the weights, L1 a Laplace
-  prior.
+- *Bayesian view?* Minimizing loss plus penalty is maximizing likelihood
+  times a prior. $-\log$ of a Gaussian prior is a squared penalty (L2), and
+  $-\log$ of a Laplace prior is an absolute-value penalty (L1).
 - *Does SGD with an L1 term give exact zeros?* No, subgradient steps
-  oscillate around 0. Exact zeros need the soft-threshold step above
-  applied after each gradient step (a proximal step).
+  oscillate around 0. Exact zeros need the clip-at-zero step above applied
+  after each gradient step (a proximal step).
 </details>
 
 ## Calculus
@@ -156,47 +140,29 @@ on the axes, and the loss contours usually touch it first at a corner
 
 <details><summary>Model answer</summary>
 
-Take $L = (wx + b)^2$ with $w = 2$, $x = 3$, $b = 1$. The question is: if
-$w$ increases by a tiny amount, how much does $L$ change? That rate is
-$\partial L/\partial w$, and backprop computes it for every input at once.
-
-The forward pass computes each intermediate value and keeps it:
-
-```python
-z = w * x + b      # 7
-L = z ** 2         # 49
-```
-
-The backward pass starts at the end with $\partial L/\partial L = 1$ and
+Take $L = (wx + b)^2$ with $w = 2$, $x = 3$, $b = 1$. The forward pass
+computes and keeps each intermediate value: $z = wx + b = 7$, then
+$L = z^2 = 49$. The backward pass starts at $\partial L/\partial L = 1$ and
 walks back, multiplying by each operation's local derivative (the chain
-rule):
+rule): $\partial L/\partial z = 2z = 14$, then
+$\partial L/\partial w = 14 \cdot x = 42$ and $\partial L/\partial b = 14$.
 
-```python
-dL = 1.0
-dz = dL * 2 * z    # 14   local derivative of z**2 is 2z
-dw = dz * x        # 42   local derivative of w*x + b with respect to w is x
-db = dz * 1        # 14
-```
+The backward step used $z$ and $x$, values from the forward pass, which is
+why the forward pass stores them. And if a variable feeds into two
+operations, its gradient is the sum of the two contributions.
 
-Two things to notice. The backward lines use `z` and `x`, values from the
-forward pass, which is why the forward pass stores them. And if a variable
-feeds into two operations, its gradient is the sum of the two
-contributions, which is why real implementations write `grad +=`.
-
-Why walk backward? The direct alternative is to measure each derivative:
-add a small $h$ to one parameter, rerun the forward pass, and compute
-$(L(w + h) - L(w))/h$. Here that gives 42.00001. But it gives the
-derivative for one parameter per forward pass, so a model with $10^9$
-parameters would need $10^9$ forward passes for a single gradient. The
-backward pass produces all $10^9$ derivatives in one sweep, at about twice
-the cost of a forward pass. This is reverse-mode autodiff, and it is
-efficient because the loss is a single number.
+Why backward? Measuring one derivative directly, $(L(w + h) - L(w))/h$ with
+$h = 10^{-6}$, gives 42.000009, but it takes one forward pass per parameter:
+$10^9$ passes for a model with $10^9$ parameters. The backward pass gives all
+$10^9$ derivatives in one sweep at about twice the cost of a forward pass,
+because the loss is a single number. This is reverse-mode autodiff.
 
 **If asked:**
 
 - *Why about 2× forward?* For $Y = XW$ with upstream gradient $G$, backward
   is two matrix multiplies of the same size, $X^\top G$ and $G W^\top$. A
-  training step is then about 3× forward: the $6N$ in $C = 6ND$.
+  training step is then about 3× forward, which is where the estimate of 6
+  FLOPs per parameter per training token comes from.
 - *What limits it?* Memory for the stored activations. Checkpointing
   recomputes them instead of storing them.
 </details>
@@ -214,15 +180,10 @@ $J = W$. For an elementwise ReLU, $J$ is diagonal with 1 where $x > 0$ and
 0 elsewhere.
 
 Backprop never builds $J$. Given $g = \partial L/\partial f$, each layer
-only needs $J^\top g$, and computes it directly:
-
-```python
-dx = W.T @ g        # linear layer
-dx = g * (x > 0)    # ReLU
-```
-
-For a ReLU on 4,096 activations, $J$ would hold 16.8 million numbers; the
-backward line above does 4,096 multiplications.
+only needs $J^\top g$, and computes it directly: $W^\top g$ for a linear
+layer, and $g$ times 1 or 0 entry by entry for a ReLU. For a ReLU on 4,096
+activations, $J$ would hold 16.8 million numbers; the direct backward step
+does 4,096 multiplications.
 </details>
 
 ---
@@ -237,31 +198,21 @@ layer:
 
 $$\frac{\partial h_D}{\partial h_0} = \prod_{l=1}^{D} w_l\, f'(z_l)$$
 
-A product of many factors is exponential in depth:
+A product of many factors is exponential in depth: $0.9^{50} \approx 0.005$
+vanishes, $1.1^{50} \approx 117$ explodes, and ten sigmoids, whose slope is
+at most 0.25, give at most $0.25^{10} \approx 10^{-6}$.
 
-```python
-0.9 ** 50      # 0.005   vanishes
-1.1 ** 50      # 117     explodes
-0.25 ** 10     # 1e-6    ten sigmoids: sigmoid's slope is at most 0.25
-```
+In a real network the backward step through a layer is
+$W^\top(g \odot f'(z))$, the matrix version of $w_l f'(z_l)$, and the
+gradient's length behaves the same way. An RNN reuses the same $W$ at every
+time step, so if $W$'s largest singular value is below 1 the gradient
+vanishes over a long sequence.
 
-In a real network, a layer is $z = W h_{\text{prev}}$, $h = f(z)$, and the
-backward step through it is `W.T @ (g * f'(z))`: take the upstream
-gradient $g = \partial L/\partial h$, multiply elementwise by the
-activation's slope $f'(z)$, then by $W^\top$. That is the matrix version
-of $w_l f'(z_l)$, and the gradient's length behaves the same way. An RNN reuses exactly the same $W$
-at every time step; the tanh slope varies per step but is at most 1, so if
-$W$'s largest singular value is below 1, the gradient is guaranteed to
-vanish over a long sequence.
-
-Fixes, each keeping the factor near 1:
-
-- Kaiming/Xavier init: weight scale chosen so each factor is about 1 at the start
-- ReLU: slope 1 where active, instead of sigmoid's 0.25 at most
-- LayerNorm/BatchNorm: activations stay at unit scale during training
-- Residual connections: $h + F(h)$ has factor $I + \partial F/\partial h$, so an identity path always exists
-- LSTM forget gate near 1: the same identity path, through time
-- Gradient clipping: limits explosion only
+Fixes, each keeping the factor near 1: initialization scaled so each factor
+starts near 1; ReLU (slope 1 where active); normalization layers; residual
+connections, whose Jacobian $I + \partial F/\partial h$ contains an identity
+path; the LSTM's gated memory, the same idea through time; and gradient
+clipping, which only limits explosion.
 
 **If asked:** *How do you detect it?* Log each layer's gradient norm.
 Early layers orders of magnitude below late ones means vanishing; loss
@@ -275,31 +226,16 @@ spikes or NaN mean exploding.
 <details><summary>Model answer</summary>
 
 Start with one feature: fit $y \approx wx$ through the points $(1, 1)$,
-$(2, 2)$, $(3, 2)$. The loss is the sum of squared errors, and its
-derivative is ordinary calculus:
+$(2, 2)$, $(3, 2)$. Differentiate the sum of squared errors and set it to
+zero:
 
-$$L(w) = \sum_i (w x_i - y_i)^2, \qquad \frac{dL}{dw} = 2\sum_i x_i\,(w x_i - y_i)$$
+$$\frac{d}{dw}\sum_i (w x_i - y_i)^2 = 2\sum_i x_i\,(w x_i - y_i) = 0 \;\Rightarrow\; w = \frac{\sum_i x_i y_i}{\sum_i x_i^2} = \frac{11}{14} \approx 0.786$$
 
-Set it to zero and solve:
-
-$$w = \frac{\sum_i x_i y_i}{\sum_i x_i^2} = \frac{1 + 4 + 6}{1 + 4 + 9} = \frac{11}{14} \approx 0.786$$
-
-The matrix formula is the same computation. Stack the $x_i$ as the rows of
-$X$ and the $y_i$ into $y$:
-
-```python
-err  = X @ w - y        # one error per data point
-grad = 2 * X.T @ err    # sum of x_i * error_i: one number per weight
-```
-
-So $\nabla_w \|Xw - y\|^2 = 2X^\top(Xw - y)$, and with many features $X$
-simply has more columns. Setting it to zero gives the normal equations,
-$X^\top X\, w = X^\top y$, the matrix version of
-$w = \sum x_i y_i / \sum x_i^2$:
-
-```python
-w = np.linalg.solve(X.T @ X, X.T @ y)    # 0.786
-```
+The matrix formula is the same computation. With the $x_i$ as the rows of
+$X$, $X^\top(Xw - y)$ is the sum of each feature times each error, so
+$\nabla_w \|Xw - y\|^2 = 2X^\top(Xw - y)$. Setting it to zero gives the
+normal equations $X^\top X\, w = X^\top y$, the matrix version of
+$w = \sum x_i y_i / \sum x_i^2$.
 
 **If asked:** *What if $X^\top X$ is not invertible?* That happens when
 features are copies or combinations of each other. Ridge adds $\lambda I$:
@@ -334,16 +270,11 @@ A classifier outputs a probability for each label. The likelihood of the
 dataset is the product of the probabilities it assigned to the correct
 labels. Take the log to turn the product into a sum, and a minus sign to
 turn maximizing into minimizing. For one binary example with predicted
-$p = p_\theta(1 \mid x)$:
-
-```python
-loss = -(y * np.log(p) + (1 - y) * np.log(1 - p))   # = -log(prob of the correct label)
-```
-
-That line is the binary cross-entropy loss. So cross-entropy is the
-negative log-likelihood, term for term. The same steps with Gaussian noise
-on a regression target give MSE, and with Laplace noise give absolute
-error.
+$p = p_\theta(1 \mid x)$, that gives $-[y \log p + (1 - y)\log(1 - p)]$, the
+binary cross-entropy: $-\log 0.9 = 0.105$ if $y = 1$ and $p = 0.9$. So
+cross-entropy is the negative log-likelihood, term for term. The same steps
+with Gaussian noise on a regression target give MSE, and with Laplace noise
+give absolute error.
 
 **If asked:** *Information-theory view?* The expected loss is
 $H(q, p_\theta) = H(q) + \mathrm{KL}(q \,\|\, p_\theta)$, and $H(q)$ does not
@@ -369,7 +300,9 @@ $$P(\text{sick} \mid +) = \frac{99}{99 + 495} \approx 0.17$$
 
 About 17%, not 99%. The healthy group is so much larger that its small
 false-positive rate produces five times more positives than the sick group
-does. The same arithmetic is why accuracy misleads on imbalanced classes.
+does. The same arithmetic is why accuracy misleads on imbalanced classes:
+this test is right for 9,504 of the 10,000 people (95%), while a test that
+calls everyone healthy is right for 9,900 (99%).
 
 **If asked:**
 
@@ -384,14 +317,8 @@ does. The same arithmetic is why accuracy misleads on imbalanced classes.
 
 <details><summary>Model answer</summary>
 
-Try it: draw many samples of size 2 from a distribution with variance 1 and
-average the two estimators.
-
-```python
-x = np.random.randn(100000, 2)       # true variance 1
-x.var(axis=1).mean()                 # 0.50   divide by n
-x.var(axis=1, ddof=1).mean()         # 0.99   divide by n - 1
-```
+Draw many samples of size 2 from a distribution with variance 1. Dividing
+by $n$ averages 0.50; dividing by $n - 1$ averages 1.00.
 
 Dividing by $n$ comes out low, at $\frac{n-1}{n}\sigma^2$ on average. The
 reason: the deviations are measured from $\bar X$, which is computed from
@@ -404,8 +331,10 @@ $$\sum_i (X_i - \bar X)^2 = \sum_i (X_i - \mu)^2 - n(\bar X - \mu)^2$$
 Taking expectations, $n\sigma^2 - n \cdot \sigma^2/n = (n - 1)\sigma^2$.
 Dividing by $n - 1$ removes the bias.
 
-**If asked:** *Is $s$ then unbiased for $\sigma$?* No. The square root is
-concave, so $\mathbb{E}[s] \le \sigma$ (Jensen).
+**If asked:** *Is $s$ then unbiased for $\sigma$?* No. For a concave
+function like the square root, the average of the function is at most the
+function of the average (Jensen's inequality), so
+$\mathbb{E}[s] \le \sqrt{\mathbb{E}[s^2]} = \sigma$.
 </details>
 
 ---
@@ -414,19 +343,14 @@ concave, so $\mathbb{E}[s] \le \sigma$ (Jensen).
 
 <details><summary>Model answer</summary>
 
-Try it: average $n$ draws with standard deviation 1, many times over, and
-measure the spread of the averages.
+Average 100 draws with standard deviation 1, many times over: the averages
+spread with standard deviation 0.10. Average 400 draws: 0.05. Four times
+the data halves the spread.
 
-```python
-np.random.randn(100000, 100).mean(axis=1).std()   # 0.10 = 1/sqrt(100)
-np.random.randn(100000, 400).mean(axis=1).std()   # 0.05 = 1/sqrt(400)
-```
-
-Four times the data halves the spread. The algebra:
-$\mathrm{Var}(\bar X) = \frac{1}{n^2} \cdot n\sigma^2 = \sigma^2/n$. The
-$1/n$ comes out squared, and independence lets the variances add. So the
-standard error is $\sigma/\sqrt{n}$. The CLT adds that $\bar X$ is
-approximately normal for large $n$.
+The algebra: $\mathrm{Var}(\bar X) = \frac{1}{n^2} \cdot n\sigma^2 =
+\sigma^2/n$. The $1/n$ comes out squared, and independence lets the
+variances add. So the standard error is $\sigma/\sqrt{n}$. The CLT adds that
+$\bar X$ is approximately normal for large $n$.
 
 **If asked:** *Correlated draws?* With pairwise correlation $\rho$,
 $\mathrm{Var}(\bar X) = \sigma^2/n + \frac{n-1}{n}\rho\sigma^2 \to
@@ -448,20 +372,23 @@ Each test example is right or wrong, so the number of correct answers is
 Binomial with $p \approx 0.91$. Its variance is
 $1000 \times 0.91 \times 0.09 \approx 82$, so its standard error is
 $\sqrt{82} \approx 9$ examples. The gain, 5 examples, is less than one
-standard error, and significance needs about two (1.96). It's noise.
+standard error, and significance needs about two (1.96). It's noise. (This
+uses one score's noise as the yardstick. A careful test compares the models
+on the examples where they disagree, McNemar's test in Probability §3.8, and
+gives the same verdict unless the models disagree on only a handful of
+examples.)
 
 **If asked:** *What else would you do?* Check the training noise too. A
 **random seed** sets the starting weights and the order of the training
 data, and the same model trained with two different seeds often differs by
-about 0.5 points of test accuracy. So the gain could come from the seed
-alone. Train each model with several seeds, say 5, and compare the averages.
-Also use a bigger test set (Probability §3.8).
+about 0.5 points of test accuracy. Train each model with several seeds and
+compare the averages, and use a bigger test set.
 </details>
 
 ## Exit checklist
 
 Seven timed derivations, about 26 minutes total. Cold, on paper, before
-moving on - a miss goes into `practice/queue.tsv`.
+moving on. A miss goes into `practice/queue.tsv`.
 
 - [ ] Derive the projection of $b$ onto $a$ and explain the dot product as similarity - 3 min
 - [ ] State SVD as rotate → stretch → rotate and give the geometric meaning of eigenvectors/eigenvalues - 3 min
