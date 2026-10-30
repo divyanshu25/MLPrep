@@ -1336,8 +1336,9 @@ better, or did it get lucky on this test set?
 
 Throw away the examples where the two models agree. If both got an example
 right, or both got it wrong, it says nothing about which one is better. That
-leaves 100 examples where they disagree. The new model wins 62 of them, the
-old one 38.
+leaves the examples where they disagree. Say there are 100: the new model
+wins 62 of them and the old one 38. Those 24 extra wins are the whole
+accuracy gap, $862 - 838 = 24$ examples.
 
 #### The test
 
@@ -1422,7 +1423,8 @@ far from 50 as the real result of 62: 62 or more, or 38 or fewer.*
 
 206 of the 10,000 runs, 2.1%, are that lopsided. So if the models were
 equally good, a result like 62 to 38 would come up about 2 times in 100.
-That's rare enough to believe the new model is really better.
+The usual cutoff is 5 times in 100. This is below it, so the usual
+conclusion is that the new model is really better.
 
 That's the whole test. The rest is names for its pieces:
 
@@ -1431,11 +1433,13 @@ That's the whole test. The rest is names for its pieces:
 - **p-value**: the fraction of simulated runs at least as lopsided as the
   real result. Here 0.021.
 - **Statistically significant**: by convention, $p < 0.05$. This result is.
-- **Standard error** (SE): the standard deviation of the pile, 5 wins. It's
-  the typical size of luck.
-- $z$: the distance above the middle divided by the typical luck,
-  $(62 - 50)/5 = 2.4$. The pile is a bell, so $p < 0.05$ is the same as
-  $|z| > 1.96$ (§3.6).
+- **Standard error** (SE): the standard deviation of the pile, 5 wins: the
+  typical distance from 50 that chance alone produces.
+- $z$: the distance from the middle in standard errors,
+  $(62 - 50)/5 = 2.4$. The count is a sum of 100 flips, so by the central
+  limit theorem the pile is close to a bell (§3.6). 95% of a bell lies
+  within 1.96 SE of its center, so $p < 0.05$ is close to $|z| > 1.96$.
+  (Close, not exact, because wins are whole numbers.)
 
 **Where the 5 comes from.** The simulation measured the standard error, 5
 wins, by brute force. You can also compute it in three steps:
@@ -1456,7 +1460,8 @@ disagreements,
 
 $$z = \frac{L/2}{\sqrt m / 2} = \frac{L}{\sqrt m}$$
 
-The two halves cancel. Here $24/\sqrt{100} = 2.4$, the same as before.
+The $/2$ on top and bottom cancel. Here $24/\sqrt{100} = 2.4$, the same as
+before.
 Writing $b$ for the new model's wins and $c$ for the old one's, the lead is
 $b - c$ and $m = b + c$, so $z = (b - c)/\sqrt{b + c}$. This recipe, keeping
 only the disagreements and treating each one as a coin flip, is called
@@ -1464,18 +1469,24 @@ only the disagreements and treating each one as a coin flip, is called
 
 #### Power: how many examples you need
 
-Now the other way around. Say the new model really is better: it wins 60%
-of disagreements, not 50%. Does the test notice?
+So far the models were assumed equal, and the question was how surprising
+62 wins is. Now suppose the new model really is better: it wins 60% of
+disagreements, not 50%. How often does the test come out significant?
 
-Simulate it. Give the new model 100 disagreements, let it win each one with
+To keep the arithmetic simple, use the bell shortcut from here on:
+significant means $z > 1.96$, which is at least
+$50 + 1.96 \times 5 = 59.8$, so 60 wins or more.
+
+Simulate 100 disagreements where the new model wins each one with
 probability 0.6, and count its wins. The first six runs gave 60, 62, 65, 56,
-57 and 60. The test calls a result significant at
-$50 + 1.96 \times 5 \approx 60$ wins or more, so the runs with 56 and 57
-come back "not significant", even though the model really is better.
+57 and 60. The runs with 56 and 57 come back "not significant", even though
+the new model really is better.
 
-Over 10,000 runs, 5,489 clear the bar: about 55%. That fraction is the
-test's **power**, the chance it catches a real improvement. It's low because
-the better model expects 60 wins and the bar is also at 60, so luck decides.
+Over 10,000 runs, 5,489 reach 60: about 55%. That fraction is the test's
+**power**: the chance the test comes out significant when the improvement is
+real. It's low because the bar sits at the center of the better model's
+pile, so only about half its runs clear it (a bit over half, because runs
+landing exactly on 60 count).
 
 The fix is more disagreements. The same simulation with more of them:
 
@@ -1492,10 +1503,13 @@ true win rate $q$ (here 0.6).
   $\frac m2 + 1.96 \cdot \frac{\sqrt m}{2}$. For $m = 200$:
   $100 + 1.96 \times 7.07 \approx 114$.
 - The better model expects $qm$ wins, give or take about the same
-  $\sqrt m / 2$. (Exactly, it's $\sqrt{m \times 0.6 \times 0.4} \approx 0.49\sqrt m$,
-  close enough.)
+  $\sqrt m / 2$. (Exactly, it's $\sqrt{m\,q(1-q)}$, which is $0.49\sqrt m$ for
+  $q = 0.6$: close enough.)
 
-Now picture both bells, measured in standard deviations (SD):
+A common target is 80% power: the test comes out significant 4 times in 5
+when the improvement is real. How many disagreements does that take? Picture
+both bells. Each one's standard deviation is the standard error, written SD
+below:
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 235" role="img" aria-label="Two bells: the equal model centered at m over 2 and the better model centered at q m. The bar sits 1.96 standard deviations above the equal model's center and 0.84 standard deviations below the better model's center; 80 percent of the better model's bell lies above the bar" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1529,33 +1543,49 @@ it whenever it lands to the right of the bar (shaded). For that to happen
 80% of the time, the bar must be 0.84 SD left of the better model's center:
 80% of a bell lies to the right of that point.*
 
+Where 0.84 comes from: 68% of a bell lies within 1 SD of the center (§3.6),
+so 16% is below $-1$ SD and 84% is above it. To leave exactly 80% above, the
+point moves slightly toward the center, to $-0.84$ SD (a value read from a
+bell table, like 1.96).
+
 Reading the distances off the picture, from $m/2$ to $qm$ is $1.96 + 0.84$
 standard deviations. So you need
 
 $$qm \;\ge\; \frac m2 + (1.96 + 0.84)\,\frac{\sqrt m}{2}$$
 
-Subtract $\frac m2$ from both sides and divide by $\sqrt m$:
+Solve for $m$ step by step:
 
-$$\big(q - \tfrac12\big)\sqrt m \;\ge\; 1.4
-\qquad\Longrightarrow\qquad
-m \;\ge\; \Big(\frac{1.4}{q - \frac12}\Big)^2$$
+$$\begin{aligned}
+\big(q - \tfrac12\big)\,m &\ge 1.4\sqrt m
+&&\text{subtract } \tfrac m2\text{; } 2.8/2 = 1.4 \\
+\big(q - \tfrac12\big)\sqrt m &\ge 1.4
+&&\text{divide by } \sqrt m \\
+m &\ge \Big(\frac{1.4}{q - \frac12}\Big)^2
+&&\text{divide by } q - \tfrac12\text{, then square}
+\end{aligned}$$
 
-For $q = 0.6$ that's $m \ge (1.4 / 0.1)^2 = 196$, about 200, which matches
-the table.
+For $q = 0.6$ that's $m \ge (1.4 / 0.1)^2 = 196$. The simulation gave 83%
+at 200 disagreements, just above 80%, since 200 is a bit more than 196 and
+the better model's spread is slightly under $\sqrt m/2$.
 
 Why more examples help: double the disagreements and the better model's
-lead doubles (10 extra wins become 20), but luck grows only by $\sqrt 2$
-(5 becomes 7). So the lead stands out more from the luck.
+expected wins above the middle double ($60 - 50 = 10$ becomes
+$120 - 100 = 20$), but the standard error grows only by $\sqrt 2$ (5 becomes
+7). So the gap stands out more and more from chance.
 
-Why small improvements are expensive: the formula squares the edge (how
-far the new model's win rate is above 50%), so halving the edge needs four
-times the disagreements.
+Why small improvements are expensive: the edge (how far the new model's
+win rate is above 50%) is squared in the formula. Halving the edge needs
+four times the disagreements, and a tenth of the edge needs 100 times.
 
-| new model wins | disagreements needed |
+| new model wins (of disagreements) | disagreements for 80% power |
 |---|---|
 | 60% | 196 |
 | 55% | 784 |
 | 51% | 19,600 |
+
+Disagreements are only part of the test set. In the opening example the
+models disagreed on 100 of 1,000 examples, 10%. At that rate, 784
+disagreements take about 7,800 test examples.
 
 #### Common traps
 
@@ -1563,12 +1593,15 @@ times the disagreements.
 of a result this lopsided *if* the models are equal. It is not the chance
 that they are equal.
 
-**Testing many things.** Try 20 useless changes. Each one has a 5% chance
-of passing, so the chance that at least one passes is
-$1 - 0.95^{20} \approx 64\%$. Report that one, and you've reported luck.
-Either pick the one comparison before you look, or require
-$p < 0.05/20 = 0.0025$ (the **Bonferroni correction**).
+**Testing many things.** Try 20 useless changes. A useless change behaves
+like the equal-models simulation, so each one passes 5% of the time. If the
+tests are independent, the chance that at least one passes is
+$1 - 0.95^{20} \approx 64\%$, and the one that passed is a fluke. Either
+pick the one comparison before you look, or require
+$p < 0.05/20 = 0.0025$ (the **Bonferroni correction**): then the chance that
+any of the 20 passes is at most $20 \times 0.0025 = 5\%$.
 
 **Peeking.** Re-run the test after every few hundred examples and stop as
-soon as $p < 0.05$, and you're running many tests and keeping the luckiest.
+soon as $p < 0.05$, and you're running many tests and keeping the best
+one.
 Decide the test size in advance.
