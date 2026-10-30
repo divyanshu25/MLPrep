@@ -75,8 +75,8 @@ $0.25 + 0 = 0.25$. Indeed 1.6 is the bottom of the bowl.
 linearly dependent: duplicated features, one-hot columns that sum to the
 all-ones bias column, or simply $d > n$. Then infinitely many $w$ achieve the
 same minimum. Ridge (§3) fixes this: $X^\top X + \lambda I$ is always
-invertible for $\lambda > 0$ because its eigenvalues are
-$\lambda_i + \lambda > 0$.
+invertible for $\lambda > 0$ because its eigenvalues are $e_i + \lambda > 0$,
+where $e_i \ge 0$ are the eigenvalues of $X^\top X$.
 
 ### 1.3 Gradient descent on the same loss
 
@@ -457,8 +457,9 @@ answer to exactly one yes/no question.
 
 $$H(Y) = -\sum_c p_c \log_2 p_c.$$
 
-Equivalently (this is the operational meaning): the minimum average number of
-yes/no questions needed to identify the class of a random draw. Numbers:
+Operationally, it is a lower bound on the average number of yes/no questions
+per draw needed to identify the classes of many draws coded together (one
+draw alone always needs at least one question). Numbers:
 a 50/50 label is $H = 1$ bit (you must ask one question). A 90/10 label:
 $H = -0.9\log_2 0.9 - 0.1\log_2 0.1 \approx 0.137 + 0.332 = 0.469$ bits  - 
 you're barely uncertain. Pure node: $H = 0$. Uniform over 4 classes:
@@ -542,13 +543,15 @@ directly: **at every split, consider only a random subset of
 $m \approx \sqrt{d}$ features**. Strong features are forcibly benched in many
 splits, so different trees discover different structure, $\rho$ drops, and by
 the boxed formula the achievable ensemble variance drops. The trade: each
-individual tree gets slightly worse (a bit more bias/variance); the ensemble
-wins anyway because $\rho$ enters the floor and per-tree quality doesn't.
-That single formula is the whole design rationale of random forests.
+individual tree gets slightly worse, so $\sigma^2$ rises a little. The floor
+is $\rho\sigma^2$, and subsampling lowers $\rho$ by more than it raises
+$\sigma^2$, so the product falls. That single formula is the whole design
+rationale of random forests.
 
-(Our `trees_and_ensembles_scratch.ipynb` shows the flip side: with only 2
-informative features out of 5, too-aggressive subsampling starves trees of
-signal - $m$ is a real hyperparameter, not folklore.)
+The flip side: with only a few informative features, too-aggressive
+subsampling leaves many splits with no useful feature to choose, so
+$\sigma^2$ rises faster than $\rho$ falls. $m$ is a real hyperparameter, not
+folklore.
 
 ### 6.3 Boosting: gradient descent in function space (derived)
 
@@ -732,19 +735,20 @@ $\sum_i \|x_i\|^2$ is fixed, so **minimizing reconstruction error ≡
 maximizing $\sum_i \|U^\top x_i\|^2$ ≡ maximizing projected variance**. The
 two derivations are the same problem - Pythagoras splits each point's energy
 into "kept" (variance along the subspace) and "lost" (reconstruction error),
-and the lost energy is exactly the sum of the discarded eigenvalues
-$\sum_{j > k} \lambda_j$. That's why the reconstruction-error-vs-$k$ curve in
-`kmeans_pca_scratch.ipynb` falls off a cliff once $k$ reaches the true latent
-dimension.
+and the lost energy is exactly the sum of the discarded eigenvalues,
+$(n-1)\sum_{j > k} \lambda_j$. That's why the reconstruction-error-vs-$k$
+curve in `kmeans_pca_scratch.ipynb` falls off a cliff once $k$ reaches the true
+latent dimension.
 
 ### 9.3 SVD connection
 
 Write the SVD $X_c = U S V^\top$. Then
 $\Sigma = \frac{1}{n-1} V S^\top S V^\top$ - so the right singular vectors
 $V$ **are** the eigenvectors of $\Sigma$ (the principal components), and
-$\lambda_j = s_j^2 / (n-1)$. In practice you compute PCA via SVD of $X_c$,
-never by forming $\Sigma$: it's numerically better (condition number of
-$\Sigma$ is squared) and cheaper when $d \gg n$. Projected coordinates
+$\lambda_j = s_j^2 / (n-1)$. Libraries compute PCA via SVD of $X_c$ instead
+of forming $\Sigma$: it's numerically better (forming $\Sigma$ squares the
+condition number) and cheaper when $d \gg n$. (Our notebook forms $\Sigma$
+for clarity, which is fine at its small size.) Projected coordinates
 ("scores") are $X_c V = US$.
 
 **Traps:** center the data (uncentered "PCA" finds the direction of the mean,
@@ -780,7 +784,8 @@ $0.5 \cdot 0.05 \cdot 0.3 = 0.0075$ → ham. Fast, interpretable, done.
 **Laplace smoothing** is mandatory: a word never seen in spam gives
 $p(x_j\mid\text{spam}) = 0$ and one factor vetoes the entire product. Add
 pseudo-counts: $p(x_j \mid y) = \frac{\text{count} + \alpha}{\text{total} + \alpha \cdot |\text{vocab}|}$
-(this is MAP with a Dirichlet prior - the same MLE→MAP move as §3).
+(this is the posterior mean under a Dirichlet($\alpha$) prior, or
+equivalently MAP under Dirichlet($\alpha + 1$): the same MLE→MAP move as §3).
 
 Why it works despite a false assumption: classification only needs the
 *argmax* to be right, not the probabilities. Correlated features (e.g.
@@ -1135,7 +1140,8 @@ exploiting that structure.
 
 **User–user.** Represent each user by their (sparse) row; measure similarity
 by cosine over co-rated items,
-$\text{sim}(u, v) = \frac{\sum_{i \in \Omega_u \cap \Omega_v} r_{ui} r_{vi}}{\|r_u\| \|r_v\|}$
+$\text{sim}(u, v) = \frac{\sum_{i \in \Omega_u \cap \Omega_v} r_{ui} r_{vi}}{\|r_u\| \|r_v\|}$,
+with the norms also taken over the co-rated items $\Omega_u \cap \Omega_v$
 (Pearson = cosine after subtracting each user's mean rating - corrects for
 harsh vs. generous raters). Numbers from the tiny matrix: Alice–Bob co-rated
 {M1, M2}: $\frac{5\cdot4 + 4\cdot5}{\sqrt{41}\sqrt{41}} = 40/41 = 0.976$.
@@ -1376,7 +1382,8 @@ Regularization or early stopping restores a finite solution.
 **Q18. Hinge loss vs. logistic loss?**
 Both are convex upper bounds on 0-1 loss. Hinge is exactly zero past margin
 1 (solution depends only on support vectors; no probabilities); logistic is
-smooth, never zero (every point contributes; gives calibrated probabilities).
+smooth, never zero (every point contributes; gives probabilities, which are
+calibrated when the model is well-specified).
 
 **Q19. Where does the 37% out-of-bag figure come from?**
 $P(\text{a given point missed by all } n \text{ draws}) = (1 - 1/n)^n \to

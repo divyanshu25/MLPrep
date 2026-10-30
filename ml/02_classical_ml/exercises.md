@@ -363,9 +363,9 @@ $$\min \sum_i \|x_i - UU^\top x_i\|^2 = (n-1)\sum_{j > k} \lambda_j.$$
 
 (That the top-$k$ eigenspace is optimal among all $k$-dim subspaces follows
 from the Courant–Fischer/Ky Fan characterization: no $k$-dim subspace can
-capture more trace than the top eigenvalues.) This is exactly why the
-reconstruction-error curve in `kmeans_pca_scratch.ipynb` equals the tail sum of
-eigenvalues and plummets after the true latent dimension.
+capture more trace than the top eigenvalues.) So the reconstruction-error
+curve is the tail sum of eigenvalues, which is why it plummets once $k$ passes
+the true latent dimension.
 </details>
 
 ---
@@ -508,12 +508,15 @@ $$\mu_2 = \frac{0(0.00034) + 1(0.01799) + 3(0.98201) + 4(0.99966)}{2} = \frac{0.
 
 Interpretation: each mean moves toward the *center of mass of its soft
 cluster* - $\mu_1$ is pulled up past $\tfrac{0+1}{2} = 0.5$ because it owns a
-2% share of $x=3$ and a trace of $x=4$. Iterating converges toward
-$(\mu_1, \mu_2) \approx (0.5, 3.5)$, where the responsibilities and means are
-mutually consistent - the fixed point of notes §11.1's coupled equations.
-Had we run *hard* EM (k-means with these inits), the assignment would be
-$\{0,1\}$ vs. $\{3,4\}$ and the means would jump to exactly $(0.5, 3.5)$ in
-one step: hard assignment discards the 2% cross-talk that EM keeps.
+2% share of $x=3$ and a trace of $x=4$. Iterating does not return to
+$(0.5, 3.5)$: the next steps give $(0.555, 3.445)$, then $(0.559, 3.441)$, and
+the means settle at $(\mu_1, \mu_2) \approx (0.559, 3.441)$, where the
+responsibilities and means are mutually consistent (the fixed point of notes
+§11.1's coupled equations). The cross-talk keeps pulling both means toward the
+middle, $x = 2$. Had we run *hard* EM (k-means with these inits), the
+assignment would be $\{0,1\}$ vs. $\{3,4\}$ and the means would jump to
+exactly $(0.5, 3.5)$ in one step: hard assignment discards the 2% cross-talk
+that EM keeps.
 </details>
 
 ---
