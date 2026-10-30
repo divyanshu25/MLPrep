@@ -1074,6 +1074,22 @@ tracking the goal.
 decision tuned by A/B tests under guardrails, because logged data has no label
 for how much a share is worth relative to a click.
 
+**Q19. Why does memory, not compute, cap how many conversations one GPU can
+serve for a 7B LLM?**
+A: A 7B model in fp16 is 14 GB, leaving 66 GB on an 80 GB GPU. Each token of
+context needs 0.5 MB of KV cache ($2 \times 32$ layers $\times 4096 \times 2$
+bytes), so a 2,000-token conversation holds 1 GB, and about 66 conversations
+fill the GPU. Compute is far from the limit: each decode step reads the 14 GB
+of weights plus 66 GB of cache, about 80 GB, so at 3 TB/s it runs about 37
+steps per second, which needs $66 \times 14$ GFLOPs $\times 37 \approx 34$
+TFLOP/s, a small fraction of a modern GPU's hundreds of TFLOP/s. So the fixes target memory:
+grouped-query attention shares K and V across heads (4 to 8 times smaller),
+KV quantization halves it, and paged allocation removes fragmentation.
+
+**If asked:** *Then why batch at all?* Each decode step reads the weights
+once for the whole batch, so tokens per second grow with batch size until
+the KV cache fills memory.
+
 ## Exit checklist
 
 - [ ] Cold, blank editor: write the 10-step universal framework, one sentence per step - 5 min

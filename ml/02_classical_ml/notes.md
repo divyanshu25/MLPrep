@@ -1702,6 +1702,23 @@ the score is their dot product, so an unseen item still gets a vector.
 items (or users), not individual ratings, so the test set contains only
 items the model never saw in training.
 
+**Q26. When would you pick a random forest over gradient boosting?**
+Take a noisy tabular dataset where 5% of the labels are wrong. Each boosting
+round fits the current residuals, and a mislabeled point keeps a large
+residual round after round, so later trees spend capacity fitting it unless
+early stopping cuts training off. A random forest averages deep trees
+trained independently on bootstrap samples, so a mislabeled point affects
+only the trees that drew it, and adding trees never increases overfitting.
+So pick a random forest when you need a strong model with little tuning,
+when the labels are noisy, when you want trees trained in parallel, or when
+you want the free out-of-bag error estimate. Pick gradient boosting when you
+can tune the learning rate, depth and number of rounds against a validation
+set and need the last bit of accuracy; on clean tabular data it usually wins.
+
+**If asked:** *What do you tune first in boosting?* The learning rate and
+the number of rounds together, with early stopping on validation loss: a
+smaller learning rate needs more rounds and usually generalizes better.
+
 ## Exit checklist
 
 - [ ] Cold, on paper: derive squared loss from Gaussian MLE, then the normal equation - 5 min
