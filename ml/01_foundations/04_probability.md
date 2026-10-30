@@ -1438,9 +1438,16 @@ That's the whole test. The rest is names for its pieces:
   $|z| > 1.96$ (§3.6).
 
 **Where the 5 comes from.** The simulation measured the standard error, 5
-wins, by brute force. You can also compute it: heads in 100 fair flips are
-Binomial, with standard deviation $\sqrt{100 \times \frac12 \times \frac12} = 5$
-(§3.2). For $m$ disagreements it's $\sqrt{m \times \frac12 \times \frac12} = \sqrt m / 2$.
+wins, by brute force. You can also compute it in three steps:
+
+- One flip is a Bernoulli($\frac12$) variable, so its variance is
+  $p(1-p) = \frac12 \times \frac12 = \frac14$ (§3.2).
+- The 100 flips are independent, so their variances add (§3.1): the number
+  of heads has variance $100 \times \frac14 = 25$.
+- The standard deviation is the square root of the variance: $\sqrt{25} = 5$.
+
+With $m$ disagreements instead of 100, the same steps give variance $m/4$
+and standard deviation $\sqrt m / 2$.
 
 **$z$ from the lead.** The new model leads 62 to 38,
 by 24 wins, and the lead splits in half around the middle: 12 above 50 for
