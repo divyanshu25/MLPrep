@@ -1347,11 +1347,12 @@ difference real.
    size of the gap that noise alone produces.
 3. Compute $z = \text{gap} / \text{SE}$, the observed gap measured in
    standard errors.
-4. Compute the **p-value**: how often noise alone would produce a $z$ at
-   least this far from zero, in either direction. Under $H_0$, $z$ follows
-   the standard bell (by the central limit theorem, §3.6), so the p-value is
-   the area of the bell beyond $\pm z$. For example, $z = 1.96$ gives
-   $p = 0.05$.
+4. Compute the **p-value**: how often noise alone would produce a $z$ as
+   big as yours or bigger, counting both directions. If you got $z = 2$,
+   the p-value is the chance that noise alone gives $z$ above 2 or below
+   $-2$. Under $H_0$, $z$ follows the standard bell (by the central limit
+   theorem, §3.6), so that chance is the area of the bell beyond $\pm 2$,
+   about 0.046.
 5. If the p-value is below a threshold you chose in advance, usually 0.05,
    call the difference **statistically significant**.
 
