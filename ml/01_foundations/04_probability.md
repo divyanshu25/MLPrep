@@ -1342,10 +1342,18 @@ Answering that question is called a **hypothesis test**.
 
 #### The checkout test
 
-**Rerun it with identical pages.** Give both groups the same page, with a
-buying rate of 2.2% (the overall rate: 2,200 buyers out of 100,000). Run the
-whole 100,000-user test, note the gap between the two groups' buyer counts,
-and repeat 10,000 times. Every gap comes purely from chance. Here they are:
+**Rerun it with identical pages.** Suppose the pages really were
+identical, both with a 2.2% buying rate (the overall rate: 2,200 buyers out
+of 100,000 users). A computer can fake the whole experiment:
+
+1. For each of 50,000 users in group A, draw "buys" with probability 2.2%,
+   and count the buyers.
+2. Do the same for another 50,000 users in group B.
+3. Subtract: B's count minus A's count is the gap.
+
+The first fake run gave A 1,107 buyers and B 1,122, a gap of +15. The next
+few gave $-3$, $+26$, $+53$ and $-54$. Every one of these gaps is pure
+chance, since the pages are the same. Here are the gaps from 10,000 such runs:
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 270" role="img" aria-label="Histogram of the gap in buyers between two groups of 50,000 shown the same page, over 10,000 simulated reruns: a bell centered at zero with a spread of about 46 buyers; the 314 reruns with a gap of 100 or more in either direction are colored red" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
