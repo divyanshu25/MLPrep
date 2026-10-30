@@ -450,9 +450,12 @@ $1000 \times 0.91 \times 0.09 \approx 82$, so its standard error is
 $\sqrt{82} \approx 9$ examples. The gain, 5 examples, is less than one
 standard error, and significance needs about two (1.96). It's noise.
 
-**If asked:** *What else would you do?* Retrain with several seeds (seed
-spread is often about 0.5 points) and use a bigger test set (Probability
-§3.8).
+**If asked:** *What else would you do?* Check the training noise too. A
+**random seed** sets the starting weights and the order of the training
+data, and the same model trained with two different seeds often differs by
+about 0.5 points of test accuracy. So the gain could come from the seed
+alone. Train each model with several seeds, say 5, and compare the averages.
+Also use a bigger test set (Probability §3.8).
 
 **If asked:** *Both models saw the same test set. Does that change it?* It
 can shrink the noise in the gap, because only the examples where they
