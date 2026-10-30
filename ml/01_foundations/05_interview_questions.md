@@ -447,14 +447,19 @@ Probably not. 0.5 points on 1,000 examples is 5 more examples right.
 Both models were scored on the same examples, so only the ones where they
 disagree matter. If the models were equally good, each disagreement would be
 a coin flip. With $m$ disagreements, the new model expects $m/2$ wins, give
-or take $\sqrt m / 2$. A 5-example lead means wins minus losses is 5, so
-wins are $(m + 5)/2$, which is $5/2$ above $m/2$:
+or take $\sqrt m / 2$.
+
+The 5-example lead means the new model won 5 more disagreements than the
+old one. Say they disagree on 51: the new model won 28 and the old one 23.
+Equal models would split them 25.5 each, so the new model is 2.5 wins above
+that. The lead of 5 is split in half: 2.5 above the middle for the new model,
+2.5 below for the old one. So the new model sits $5/2$ above $m/2$, and
 
 $$z = \frac{5/2}{\sqrt m / 2} = \frac{5}{\sqrt m}$$
 
 Reaching $z > 1.96$ needs $m \le 6$: the models would have to disagree on
 almost nothing. Two models at 91% usually disagree on dozens of examples,
-and at $m = 50$, $z \approx 0.7$. Noise.
+and at $m = 51$, $z = 5/\sqrt{51} \approx 0.7$. Noise.
 
 **If asked:** *What else would you do?* Retrain with several seeds (seed
 spread is often about 0.5 points) and use a bigger test set. Halving the
