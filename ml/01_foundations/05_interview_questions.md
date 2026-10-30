@@ -446,8 +446,13 @@ Probably not. 0.5 points on 1,000 examples is 5 more examples right.
 
 Both models were scored on the same examples, so only the ones where they
 disagree matter. If the models were equally good, each disagreement would be
-a coin flip. With $m$ disagreements, the new model expects $m/2$ wins, give
-or take $\sqrt m / 2$.
+a coin flip. Flip 100 coins and you expect 50 heads, but you rarely get
+exactly 50: a typical run lands about 5 away, like 45 or 55. That 5 is the
+standard deviation of the number of heads,
+$\sqrt{100 \times \frac12 \times \frac12} = 5$ (a Binomial count,
+Probability §3.2). In general, with $m$ disagreements, the new model expects
+$m/2$ wins, and luck moves that by about
+$\sqrt{m \times \frac12 \times \frac12} = \sqrt m / 2$.
 
 The 5-example lead means the new model won 5 more disagreements than the
 old one. Say they disagree on 51: the new model won 28 and the old one 23.
