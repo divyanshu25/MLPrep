@@ -1542,11 +1542,7 @@ times the disagreements.
 
 **Reading p as the chance the models are equal.** $p = 0.021$ is the chance
 of a result this lopsided *if* the models are equal. It is not the chance
-that they are equal. Count it out: a team tries 1,000 model changes, and 100
-of them really help. Say the test catches 80 of those 100. Of the 900
-useless changes, 5% pass by luck: 45. So of the 125 changes that come out
-significant, 45, more than a third, are useless. It's the same trap as the
-rare-disease test (§3.3).
+that they are equal.
 
 **Testing many things.** Try 20 useless changes. Each one has a 5% chance
 of passing, so the chance that at least one passes is
