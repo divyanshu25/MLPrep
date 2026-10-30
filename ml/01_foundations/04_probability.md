@@ -1337,62 +1337,117 @@ necessarily: even two identical pages would not get exactly the same rate
 from two random groups of users, so some gap appears from noise alone.
 
 So the question becomes: if the pages were identical, would noise often
-produce a gap as big as this one? If rarely, the gap is probably real. That
-is a **hypothesis test**, and the assumption that the pages are identical is
-called the **null hypothesis**, $H_0$.
+produce a gap as big as this one? If rarely, the gap is probably real.
+Answering that question is called a **hypothesis test**.
 
 #### The checkout test
 
-**What would identical pages look like?** If the pages were identical,
-the page label wouldn't matter, so the best guess for their shared buying
-rate is the overall one: 2,200 buyers out of 100,000 users, or 2.2%. Then
-each group of 50,000 should get about $50{,}000 \times 0.022 = 1{,}100$
-buyers. Not exactly 1,100, though: the count is Binomial, with standard
-deviation $\sqrt{50{,}000 \times 0.022 \times 0.978} \approx 32.8$ (§3.2). So
-by chance alone one group might get 1,080 and the other 1,130.
-
-**How big is a noise gap?** Both counts wobble by about 32.8, independently,
-so their gap wobbles by more than that. Independent variances add, and
-subtracting doesn't cancel them, since $\mathrm{Var}(-X) = (-1)^2\,\mathrm{Var}(X)$
-(§3.1). So the gap's variance is $32.8^2 + 32.8^2$, and its standard deviation is
-
-$$\sqrt{32.8^2 + 32.8^2} = 32.8\sqrt{2} \approx 46.4 \text{ buyers}$$
-
-This is the **standard error** (SE) of the gap: identical pages would
-typically differ by about 46 buyers.
-
-**Is the observed gap big compared to that?** B got $1{,}150 - 1{,}050 = 100$
-more buyers. In standard errors, that is
-
-$$z = \frac{\text{gap}}{\text{SE}} = \frac{100}{46.4} \approx 2.16$$
-
-**How often does noise do that?** Under $H_0$, $z$ follows the standard bell
-(by the central limit theorem, §3.6). The chance that noise alone gives a
-$z$ above 2.16 or below $-2.16$ (either page could have come out ahead) is
-the shaded area, 0.031. That chance is the **p-value**.
+**Rerun it with identical pages.** Give both groups the same page, with a
+buying rate of 2.2% (the overall rate: 2,200 buyers out of 100,000). Run the
+whole 100,000-user test, note the gap between the two groups' buyer counts,
+and repeat 10,000 times. Every gap comes purely from chance. Here they are:
 
 <div style="margin:1.25rem 0">
-<svg viewBox="0 0 400 190" role="img" aria-label="Standard normal curve with both tails beyond plus and minus 2.16 shaded; the shaded area is the two-sided p-value of 0.031" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
-  <text x="200" y="22" text-anchor="middle" fill="#6366f1" font-weight="600">distribution of z under H₀</text>
-  <polygon points="291.8,148.4 296.1,150.7 300.3,152.6 304.6,154.2 308.8,155.5 313.1,156.5 317.3,157.3 321.6,158.0 325.8,158.5 330.1,158.9 334.3,159.2 338.6,159.4 342.8,159.6 347.1,159.7 351.3,159.8 355.6,159.9 359.8,159.9 364.1,159.9 368.3,160.0 370.0,160 291.8,160" fill="#f43f5e" fill-opacity="0.35" stroke="none"/>
-  <polygon points="108.2,148.4 103.9,150.7 99.7,152.6 95.5,154.2 91.2,155.5 86.9,156.5 82.7,157.3 78.4,158.0 74.2,158.5 69.9,158.9 65.7,159.2 61.4,159.4 57.2,159.6 52.9,159.7 48.7,159.8 44.4,159.9 40.2,159.9 35.9,159.9 31.7,160.0 30.0,160 108.2,160" fill="#f43f5e" fill-opacity="0.35" stroke="none"/>
-  <polyline points="30.0,160.0 34.2,159.9 38.5,159.9 42.8,159.9 47.0,159.8 51.2,159.7 55.5,159.6 59.8,159.5 64.0,159.3 68.2,159.0 72.5,158.7 76.8,158.2 81.0,157.6 85.2,156.9 89.5,155.9 93.8,154.7 98.0,153.3 102.3,151.5 106.5,149.4 110.8,146.8 115.0,143.8 119.2,140.3 123.5,136.3 127.8,131.8 132.0,126.7 136.2,121.1 140.5,115.1 144.8,108.6 149.0,101.7 153.2,94.6 157.5,87.4 161.8,80.2 166.0,73.1 170.2,66.3 174.5,60.0 178.8,54.4 183.0,49.5 187.2,45.6 191.5,42.7 195.8,40.9 200.0,40.3 204.2,40.9 208.5,42.7 212.8,45.6 217.0,49.5 221.2,54.4 225.5,60.0 229.8,66.3 234.0,73.1 238.2,80.2 242.5,87.4 246.8,94.6 251.0,101.7 255.2,108.6 259.5,115.1 263.8,121.1 268.0,126.7 272.2,131.8 276.5,136.3 280.8,140.3 285.0,143.8 289.2,146.8 293.5,149.4 297.8,151.5 302.0,153.3 306.2,154.7 310.5,155.9 314.8,156.9 319.0,157.6 323.2,158.2 327.5,158.7 331.8,159.0 336.0,159.3 340.2,159.5 344.5,159.6 348.8,159.7 353.0,159.8 357.2,159.9 361.5,159.9 365.8,159.9 370.0,160.0" fill="none" stroke="#6366f1" stroke-width="2"/>
-  <line x1="30" y1="160" x2="370" y2="160" stroke="currentColor" opacity="0.5"/>
-  <line x1="291.8" y1="160" x2="291.8" y2="70" stroke="#f43f5e" stroke-dasharray="4 4"/>
-  <line x1="108.2" y1="160" x2="108.2" y2="70" stroke="#f43f5e" stroke-dasharray="4 4"/>
-  <text x="200" y="176" text-anchor="middle" fill="currentColor">0</text>
-  <text x="291.8" y="176" text-anchor="middle" fill="#f43f5e">z = 2.16</text>
-  <text x="108.2" y="176" text-anchor="middle" fill="#f43f5e">−2.16</text>
-  <text x="300" y="64" fill="#f43f5e" font-size="10.5">shaded: p = 0.031</text>
+<svg viewBox="0 0 520 270" role="img" aria-label="Histogram of the gap in buyers between two groups of 50,000 shown the same page, over 10,000 simulated reruns: a bell centered at zero with a spread of about 46 buyers; the 314 reruns with a gap of 100 or more in either direction are colored red" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <text x="260.0" y="20" text-anchor="middle" fill="#6366f1" font-weight="600">10,000 reruns with identical pages</text>
+  <rect x="40.5" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="51.5" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="62.5" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="73.5" y="209.4" width="10.0" height="0.6" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="84.5" y="209.1" width="10.0" height="0.9" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="95.5" y="208.5" width="10.0" height="1.5" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="106.5" y="207.8" width="10.0" height="2.2" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="117.5" y="205.7" width="10.0" height="4.3" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="128.5" y="202.0" width="10.0" height="8.0" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="139.5" y="197.1" width="10.0" height="12.9" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="150.5" y="190.4" width="10.0" height="19.6" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="161.5" y="180.4" width="10.0" height="29.6" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="172.5" y="165.8" width="10.0" height="44.2" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="183.5" y="150.4" width="10.0" height="59.6" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="194.5" y="129.4" width="10.0" height="80.6" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="205.5" y="111.6" width="10.0" height="98.4" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="216.5" y="93.5" width="10.0" height="116.5" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="227.5" y="78.9" width="10.0" height="131.1" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="238.5" y="60.2" width="10.0" height="149.8" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="249.5" y="55.4" width="10.0" height="154.6" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="260.5" y="50.0" width="10.0" height="160.0" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="271.5" y="56.3" width="10.0" height="153.7" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="282.5" y="68.9" width="10.0" height="141.1" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="293.5" y="89.0" width="10.0" height="121.0" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="304.5" y="106.2" width="10.0" height="103.8" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="315.5" y="130.1" width="10.0" height="79.9" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="326.5" y="156.4" width="10.0" height="53.6" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="337.5" y="166.2" width="10.0" height="43.8" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="348.5" y="176.5" width="10.0" height="33.5" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="359.5" y="191.9" width="10.0" height="18.1" fill="#6366f1" fill-opacity="0.45"/>
+  <rect x="370.5" y="199.8" width="10.0" height="10.2" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="381.5" y="202.2" width="10.0" height="7.8" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="392.5" y="205.7" width="10.0" height="4.3" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="403.5" y="208.0" width="10.0" height="2.0" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="414.5" y="208.5" width="10.0" height="1.5" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="425.5" y="209.1" width="10.0" height="0.9" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="436.5" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="447.5" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="458.5" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
+  <rect x="469.5" y="210.0" width="10.0" height="0.0" fill="#f43f5e" fill-opacity="0.75"/>
+  <line x1="40" y1="210" x2="480" y2="210" stroke="currentColor" opacity="0.5"/>
+  <line x1="40.0" y1="210" x2="40.0" y2="214" stroke="currentColor" opacity="0.5"/>
+  <text x="40.0" y="227" text-anchor="middle" fill="currentColor" fill-opacity="0.7">−200</text>
+  <line x1="150.0" y1="210" x2="150.0" y2="214" stroke="currentColor" opacity="0.5"/>
+  <text x="150.0" y="227" text-anchor="middle" fill="#f43f5e">−100</text>
+  <line x1="260.0" y1="210" x2="260.0" y2="214" stroke="currentColor" opacity="0.5"/>
+  <text x="260.0" y="227" text-anchor="middle" fill="currentColor" fill-opacity="0.7">0</text>
+  <line x1="370.0" y1="210" x2="370.0" y2="214" stroke="currentColor" opacity="0.5"/>
+  <text x="370.0" y="227" text-anchor="middle" fill="#f43f5e">+100</text>
+  <line x1="480.0" y1="210" x2="480.0" y2="214" stroke="currentColor" opacity="0.5"/>
+  <text x="480.0" y="227" text-anchor="middle" fill="currentColor" fill-opacity="0.7">+200</text>
+  <line x1="370.0" y1="210" x2="370.0" y2="70" stroke="#f43f5e" stroke-dasharray="4 4"/>
+  <line x1="150.0" y1="210" x2="150.0" y2="70" stroke="#f43f5e" stroke-dasharray="4 4"/>
+  <text x="376.0" y="80" fill="#f43f5e" font-size="11">real gap: +100</text>
+  <text x="376.0" y="95" fill="#f43f5e" font-size="11">314 reruns (3.1%)</text>
+  <text x="376.0" y="109" fill="#f43f5e" font-size="11">reach ±100</text>
+  <line x1="208.96" y1="113.5" x2="311.04" y2="113.5" stroke="#10b981" stroke-width="1.5"/>
+  <line x1="209.0" y1="109.5" x2="209.0" y2="117.5" stroke="#10b981" stroke-width="1.5"/>
+  <line x1="311.0" y1="109.5" x2="311.0" y2="117.5" stroke="#10b981" stroke-width="1.5"/>
+  <text x="260.0" y="106.5" text-anchor="middle" fill="#10b981" font-size="11" font-weight="600">±46</text>
+  <text x="260.0" y="250" text-anchor="middle" fill="currentColor" fill-opacity="0.8">gap in buyers (B − A)</text>
 </svg>
 </div>
 
-*If the pages were identical, $z$ would follow this bell. The shaded tails
-beyond $\pm 2.16$ hold 3.1% of it.*
+*The gap between two groups of 50,000 shown the same page, in 10,000
+simulated reruns. About 7 in 10 land within 50 buyers of zero. Only 314
+(3.1%) are 100 or more in either direction (red).*
 
-So noise alone produces a gap this big about 3 times in 100. The usual rule,
-fixed before looking at the data, is to call a difference **statistically
-significant** when $p < 0.05$. This one is.
+The real test's gap, 100 buyers, sits out in the red tail. Identical pages
+produce a gap that big only about 3 times in 100, so B is probably really
+better.
+
+**Naming the pieces.** Each term is something in the picture:
+
+- The **null hypothesis**, $H_0$, is the assumption the picture is built on:
+  the pages are identical.
+- The **standard error** (SE) is the spread of the pile (its standard
+  deviation, the green bracket): about 46 buyers. It's the typical size of a
+  gap that comes from chance alone.
+- $z$ is the real gap measured in standard errors:
+  $100 / 46.4 \approx 2.16$.
+- The **p-value** is the fraction of the pile at least as far from zero as
+  the real gap: 0.031. Both sides count, because "B ahead by 100" and "A
+  ahead by 100" are equally far from zero.
+- The usual rule, fixed before looking at the data, calls a difference
+  **statistically significant** when $p < 0.05$. This one is.
+
+**Getting the spread without simulating.** By the central limit theorem
+(§3.6) the pile is a bell, so its standard deviation is all you need. Each
+group's buyer count is Binomial, with standard deviation
+$\sqrt{50{,}000 \times 0.022 \times 0.978} \approx 32.8$ (§3.2). The two
+counts vary independently, so their variances add, and subtracting doesn't
+cancel them, since $\mathrm{Var}(-X) = (-1)^2\,\mathrm{Var}(X)$ (§3.1):
+
+$$\text{SE} = \sqrt{32.8^2 + 32.8^2} \approx 46.4 \text{ buyers}$$
+
+The area of the standard bell beyond $\pm 2.16$ is 0.031, the same as the
+simulation's fraction.
 
 **The same answer as a range.** The 95% interval for the gap (§3.6) is
 $100 \pm 1.96 \times 46.4 \approx 100 \pm 91$ buyers, from 9 to 191 extra buyers
