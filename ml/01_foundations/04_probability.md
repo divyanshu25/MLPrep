@@ -1435,9 +1435,13 @@ new model is probably really better.
 
 **Without simulating.** The new model's wins are Binomial with 100 flips and
 probability $\frac12$, so the standard deviation is
-$\sqrt{100 \times \frac12 \times \frac12} = 5$ (§3.2). With $m$
-disagreements it is $\sqrt{m}/2$. Comparing two models this way is called
-**McNemar's test**.
+$\sqrt{100 \times \frac12 \times \frac12} = 5$ (§3.2). The same formula
+works for any number of disagreements $m$: the standard deviation is
+$\sqrt{m \times \frac12 \times \frac12} = \sqrt m / 2$. With 400
+disagreements, for example, it is $\sqrt{400}/2 = 10$.
+
+This whole procedure, keeping only the examples where the models disagree
+and treating each one as a coin flip, is called **McNemar's test**.
 
 #### Power: how many examples you need
 
