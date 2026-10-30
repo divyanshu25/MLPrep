@@ -162,10 +162,13 @@ Baseline $b = (1 + 0 + 1)/3 = 2/3$, gradients $(r - b)\nabla \log \pi(a)$:
 - pull 3: $[0.167, -0.167]$
 
 Sum: $[0.667, -0.667]$. Same direction, and now the failed pull of arm 2
-contributes an explicit push *away* from arm 2 rather than nothing. Over
-many samples both estimators have the same expectation; the baseline
-version has lower variance because a reward of 0 is informative (below
-average) instead of silent.
+contributes an explicit push *away* from arm 2 rather than nothing. The
+two estimators do not have quite the same expectation: this baseline is
+the mean of the same three pulls, so it includes each pull's own reward,
+which shrinks the expected gradient by $(G-1)/G = 2/3$. A baseline computed
+from the *other* pulls only (leave-one-out) would keep the expectation
+unchanged. Either way the baseline version has lower variance, because a
+reward of 0 is informative (below average) instead of silent.
 </details>
 
 ---
@@ -249,10 +252,12 @@ the pushes balance: $3 \cdot 1.29 - 5 \cdot 0.775 = 0$.
 If all eight scores are equal, the mean equals every score, every
 advantage is $0$ (the normalization is $0/0$ and implementations add a
 small constant, still giving $0$), and the gradient from this prompt is
-zero. That is right: with no variation in outcome, the samples carry no
-information about which completions are better. A critic-based method
-would still produce a gradient here, from the critic's error, which is
-pure noise for this prompt. GRPO's group baseline is exactly the baseline
-lemma with the group mean as $b$, and it needs several samples per prompt
-precisely so that the mean is informative.
+zero. The eight samples are wasted, which is why some implementations
+(DAPO) filter out prompts where every completion scores the same. A
+critic-based method would still produce a gradient here, and it can be a
+correct one: if the critic predicts $V = 0.5$ and all eight succeed,
+pushing them up is the right signal. GRPO's group baseline is close to the
+baseline lemma with the group mean as $b$ (not exact, since the mean
+includes each sample's own reward), and it needs several samples per prompt
+so that the mean is informative.
 </details>

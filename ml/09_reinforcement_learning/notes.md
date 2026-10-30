@@ -103,8 +103,11 @@ $$V(s_2) = 1 + \gamma \cdot 0 = 1$$
 $$V(s_1) = 0.5\big[0 + \gamma V(s_1)\big] + 0.5\big[0 + \gamma V(s_2)\big] = 0.45\, V(s_1) + 0.45$$
 
 Solve the second: $V(s_1)(1 - 0.45) = 0.45$, so $V(s_1) = 0.45/0.55 \approx 0.818$.
-The reward of 1 is discounted once per step spent waiting in $s_1$; the
-expected wait is two steps, and $0.818$ is what that averages to.
+The reward of 1 is discounted once per step spent waiting in $s_1$. The
+number of steps $k$ until the move to $s_2$ is random, with probability
+$(1/2)^k$, so $V(s_1) = \sum_{k \ge 1} (1/2)^k\, 0.9^k = 0.45/0.55 = 0.818$.
+The average wait is two steps, but $0.818$ is not $0.9^2 = 0.81$: the average
+of $\gamma^k$ is not $\gamma$ raised to the average $k$.
 
 #### The Bellman optimality equation
 
@@ -327,8 +330,9 @@ $$\mathbb{E}_{a \sim \pi}\big[\nabla_\theta \log \pi_\theta(a \mid s)\, b(s)\big
 
 The probabilities sum to 1 for every $\theta$, so their gradient is zero.
 The best baseline is close to $V^\pi(s)$, and the quantity
-$G_t - V^\pi(s_t)$ has a name, the **advantage** $A(s_t, a_t)$: how much
-better this action turned out than the state's average. In the bandit
+$G_t - V^\pi(s_t)$ is an estimate of the **advantage**
+$A(s_t, a_t) = Q(s_t, a_t) - V(s_t)$: how much better this action turned out
+than the state's average ($G_t$ is one sample of $Q$). In the bandit
 example, with a baseline of $0.5$ (the average reward so far), the update
 becomes $(1 - 0.5)[0.5, -0.5] = [0.25, -0.25]$: the same direction, half
 the size, and an arm that earns exactly the average is no longer pushed
@@ -356,18 +360,24 @@ answering a specific problem:
   appears in PPO's objective, $\mathbb{E}[\rho\, A]$.
 - **Not trusting the ratio too far (clipping).** The reweighting is exact
   only in expectation; when $\pi_\theta$ drifts far from $\pi_{old}$ the
-  ratios blow up and the estimate's variance with them. PPO clips $\rho$ to
-  $[1 - \epsilon, 1 + \epsilon]$ inside the objective, which removes the
-  incentive to move the policy more than a small step per batch of
-  samples.
+  ratios blow up and the estimate's variance with them. PPO's objective is
+  $\min\big(\rho A,\ \operatorname{clip}(\rho, 1-\epsilon, 1+\epsilon)\,A\big)$.
+  The min takes the more pessimistic of the two terms: once $\rho$ has moved
+  past $1 \pm \epsilon$ in the direction the advantage favors, the gradient
+  is zero, so there is no incentive to move the policy more than a small
+  step per batch. Moves in the unfavorable direction are not clipped.
 - **Replacing the critic (GRPO).** For an LLM, a critic is a second model
   as large as the policy. GRPO drops it: sample a group of $G$ completions
   for the same prompt, score each, and use the group's mean reward as the
   baseline, with the advantage normalized by the group's standard
   deviation. For rewards $[1, 0, 0, 1, 1]$ the mean is $0.6$, the
   standard deviation $0.49$, and the advantages are $+0.82$ for the
-  successes and $-1.22$ for the failures. This is exactly the baseline
-  lemma above with $b$ estimated from the group instead of a network.
+  successes and $-1.22$ for the failures. This is close to the baseline
+  lemma with $b$ estimated from the group instead of a network, but not
+  exact: the group mean includes each sample's own reward, so the baseline
+  depends on the action, which shrinks the expected gradient by a factor
+  $(G-1)/G$. Dividing by the standard deviation also reweights prompts.
+  Leaving each sample out of its own mean (RLOO) removes the first bias.
 
 Module 7, sections 3.2 to 3.4, has the full objectives; each term there
 is one of the three items here.
@@ -437,13 +447,17 @@ selection and recommendation exploration, and it isolates the
    removes the variance from the state's baseline level of reward.
 10. **Why does PPO have a probability ratio, and why clip it?** The ratio
     $\pi_\theta / \pi_{old}$ is the importance weight that lets samples
-    from an older policy estimate the current policy's gradient. Clipping
+    from an older policy estimate the current policy's gradient. The
+    objective $\min(\rho A, \operatorname{clip}(\rho, 1 \pm \epsilon) A)$
     removes the incentive to move the policy far enough in one update that
-    the reweighting stops being trustworthy.
+    the reweighting stops being trustworthy: past $1 \pm \epsilon$ in the
+    favored direction, the gradient is zero.
 11. **What does GRPO change relative to PPO?** It drops the critic. The
     baseline is the mean reward of a group of completions sampled for the
     same prompt, and the advantage is normalized by the group's standard
-    deviation. Same baseline lemma, cheaper estimate.
+    deviation. Nearly the baseline lemma, but the group mean includes the
+    sample's own reward, which shrinks the gradient by $(G-1)/G$; a
+    leave-one-out mean (RLOO) removes that bias.
 12. **Why is off-policy learning with a neural network unstable, and what
     did DQN do about it?** Bootstrapping, off-policy data and function
     approximation together can diverge (the deadly triad). DQN decorrelates
