@@ -23,7 +23,7 @@ Work backward from the terminal state, whose value is 0:
 Each step back discounts the terminal reward once more:
 $V(s_1) = \gamma^2 \cdot 4$. With $\gamma = 1$ there is no discount and all
 three states have value 4: the reward is certain, only its timing differs,
-and an undiscounted agent does not care about timing.
+and an undiscounted return does not depend on timing.
 </details>
 
 ---
@@ -103,9 +103,10 @@ $V^\pi(s)$. So the TD target is an unbiased one-sample estimate of
 $V^\pi(s)$ *when the true $V^\pi$ is plugged in*.
 
 With the current estimate $V$ instead, the target's expectation is
-$(T^\pi V)(s)$, the Bellman operator applied to $V$, which differs from
+$(T^\pi V)(s)$, the right side of the Bellman expectation equation evaluated
+with $V$ in place of $V^\pi$. Since $V^\pi = T^\pi V^\pi$, this differs from
 $V^\pi(s)$ by up to $\gamma \max_{s'}|V(s') - V^\pi(s')|$ (the contraction
-bound). That is the bootstrapping bias. At convergence $V = V^\pi$, the
+bound, applied to $V$ and $V^\pi$). That is the bootstrapping bias. At convergence $V = V^\pi$, the
 operator's fixed point, and the bias is zero.
 </details>
 
@@ -162,13 +163,14 @@ Baseline $b = (1 + 0 + 1)/3 = 2/3$, gradients $(r - b)\nabla \log \pi(a)$:
 - pull 3: $[0.167, -0.167]$
 
 Sum: $[0.667, -0.667]$. Same direction, and now the failed pull of arm 2
-contributes an explicit push *away* from arm 2 rather than nothing. The
-two estimators do not have quite the same expectation: this baseline is
-the mean of the same three pulls, so it includes each pull's own reward,
+contributes a gradient that lowers arm 2's probability rather than nothing.
+The two estimators do not have quite the same expectation: this baseline is
+the mean of the same $G = 3$ pulls, so it includes each pull's own reward,
 which shrinks the expected gradient by $(G-1)/G = 2/3$. A baseline computed
 from the *other* pulls only (leave-one-out) would keep the expectation
-unchanged. Either way the baseline version has lower variance, because a
-reward of 0 is informative (below average) instead of silent.
+unchanged. Either way the baseline version typically has lower variance,
+because a reward of 0 now carries information (below average) instead of
+contributing a zero gradient.
 </details>
 
 ---
@@ -225,7 +227,9 @@ PPO: $\min(\rho A,\ \text{clip}(\rho, 0.8, 1.2) A)$.
   clipped branch, so again zero gradient: $\pi_\theta(a_2)$ has already
   been lowered by more than 20% and the objective stops pushing.
 
-Both actions have moved past the trust region, so this batch contributes
+Both actions have moved outside the trust region (the range
+$\rho \in [0.8, 1.2]$ around $\pi_{old}$ that the clip enforces, notes §5),
+so this batch contributes
 no gradient. The clip is one-sided in effect: it only removes the
 incentive to keep moving in the direction that improves the objective,
 never the incentive to move back.
@@ -253,7 +257,8 @@ If all eight scores are equal, the mean equals every score, every
 advantage is $0$ (the normalization is $0/0$ and implementations add a
 small constant, still giving $0$), and the gradient from this prompt is
 zero. The eight samples are wasted, which is why some implementations
-(DAPO) filter out prompts where every completion scores the same. A
+(DAPO, a GRPO variant) filter out prompts where every completion scores the
+same. A
 critic-based method would still produce a gradient here, and it can be a
 correct one: if the critic predicts $V = 0.5$ and all eight succeed,
 pushing them up is the right signal. GRPO's group baseline is close to the

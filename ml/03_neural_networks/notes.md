@@ -1,65 +1,65 @@
 # Neural Networks from First Principles
 
-> Style note: every formula is derived, every gradient is
-> computed by hand at least once on actual numbers, and every design choice
-> (init, normalization, Adam, residuals) is motivated by a concrete failure you
-> can reproduce in `training_dynamics.ipynb`. If a claim seems hand-wavy, it's a
-> bug - the goal is Karpathy's "Zero to Hero" in written form.
+> Style note: every formula is derived, backprop is worked by hand once on
+> actual numbers, and each design choice (init, normalization, Adam, residuals)
+> is motivated by a concrete failure. The failures of bad initialization,
+> saturating activations and badly chosen learning rates are reproduced
+> numerically in `training_dynamics.ipynb`. The model for this style is
+> Karpathy's "Zero to Hero" series, in written form.
 
 Companion code in this directory:
 
-- `micrograd_plus.ipynb` - scalar autograd engine + MLP + training loop + gradient check
-- `mlp_numpy.ipynb` - vectorized 2-layer MLP, manual backward, SGD vs momentum vs Adam
-- `training_dynamics.ipynb` - numeric experiments: init variance, vanishing gradients, learning rates
+- `micrograd_plus.ipynb`: scalar autograd engine + MLP + training loop + gradient check
+- `mlp_numpy.ipynb`: vectorized 2-layer MLP, manual backward, SGD vs momentum vs Adam
+- `training_dynamics.ipynb`: numeric experiments: init variance, vanishing gradients, learning rates
 
 ---
 
 ## 1. What a neuron computes, and why nonlinearity is the entire point
 
-A single "neuron" is embarrassingly simple. It takes a vector $x \in \mathbb{R}^n$,
+A single "neuron" takes a vector $x \in \mathbb{R}^n$,
 owns a weight vector $w \in \mathbb{R}^n$ and a bias $b$, and computes
 
 $$a = \sigma(w^\top x + b)$$
 
-That's it: a **dot product** (weighted vote over the inputs), a **shift** ($b$ moves
+That is: a **dot product** (weighted sum of the inputs), a **shift** ($b$ moves
 the decision threshold), and a **squashing nonlinearity** $\sigma$. The pre-activation
 $z = w^\top x + b$ is a linear function of $x$; geometrically, $z = 0$ defines a
 hyperplane, $w$ is its normal vector, and $z$ measures signed distance to that plane
-(scaled by $\|w\|$). So a neuron is a soft "which side of this hyperplane are you on?"
-detector. A layer of $m$ neurons is just $m$ of these stacked into a matrix:
+(scaled by $\|w\|$). So a neuron outputs a smooth function of which side of this
+hyperplane $x$ lies on, and how far from it. A layer of $m$ neurons is just $m$ of these stacked into a matrix:
 
 $$z = Wx + b, \qquad W \in \mathbb{R}^{m \times n}$$
 
 ### Why the nonlinearity is not optional
 
-Suppose we get greedy and stack layers **without** nonlinearities, hoping depth alone
-buys us power:
+Suppose we stack layers **without** nonlinearities:
 
 $$h_1 = W_1 x + b_1, \qquad h_2 = W_2 h_1 + b_2$$
 
-Substitute the first into the second - this is the whole proof, two lines:
+Substitute the first into the second (this is the whole proof):
 
 $$h_2 = W_2 (W_1 x + b_1) + b_2 = \underbrace{(W_2 W_1)}_{W'} x + \underbrace{(W_2 b_1 + b_2)}_{b'}$$
 
 $$\Rightarrow\; h_2 = W' x + b'$$
 
-A stack of any number of linear layers **collapses to a single linear layer** - matrix
-multiplication is closed under composition. A 100-layer linear "deep network" has
+A stack of any number of linear layers **collapses to a single linear layer**, because a
+composition of affine maps is an affine map. A 100-layer linear "deep network" has
 exactly the expressive power of logistic/linear regression: it can only carve the input
 space with a single hyperplane per output. It cannot represent XOR, a circle, a spiral,
 anything with curvature in its decision boundary.
 
 (Note the collapse can even *lose* rank: if $W_1$ is $\mathbb{R}^{n \to 2}$ and $W_2$
 is $\mathbb{R}^{2 \to m}$, then $W'=W_2W_1$ has rank $\le 2$. Depth without
-nonlinearity is worse than useless.)
+nonlinearity adds no expressive power and can remove some.)
 
 The nonlinearity $\sigma$ breaks the collapse: $W_2\,\sigma(W_1 x)$ does **not**
-simplify, because $\sigma$ is not a matrix. Intuition for what you gain: with ReLU,
-each hidden neuron folds the input space along its hyperplane; a network composes many
-folds into a piecewise-linear function with exponentially many linear regions in depth.
+simplify, because $\sigma$ is not a matrix. What you gain: with ReLU, each hidden
+neuron is linear on each side of its hyperplane, so the network is a piecewise-linear
+function, and the number of linear regions can grow exponentially with depth.
 Two separate facts follow. The universal approximation theorem is about *width*: one
 hidden layer with enough neurons can approximate any continuous function on a bounded
-domain. Depth buys *efficiency*: composing folds multiplies the number of linear
+domain. Depth buys *efficiency*: composing layers multiplies the number of linear
 regions, so some functions need exponentially fewer neurons in a deep network than in
 a shallow one.
 
@@ -85,14 +85,14 @@ engine is one instance of this.
 
 Any forward computation is a DAG: leaves are inputs/parameters, internal nodes are
 primitive ops (`+`, `*`, `tanh`, ...), and there is one scalar output, the loss $L$.
-Each node needs to know only two things:
+The backward step at each node needs two quantities:
 
-1. **Local gradients**: $\partial(\text{out})/\partial(\text{each input})$ - e.g. for
+1. **Local gradients**: $\partial(\text{out})/\partial(\text{each input})$; e.g. for
    $c = a \cdot b$: $\partial c/\partial a = b$ and $\partial c/\partial b = a$.
-2. **The upstream gradient** $\partial L / \partial(\text{out})$, handed to it during
-   the backward pass.
+2. **The upstream gradient** $\partial L / \partial(\text{out})$, already computed
+   earlier in the backward pass.
 
-It multiplies them and hands the products to its inputs. If a value feeds **two**
+The node multiplies them and adds each product to the corresponding input's gradient. If a value feeds **two**
 downstream nodes, the gradients arriving from both paths **add** (multivariate chain
 rule: $\frac{\partial L}{\partial a} = \sum_{\text{paths } p} \frac{\partial L}{\partial p}\frac{\partial p}{\partial a}$).
 That's why every autograd engine does `a.grad += ...`, never `a.grad = ...`.
@@ -100,13 +100,13 @@ That's why every autograd engine does `a.grad += ...`, never `a.grad = ...`.
 ### Why this is dynamic programming
 
 Naively, $\partial L/\partial w$ for each parameter $w$ sums over *every path* from
-$w$ to $L$ - exponentially many in depth. Backprop visits nodes in **reverse
+$w$ to $L$, and their number grows exponentially with depth. Backprop visits nodes in **reverse
 topological order**, and by the time it reaches a node, that node's
 $\partial L/\partial(\text{out})$ already aggregates *all* downstream paths into one
 cached number. Each edge is processed once. That's memoization: backprop computes all
 $N$ parameter gradients for roughly the cost of **two** extra forward passes, instead of
-$N$ forward passes (which is what finite differences costs - hence gradient *checking*
-with finite differences is fine, gradient *computation* with them is not).
+$N$ forward passes (the cost of finite differences; so finite differences are fine for
+gradient *checking* but too expensive for gradient *computation*).
 
 ### A tiny 2-layer network, by hand, on actual numbers
 
@@ -117,7 +117,7 @@ $$z_1 = w_1 x + b_1, \quad h = \tanh(z_1), \quad \hat{y} = w_2 h + b_2, \quad L 
 Numbers: $x = 1.0$, target $y = 1.0$, and parameters
 $w_1 = 0.5,\; b_1 = 0.1,\; w_2 = -0.3,\; b_2 = 0.2$.
 
-**Forward pass** (compute and *write down* every intermediate - these get reused):
+**Forward pass** (compute and *write down* every intermediate; they are reused):
 
 | node | expression | value |
 |---|---|---|
@@ -150,12 +150,12 @@ Sanity checks you should habitually run in your head:
 - **Reuse**: $\text{grad}(\hat{y})$ was computed once and used three times in step 3.
   $h$ from the *forward* pass was reused in the backward pass (both as a local gradient
   for $w_2$ and inside $1-h^2$). This is why frameworks store activations: backward
-  needs forward's intermediates. That is why activations are often the largest memory
-cost of training, on top of the parameters, gradients and optimizer state.
+  needs forward's intermediates, and it is why activations are often the largest
+  memory cost of training, on top of the parameters, gradients and optimizer state.
 
 One gradient-descent step with $\eta = 0.1$: $w_2 \leftarrow -0.3 - 0.1(-1.032333) = -0.196767$,
-etc. Re-run forward: $L$ drops from $0.9237$ to about $0.49$. That is all of training  - 
-this loop, a million times, on bigger graphs.
+etc. Re-run forward: $L$ drops from $0.9237$ to about $0.49$. Training is this loop
+repeated many times on larger graphs.
 
 ### The three backward rules that generate everything
 
@@ -163,10 +163,13 @@ this loop, a million times, on bigger graphs.
 - **Mul** $c = a b$: local grads are $b, a$ → gradient to each input is scaled by *the other* input's forward value ("swap and multiply").
 - **Any unary $f$**: gradient scaled by $f'$ evaluated at the forward value.
 
-Matrix versions ($Z = XW$: $\partial L/\partial X = G W^\top$, $\partial L/\partial W = X^\top G$)
-are just these rules batched - derived element-wise in `mlp_numpy.ipynb`'s comments. A
-useful mnemonic: shapes must match, and there's exactly one transpose arrangement that
-makes them match.
+Matrix versions ($Z = XW$, upstream $G = \partial L/\partial Z$:
+$\partial L/\partial X = G W^\top$, $\partial L/\partial W = X^\top G$) are these rules
+batched. Element-wise, $Z_{nc} = \sum_h X_{nh}W_{hc}$, so the mul rule plus summing over
+every output an entry touches gives
+$\partial L/\partial W_{hc} = \sum_n X_{nh}G_{nc} = (X^\top G)_{hc}$ and
+$\partial L/\partial X_{nh} = \sum_c G_{nc}W_{hc} = (GW^\top)_{nh}$. A useful mnemonic:
+shapes must match, and there's exactly one transpose arrangement that makes them match.
 
 ---
 
@@ -183,10 +186,11 @@ Cross-entropy against the true class $y$ (one-hot vector $y$, true index $t$):
 
 $$L = -\sum_i y_i \log p_i = -\log p_t$$
 
-i.e. "negative log-probability assigned to the correct class" - this is exactly
-maximum likelihood. $L = 0$ iff $p_t = 1$; confidently wrong predictions are punished
-without bound (as $p_t \to 0$, $L \to \infty$), which is what generates large
-corrective gradients exactly when the model is badly wrong.
+i.e. "negative log-probability assigned to the correct class"; minimizing it is
+maximum likelihood. $L = 0$ iff $p_t = 1$, and the loss of a confidently wrong
+prediction is unbounded (as $p_t \to 0$, $L \to \infty$). The gradient on the correct
+logit, $p_t - 1$ (derived next), stays near its largest magnitude $1$ while the
+prediction is badly wrong.
 
 ### The full derivation of $\partial L/\partial z = p - y$
 
@@ -206,38 +210,38 @@ for $i \ne k$, $\frac{0 - e^{z_i}e^{z_k}}{S^2} = -p_i p_k$, with $S = \sum_j e^{
 then chain: $\frac{\partial L}{\partial z_k} = -\frac{1}{p_t}\frac{\partial p_t}{\partial z_k}
 = -\frac{1}{p_t} p_t(\mathbb{1}[t=k] - p_k) = p_k - y_k$. Same answer, more work.
 
-**Why $p - y$ is beautiful:** it's bounded in $[-1, 1]$ per class, it's zero exactly
+**Why the form $p - y$ matters:** it's bounded in $[-1, 1]$ per class, it's zero exactly
 when the prediction is perfect, and the "error signal" is literally
 *predicted minus true probability*. The same form appears for sigmoid + binary
-cross-entropy and for linear + MSE - all are canonical link/loss pairings from
+cross-entropy and for linear + MSE; all are canonical link/loss pairings from
 exponential-family maximum likelihood, and the $\sigma'$ term that would cause
 saturation cancels against the loss's derivative. This is why you **never** pair
 softmax with MSE: the cancellation doesn't happen, gradients carry a $p(1-p)$ factor,
-and a confidently-wrong network ($p_t \approx 0$) gets a *tiny* gradient exactly when
-it needs a huge one.
+and a confidently-wrong network ($p_t \approx 0$) gets a gradient near zero exactly
+when its error is largest.
 
 ### Numerical stability: the log-sum-exp trick
 
 Softmax needs $e^{z_i}$. In float32, $e^{89} = \infty$; so logits around $100$
-(easy to hit mid-training) give `inf/inf = nan` and your run dies. The fix exploits
+(easy to hit mid-training) give `inf/inf = nan`, and every later value is `nan`. The fix exploits
 softmax's **shift invariance**: for any constant $m$,
 
 $$\frac{e^{z_i - m}}{\sum_j e^{z_j - m}} = \frac{e^{z_i}e^{-m}}{e^{-m}\sum_j e^{z_j}} = p_i$$
 
-Choose $m = \max_j z_j$. Then every exponent is $\le 0$, so $e^{z_i - m} \in (0, 1]$  - 
-no overflow - and at least one term equals $1$, so the denominator is $\ge 1$ - no
-division blow-up. Similarly compute the *log*-probability directly instead of
+Choose $m = \max_j z_j$. Then every exponent is $\le 0$, so $e^{z_i - m} \in (0, 1]$
+(no overflow), and at least one term equals $1$, so the denominator is $\ge 1$ (it
+cannot underflow to $0$). Similarly compute the *log*-probability directly instead of
 `log(softmax(z))`:
 
 $$\log p_i = z_i - m - \log\sum_j e^{z_j - m}$$
 
-because `log(tiny)` where `tiny` underflowed to `0.0` gives `-inf`. Every serious
-framework's `cross_entropy` fuses softmax + log + NLL for exactly this reason; you
-should too (see `stable_logsumexp` in `mlp_numpy.ipynb`).
+because `log(tiny)` where `tiny` underflowed to `0.0` gives `-inf`. Framework
+`cross_entropy` functions fuse softmax, log and the negative log-likelihood (NLL) into
+one op for this reason (see `stable_logsumexp` in `mlp_numpy.ipynb`).
 
 ---
 
-## 4. Activation functions: saturation and its discontents
+## 4. Activation functions and saturation
 
 ### Sigmoid
 
@@ -251,42 +255,44 @@ $\sigma' = -(1+e^{-z})^{-2} \cdot (-e^{-z}) = \frac{e^{-z}}{(1+e^{-z})^2}
 $g'(s) = 1 - 2s = 0 \Rightarrow s = \tfrac12$, i.e. $z = 0$, giving
 $g_{\max} = \tfrac12 \cdot \tfrac12 = \boxed{0.25}$.
 
-So **every** sigmoid in the backward path multiplies the gradient by *at most* $0.25$ - and typically far less: at $|z| = 5$, $\sigma' \approx 0.0066$. In a depth-$d$ stack
+So **every** sigmoid in the backward path multiplies the gradient by *at most* $0.25$, and typically far less: at $|z| = 5$, $\sigma' \approx 0.0066$. In a depth-$d$ stack
 of sigmoid layers, the activation-path factor is bounded by $0.25^d$ times weight
-terms: $0.25^{10} \approx 10^{-6}$, $0.25^{20} \approx 10^{-12}$. Layer 1 of a deep
-sigmoid net receives essentially zero signal about the loss. That is the **vanishing
-gradient problem**, and it's not folklore - `training_dynamics.ipynb` prints the actual
-per-layer gradient norms and you can watch them decay geometrically.
+terms: $0.25^{10} \approx 10^{-6}$, $0.25^{20} \approx 10^{-12}$. The gradient that
+reaches layer 1 of a deep sigmoid net is close to zero. That is the **vanishing
+gradient problem**. EXPT 2 in `training_dynamics.ipynb` prints the per-layer mean
+absolute gradient of a 20-layer sigmoid net; it shrinks by a roughly constant factor
+(about $0.23$) per layer.
 
-Two further sigmoid sins: outputs are **not zero-centered** (always positive → the
-gradient of a layer's weights, which is `upstream × input`, has all components with
-the same sign pattern → zig-zag optimization paths), and `exp` is relatively
-expensive.
+Two further drawbacks of sigmoid: outputs are **not zero-centered** (always positive,
+so the next layer's weight gradients $\delta \cdot x_j$, where
+$\delta = \partial L/\partial z$ is the gradient at that neuron's pre-activation, all
+share the sign of $\delta$; in one step a neuron's weights all increase or all decrease,
+which produces zig-zag optimization paths), and `exp` is relatively expensive.
 
 ### Tanh
 
 $$\tanh(z) = 2\sigma(2z) - 1, \qquad \tanh'(z) = 1 - \tanh^2(z)$$
 
-Zero-centered (fixes one sin) and $\tanh'(0) = 1$ (much better than $0.25$), but it
+Zero-centered (removes the first drawback) and $\tanh'(0) = 1$ (much better than $0.25$), but it
 still **saturates**: $|z|$ large $\Rightarrow \tanh' \to 0$. Fine for shallow nets and
-gates (LSTMs), still vanishes with depth.
+gates (LSTMs), but the gradient still vanishes with depth.
 
 ### ReLU and dead neurons
 
 $$\mathrm{ReLU}(z) = \max(0, z), \qquad \mathrm{ReLU}'(z) = \mathbb{1}[z > 0]$$
 
-The derivative is exactly $1$ on the active side - repeated multiplication by $1$
-doesn't shrink anything, which is the single biggest reason deep nets became trainable.
+The derivative is exactly $1$ on the active side, so repeated multiplication by it
+does not shrink the gradient; this is a major reason deep nets became trainable.
 Also: no `exp`, and the induced sparsity (~half the units at 0) is cheap.
 
 The failure mode: a **dead neuron**. If a neuron's pre-activation is negative for
-*every* input in the dataset (e.g. after a large gradient step knocked its bias very
-negative, or from bad init), then its output is always $0$, its local gradient is
-always $0$, so no gradient ever flows to its weights, so it can never recover. It's
-permanently dead capacity. Mitigations: sensible init + moderate learning rates,
-LeakyReLU ($\max(\alpha z, z)$, $\alpha \approx 0.01$, keeps a trickle of gradient),
+*every* input in the dataset (e.g. after a large gradient step pushed its bias to a
+large negative value, or from bad init), then its output is always $0$, its local
+gradient is always $0$, so its weights receive zero gradient and never change again.
+The unit is permanently unused. Mitigations: sensible init + moderate learning rates,
+LeakyReLU ($\max(\alpha z, z)$, $\alpha \approx 0.01$, slope $\alpha$ for $z<0$),
 or smooth variants below. (Note ReLU is non-differentiable at exactly $z=0$; we just
-pick a subgradient, conventionally $0$ - a measure-zero event nobody worries about.)
+pick a subgradient, conventionally $0$; for continuous inputs this has probability zero.)
 
 ### GELU / SiLU (briefly)
 
@@ -295,16 +301,18 @@ $$\mathrm{GELU}(z) = z \cdot \Phi(z) \approx z\,\sigma(1.702 z), \qquad \mathrm{
 Both are "ReLU-shaped but smooth": they gate the input by a soft probability of being
 positive instead of a hard threshold, are slightly negative for small negative $z$
 (no hard zero → no truly dead units), and empirically train slightly better in
-transformers - GELU is the default in BERT/GPT-family MLP blocks. There's no deep
-theory here; treat them as smoothed ReLUs that won a lot of ablations.
+transformers: GELU is used in BERT and GPT-2/3 MLP blocks, and SiLU in gated form
+(SwiGLU) in LLaMA-family models. There is no strong theory for the gain; treat them as
+smoothed ReLUs that did slightly better in many ablations.
 
 **Rule of thumb:** hidden layers → ReLU family (GELU in transformers); output layer →
 whatever the loss demands (linear for regression, logits into softmax-CE for
-classification - never a hidden-layer sigmoid "because probabilities").
+classification). Sigmoid's $(0,1)$ output range is not a reason to use it in hidden
+layers.
 
 ---
 
-## 5. Initialization: why variance is the whole game
+## 5. Initialization: keeping variance constant across depth
 
 ### The problem, from first principles
 
@@ -321,13 +329,14 @@ $$\mathrm{Var}(z_i) = \sum_{j=1}^{n_{in}} \mathrm{Var}(W_{ij})\,\mathrm{Var}(x_j
 $d$ layers, variance is scaled by $g^d$. Three regimes:
 
 - $g < 1$: activations shrink geometrically → after ~20 layers everything is
-  $\approx 0$, all neurons compute the same nothing, gradients (which contain
+  $\approx 0$, all neurons output values near $0$, and gradients (which contain
   activation factors) also vanish.
-- $g > 1$: activations explode geometrically → saturating nonlinearities pin at
-  $\pm 1$ (and their local grads hit 0 - vanishing gradients *via explosion*), or with
-  ReLU you overflow to `inf/nan`.
-- $g = 1$: variance is preserved through depth. This is the **only** regime where a
-  deep net starts life in a trainable state.
+- $g > 1$: activations explode geometrically → tanh-like outputs sit at $\pm 1$,
+  where their derivatives are near 0, so gradients vanish even though activations are
+  large; with ReLU, values overflow to `inf/nan`.
+- $g = 1$: variance is preserved through depth. This is the **only** regime in which
+  a deep net at initialization has activations and gradients of usable size at every
+  layer.
 
 Requiring $\mathrm{Var}(z) = \mathrm{Var}(x)$, i.e. $g = 1$:
 
@@ -338,10 +347,10 @@ $$n_{in}\,\sigma_w^2 = 1 \;\Rightarrow\; \sigma_w^2 = \frac{1}{n_{in}}$$
 The same argument run on the **backward** pass ($\partial L/\partial x = W^\top \delta$,
 where $\delta = \partial L/\partial z$ is the gradient arriving from the layer above,
 a sum over $n_{out}$ terms) demands $\sigma_w^2 = 1/n_{out}$. You can't satisfy both
-unless $n_{in} = n_{out}$, so Glorot & Bengio split the difference (harmonic-mean
-compromise):
+unless $n_{in} = n_{out}$, so Glorot & Bengio use the harmonic mean of the two
+requirements $1/n_{in}$ and $1/n_{out}$:
 
-$$\boxed{\sigma_w^2 = \frac{2}{n_{in} + n_{out}}} \qquad \text{(Xavier - for tanh/sigmoid-ish, i.e. } \approx \text{identity near 0)}$$
+$$\boxed{\sigma_w^2 = \frac{2}{n_{in} + n_{out}}} \qquad \text{(Xavier; for tanh-like activations, } \approx \text{identity near 0)}$$
 
 Equivalently, uniform on $[-\sqrt{6/(n_{in}+n_{out})}, +\sqrt{6/(n_{in}+n_{out})}]$
 (since $\mathrm{Var}(U[-a,a]) = a^2/3$).
@@ -359,11 +368,11 @@ and to keep $g = 1$ the weights must compensate with an extra factor of 2:
 $$n_{in} \cdot \sigma_w^2 \cdot \tfrac12 = 1 \;\Rightarrow\; \boxed{\sigma_w^2 = \frac{2}{n_{in}}} \qquad \text{(Kaiming/He, for ReLU)}$$
 
 Use Xavier init with ReLU in a 30-layer net and the missing $2^{d/2}$ factor shrinks
-activations by $\sim (1/\sqrt2)^{30} \approx 3\times10^{-5}$ - watch it happen
-numerically in `training_dynamics.ipynb`. Biases: init to 0 (they don't feed the variance
+activations by $\sim (1/\sqrt2)^{30} \approx 3\times10^{-5}$; EXPT 1 in
+`training_dynamics.ipynb` shows this numerically. Biases: init to 0 (they don't feed the variance
 argument). Never init weights to 0 or any constant: all neurons in a layer then
-compute identical outputs and receive identical gradients forever - the **symmetry
-problem**; random init exists to break symmetry, and the *scale* of that randomness is
+compute identical outputs and receive identical gradients forever. This is the
+**symmetry problem**; random init exists to break symmetry, and the *scale* of that randomness is
 what Xavier/Kaiming pin down.
 
 ---
@@ -378,10 +387,11 @@ expensive, very accurate step. Minibatch SGD instead uses $B \ll N$ random examp
 the minibatch gradient is an **unbiased estimator** of the full gradient
 ($E[\hat{g}] = g$) with variance $\propto 1/B$. Why it wins:
 
-1. **Compute**: gradient quality improves like $\sqrt{B}$ (standard error) but cost
-   grows like $B$ - heavily diminishing returns; better to take many noisy steps.
-2. **Hardware**: matrix-matrix ops at batch size 32–1024 saturate GPUs; batch size 1
-   wastes the machine.
+1. **Compute**: the standard error of the gradient estimate falls like $1/\sqrt{B}$
+   while cost grows like $B$, so returns diminish quickly, and many cheap noisy steps
+   usually make more progress than a few exact ones.
+2. **Hardware**: matrix-matrix ops at batch size 32–1024 keep a GPU's arithmetic units
+   busy; at batch size 1 most of them sit idle.
 3. **Noise as a feature**: gradient noise helps escape saddle points and acts as
    implicit regularization; small/medium batches often generalize better than full
    batch. A popular explanation is that noise steers training toward flatter minima,
@@ -392,9 +402,9 @@ the minibatch gradient is an **unbiased estimator** of the full gradient
 
 $$v_t = \beta v_{t-1} + g_t, \qquad \theta \leftarrow \theta - \eta\, v_t \qquad (\beta \approx 0.9)$$
 
-Unroll the recursion: $v_t = g_t + \beta g_{t-1} + \beta^2 g_{t-2} + \cdots$ - an
-exponentially-weighted sum of past gradients ("a heavy ball with friction $1-\beta$";
-the EMA-flavored variant $v_t = \beta v_{t-1} + (1-\beta)g_t$ is the same thing with
+Unroll the recursion: $v_t = g_t + \beta g_{t-1} + \beta^2 g_{t-2} + \cdots$, an
+exponentially-weighted sum of past gradients (Polyak's "heavy-ball" method; the
+exponential-moving-average (EMA) variant $v_t = \beta v_{t-1} + (1-\beta)g_t$ is the same thing with
 $\eta$ rescaled). **Effective step size**: if the gradient were constant at $g$, the
 velocity converges to the geometric-series limit
 
@@ -402,9 +412,9 @@ $$v_\infty = g\,(1 + \beta + \beta^2 + \cdots) = \frac{g}{1 - \beta}$$
 
 so with $\beta = 0.9$ momentum takes steps up to $\frac{1}{1-\beta} = 10\times$ larger
 than plain SGD **along directions where gradients consistently agree**, while
-directions where the gradient oscillates (+,−,+,−, the across-the-ravine direction)
-cancel in the sum. Net effect: accelerate along the valley floor, damp the sideways
-zig-zag. That's the entire trick.
+directions where the gradient oscillates (+,−,+,−, e.g. across a narrow ravine in the loss surface)
+cancel in the sum. Net effect: larger steps along the consistent direction, smaller
+oscillation across it.
 
 ### RMSProp: per-parameter learning rates
 
@@ -413,8 +423,8 @@ Keep an EMA of the **squared** gradient and divide by its root:
 $$s_t = \beta_2 s_{t-1} + (1-\beta_2) g_t^2, \qquad \theta \leftarrow \theta - \frac{\eta}{\sqrt{s_t} + \epsilon}\, g_t$$
 
 Parameters with persistently large gradients get their steps shrunk; parameters with
-tiny, rare gradients get boosted. It approximately normalizes the update to
-$\pm\eta \cdot \mathrm{sign\text{-}ish}(g)$, making one global $\eta$ work across
+tiny, rare gradients get boosted. When a gradient's sign is consistent, the update is
+approximately $\eta \cdot \mathrm{sign}(g)$, making one global $\eta$ work across
 parameters whose gradient scales differ by orders of magnitude (embeddings vs. biases).
 
 ### Adam = momentum + RMSProp + bias correction
@@ -425,7 +435,7 @@ $$\hat{m}_t = \frac{m_t}{1-\beta_1^t}, \qquad \hat{v}_t = \frac{v_t}{1-\beta_2^t
 
 Defaults $\beta_1 = 0.9$, $\beta_2 = 0.999$, $\epsilon = 10^{-8}$, $\eta \sim 10^{-3}$.
 
-**Deriving the bias correction** (interviewers love this). $m_0 = 0$, so unrolling:
+**Deriving the bias correction** (a common interview question). $m_0 = 0$, so unrolling:
 
 $$m_t = (1-\beta_1)\sum_{i=1}^{t} \beta_1^{\,t-i} g_i$$
 
@@ -433,8 +443,8 @@ Take expectations assuming $E[g_i] \approx g$ (stationary gradient):
 
 $$E[m_t] = (1-\beta_1)\, g \sum_{i=1}^{t} \beta_1^{\,t-i} = (1-\beta_1)\, g \cdot \frac{1-\beta_1^t}{1-\beta_1} = g\,(1 - \beta_1^t)$$
 
-So the raw EMA is biased toward zero by exactly the factor $(1-\beta_1^t)$ - because
-it was initialized at 0 and hasn't accumulated enough mass yet. Dividing by
+So the raw EMA is biased toward zero by exactly the factor $(1-\beta_1^t)$, because
+it starts at 0 and its weights $(1-\beta_1)\beta_1^{t-i}$ sum to only $1-\beta_1^t$. Dividing by
 $1-\beta_1^t$ makes it unbiased: $E[\hat m_t] = g$. Same for $v_t$ with $\beta_2$.
 Why it *matters*: with $\beta_2 = 0.999$, after one step $v_1 = 0.001\,g_1^2$, so
 uncorrected $\sqrt{v_1} \approx 0.0316|g_1|$. If $m$ is corrected but $v$ is not,
@@ -446,11 +456,12 @@ $\beta^t \to 0$ and the correction fades to a no-op; it only matters for early s
 
 ### Learning-rate schedules
 
-$\eta$ is the single most important hyperparameter (see the divergence/slow/converge
-experiment in `training_dynamics.ipynb`). Common schedules:
+$\eta$ is usually the most important hyperparameter to tune (EXPT 3 in
+`training_dynamics.ipynb` shows slow progress, convergence and divergence for three
+values). Common schedules:
 
 - **Step decay**: drop $\eta$ by 10× at fixed milestones.
-- **Cosine**: $\eta_t = \eta_{\min} + \tfrac12(\eta_{\max}-\eta_{\min})(1 + \cos(\pi t/T))$ - smooth decay to ~0, the modern default.
+- **Cosine**: $\eta_t = \eta_{\min} + \tfrac12(\eta_{\max}-\eta_{\min})(1 + \cos(\pi t/T))$: smooth decay from $\eta_{\max}$ to $\eta_{\min}$ over $T$ steps; a common default.
 - **Warmup**: linearly ramp $\eta$ from 0 over the first few hundred/thousand steps.
   Rationale: even after bias correction, $\hat v$ early on averages only a few
   squared gradients, so it is a noisy scale estimate; early gradients are also large
@@ -458,15 +469,16 @@ experiment in `training_dynamics.ipynb`). Common schedules:
   step can diverge. Warmup keeps steps small until these settle. Standard for
   transformers.
 
-Big picture: large $\eta$ early = fast progress + exploration (noise ball); small
-$\eta$ late = settle into a minimum. Decay trades exploration for convergence.
+Big picture: a large $\eta$ early gives fast progress, with the iterates fluctuating
+over a wide region; a small $\eta$ late lets them settle into a minimum.
 
 ### Weight decay vs. L2, and AdamW
 
 For **plain SGD** the two are identical: L2 loss $\frac{\lambda}{2}\|\theta\|^2$ adds
-$\lambda\theta$ to the gradient, giving $\theta \leftarrow (1 - \eta\lambda)\theta - \eta g$ - exactly "decay the weights, then step." For **Adam they differ**: L2's $\lambda\theta$
-enters $m_t$ and $v_t$ and gets *divided by* $\sqrt{\hat v}$ - so parameters with large
-gradient history get *less* regularization, which is backwards and empirically hurts.
+$\lambda\theta$ to the gradient, giving $\theta \leftarrow (1 - \eta\lambda)\theta - \eta g$, which is exactly "decay the weights, then step." For **Adam they differ**: L2's $\lambda\theta$
+enters $m_t$ and $v_t$ and gets *divided by* $\sqrt{\hat v}$, so parameters with large
+gradient history get *less* regularization, which is not what weight decay is meant to
+do and gives worse results empirically (Loshchilov & Hutter, 2019).
 **AdamW decouples**: keep $\lambda\theta$ out of the moments and apply decay directly
 in the update,
 
@@ -488,42 +500,48 @@ $$\mu = \frac{1}{B}\sum_{i=1}^{B} x_i, \qquad \sigma^2 = \frac{1}{B}\sum_{i=1}^{
 $$\hat{x}_i = \frac{x_i - \mu}{\sqrt{\sigma^2 + \epsilon}}, \qquad y_i = \gamma\,\hat{x}_i + \beta$$
 
 Standardize to mean 0 / variance 1 using **batch statistics**, then let learned
-per-feature $\gamma, \beta$ scale and shift back to wherever the network actually
-wants - so BN restricts nothing; it *reparameterizes*, decoupling the mean/scale of a
-layer's activations (now directly set by $\beta, \gamma$) from the tangled interaction
-of all upstream weights.
+per-feature $\gamma, \beta$ set the output's scale and shift to whatever values
+training finds best. So BN does not restrict what the layer can represent; it *reparameterizes* it,
+making the mean/scale of a layer's activations (now directly set by $\beta, \gamma$)
+independent of the combined effect of all upstream weights.
 
 ### The two stories of why it works
 
 **Story 1 (the original paper): internal covariate shift.** As layer $k$'s weights
-update, the *distribution* of layer $k{+}1$'s inputs shifts, so every layer is chasing
-a moving target; BN pins each layer's input distribution (mean/var) so layers learn
-against a stationary interface. Intuitive, widely repeated - and probably not the real
-mechanism: later work (Santurkar et al. 2018) showed you can inject non-stationary
-noise *after* BN, reintroducing covariate shift, and BN still helps just as much.
+update, the *distribution* of layer $k{+}1$'s inputs shifts, so each layer's weights
+are fit to an input distribution that changes after every update; BN fixes the mean
+and variance of each layer's inputs. This explanation is widely repeated but not
+supported by later experiments: Santurkar et al. (2018) injected random noise with
+changing mean and variance *after* BN, reintroducing covariate shift, and the network
+still trained about as well as with plain BN.
 
-**Story 2 (the better modern story): loss-surface smoothing.** BN demonstrably reduces
-the Lipschitz constant of the loss and of its gradient (makes the landscape smoother
-and gradients more predictable), which permits **much larger learning rates** without
-divergence and makes training far less sensitive to init. Mechanically: the
-normalization makes the layer's output scale-invariant to the weight scale
-($\mathrm{BN}(aWx) = \mathrm{BN}(Wx)$ for $a>0$), which kills a whole axis of
-pathological curvature. Interview-safe phrasing: "the covariate-shift story is the
-historical motivation; the empirical story is that BN smooths the optimization
-landscape, enabling higher LR and reducing init sensitivity."
+**Story 2 (the more recent story): loss-surface smoothing.** The same paper measured
+that, at points along the training path, the loss and its gradient change less when
+moving along the gradient direction in BN networks (a smaller empirical Lipschitz constant), and proved bounds of this kind for
+one BN layer under simplifying assumptions. A smoother loss permits **larger learning
+rates** without divergence and makes training less sensitive to init. One concrete
+mechanism: BN makes the layer's output invariant to the weight scale,
+$f(aW) = f(W)$ for $a>0$ (where $f$ is the loss as a function of the weights feeding
+BN). Differentiating gives $\nabla f(aW) = \nabla f(W)/a$, so if $W$ grows, its
+gradient shrinks and the effective step size falls automatically. Which mechanism
+matters most is still debated. Interview-safe phrasing: "the covariate-shift story is
+the historical motivation; the evidence favors BN smoothing the optimization
+landscape, enabling higher LR and reducing init sensitivity, though the full
+explanation is still open."
 
 ### Why BN needs running statistics at inference
 
-At inference you may get **one** example - a "batch" mean over one sample would be the
-sample itself ($\hat x = 0$: nonsense), and predictions would depend on whatever else
-happened to be in your batch (non-deterministic, a serving bug and even a privacy
-leak). So during training BN maintains EMAs
+At inference you may get **one** example. A "batch" mean over one sample is the
+sample itself, so $\hat x = 0$ for every input and the output carries no information
+about it; with larger batches, predictions would depend on whatever else happened to be
+in the batch (non-deterministic, and one request could affect another's output). So during training BN maintains EMAs
 
 $$\mu_{run} \leftarrow (1-\alpha)\,\mu_{run} + \alpha\,\mu_{batch}, \qquad \sigma^2_{run} \leftarrow (1-\alpha)\,\sigma^2_{run} + \alpha\,\sigma^2_{batch}$$
 
 and at eval time uses these **frozen** population estimates, making BN a fixed affine
-transform per feature. This train/eval discrepancy is the classic source of the
-"model.eval() bug" - forgetting to switch modes silently corrupts inference.
+transform per feature. This train/eval difference is the source of the classic
+"model.eval() bug": if eval mode is not set, inference uses batch statistics and gives
+batch-dependent outputs without raising any error.
 
 ### LayerNorm, and why transformers use it
 
@@ -531,16 +549,18 @@ LayerNorm normalizes across the **feature dimension of a single example**:
 
 $$\mu_i = \frac{1}{D}\sum_{d} x_{i,d}, \qquad \sigma_i^2 = \frac{1}{D}\sum_{d} (x_{i,d} - \mu_i)^2, \qquad y_{i,d} = \gamma_d\,\frac{x_{i,d} - \mu_i}{\sqrt{\sigma_i^2 + \epsilon}} + \beta_d$$
 
-Same example-in, example-out statistics at train and test - **no batch dependence, no
+Same example-in, example-out statistics at train and test: **no batch dependence, no
 running stats, no train/eval mode**. Transformers use LN instead of BN because:
 
 1. **Variable-length sequences + padding** make per-position batch statistics ill-defined.
 2. **Batch sizes are small / sharded** in large-model training; BN stats get noisy and
    require cross-device sync (expensive all-reduces).
-3. **Autoregressive decoding** processes one token at a time - there is no batch.
-4. Each token independently normalized is exactly the granularity a per-token
-   residual-stream architecture wants (modern LLMs use the pre-norm placement, often
-   RMSNorm - LayerNorm minus the mean-centering, cheaper, works as well).
+3. **Autoregressive decoding** processes one token at a time, so there is no batch.
+4. Normalizing each token separately matches the transformer's per-token
+   computation: each position's residual-stream vector (the running sum
+   $x \leftarrow x + f(x)$ carried through the blocks) is processed by the MLP on its
+   own. Modern LLMs use the pre-norm placement, often with RMSNorm (LayerNorm without
+   the mean subtraction; cheaper, and works about as well).
 
 ---
 
@@ -551,39 +571,42 @@ running stats, no train/eval mode**. Transformers use LN instead of BN because:
 Training: each hidden unit is independently zeroed with probability $p$; surviving
 units are scaled by $\frac{1}{1-p}$ (**inverted dropout**). Inference: identity, no-op.
 
-**Why the scaling** - preserve expectation. Let $m \sim \mathrm{Bernoulli}(1-p)$ and
+**Why the scaling:** it preserves the expectation. Let $m \sim \mathrm{Bernoulli}(1-p)$ and
 $\tilde{a} = \frac{m \cdot a}{1-p}$. Then
 
 $$E[\tilde{a}] = \frac{E[m]\,a}{1-p} = \frac{(1-p)\,a}{1-p} = a$$
 
-so the *expected* input each downstream unit sees is identical at train and test time - without the scaling, test-time activations would be systematically $\frac{1}{1-p}$×
-larger than what the network trained on, mis-calibrating every downstream layer.
+so the *expected* input each downstream unit sees is identical at train and test time. Without the scaling, test-time activations would be systematically $\frac{1}{1-p}$×
+larger than what the network trained on, so every downstream layer would receive inputs
+on a different scale than in training.
 (Original paper scaled by $1-p$ at *test* time instead; inverted dropout is the same
 idea, moved to training so inference stays a clean no-op.)
 
 **Ensemble interpretation**: a net with $n$ droppable units defines $2^n$ subnetworks
 sharing weights; each training step samples one and trains it. Test time approximates
 the geometric-mean ensemble of all $2^n$ members with a single forward pass. Practical
-effect: no unit can rely on a specific co-adapted partner (the partner might be gone),
-so features must be individually useful - redundant, robust representations.
+effect: a unit's output cannot depend on any specific other unit being present, since
+that unit is zeroed with probability $p$, so each feature must be useful on its own,
+which gives redundant representations.
 
 ### Early stopping
 
 Monitor validation loss; stop (or restore the checkpoint from) when it stops
 improving, even as training loss keeps falling. It's regularization because it limits
-how far $\theta$ travels from init - for linear models this is provably akin to L2
-regularization with strength $\sim 1/(\eta t)$. Free, effective, and doubles as your
-model-selection criterion; use it basically always (with a `patience` parameter to
-tolerate noisy validation curves).
+how far $\theta$ travels from init; for gradient descent on linear least squares it
+provably behaves like L2 regularization with strength $\sim 1/(\eta t)$. It costs
+nothing extra and also serves as model selection, so it is used almost always, with a
+`patience` parameter (evaluations without improvement before stopping) to tolerate
+noisy validation curves.
 
 ### Data augmentation
 
 Expand the training distribution with label-preserving transforms: crops, flips,
 color jitter, cutout/mixup for images; noise/time-shift for audio; back-translation
 for text. It injects **invariances you know** (a flipped cat is a cat) directly as
-data instead of hoping the net infers them - often the highest-value regularizer
-because it attacks generalization at the data level, where the information actually
-is. Caution: transforms must respect the label semantics (don't horizontally flip
+data instead of requiring the net to learn them from limited examples. It is often
+the most effective regularizer because it adds information (known invariances) that
+the training set does not contain. Caution: transforms must respect the label semantics (don't horizontally flip
 digits: a flipped "3" is not a "3").
 
 ---
@@ -596,21 +619,21 @@ Backprop through $d$ layers multiplies $d$ Jacobians:
 
 $$\frac{\partial L}{\partial h_0} = \frac{\partial L}{\partial h_d}\; \prod_{k=1}^{d} J_k, \qquad J_k = \frac{\partial h_k}{\partial h_{k-1}} = \mathrm{diag}(\sigma'(z_k))\, W_k$$
 
-If the typical factor magnitude (roughly $\sigma'_{typ} \cdot \|W\|$-ish) is $c$, the
+If the typical factor magnitude (roughly $\sigma'_{typ} \cdot \|W\|$) is $c$, the
 product scales like $c^{\,d}$: $c<1 \Rightarrow$ gradients **vanish** (early layers
-frozen, only the top of the net trains); $c>1 \Rightarrow$ gradients **explode**
-(loss spikes, `nan`s - mitigated by gradient clipping, which rescales $g$ when
-$\|g\| >$ threshold). Sigmoid's $\sigma' \le 0.25$ makes vanishing near-certain
+get near-zero updates, so only the layers near the output train); $c>1 \Rightarrow$
+gradients **explode** (loss spikes and `nan`s; gradient clipping mitigates this by
+rescaling $g$ to norm equal to the threshold when $\|g\| >$ threshold). Sigmoid's $\sigma' \le 0.25$ makes vanishing near-certain
 (section 4); nothing keeps $c$ pinned at exactly 1 through training even with perfect
-init (section 5). Depth itself is the enemy: geometric in $d$.
+init (section 5). The effect is geometric in $d$, so it grows with depth.
 
-### Residual connections: the gradient highway
+### Residual connections: an identity path for the gradient
 
-He et al.'s fix - make each block compute a **perturbation of identity**:
+He et al.'s fix: make each block compute a **perturbation of identity**:
 
 $$h_{k+1} = h_k + F(h_k)$$
 
-Differentiate. Here is the crucial Jacobian - note the **$+\,I$**:
+Differentiate. The Jacobian now contains a **$+\,I$** term:
 
 $$\frac{\partial h_{k+1}}{\partial h_k} = I + \frac{\partial F}{\partial h_k}$$
 
@@ -620,19 +643,21 @@ $$\frac{\partial h_d}{\partial h_0} = \prod_{k=0}^{d-1}\left(I + \frac{\partial 
 
 Even if every $\partial F_k/\partial h_k$ is tiny, the product contains the pure-$I$
 term: **gradient reaches layer 0 with factor exactly 1 along the skip path**, plus
-corrections. The corrections are not automatically harmless: the product of
-$(I + J_k)$ can also grow like $(1+\delta)^d$ when the blocks are not small. That is
-why deep residual nets scale each block's output down at init (for example by
-$1/\sqrt{L}$, or zero-initializing the last layer of each block, as in Fixup and
-DeepNorm). The identity path is a "gradient highway" that no block can block  - 
-contrast the plain net, where the gradient *must* pass through every $J_k$ and one
-saturated layer kills everything below it. Equivalently forward: the net starts as
-approximately the identity function (if $F \approx 0$ at init, which good init gives
-you) and learns residual corrections - a far easier starting point than learning an
-arbitrary deep map from scratch. This one-line change ($+\,h_k$) is what made
-50/100/1000-layer nets trainable, and it's why *every* transformer block wraps
-attention and MLP in `x = x + f(norm(x))`: residual highway + per-block normalization
-is the modern recipe (plus clipping for the exploding side).
+corrections. The corrections are not automatically harmless: if each block Jacobian
+$J_k = \partial F_k/\partial h_k$ has norm up to $\delta$, the product of $(I + J_k)$
+can grow like $(1+\delta)^d$ when the blocks are not small. That is why deep residual
+nets scale each block's output down at init (for example by $1/\sqrt{d}$, or by
+zero-initializing the last layer of each block, as in Fixup and DeepNorm). The identity
+term is not multiplied by any block Jacobian, so no single block can make it vanish. In
+a plain net the gradient *must* pass through every $J_k$, and one saturated layer
+($J_k \approx 0$) makes the gradient near zero for every layer below it. Equivalently,
+in the forward direction: the net starts as approximately the identity function (if
+$F \approx 0$ at init, which good init gives you) and learns residual corrections, an
+easier starting point than learning an arbitrary deep map from scratch. This one-line
+change ($+\,h_k$) is what made 50/100/1000-layer nets trainable, and it's why *every*
+transformer block wraps attention and MLP in `x = x + f(norm(x))`: residual connections
+plus per-block normalization is the standard recipe, with gradient clipping as a guard
+against explosion.
 
 ---
 
@@ -923,12 +948,12 @@ zig-zag across it.
 
 ## Exit checklist
 
-- [ ] Cold, on paper: derive the softmax + cross-entropy gradient to p − y - 5 min
-- [ ] Backprop a 2-layer MLP by hand, writing every forward/backward shape and the three backward rules - 6 min
-- [ ] Derive Xavier and Kaiming init variances, including where ReLU's factor of 2 comes from - 4 min
-- [ ] Write Adam's update equations with bias correction, and state AdamW vs L2 weight decay - 4 min
-- [ ] BatchNorm vs LayerNorm: forward math, why BN needs running stats at inference, why transformers use LN - 4 min
-- [ ] Explain vanishing/exploding gradients via products of Jacobians, and how residual connections fix it - 3 min
-- [ ] Dead ReLUs: cause, how to detect, two fixes; plus the log-sum-exp stability trick - 3 min
+- [ ] Cold, on paper: derive the softmax + cross-entropy gradient to p − y (5 min)
+- [ ] Backprop a 2-layer MLP by hand, writing every forward/backward shape and the three backward rules (6 min)
+- [ ] Derive Xavier and Kaiming init variances, including where ReLU's factor of 2 comes from (4 min)
+- [ ] Write Adam's update equations with bias correction, and state AdamW vs L2 weight decay (4 min)
+- [ ] BatchNorm vs LayerNorm: forward math, why BN needs running stats at inference, why transformers use LN (4 min)
+- [ ] Explain vanishing/exploding gradients via products of Jacobians, and how residual connections fix it (3 min)
+- [ ] Dead ReLUs: cause, how to detect, two fixes; plus the log-sum-exp stability trick (3 min)
 
-All boxes cold before moving on - a miss goes into practice/queue.tsv.
+Check every box from memory before moving on; add any miss to practice/queue.tsv.

@@ -1,17 +1,18 @@
-# Deep Learning: CNNs, RNNs, Transformers - from first principles
+# Deep Learning: CNNs, RNNs and Transformers from first principles
 
 The theme of this whole file: **every architecture is a prior about the data,
-baked into the weights' structure.** CNNs bake in "nearby pixels matter and
-statistics are the same everywhere." RNNs bake in "process a sequence one step
-at a time with the same rule." Transformers bake in almost nothing - "let every
-token look at every other token and learn what matters" - and pay for that
-generality with $O(n^2)$ compute and a hunger for data.
+built into the structure of the weights.** CNNs build in "nearby pixels matter
+and statistics are the same everywhere." RNNs build in "process a sequence one
+step at a time with the same rule." Transformers build in almost nothing (every
+token attends to every other token, with weights computed from the data) and
+pay for that generality with $O(n^2)$ compute in the sequence length and a need
+for far more training data.
 
 Companion code (all runnable, CPU-only):
 
-- `attention_scratch.ipynb` - attention in numpy, verified against PyTorch
-- `mini_gpt.ipynb` - a complete GPT trained on an embedded corpus in ~5 seconds
-- `cnn_scratch.ipynb` - conv forward/backward from scratch, gradient-checked
+- `attention_scratch.ipynb`: attention in numpy, verified against PyTorch
+- `mini_gpt.ipynb`: a complete GPT trained on an embedded corpus in under 10 seconds
+- `cnn_scratch.ipynb`: conv forward/backward from scratch, gradient-checked
 
 ---
 
@@ -25,8 +26,8 @@ has a $25 \times 25$ weight matrix: every output pixel gets its own private
 weight for every input pixel. Now impose two beliefs about images:
 
 1. **Locality.** An output pixel should only depend on input pixels *near* it.
-   So zero out every weight connecting distant pixels. Each output now sees
-   only a small window, say $3\times 3$: the weight matrix becomes sparse and
+   So zero out every weight connecting distant pixels. Each output now depends
+   on only a small window, say $3\times 3$: the weight matrix becomes sparse and
    banded.
 2. **Translation equivariance.** A cat detector should work the same in the
    top-left and bottom-right corner. So force every window to use the *same*
@@ -37,13 +38,14 @@ A dense layer, plus locality, plus weight sharing, **is** a convolution.
 Nothing else. The $25\times25 = 625$ free parameters collapsed to $9$ (+1
 bias), and the layer is equivariant by construction: shift the input, the
 output shifts identically. (Strictly, deep learning "convolution" is
-cross-correlation - no kernel flip - but nobody cares because the kernel is
-learned; a flipped optimum is just as reachable.)
+cross-correlation, which skips the kernel flip. The difference does not matter
+because the kernel is learned: a flipped kernel is just another set of 9
+weights that training can reach.)
 
 ### 1.2 A 3×3 kernel over a 5×5 input, by hand
 
-Input $X$ (a ramp, 0..24) and kernel $K$ (all ones - a "sum the patch"
-detector, easy to check mentally):
+Input $X$ (a ramp, 0..24) and kernel $K$ (all ones, so each output is the
+sum of the patch under it, easy to check mentally):
 
 $$
 X = \begin{pmatrix}
@@ -67,7 +69,7 @@ $$
 $$
 
 Slide one step right: the patch is columns 1–3, sum $= 1+2+3+6+7+8+11+12+13 = 63$
-(each of the 9 entries grew by 1, so the sum grew by 9 - sanity check).
+(each of the 9 entries grew by 1, so the sum grew by 9).
 Doing all 9 positions:
 
 $$
@@ -86,17 +88,18 @@ X = \begin{pmatrix}
 K = \begin{pmatrix} 1&0&-1\\ 1&0&-1\\ 1&0&-1 \end{pmatrix}
 $$
 
-$K$ computes (left column of patch) − (right column of patch): it fires when
-brightness changes left-to-right. Output:
+$K$ computes (left column of patch) − (right column of patch): its output is
+nonzero where brightness changes from left to right. Output:
 
 $$
 Y = \begin{pmatrix} -3 & 0 & 3\\ -3 & 0 & 3\\ -3 & 0 & 3 \end{pmatrix}
 $$
 
-Read it: $-3$ where the bar enters the patch from the right (dark→bright
-going right), $+3$ where it exits (bright→dark), $0$ where the bar sits dead
-center and cancels. Nine numbers, and you have an edge detector that works at
-every position in the image. That is the entire pitch for CNNs.
+Reading the output: $-3$ where the bar is in the patch's right column
+(left minus right $= 0 - 3$), $+3$ where it is in the left column ($3 - 0$),
+and $0$ where it is in the middle column, which the kernel weights by 0 while
+both side columns are dark. Nine numbers give an edge detector that works at
+every position in the image, which is the core argument for CNNs.
 
 ### 1.3 The arithmetic: shapes, parameters, FLOPs, receptive field
 
@@ -120,8 +123,8 @@ $$
 
 Each of the $C_{out}$ filters is a $C_{in}\times k \times k$ block (it looks
 at *all* input channels in its window) plus one bias. **Note what's absent:**
-$H$ and $W$. Parameter count is independent of image size - that's weight
-sharing paying off.
+$H$ and $W$. Parameter count is independent of image size, a direct
+consequence of weight sharing.
 
 **FLOPs.** Each output element is a dot product of length $C_{in}k^2$, i.e.
 $C_{in}k^2$ multiply-adds $= 2C_{in}k^2$ FLOPs. Multiply by the number of
@@ -151,37 +154,40 @@ $$
 (The $\prod s_i$ term: after a stride-2 layer, one step in the output equals
 two steps in the input, so later layers grow the receptive field twice as
 fast.) Worked example: three stacked $3\times3$ stride-1 convs give
-$r = 1 + 2 + 2 + 2 = 7$ - the same view as one $7\times7$ conv, but with
-$3\cdot(3^2 C^2) = 27C^2$ weights instead of $49C^2$, and two extra
-nonlinearities in between. This is VGG's whole thesis.
+$r = 1 + 2 + 2 + 2 = 7$, the same receptive field as one $7\times7$ conv,
+but with $3\cdot(3^2 C^2) = 27C^2$ weights instead of $49C^2$ (with $C$
+channels in and out), and two extra nonlinearities in between. This is the
+design argument behind VGG.
 
 ### 1.4 Pooling
 
 Max-pool $2\times2$ stride 2: take the max of each non-overlapping
 $2\times2$ window; halves $H$ and $W$, keeps channels. Zero parameters. It
-buys (a) downsampling, so later layers see a coarser, wider view cheaply, and
-(b) small local translation *invariance* - the max output is the same
-whichever of the 4 positions fired. Backward pass: the gradient flows entirely to the
-argmax position, zero to the others (max is locally the identity on the
-winner). Average pooling spreads the gradient uniformly. Modern nets often
-replace pooling with stride-2 convs (learned downsampling) and end with
-**global average pooling** - average each channel's whole map to one number  - 
-which kills the giant FC layers of the AlexNet era.
+gives (a) downsampling, so later layers see a coarser, wider view cheaply, and
+(b) small local translation *invariance*: the max is the same whichever of the
+4 positions holds the largest value. Backward pass: the gradient flows entirely
+to the argmax position, zero to the others (locally, the max equals its largest
+input, so its derivative is 1 for that input and 0 for the rest). Average
+pooling spreads the gradient uniformly. Modern nets often replace pooling with
+stride-2 convs (learned downsampling) and end with **global average pooling**
+(average each channel's whole map to one number), which removes the large FC
+layers of the AlexNet era.
 
 ### 1.5 Why CNNs beat MLPs on images: count the parameters
 
 Concrete example: $224\times224\times3$ input (=150,528 numbers).
 
 - **MLP**: one hidden layer of just 1000 units already costs
-  $150{,}528 \times 1000 \approx 1.5\times 10^8$ parameters - 150M for one
-  mediocre layer, and it has *no idea* that pixel $(10,10)$ is near
-  $(10,11)$: permute the pixels and the MLP learns just as well (i.e. it
-  can't exploit spatial structure; it must rediscover it from data, pixel by
-  pixel, position by position).
+  $150{,}528 \times 1000 \approx 1.5\times 10^8$ parameters (150M for one
+  layer), and nothing in it encodes that pixel $(10,10)$ is adjacent to
+  $(10,11)$: apply a fixed permutation to the pixels and the MLP learns
+  equally well. It cannot exploit spatial structure and must learn it from
+  data, separately at each position.
 - **CNN**: a $3\times3$ conv from 3 to 64 channels costs
-  $64\cdot(3\cdot 9+1) = 1{,}792$ parameters - about **100,000× fewer**  - 
-  and translation equivariance means a feature learned anywhere is available
-  everywhere, so every training image teaches every image location.
+  $64\cdot(3\cdot 9+1) = 1{,}792$ parameters, **84,000× fewer**
+  ($150{,}528{,}000 / 1{,}792$, weights only), and because of translation equivariance a
+  feature learned at one position is detected at every position, so each
+  training image updates the same kernel weights from every location.
 
 Fewer parameters isn't the point per se; the point is the *right inductive
 bias*: the CNN's hypothesis space is a tiny, well-chosen slice of the MLP's,
@@ -191,37 +197,38 @@ so it needs far less data to find a good function.
 
 **LeNet-5 (1998).** The template: [conv → pool] × 2 → FC → FC → output, tanh
 activations, trained with backprop on digits (MNIST-scale). It established
-the pattern every CNN still follows - alternate feature extraction and
-downsampling, then classify - but at ~60K parameters it was limited by 1998
+the pattern every CNN still follows (alternate feature extraction and
+downsampling, then classify), but at ~60K parameters it was limited by 1998
 compute and data.
 
 **AlexNet (2012).** LeNet scaled up ~1000× and made trainable: ReLU instead
 of tanh/sigmoid (no saturation → gradients survive depth, ~6× faster
-training), dropout to fight overfitting in its huge FC layers, data
-augmentation, and - crucially - GPU training on ImageNet's 1.2M images.
-Dropped ImageNet top-5 error from ~26% to ~16% and single-handedly restarted
-deep learning.
+training), dropout to reduce overfitting in its large FC layers, data
+augmentation, and, most importantly, GPU training on ImageNet's 1.2M images.
+It dropped ImageNet top-5 error from ~26% to ~16% and started the deep
+learning era in computer vision.
 
 **VGG (2014).** The simplification: use *only* $3\times3$ convs and
 $2\times2$ pools, stacked deep (16–19 layers), doubling channels after each
 pool. Its insight is §1.3's arithmetic: two/three stacked 3×3 convs match a
-5×5/7×7 receptive field with fewer parameters and more nonlinearity. Proved
-that depth with uniform small kernels is what matters - but at 138M
-parameters (mostly in FC layers) it also showed the cost.
+5×5/7×7 receptive field with fewer parameters and more nonlinearity. It showed
+that depth with uniform small kernels works well, but at 138M parameters
+(mostly in the FC layers) it was also expensive.
 
 **ResNet (2015).** The fix for depth itself. Plain 30+ layer nets showed
-*higher training error* than shallow ones - not overfitting, an
-**optimization** failure: a deep net can't even learn the identity map
-easily, because that requires many stacked nonlinear layers to jointly
+*higher training error* than shallow ones. That is not overfitting but an
+**optimization** failure: a deep net cannot easily learn even the identity
+map, because that requires many stacked nonlinear layers to jointly
 approximate identity. ResNet reformulates each block to compute
 $y = x + F(x)$: the block learns a *residual* $F$, and "do nothing" is now
-$F=0$ - i.e. just push weights to zero, which is trivially reachable (and
-where weight decay already pushes). For gradients:
+$F=0$, which means driving the block's weights to zero, an easily reachable
+point (and the point weight decay already pushes toward). For gradients:
 $\frac{\partial y}{\partial x} = I + \frac{\partial F}{\partial x}$, so the
-backward signal always has a clean identity path - an unattenuated gradient
-highway through 100+ layers. Result: 152-layer nets that train *better* than
-22-layer ones. Every serious architecture since - including the transformer  - 
-is residual.
+backward signal always contains an identity term that passes through 100+
+layers without being multiplied by any weight matrix; this path is called a **gradient
+highway**. Result: 152-layer nets that train *better* than 22-layer
+ones. Every major architecture since, including the transformer, is
+residual.
 
 ---
 
@@ -239,10 +246,11 @@ $$
 Unroll it in time and you're looking at a $T$-layer deep MLP whose layers all
 share one weight matrix, with an input injected at each layer. That's the
 RNN's prior: "the rule for absorbing the next element doesn't depend on the
-position" - weight sharing across *time*, exactly analogous to the CNN's
-weight sharing across *space*. Fixed parameter count for any sequence length;
-$O(T)$ sequential steps that cannot be parallelized (each $h_t$ needs
-$h_{t-1}$ - this, as much as gradients, is why transformers won).
+position", which is weight sharing across *time*, exactly analogous to the
+CNN's weight sharing across *space*. Fixed parameter count for any sequence
+length; $O(T)$ sequential steps that cannot be parallelized (each $h_t$ needs
+$h_{t-1}$; this, as much as gradient problems, is why transformers replaced
+RNNs).
 
 ### 2.2 Backprop through time (BPTT)
 
@@ -281,27 +289,28 @@ $$
 - If $\sigma_{\max} < 1$ (in practice $\gamma\sigma_{\max}<1$, and $\gamma$
   is well below 1 whenever units saturate, since $\tanh'(a)=1-\tanh^2(a)\to 0$):
   the gradient norm decays **geometrically** in the time gap. A dependency 50
-  steps back with per-step factor 0.9 arrives scaled by $0.9^{50} \approx 0.005$
-  - the network is effectively blind beyond a short horizon. This is
-  **vanishing gradients**: not zero gradients, but long-range terms drowned
-  out by short-range ones in the sum.
+  steps back with per-step factor 0.9 arrives scaled by
+  $0.9^{50} \approx 0.005$, so dependencies beyond a short horizon contribute
+  almost nothing to the gradient. This is **vanishing gradients**: not zero
+  gradients, but long-range terms that are tiny next to short-range ones in
+  the sum.
 - If $\sigma_{\max} > 1$: components of the gradient along the top singular
-  direction grow geometrically - **exploding gradients**, visible as loss
-  spikes/NaNs. The standard fix is **gradient clipping** (rescale $g$ to norm
+  direction can grow geometrically. This is **exploding gradients**, visible
+  as loss spikes/NaNs. The standard fix is **gradient clipping** (rescale $g$ to norm
   $\theta$ when $\|g\| > \theta$), which is crude but works because explosion
   is about magnitude, not direction.
 
-The knife-edge: a *scalar* intuition is $w^{50}$, which is $\approx 0$ for
-$w=0.9$ and $\approx 117$ for $w=1.1$. Only $w \approx 1$ transmits - and a
-generic learned $W$ has no reason to sit exactly there. Vanishing is the
-harder problem: clipping can't fix it because the information is *gone*
-(dominated), not oversized. Fixing vanishing requires changing the
-architecture so that the Jacobian is near identity **by construction**. Enter
-gates.
+The scalar version: $w^{50}$ is $\approx 0.005$ for $w=0.9$ and
+$\approx 117$ for $w=1.1$. Only $w \approx 1$ keeps the factor near 1, and a
+generic learned $W$ has no reason to stay exactly there. Vanishing is the
+harder problem: clipping cannot fix it, because rescaling the whole gradient
+leaves the long-range terms just as small relative to the short-range ones.
+Fixing vanishing requires changing the architecture so that the Jacobian is
+near identity **by construction**, which is what gates do.
 
 ### 2.4 LSTM and GRU: learned write / keep / read, and the gradient highway
 
-The LSTM adds a **cell state** $c_t$ - a separate memory vector updated
+The LSTM adds a **cell state** $c_t$, a separate memory vector updated
 *additively*, controlled by three gates (each a sigmoid of the current input
 and hidden state, so each is a learned, data-dependent value in $(0,1)$ per
 dimension):
@@ -317,10 +326,10 @@ h_t &= o_t \odot \tanh(c_t) &&\text{exposed state}
 \end{aligned}
 $$
 
-Read the update line as a tiny RAM controller: per dimension, $f_t$ decides
-how much of the old memory to **keep**, $i_t$ how much new content to
-**write**, and $o_t$ how much of the memory to **read** out into the working
-state $h_t$ that the rest of the network sees.
+Per dimension, the update line works as follows: $f_t$ sets how much of the
+old memory is **kept**, $i_t$ how much new content is **written**, and $o_t$
+how much of the memory is **read** out into the working state $h_t$ that the
+rest of the network uses.
 
 **Why this fixes vanishing gradients:** look at the Jacobian of the cell
 state path:
@@ -330,25 +339,27 @@ $$
 $$
 
 No repeated multiplication by a weight matrix, no $\tanh$ squashing on the
-main path - just an elementwise multiply by the forget gate. Where the
+main path, only an elementwise multiply by the forget gate. Where the
 network sets $f_t \approx 1$ ("keep this"), the factor is $\approx 1$ and
 gradients flow back through many steps essentially unchanged: the cell state
-is a **gradient highway**, the same trick as ResNet's skip connection
-($c_t = c_{t-1} + \text{stuff}$ vs $y = x + F(x)$), discovered years
+is a **gradient highway**, the same mechanism as ResNet's skip connection
+($c_t = c_{t-1} + \text{update}$ vs $y = x + F(x)$), introduced years
 earlier. And unlike a fixed skip, the gate is *learned and data-dependent*:
-the model can hold one dimension for 500 steps and flush another every step.
+the model can keep one dimension nearly unchanged for 500 steps and reset
+another every step.
 (Practical detail: initialize $b_f > 0$, e.g. 1, so gates start open.)
 
-**GRU** is the budget LSTM: merge cell and hidden state, merge forget/input
-gates into one update gate $z_t$ (write exactly as much as you forget):
+**GRU** is a smaller variant of the LSTM: merge cell and hidden state, merge
+forget/input gates into one update gate $z_t$ (the fraction written equals the
+fraction forgotten):
 $h_t = (1-z_t)\odot h_{t-1} + z_t \odot \tilde h_t$, plus a reset gate for
 the candidate. Two gates instead of three, ~25% fewer parameters, usually
 comparable quality. The highway argument is the same:
 $\partial h_t / \partial h_{t-1} \supset \operatorname{diag}(1 - z_t)$.
 
 What LSTMs *don't* fix: the $O(T)$ sequential bottleneck, and the fact that
-all history is crushed into one fixed-size vector. Both problems point
-straight at attention.
+all history is compressed into one fixed-size vector. Attention removes
+both limits.
 
 ---
 
@@ -364,24 +375,29 @@ information, where the weights are computed from the data**.
 Build it up in four steps:
 
 1. **A weighted average of values.** For each position $i$, output
-   $o_i = \sum_j w_{ij} v_j$ where $v_j$ is a vector of "information token
-   $j$ offers" and $\sum_j w_{ij} = 1,\ w_{ij}\ge 0$. Averages are smooth,
-   differentiable, and don't grow with sequence length. All of attention is
-   choosing the $w_{ij}$.
-2. **Weights from similarity.** Give each token a **query** $q_i$ ("what I'm
-   looking for") and a **key** $k_j$ ("what I contain"). Let relevance be the
-   dot product $s_{ij} = q_i^\top k_j$ - the simplest differentiable
-   similarity, and it's just a matmul, which hardware loves.
+   $o_i = \sum_j w_{ij} v_j$ where $v_j$ is a vector computed from token $j$
+   (its **value**) and $\sum_j w_{ij} = 1,\ w_{ij}\ge 0$. Averages are
+   smooth, differentiable, and don't grow with sequence length. The rest of
+   the construction is a rule for computing the $w_{ij}$.
+2. **Weights from similarity.** Compute from each token a **query** vector
+   $q_i$ and a **key** vector $k_j$, and score position $j$ for position $i$
+   by the dot product $s_{ij} = q_i^\top k_j$, which is large when the two
+   vectors point in similar directions. It is the simplest differentiable
+   similarity, and all $s_{ij}$ together are one matrix multiply, which GPUs
+   execute efficiently.
 3. **Normalize with softmax:** $w_{ij} = \operatorname{softmax}_j(s_{ij})$,
-   turning arbitrary scores into a positive, sum-to-1 distribution, with a
-   temperature-like sharpness that the model controls via score magnitude.
+   turning arbitrary scores into a positive, sum-to-1 distribution. Larger
+   score magnitudes give a sharper (closer to one-hot) distribution, so the
+   sizes of $q$ and $k$ control the sharpness.
 4. **Make $q, k, v$ learned linear functions of the token representations:**
-   $q_i = W_Q x_i$, $k_j = W_K x_j$, $v_j = W_V x_j$. The *same* $x_j$ plays
-   different roles through different projections - what I seek, what I
-   advertise, what I hand over are three different subspaces of me.
+   $q_i = W_Q x_i$, $k_j = W_K x_j$, $v_j = W_V x_j$. The *same* $x_j$ enters
+   through three different learned projections: the query is used when
+   position $j$ computes its own output, the key when $j$ is being scored by
+   other positions, and the value is the content averaged into their
+   outputs.
 
 Stack all positions into matrices $Q, K, V \in \mathbb{R}^{T\times d}$ and
-you get the famous one-liner:
+you get the standard formula:
 
 $$
 \operatorname{Attention}(Q, K, V) = \operatorname{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V
@@ -390,8 +406,9 @@ $$
 $QK^\top$ is a $T\times T$ matrix of *all pairwise* query-key similarities;
 softmax is applied per row (each query normalizes over all keys); the result
 times $V$ takes, per row, a convex combination of value vectors. It is a
-**soft, differentiable dictionary lookup**: instead of retrieving the single
-best match, retrieve everything, weighted by match quality.
+**soft, differentiable dictionary lookup**: instead of returning the value of
+the single best-matching key, it returns an average of all values weighted by
+the softmax of the match scores.
 
 **Self**-attention = $Q, K, V$ all come from the same sequence.
 **Cross**-attention (e.g. translation decoder) = $Q$ from one sequence,
@@ -416,7 +433,7 @@ $$
 
 So at $d_k = 64$ the raw scores have standard deviation
 $\sqrt{64} = 8$: typical logit gaps of $\pm 16$ or more. Softmax of logits
-that spread out is essentially an argmax - one weight near 1, the rest near
+that spread out is essentially an argmax: one weight near 1, the rest near
 0. Two bad things follow: (1) the softmax Jacobian
 $\frac{\partial w}{\partial s} = \operatorname{diag}(w) - ww^\top \to 0$ as
 $w$ approaches one-hot, so **gradients vanish** through the attention
@@ -438,7 +455,7 @@ x_2 = \begin{pmatrix}0\\1\end{pmatrix},\quad
 x_3 = \begin{pmatrix}1\\1\end{pmatrix}
 $$
 
-**Step 1 - scores** $S = XX^\top$ (all pairwise dot products):
+**Step 1: scores** $S = XX^\top$ (all pairwise dot products):
 
 $$
 S = \begin{pmatrix}
@@ -449,7 +466,7 @@ S = \begin{pmatrix}
 \qquad \text{e.g. } s_{31} = x_3^\top x_1 = 1\cdot1 + 1\cdot0 = 1
 $$
 
-**Step 2 - scale** by $1/\sqrt{d_k} = 1/\sqrt{2} \approx 0.7071$:
+**Step 2: scale** by $1/\sqrt{d_k} = 1/\sqrt{2} \approx 0.7071$:
 
 $$
 S' = \begin{pmatrix}
@@ -459,7 +476,7 @@ S' = \begin{pmatrix}
 \end{pmatrix}
 $$
 
-**Step 3 - softmax each row.** Row 1: $e^{0.7071} = 2.028$, $e^0 = 1$, so
+**Step 3: softmax each row.** Row 1: $e^{0.7071} = 2.028$, $e^0 = 1$, so
 exponentials are $(2.028,\, 1,\, 2.028)$, sum $= 5.056$:
 
 $$
@@ -475,10 +492,9 @@ $$
 
 Every row sums to 1. Note token 3 ($=(1,1)$, similar to *both* others)
 attends broadly; tokens 1 and 2 mostly split attention between themselves and
-token 3, largely ignoring their orthogonal partner. Similarity in, weights
-out.
+token 3 and give the least weight to the token orthogonal to them.
 
-**Step 4 - outputs** $o_i = \sum_j w_{ij} v_j$:
+**Step 4: outputs** $o_i = \sum_j w_{ij} v_j$:
 
 $$
 \begin{aligned}
@@ -488,15 +504,16 @@ o_3 &= 0.248\,x_1 + 0.248\,x_2 + 0.503\,x_3 = (0.752,\ 0.752)
 \end{aligned}
 $$
 
-Each output is a blend of value vectors, pulled toward the tokens it found
-similar. **Causal version** (each token sees only itself + the past): row 1
+Each output is a weighted average of value vectors, weighted toward the
+tokens with higher similarity scores. **Causal version** (each token attends only to itself and the past): row 1
 becomes $(1, 0, 0)$ so $o_1 = x_1$ exactly; row 2 renormalizes over
 positions 1–2: exponentials $(1, 2.028)$, weights $(0.330, 0.670)$,
-$o_2 = (0.330,\ 0.670)$; row 3 is unchanged since it already sees everything.
+$o_2 = (0.330,\ 0.670)$; row 3 is unchanged since it already attends to every position.
 
 ### 3.4 Multi-head attention: multiple subspace views
 
-One head produces *one* attention pattern per token - one convex combination.
+One head produces *one* attention distribution per token, hence one convex
+combination of values.
 But a token may need several relations at once (subject→verb, pronoun→
 referent, token→previous-token). **Multi-head attention** runs $h$ attentions
 in parallel in *lower-dimensional subspaces*: split $d_{\text{model}}$ into
@@ -512,7 +529,7 @@ Because each head measures similarity in its *own* learned subspace, head 1
 can implement "attend to the previous token" while head 2 implements "attend
 to tokens with matching syntax." Total compute and parameter count are
 roughly the same as one full-width head (you split the dimensions, not
-multiply them); what you buy is $h$ *independent* attention distributions per
+multiply them); what you gain is $h$ *independent* attention distributions per
 position instead of one. Empirically, trained heads specialize into
 recognizable roles (positional heads, syntactic heads, induction heads).
 
@@ -520,50 +537,52 @@ recognizable roles (positional heads, syntactic heads, induction heads).
 
 Look back at the formula: $\operatorname{softmax}(QK^\top/\sqrt{d_k})\,V$
 uses only *pairwise dot products of content*. Shuffle the input tokens and
-the outputs shuffle identically - self-attention is **permutation
-equivariant**. It literally cannot distinguish "dog bites man" from "man
-bites dog": position is not in the computation anywhere. (Contrast: RNNs get
+the outputs are shuffled the same way: self-attention is **permutation
+equivariant**. It cannot distinguish "dog bites man" from "man bites dog",
+because position does not appear anywhere in the computation. (Contrast: RNNs get
 order from the recurrence, CNNs from the kernel's spatial layout.)
 
-Fix: inject position into the token vectors before attention sees them.
+Fix: add position information to the token vectors before the attention layer.
 
 - **Learned absolute** (GPT-2, our `mini_gpt.ipynb`): a trainable table
   $P \in \mathbb{R}^{T_{\max}\times d}$; input is $x_t = \text{tokemb}(t) + P[t]$.
   Simple, works, can't extrapolate past $T_{\max}$.
 - **Sinusoidal** (original transformer):
-  $P[t, 2i] = \sin(t/10000^{2i/d})$, $P[t, 2i+1] = \cos(t/10000^{2i/d})$ - 
-  each dimension pair is a rotation at a different frequency (a "clock" from
-  fast to slow), and $P[t+\Delta]$ is a *linear* function of $P[t]$, so
-  relative offsets are easy to represent. No parameters.
+  $P[t, 2i] = \sin(t/10000^{2i/d})$, $P[t, 2i+1] = \cos(t/10000^{2i/d})$.
+  Each dimension pair is a point on the unit circle at angle $t\,\omega_i$
+  with $\omega_i = 10000^{-2i/d}$, so the pairs rotate at frequencies ranging
+  from fast to slow, and $P[t+\Delta]$ is a rotation, hence a *linear*
+  function, of $P[t]$, so relative offsets are easy to represent. No
+  parameters.
 - **Relative / rotary (RoPE, modern LLMs):** encode position *inside the
   attention score* so what matters is $t_i - t_j$, not absolute $t$: RoPE
   rotates $q$ and $k$ by position-dependent angles so that
   $q_i^\top k_j$ depends on the offset $i - j$. Scores are defined at any
   position, but quality still degrades past the training length unless the
-  frequencies are rescaled (§7.1 derives it).
+  frequencies are rescaled.
 
 ### 3.6 The full transformer block
 
-One block (pre-LN, the modern standard - used in GPT-2 onward):
+One block (pre-LN, the modern standard, used from GPT-2 onward):
 
 $$
 \begin{aligned}
-x &\leftarrow x + \operatorname{MHA}(\operatorname{LN}(x)) && \text{"communicate": tokens exchange info}\\
-x &\leftarrow x + \operatorname{MLP}(\operatorname{LN}(x)) && \text{"compute": per-token processing}
+x &\leftarrow x + \operatorname{MHA}(\operatorname{LN}(x)) && \text{mixes information across positions}\\
+x &\leftarrow x + \operatorname{MLP}(\operatorname{LN}(x)) && \text{transforms each position separately}
 \end{aligned}
 $$
 
 where $\operatorname{MLP}(x) = W_2\,\phi(W_1 x)$ with $W_1: d \to 4d$,
 $W_2: 4d \to d$, $\phi$ = GELU. Notes on each piece:
 
-- **Residual stream.** The additions mean each block *edits* a running vector
-  rather than replacing it; the identity path gives gradients an unbroken
-  highway from the loss to layer 1 (§1.6, §2.4 - same trick, third
-  appearance).
+- **Residual stream.** The additions mean each block adds an update to a
+  running vector rather than replacing it; the identity path gives the
+  gradient a term that reaches layer 1 without passing through any sublayer
+  (the same mechanism as ResNet in §1.6 and the LSTM cell state in §2.4).
 - **Pre-LN vs post-LN.** Original transformer used post-LN:
-  $x \leftarrow \operatorname{LN}(x + \text{sublayer}(x))$ - the LN sits *on*
-  the residual path and rescales it, which destabilizes early training deep
-  stacks (needed lr warmup to survive). Pre-LN keeps the residual path
+  $x \leftarrow \operatorname{LN}(x + \text{sublayer}(x))$. The LN sits *on*
+  the residual path and rescales it, which makes early training of deep
+  stacks unstable (it needed learning-rate warmup to converge). Pre-LN keeps the residual path
   completely clean (only additions touch it) and normalizes just the input to
   each sublayer, which makes deep stacks much easier to train (warmup is
   still standard).
@@ -573,17 +592,20 @@ $W_2: 4d \to d$, $\phi$ = GELU. Notes on each piece:
   identically at train/inference.
 - **The MLP is ~2/3 of the parameters** per block
   ($8d^2$ vs $4d^2$ for attention's $W_{Q,K,V,O}$) and is applied to each
-  position independently - attention is the only place tokens interact.
+  position independently; attention is the only operation that combines
+  information across positions.
 
 A GPT is: token embedding + positional embedding → $N$ such blocks → final LN
-→ linear to vocab logits. That's the entire architecture of every modern LLM,
-modulo details (RoPE, RMSNorm, SwiGLU, grouped-query attention).
+→ linear to vocab logits. That is the architecture of every modern LLM,
+up to details: rotary position encoding (RoPE), RMSNorm (LayerNorm without the
+mean subtraction), a gated MLP called SwiGLU, and grouped-query attention
+(several query heads share one key/value head).
 
 ### 3.7 Causal masking
 
-For autoregressive language modeling - predict token $t{+}1$ from tokens
-$\le t$ - position $i$ must not read positions $j > i$, or the model can
-trivially cheat during training (the "answer" is in the input). Implement by
+For autoregressive language modeling (predict token $t{+}1$ from tokens
+$\le t$), position $i$ must not read positions $j > i$; otherwise the target
+token is part of the input and the training task is trivial. Implement by
 setting future scores to $-\infty$ *before* the softmax:
 
 $$
@@ -593,20 +615,21 @@ $$
 
 (Must be pre-softmax: zeroing weights *after* softmax would break the
 sum-to-1 normalization over the allowed positions.) The mask is a fixed
-lower-triangular matrix. The payoff: with the mask, position $t$'s output
+lower-triangular matrix. With the mask, position $t$'s output
 depends only on tokens $\le t$, so **one forward pass over a $T$-token
-sequence yields $T$ valid training examples at once** - next-token prediction
-losses at every position, in parallel. This is the parallelism RNNs never
+sequence yields $T$ valid training examples at once**: a next-token
+prediction loss at every position, computed in parallel. This is the parallelism RNNs never
 had, and the reason transformers train so efficiently.
 
 ### 3.8 Complexity, and the KV-cache
 
 **Training / full forward:** the score matrix $QK^\top$ is $T \times T$ and
 costs $O(T^2 d)$ to build and $O(T^2 d)$ to apply to $V$; attention memory is
-$O(T^2)$ per head (unless you use FlashAttention, which tiles the computation
-to avoid materializing the matrix - same FLOPs, less memory traffic). The
-MLP costs $O(T d^2)$. So per layer: $O(T^2 d + T d^2)$ - the quadratic term
-dominates once $T > d$, which is why long context is expensive.
+$O(T^2)$ per head if the score matrix is stored in full (kernels that compute
+attention block by block, such as FlashAttention, never store it; the FLOPs
+are unchanged). The MLP costs $O(T d^2)$. So per layer: $O(T^2 d + T d^2)$;
+the quadratic term dominates once $T > d$, which is why long context is
+expensive.
 
 **Naive generation** would re-run the full forward on the whole prefix for
 each new token: step $t$ costs $O(t^2 d)$, so $n$ tokens cost $O(n^3 d)$.
@@ -617,18 +640,18 @@ see the new one, so their representations don't change). So cache them.
 **KV-cache:** store every layer's $K$ and $V$ for all generated positions.
 Each new token then requires only: compute its own $q, k, v$ ($O(d^2)$ per
 layer), append $k, v$ to the cache, and attend its single query against $t$
-cached keys - $O(t \cdot d)$ per layer. Per-token cost is $O(t d + d^2)$
+cached keys, $O(t \cdot d)$ per layer. Per-token cost is $O(t d + d^2)$
 instead of $O(t^2 d)$: **linear in context length per token**, total
-$O(n^2 d)$ for the sequence - same as one training forward pass, as it
-should be. The price is memory:
+$O(n^2 d + n d^2)$ for the sequence, the same order as one training forward
+pass over $n$ tokens. The price is memory:
 $2 \cdot n_{\text{layers}} \cdot T \cdot d$ values per sequence
 (e.g. a 7B model, 32 layers, $d = 4096$, $T = 4096$, fp16:
 $2\cdot 32\cdot 4096\cdot 4096\cdot 2\,\text{B} \approx 2$ GB *per
 sequence*), which is why inference at scale is a memory problem and why
-tricks like grouped-query attention (share K/V across query heads, §7.2) and
-quantized KV-caches exist. Note the cache helps only generation: in training
-there is nothing to reuse - all positions are computed in one parallel pass
-(see exercises).
+techniques like grouped-query attention (several query heads share one K/V
+head) and quantized KV-caches exist. The cache helps only generation: in
+training there is nothing to reuse, because all positions are computed in one
+parallel pass (Exercise 9).
 
 ---
 
@@ -636,8 +659,8 @@ there is nothing to reuse - all positions are computed in one parallel pass
 
 ### 4.1 One-hot → embedding = a row lookup
 
-The dumbest encoding of token $i$ from a vocab of $V$: a one-hot vector
-$e_i \in \{0,1\}^V$. It's huge, and every pair of tokens is equidistant  - 
+The simplest encoding of token $i$ from a vocab of $V$: a one-hot vector
+$e_i \in \{0,1\}^V$. It's huge, and every pair of tokens is equidistant:
 "cat" is as far from "kitten" as from "the". Now feed a one-hot into a linear
 layer $E \in \mathbb{R}^{V \times d}$:
 
@@ -646,25 +669,27 @@ e_i^\top E = E[i,:] \qquad \text{(the } i\text{-th row)}
 $$
 
 Multiplying by a one-hot just *selects a row*. So an **embedding layer is
-literally a linear layer specialized for one-hot inputs, implemented as a
+a linear layer specialized for one-hot inputs, implemented as a
 table lookup** (`nn.Embedding` is `nn.Linear` without the matmul). The rows
 are learned like any other weights: gradients flow only into the rows of the
 tokens present in the batch. Trained on a real task, rows of tokens used in
-similar contexts receive similar gradient pressure and end up close in the
-$d$-dim space - similarity structure emerges from the objective, never
-hand-coded.
+similar contexts receive similar gradient updates and end up close in the
+$d$-dim space; the similarity structure comes from the training objective, not
+from hand-coding.
 
-### 4.2 word2vec in one breath
+### 4.2 word2vec in one paragraph
 
 word2vec (2013) showed you don't need a "real" task: **predicting
 co-occurrence is enough**. Skip-gram: for each word, predict the words within
 a small window around it, via a dot product between center-word and
 context-word vectors fed through softmax (in practice, negative sampling:
 logistic regression separating true context pairs from randomly sampled fake
-ones - cheap, no $V$-way softmax). Words appearing in similar contexts get
-similar vectors (the distributional hypothesis, made differentiable). The
-famous surprise was linear structure:
-$v_{\text{king}} - v_{\text{man}} + v_{\text{woman}} \approx v_{\text{queen}}$ - directions in the space encode relations. Modern LLM token embeddings are
+ones, which is cheap because it avoids the $V$-way softmax). Words appearing in
+similar contexts get similar vectors (the distributional hypothesis: words
+that occur in similar contexts have similar meanings). The well-known
+surprise was linear structure:
+$v_{\text{king}} - v_{\text{man}} + v_{\text{woman}} \approx v_{\text{queen}}$,
+so directions in the space encode relations. Modern LLM token embeddings are
 the same object, trained end-to-end with everything else; the difference is
 that transformer layers then build *contextual* representations on top
 ("bank" gets different vectors in "river bank" vs "bank loan"), which static
@@ -685,8 +710,8 @@ $$
 Each factor is a $V$-way **classification problem**: given the prefix, output
 a softmax over the vocabulary; train with cross-entropy against the actual
 next token. There is no new theory beyond a classifier; the notable fact is
-that this one objective, at scale, forces the model to learn syntax, facts,
-and reasoning, because they all reduce prediction error. As noted in §3.7,
+that this one objective, at scale, pushes the model to learn syntax, facts,
+and some reasoning, because each of them reduces prediction error. As noted in §3.7,
 causal masking lets one forward pass supply all $n$ classification losses in
 parallel. Useful sanity number: an untrained model gives uniform
 probabilities, so initial loss $\approx \ln V$ (our `mini_gpt.ipynb` prints
@@ -697,10 +722,10 @@ $\ln 36 = 3.58$ and indeed starts at ~3.76 before dropping).
 Byte-Pair Encoding starts with a base vocabulary of bytes/characters, so
 *any* string is representable and there is no "unknown token." It counts the
 most frequent adjacent pair of tokens in a training corpus and merges that
-pair into a new single token, records the merge rule, and repeats - thousands
-of times - until reaching the target vocabulary size (e.g. 50k). Frequent
+pair into a new single token, records the merge rule, and repeats this
+thousands of times until reaching the target vocabulary size (e.g. 50k). Frequent
 strings ("the", " ing", "tion", common whole words) thereby become single
-tokens, while rare words decompose into a few subword chunks - a learned
+tokens, while rare words decompose into a few subword chunks: a learned
 compression scheme balancing sequence length against vocabulary size. To
 tokenize new text, apply the recorded merges in the order they were learned.
 Consequences worth knowing: token boundaries are why models historically
@@ -722,15 +747,15 @@ $$
 \operatorname{PPL} = e^{H}
 $$
 
-Why exponentiate? Interpretation. If the model were uniformly torn between
-$k$ equally likely choices at each step, each correct token would get
-probability $1/k$, so $H = \ln k$ and $\operatorname{PPL} = k$. So perplexity
-reads as the model's **effective branching factor**: "on average, as confused
-as if choosing uniformly among PPL options." Random guessing over vocab $V$:
+Why exponentiate? Interpretation. If the model assigned probability $1/k$
+to the correct token at every step (as a uniform choice among $k$ options
+would), then $H = \ln k$ and $\operatorname{PPL} = k$. So perplexity reads as
+the model's **effective branching factor**: on average, the model is as
+uncertain as a uniform choice among PPL options. Random guessing over vocab $V$:
 $\operatorname{PPL} = V$. Perfect prediction: $\operatorname{PPL} = 1$. Good
 LLMs on English text sit in the low single digits per token. Caveats: it's
 $2^H$ if you measured $H$ in bits ($\log_2$); comparisons are only valid with
-the **same tokenizer** (per-token perplexity changes if the tokens change  - 
+the **same tokenizer** (per-token perplexity changes if the tokens change;
 compare bits-per-byte across tokenizers).
 
 ### 5.4 Sampling: temperature, top-k, top-p
@@ -740,23 +765,25 @@ token. All standard methods reshape the softmax:
 
 - **Temperature** $\tau$: sample from
   $p_i = \operatorname{softmax}(z/\tau)_i = \dfrac{e^{z_i/\tau}}{\sum_j e^{z_j/\tau}}$.
-  Effect on a probability *ratio*: 
-  $\frac{p_i}{p_j} = e^{(z_i - z_j)/\tau} = \left(\frac{p_i^{(1)}}{p_j^{(1)}}\right)^{1/\tau}$  - 
-  temperature exponentiates odds. $\tau \to 0$: argmax (greedy).
+  Effect on a probability *ratio*:
+  $\frac{p_i}{p_j} = e^{(z_i - z_j)/\tau} = \left(\frac{p_i^{(1)}}{p_j^{(1)}}\right)^{1/\tau}$,
+  where $p^{(1)}$ is the distribution at $\tau = 1$: temperature raises every
+  probability ratio to the power $1/\tau$. $\tau \to 0$: argmax (greedy).
   $\tau = 1$: the model's distribution. $\tau > 1$: flattened, more random.
   Concrete: logits $(2, 1, 0)$ give $p \approx (0.665, 0.245, 0.090)$ at
   $\tau=1$, $\approx (0.867, 0.117, 0.016)$ at $\tau=0.5$, and
   $\to (1/3, 1/3, 1/3)$ as $\tau \to \infty$.
 - **Top-k**: keep only the $k$ highest-probability tokens, renormalize,
-  sample. Kills the long tail of individually-unlikely-but-collectively-
-  probable junk tokens (with $V = 50$k, the tail below rank 50 can carry
-  substantial total mass; one bad sample can derail a generation).
+  sample. This removes the long tail of tokens that are individually unlikely
+  but together carry noticeable probability (with $V = 50$k, the tail below
+  rank 50 can carry substantial total mass, and one low-quality sampled token
+  conditions every later token on it).
 - **Top-p (nucleus)**: keep the smallest set of tokens whose cumulative
   probability $\ge p$ (e.g. 0.9), renormalize, sample. Adaptive version of
   top-k: when the model is confident the nucleus is 1–2 tokens; when
   uncertain it may be hundreds. Fixed $k$ can't do both.
-- Greedy/beam search maximize likelihood but produce degenerate repetitive
-  text for open-ended generation; sampling with $\tau \in [0.7, 1.0]$ +
+- Greedy/beam search approximately maximize sequence likelihood but produce
+  degenerate repetitive text for open-ended generation; sampling with $\tau \in [0.7, 1.0]$ +
   top-p is the usual default.
 
 ---
@@ -769,18 +796,19 @@ Pretrain a big model on a huge generic task (next-token prediction on the
 web; ImageNet classification), then adapt to your task: the early/middle
 representations (edges→textures→parts; syntax→semantics) are broadly
 reusable, so your small dataset only needs to teach the *task*, not the
-*modality*. Options, in increasing cost: (a) zero/few-shot prompting - no
-weight updates at all; (b) linear probe - freeze everything, train a new
-head; (c) full fine-tuning - update all weights with a small learning rate
-(~10–100× smaller than pretraining, to avoid destroying pretrained features  - 
-"catastrophic forgetting"); (d) parameter-efficient fine-tuning (LoRA,
-below). Rule of thumb: less data → freeze more.
+*modality*. Options, in increasing cost: (a) zero/few-shot prompting: no
+weight updates at all; (b) linear probe: freeze everything, train a new
+head; (c) full fine-tuning: update all weights with a small learning rate
+(~10–100× smaller than in pretraining, to avoid overwriting pretrained
+features, called "catastrophic forgetting"); (d) parameter-efficient
+fine-tuning: freeze the model and train a small number of added parameters
+(LoRA is the standard example). Rule of thumb: less data → freeze more.
 
 ### 6.2 LoRA in one paragraph
 
 Full fine-tuning of a weight matrix $W \in \mathbb{R}^{d \times k}$ learns an
-update $\Delta W$ with $dk$ parameters - for every adapted matrix in a 7B
-model, and per task. **LoRA** (Low-Rank Adaptation) constrains the update to
+update $\Delta W$ with $dk$ parameters, for every adapted matrix in a 7B
+model and for every task. **LoRA** (Low-Rank Adaptation) constrains the update to
 rank $r \ll \min(d,k)$:
 
 $$
@@ -788,64 +816,72 @@ W' = W + \Delta W = W + \frac{\alpha}{r} B A, \qquad B \in \mathbb{R}^{d \times 
 $$
 
 Any rank-$r$ matrix factors this way, so you parameterize $\Delta W$ by $B$
-and $A$ directly: $r(d + k)$ trainable parameters instead of $dk$ - at
-$d = k = 4096$, $r = 8$: 65K vs 16.8M, ~250× fewer. Freeze $W$, train only
+and $A$ directly: $r(d + k)$ trainable parameters instead of $dk$. At
+$d = k = 4096$, $r = 8$: $8 \cdot 8192 = 65{,}536$ vs $4096^2 = 16.8$M, 256×
+fewer. Freeze $W$, train only
 $A, B$ (init $A$ random, $B = 0$ so training starts exactly at the
-pretrained model), typically on the attention projections. The bet, verified
-empirically: the *change* needed to adapt a pretrained model lives in a
-low-dimensional subspace even though $W$ itself is high-rank. Bonuses: at
-inference, merge $W + BA$ once - **zero added latency**; adapters are a few
-MB, so you can keep one $W$ and swap tiny per-task adapters; optimizer state
-(the real memory hog of full fine-tuning: Adam keeps 2 extra copies per
-trainable param) shrinks proportionally.
+pretrained model), typically on the attention projections. The assumption, supported
+empirically: the *change* needed to adapt a pretrained model lies in a
+low-dimensional subspace even though $W$ itself is high-rank. Further benefits: at
+inference, merge $W + BA$ once, giving **zero added latency**; adapters are a
+few MB, so you can keep one $W$ and swap small per-task adapters; optimizer
+state (the largest memory cost of full fine-tuning: Adam keeps 2 extra values
+per trainable parameter) shrinks proportionally.
 
 ### 6.3 RLHF sketch
 
 Three stages. **(1) SFT:** supervised fine-tune the pretrained LM on
-human-written demonstrations of good responses - teaches format and
+human-written demonstrations of good responses, which teaches format and
 instruction-following. **(2) Reward model:** collect human *comparisons*
-(which of two responses is better - far easier for humans than writing ideal
-answers or giving absolute scores), train a model $r_\phi(x, y)$ to predict
-them via the Bradley–Terry loss
-$-\log \sigma(r_\phi(x, y_w) - r_\phi(x, y_l))$. **(3) RL:** optimize the LM
-(the "policy") to maximize reward, minus a KL penalty keeping it near the
-SFT model:
+(which of two responses is better; far easier for humans than writing ideal
+answers or giving absolute scores), and train a model $r_\phi(x, y)$ to
+predict them via the Bradley–Terry loss
+$-\log \sigma(r_\phi(x, y_w) - r_\phi(x, y_l))$, where $y_w$ is the preferred
+and $y_l$ the rejected response, so the loss is the negative log-probability
+that the preferred one scores higher. **(3) RL:** optimize the LM (the
+"policy" $\pi_\theta$) to maximize reward, minus a KL penalty (a multiple
+$\beta$ of the KL divergence from the SFT model's output distribution, which
+grows as the policy moves away from it):
 $\max_\theta\; \mathbb{E}[\,r_\phi(x, y)\,] - \beta\, \mathrm{KL}(\pi_\theta \,\|\, \pi_{\text{SFT}})$,
-classically with PPO. The KL term prevents **reward hacking** - drifting to
-degenerate text that games the imperfect learned reward. Worth knowing:
-**DPO** collapses stages 2–3 into one supervised loss directly on preference
-pairs (the KL-regularized RL problem has a closed form that lets the policy
-itself act as an implicit reward model), trading some flexibility for far
-simpler training.
+classically optimized with PPO (Proximal Policy Optimization, a policy-gradient
+method that limits how far each update moves the policy). The KL term limits
+**reward hacking**: the policy moving to degenerate text that scores high
+under the imperfect learned reward without being better. Worth knowing:
+**DPO** (Direct Preference Optimization) replaces stages 2–3 with one
+supervised loss directly on preference pairs (the KL-regularized RL problem
+has a closed-form optimal policy, so the reward can be written in terms of the
+policy's own log-probabilities and no separate reward model is trained),
+trading some flexibility for far simpler training.
 
 ### 6.4 Why LayerNorm + residual ordering matters (pre-LN vs post-LN)
 
 Post-LN (original transformer): $x \leftarrow \operatorname{LN}(x + f(x))$.
 The LN sits **on the residual path**, so a gradient flowing from the loss to
-the embeddings passes through one LN per sublayer - dozens of multiplicative
-rescalings - and there is no clean identity path left; empirically gradients
+the embeddings passes through one LN per sublayer (dozens of multiplicative
+rescalings), and no identity path remains; empirically gradients
 near the input are tiny at initialization and deep post-LN stacks diverge
 without a careful learning-rate warmup. Pre-LN (GPT-2+):
 $x \leftarrow x + f(\operatorname{LN}(x))$. The residual path is touched
-**only by additions**; since $\frac{\partial}{\partial x}(x + f(\operatorname{LN}(x))) = I + (\text{stuff})$,
+**only by additions**; since $\frac{\partial}{\partial x}(x + f(\operatorname{LN}(x))) = I + \frac{\partial f(\operatorname{LN}(x))}{\partial x}$,
 every layer's gradient contains an unattenuated identity term, exactly the
 ResNet argument. Consequence: much more stable training at large depth,
 though learning-rate warmup is still standard practice.
 Cost: the residual stream's magnitude grows with depth (each block adds to
-it), which is why there's one final LN after the last block. This tiny
-reordering is a classic interview question because it tests whether you
-actually think about gradient paths rather than memorizing diagrams.
+it), which is why there's one final LN after the last block. This
+reordering is a common interview question because answering it requires
+tracing the gradient path through the block.
 
 ### 6.5 Mixed precision in one paragraph
 
-Do the bulk math in 16-bit (fp16 or bf16) - half the memory and 2–8× the
-throughput on tensor cores - while keeping a **master copy of weights and
-the optimizer state in fp32**, because tiny gradient updates
-($\text{lr} \times g \sim 10^{-7}$) underflow when added to weights in
-16-bit. fp16 has a narrow exponent range, so small gradients flush to zero;
+Do most of the math in 16-bit (fp16 or bf16), which halves memory and gives
+2–8× the throughput on tensor cores, while keeping a **master copy of weights
+and the optimizer state in fp32**, because tiny updates
+($\text{lr} \times g \sim 10^{-7}$) are lost to rounding when added to
+16-bit weights (fp16 spacing near 1 is $2^{-10} \approx 10^{-3}$, so
+$1 + 10^{-7}$ rounds back to 1). fp16 has a narrow exponent range, so small gradients flush to zero;
 the fix is **loss scaling**: multiply the loss by $S$ (e.g. $2^{14}$) before
-backward - every gradient scales by $S$ into representable range - then
-divide by $S$ before the optimizer step, with $S$ adjusted dynamically on
+backward, which scales every gradient by $S$ into the representable range,
+then divide by $S$ before the optimizer step, with $S$ adjusted dynamically on
 overflow. bf16 keeps fp32's 8 exponent bits (same range, less mantissa
 precision), which mostly eliminates the need for loss scaling and is why
 modern training defaults to bf16. Accumulations (softmax sums, LayerNorm
@@ -856,19 +892,19 @@ statistics, matmul partial sums) still happen in fp32 internally.
 ## 7. Modern attention variants
 
 Everything in §3 was the 2017 transformer. Modern LLMs run on a handful of
-upgrades that interviews now treat as core material. (The systems side of
-the LLM stack - scaling laws, distributed training, quantization, inference
-engines - gets its own deep dive in module 7; here we cover what belongs
-with the architecture.)
+upgrades that interviews now treat as core material. The systems side of
+the LLM stack (scaling laws, distributed training, quantization, inference
+engines) is covered in module 7; this section covers the architecture
+changes.
 
 ### 7.1 RoPE: rotary position embeddings, derived
 
 Recall §3.5: attention is permutation-blind, and additive absolute
-embeddings ($x_t + P[t]$) fix that crudely - position gets mixed into the
-content and washed through every layer. RoPE's move: don't add position to
-the embeddings at all. Inject it **multiplicatively into $q$ and $k$, as a
-rotation**, so position enters exactly one place - the attention score  - 
-and enters it *relatively*.
+embeddings ($x_t + P[t]$) fix that, but position is then mixed into the
+content vector at the input and must be carried through every layer. RoPE
+does not add position to the embeddings at all. It injects position
+**multiplicatively into $q$ and $k$, as a rotation**, so position enters
+exactly one place, the attention score, and enters it *relatively*.
 
 Take $d = 2$ (one "frequency"; real models apply this to each pair of
 dimensions). Rotate the query at position $m$ by angle $m\theta$ and the
@@ -885,8 +921,8 @@ $$
 q_m^\top k_n = q^\top R(m\theta)^\top R(n\theta)\,k = q^\top R\big((n-m)\theta\big)\,k
 $$
 
-The middle step is the whole trick, so do the $2\times 2$ math instead of
-waving at it. $R(a)^\top R(b)$ is
+The middle step is the key identity. Written out in $2\times 2$ form,
+$R(a)^\top R(b)$ is
 
 $$
 \begin{pmatrix}\cos a & \sin a\\ -\sin a & \cos a\end{pmatrix}
@@ -900,10 +936,10 @@ $$
 by the angle-addition identities ($\cos a\cos b + \sin a\sin b = \cos(b-a)$,
 $\sin a\cos b - \cos a\sin b = \sin(a - b)$). Rotations compose by adding
 angles and transposing reverses one, so the absolute positions $m$ and $n$
-enter the score **only through the gap $n - m$** - relative position, exact,
-with nothing learned.
+enter the score **only through the gap $n - m$**: relative position,
+exactly, with no learned parameters.
 
-Tiny numbers. Let $\theta = 30°$ and $q = k = (1, 0)$.
+A numeric example. Let $\theta = 30°$ and $q = k = (1, 0)$.
 
 - Position $m=1$: $q_1 = (\cos 30°, \sin 30°) = (0.866,\ 0.5)$.
   Position $n=3$: $k_3 = (\cos 90°, \sin 90°) = (0,\ 1)$.
@@ -914,11 +950,11 @@ Tiny numbers. Let $\theta = 30°$ and $q = k = (1, 0)$.
   positions.
 
 Full-dimensional version: split $d$ into $d/2$ pairs; pair $i$ rotates at
-frequency $\theta_i = 10000^{-2i/d}$ - the same geometric ladder of fast
-and slow "clocks" as the sinusoidal encoding of §3.5, but applied as
-rotations to $q, k$ inside the score instead of additions to $x$. $V$ is
-left unrotated: position affects *who attends to whom*, never *what gets
-handed over*.
+frequency $\theta_i = 10000^{-2i/d}$, the same geometric sequence of
+frequencies as the sinusoidal encoding of §3.5, but applied as rotations to
+$q, k$ inside the score instead of additions to $x$. $V$ is not rotated:
+position changes the attention weights but not the value vectors being
+averaged.
 
 Why it beats learned absolute embeddings (the interview answer):
 
@@ -926,13 +962,15 @@ Why it beats learned absolute embeddings (the interview answer):
    pattern, shared across all positions; with a learned absolute table it
    must be re-expressed as a content match between $P[i]$ and $P[i-2]$ for
    every $i$ separately.
-2. **Extrapolation.** There is no table to run off the end of: scores at
-   positions beyond training length are perfectly well defined. (Quality at
-   unseen *gaps* still degrades - attention has never seen $\cos(\Delta\theta_i)$
-   patterns for huge $\Delta$ - hence frequency-rescaling tricks like
-   NTK/YaRN for context extension; module 7.)
-3. **Position lives where it's used** - in every layer's scores - instead
-   of being injected once at the bottom and hopefully preserved.
+2. **Extrapolation.** There is no position table with a maximum length:
+   scores at positions beyond training length are well defined. (Quality at
+   unseen *gaps* still degrades, because training never produced the
+   $\cos(\Delta\theta_i)$ values for very large $\Delta$; context-extension
+   methods such as NTK scaling and YaRN rescale the frequencies $\theta_i$;
+   module 7.)
+3. **Position enters where it is used**, in every layer's scores, instead
+   of being added once at the input and having to be preserved through
+   every layer.
 
 Trap: "RoPE makes attention depend only on distance" is wrong. The score
 depends on the gap **and** on the content $q, k$ (the $q^\top R(\cdot) k$
@@ -962,18 +1000,19 @@ fp16.
 - GQA, $g = 8$: $4 \cdot \tfrac{8}{32} = 1\ \text{GiB}$ per sequence.
 - MQA: $4 \cdot \tfrac{1}{32} = 128\ \text{MiB}$ per sequence.
 
-At batch 16 that's 64 GiB (MHA - doesn't fit on an 80 GB card next to the
-~14 GB of fp16 weights) vs 16 GiB (GQA - fits with room to spare). Same
-model quality target, 4× the serving batch, and each decoded token also
-*streams* 4× less cache from memory - a direct latency win, since decoding
-is bandwidth-bound (§3.8, Q19).
+At batch 16 that's 64 GiB for MHA (68.7 GB, which does not fit on an 80 GB
+card next to the ~14 GB of fp16 weights) vs 16 GiB for GQA (fits with room to
+spare). At a similar quality target, GQA allows 4× the serving batch, and each
+decoded token also reads 4× less cache from memory. That is a direct latency
+gain, because decoding does only a few FLOPs per byte it reads, so its speed
+is set by memory bandwidth rather than arithmetic.
 
 Why quality mostly survives: the $h$ query heads keep their $h$ distinct
 learned subspaces, so you still get $h$ independent attention
-*distributions* per token (the thing multi-head actually buys, §3.4); what
-you give up is diversity in what tokens *advertise* and *hand over*. In
-practice MQA costs a little quality; GQA at $g = 8$ is near-indistinguishable
-from MHA - which is why Llama-2-70B onward, Mistral, and essentially all
+*distributions* per token (what multi-head attention provides, §3.4); what
+you give up is diversity in the keys and values (fewer distinct key and value
+projections). In practice MQA costs a little quality; GQA at $g = 8$ is close
+to MHA quality, which is why Llama-2-70B onward, Mistral, and essentially all
 modern LLMs ship GQA.
 
 ### 7.3 FlashAttention, at intuition level
@@ -982,35 +1021,36 @@ The $O(T^2)$ *memory* in §3.8 comes from materializing the score matrix
 $QK^\top$. FlashAttention computes **exactly the same attention** without
 ever writing that matrix to GPU main memory (HBM): tile $Q, K, V$ into
 blocks small enough to live in on-chip SRAM, and accumulate the output
-block-by-block using **online softmax** - softmax over a stream, keeping a
-running max and running normalizer, and rescaling the partial output
-whenever the running max updates. Each output row is built incrementally
-from key/value tiles; extra memory is $O(T)$ (the running statistics), not
-$O(T^2)$, and the result is bit-for-bit the same computation, *not* an
-approximation.
+block-by-block using **online softmax**: softmax computed over a stream of
+blocks, keeping a running max and running normalizer, and rescaling the
+partial output whenever the running max updates. Each output row is built
+incrementally from key/value tiles; extra memory is $O(T)$ (the running
+statistics), not $O(T^2)$, and the result is mathematically identical (up to
+floating-point rounding order), *not* an approximation.
 
 Why is it also *faster*, given the FLOPs are the same (slightly more,
-actually - the backward pass recomputes tiles instead of storing them)?
-Because attention on a GPU is **IO-bound, not FLOP-bound**: the dominant
-cost is moving the $T\times T$ matrix back and forth between HBM and SRAM,
-not the arithmetic on it. Tiling reads each element of $Q, K, V$ from HBM
+because the backward pass recomputes tiles instead of storing them)?
+Because attention on a GPU is **IO-bound, not FLOP-bound**: its run time is
+set by memory reads and writes, chiefly moving the $T\times T$ matrix back
+and forth between HBM and SRAM, not by the arithmetic on it. Tiling reads each element of $Q, K, V$ from HBM
 $O(1)$ times and never round-trips the score matrix at all. The general
-lesson - count memory traffic, not FLOPs - is the same one behind the
-KV-cache bandwidth story (§3.8). Trap: FlashAttention reduces memory and
+lesson, count memory traffic and not only FLOPs, also explains why GQA speeds
+up decoding (§7.2). Trap: FlashAttention reduces memory and
 wall-clock, **not** the $O(T^2 d)$ FLOP complexity. Full IO-complexity
 analysis in module 7.
 
 ### 7.4 Mixture of Experts: decoupling parameters from FLOPs
 
-In a dense transformer every parameter touches every token: params and
-per-token FLOPs are locked together ($\approx 2$ FLOPs per param per
+In a dense transformer every parameter is used for every token: params and
+per-token FLOPs are tied together ($\approx 2$ FLOPs per param per
 token). But a model's capacity to *store* (facts, patterns, languages)
 scales with parameters somewhat independently of the compute it spends per
-token. **MoE breaks the lock** - conditional computation: have many
-parameters, use few per token.
+token. **MoE removes this tie** through conditional computation: the model
+has many parameters but uses only a few of them per token.
 
 Concretely, replace each block's MLP (which is ~2/3 of the parameters,
-§3.6) with $E$ expert MLPs plus a tiny **router**. Per token $x$:
+§3.6) with $E$ expert MLPs plus a small **router** (a linear layer $W_r$
+that scores the experts for each token). Per token $x$:
 
 $$
 p = \operatorname{softmax}(W_r\, x) \in \mathbb{R}^E, \qquad
@@ -1018,22 +1058,23 @@ y = \sum_{i \in \operatorname{top-}k(p)} \tilde p_i \, E_i(x)
 $$
 
 where $\tilde p$ renormalizes the top-$k$ gate values to sum to 1. Only $k$
-experts execute, so the token pays $k$ experts' FLOPs while the model owns
+experts execute, so each token costs $k$ experts' FLOPs while the model has
 $E$ experts' parameters.
 
 Worked example, $E = 8$, $k = 2$, $d = 4096$: one expert MLP has
 $8d^2 \approx 134$M params (§3.6). Dense block MLP: 134M params, ~268M
 FLOPs/token. MoE block: $8 \times 134\text{M} \approx 1.07$B params, but
-only $2 \times 268\text{M} \approx 537$M FLOPs/token - **8× the MLP
+only $2 \times 268\text{M} \approx 537$M FLOPs/token: **8× the MLP
 parameters at 2× the MLP compute**. Whole-model version of the same
 arithmetic (attention and embeddings stay dense and shared): Mixtral
-"8×7B" has ~47B total parameters with ~13B *active* per token - note it is
+"8×7B" has ~47B total parameters with ~13B *active* per token. It is
 not $8\times 7 = 56$B, because only the MLPs are replicated.
 
-**The load-balancing problem.** Left alone, routing collapses: an expert
-that starts slightly better attracts more tokens, hence more gradient,
-hence gets better - rich-get-richer until a few experts do everything
-(dead experts waste parameters; hot experts blow past their capacity).
+**The load-balancing problem.** Without a correction, routing collapses: an
+expert that starts slightly better receives more tokens, hence more gradient
+updates, hence improves further, and this feedback continues until a few
+experts process almost all tokens (unused experts waste parameters;
+overloaded experts exceed their capacity).
 Since "fraction of tokens routed to $i$" is a hard, non-differentiable
 count, add an auxiliary loss (Switch-style): with $f_i$ = fraction of the
 batch's tokens dispatched to expert $i$ and $\bar p_i$ = mean router
@@ -1049,23 +1090,24 @@ are counts and carry no gradient; the $\bar p_i$ do, and
 $\partial L_{\text{aux}}/\partial \bar p_i = \alpha E f_i$ is largest
 for the most-used expert, so the update lowers the router's probability
 on whichever experts are currently overloaded, which is the direction
-toward balance. $\alpha$ is small, $0.01$ is typical. Plus capacity factors: each
-expert takes at most $c \cdot T/E$ tokens per batch, overflow tokens get
-dropped (skip the MLP via the residual stream).
+toward balance. $\alpha$ is small, $0.01$ is typical. In addition, a
+capacity factor $c$ caps each expert at $c \cdot T/E$ tokens per batch
+($T$ = tokens in the batch); overflow tokens are dropped, meaning they skip
+the MLP and pass through on the residual stream only.
 
 **Cost.** Experts are sharded across devices (*expert parallelism*), so
-every MoE layer does an all-to-all shuffle - each device sends its tokens
-to whichever devices hold their chosen experts and receives them back.
+every MoE layer does an all-to-all exchange: each device sends its tokens
+to whichever devices hold their chosen experts and receives the results
+back.
 That's communication-heavy and latency-sensitive, and all $E$ experts'
 weights must sit in memory even though only $k$ run. **Why frontier models
 are MoE anyway:** at a fixed training and inference FLOP budget, more
-parameters means lower loss (the scaling-law arithmetic - module 7), and
-MoE is the only known way to buy parameters without buying FLOPs.
-Mixtral, DeepSeek-V3, and reportedly GPT-4-class models all take this
-trade.
+parameters means lower loss (scaling laws, module 7), and MoE is the main
+known way to add parameters without adding per-token FLOPs. Mixtral,
+DeepSeek-V3, and reportedly GPT-4-class models all use this design.
 
-Two consequences that interviewers probe. **Decode is not $E/k$ times
-cheaper.** Module 7's decode arithmetic is bandwidth-bound: every step
+Two consequences that interviewers ask about. **Decode is not $E/k$ times
+cheaper.** Decoding is memory-bandwidth-bound (module 7): every step
 reads the weights it uses, batched requests route to different experts,
 so most of the $E$ experts' weights are read per step and the cost tracks
 total size, not active size. The FLOP saving shows up in training and in
@@ -1075,25 +1117,26 @@ data; common practice freezes the router, or fine-tunes with LoRA on the
 attention weights only.
 
 Trap: experts are routed *per token, per layer*, and do **not** cleanly
-specialize into human-legible topics ("the math expert") - observed
-specialization is mostly syntactic/positional.
+specialize into human-legible topics ("the math expert"). Observed
+specialization is mostly by token type and position.
 
 ---
 
 ## 8. Generative models beyond autoregression
 
 A generative model learns $p(x)$ well enough to *sample* from it.
-Autoregression (§5) makes the density tractable by chain rule and pays
-with sequential sampling. There are three other classic ways to make
-generation tractable, each a different trade - and "compare VAEs, GANs,
-and diffusion" is a staple interview question.
+Autoregression (§5) makes the density tractable by chain rule, at the
+cost of sequential sampling. There are three other classic ways to make
+generation tractable, each a different trade-off; "compare VAEs, GANs,
+and diffusion" is a common interview question.
 
 ### 8.1 Autoencoder → VAE, with the ELBO derived in full
 
-A plain **autoencoder** - encoder $z = f(x)$, decoder $\hat x = g(z)$,
-minimize reconstruction error through a bottleneck - learns compression,
-but it is *not* generative: nothing makes the latent space fill any known
-distribution, so decoding a random $z$ gives garbage. To sample, you need
+A plain **autoencoder** (encoder $z = f(x)$, decoder $\hat x = g(z)$,
+trained to minimize reconstruction error through a low-dimensional
+bottleneck) learns compression, but it is *not* generative: nothing makes the
+latent space fill any known distribution, so decoding a random $z$ gives
+outputs unlike the data. To sample, you need
 a latent space with a distribution you can sample from.
 
 **The VAE** makes the bottleneck probabilistic. Model:
@@ -1108,8 +1151,10 @@ $\log p_\theta(x)$, and that integral is intractable (high-dimensional $z$
 through a nonlinear decoder); the posterior
 $p_\theta(z \mid x) = p(z)p_\theta(x\mid z)/p_\theta(x)$ is intractable for
 the same reason. So introduce an **approximate posterior**
-$q_\phi(z \mid x) = \mathcal{N}(\mu_\phi(x), \operatorname{diag}\sigma^2_\phi(x))$ - the encoder - and derive what we *can* optimize. Start from the KL gap
-between the approximate and true posteriors and just expand definitions:
+$q_\phi(z \mid x) = \mathcal{N}(\mu_\phi(x), \operatorname{diag}\sigma^2_\phi(x))$,
+which is the encoder, and derive what we *can* optimize. Start from the KL
+divergence between the approximate and true posteriors and expand
+definitions:
 
 $$
 \begin{aligned}
@@ -1143,7 +1188,7 @@ The KL between two Gaussians is closed-form; the reconstruction term is
 estimated by sampling $z \sim q_\phi$.
 
 **Reparameterization trick.** One problem left: the gradient w.r.t. $\phi$
-goes through the *sampling distribution* - you can't backprop through
+goes through the *sampling distribution*: you can't backprop through
 "draw $z \sim q_\phi$", because the sample is not written as a
 differentiable function of $\phi$. Rewrite the sample so the randomness
 comes from a fixed source:
@@ -1154,19 +1199,20 @@ $$
 
 Now $z$ is a deterministic, differentiable function of $\phi$ given
 $\varepsilon$, and gradients flow through $\mu$ and $\sigma$ by ordinary
-backprop. (The alternative - the score-function/REINFORCE estimator  - 
-needs no reparameterization but has far higher variance; reparameterization
-is why VAEs train easily.)
+backprop. (The alternative, the score-function or REINFORCE estimator,
+needs no reparameterization but has far higher variance; the low-variance
+reparameterized gradient is a main reason VAEs train easily.)
 
-**What the KL term does:** pins every per-example posterior near
-$\mathcal{N}(0, I)$, so the latents of the whole dataset tile a smooth,
-known region - that's what makes sampling ($z \sim \mathcal{N}(0,I)$, then
-decode) and interpolation work. Failure mode to name: **posterior
-collapse** - with a decoder powerful enough to model $x$ unconditionally
-(e.g. an autoregressive decoder), the cheapest optimum is $q \to p(z)$,
-KL $\to 0$, latent ignored. And the classic VAE artifact: **blurry
-samples**, because a Gaussian likelihood = squared-error reconstruction,
-and the decoder averages over everything the latent doesn't pin down.
+**What the KL term does:** it penalizes each per-example posterior for
+moving away from $\mathcal{N}(0, I)$, so the latents of the whole dataset fill
+a smooth, known region, which is what makes sampling
+($z \sim \mathcal{N}(0,I)$, then decode) and interpolation work. Failure mode
+to name: **posterior collapse**: with a decoder powerful enough to model $x$
+unconditionally (e.g. an autoregressive decoder), the cheapest optimum is
+$q \to p(z)$, KL $\to 0$, and the latent is ignored. And the classic VAE
+artifact: **blurry samples**, because a Gaussian likelihood is a
+squared-error reconstruction loss, whose minimizer is the average of all
+outputs consistent with the latent.
 
 ### 8.2 GANs: the minimax game, and what the generator really minimizes
 
@@ -1190,36 +1236,44 @@ $$
 \;\Rightarrow\; D^*(x) = \frac{p_{\text{data}}(x)}{p_{\text{data}}(x) + p_g(x)}
 $$
 
-(Sanity check: if $p_g = p_{\text{data}}$, $D^* = \tfrac12$ everywhere  - 
-the discriminator is reduced to coin-flipping.) Substitute $D^*$ back into
-$V$ and massage the two expectations:
+(Check: if $p_g = p_{\text{data}}$, $D^* = \tfrac12$ everywhere, so the
+discriminator does no better than chance.) Substitute $D^*$ back into $V$.
+With the mixture $m = (p_{\text{data}} + p_g)/2$, each ratio is
+$\frac{p}{p_{\text{data}} + p_g} = \frac{p}{2m}$, so each expectation is a KL
+divergence to $m$ minus $\log 2$:
 
 $$
-C(G) = \mathbb{E}_{p_{\text{data}}}\!\left[\log\tfrac{p_{\text{data}}}{p_{\text{data}} + p_g}\right]
-+ \mathbb{E}_{p_g}\!\left[\log\tfrac{p_g}{p_{\text{data}} + p_g}\right]
+C(G) = \mathbb{E}_{p_{\text{data}}}\!\left[\log\tfrac{p_{\text{data}}}{2m}\right]
++ \mathbb{E}_{p_g}\!\left[\log\tfrac{p_g}{2m}\right]
+= \operatorname{KL}(p_{\text{data}} \,\|\, m) + \operatorname{KL}(p_g \,\|\, m) - \log 4
 = -\log 4 + 2\,\operatorname{JSD}\!\big(p_{\text{data}} \,\|\, p_g\big)
 $$
 
-So **against an optimal discriminator, the generator is minimizing the
-Jensen–Shannon divergence** to the data distribution - a genuine
-distribution-matching objective hiding inside the game, minimized (at
-$-\log 4$) iff $p_g = p_{\text{data}}$.
+using the definition $\operatorname{JSD}(p\,\|\,q) = \tfrac12\operatorname{KL}(p\,\|\,m) + \tfrac12\operatorname{KL}(q\,\|\,m)$.
 
-Why training is famously unstable: it's a saddle-point problem, not a
-minimization - simultaneous SGD on two coupled objectives has no descent
-guarantee and can orbit; there is no trustworthy loss curve ($D$'s loss
-falling could mean $D$ improved *or* $G$ degraded); when $D$ gets too
-good, $\log(1 - D(G(z)))$ saturates and $G$'s gradient vanishes (hence the
-non-saturating $-\log D(G(z))$ trick); and **mode collapse** - $G$ maps
-many $z$'s to the few outputs currently fooling $D$; the JS objective
-wants coverage, but the alternating game can hop between modes instead of
-covering them, and nothing *per-sample* penalizes a missing mode. The
-payoff when it works: one forward pass per sample and sharp outputs - no
-explicit likelihood means no averaging-induced blur.
+So **against an optimal discriminator, the generator is minimizing the
+Jensen–Shannon divergence** to the data distribution, a
+distribution-matching objective contained in the game, minimized (at
+$-\log 4$) iff $p_g = p_{\text{data}}$, since JSD $\ge 0$ with equality only
+there.
+
+Why training is unstable: it is a saddle-point problem, not a
+minimization. Simultaneous gradient steps on two coupled objectives have no
+descent guarantee and can cycle around the equilibrium; there is no
+trustworthy loss curve ($D$'s loss falling could mean $D$ improved *or* $G$
+degraded); when $D$ rejects generated samples confidently, $D(G(z)) \approx 0$,
+where $\log(1 - D(G(z)))$ is flat, so $G$'s gradient vanishes (hence the
+non-saturating $-\log D(G(z))$ loss for $G$); and **mode collapse**: $G$ maps
+many $z$'s to the few outputs that $D$ currently classifies as real. The JS
+objective at its optimum requires covering every mode, but the alternating
+updates can move between modes instead of covering them, and no per-sample
+term penalizes a missing mode. When training succeeds, sampling takes one
+forward pass and outputs are sharp, since there is no squared-error
+likelihood term that averages over possible outputs.
 
 ### 8.3 Diffusion: generation as learned denoising
 
-**Forward process - fixed, nothing learned.** A Markov chain that
+**Forward process (fixed, nothing learned).** A Markov chain that
 gradually destroys the data with Gaussian noise over $T$ steps
 ($T \sim 1000$), with a variance schedule $\beta_t$:
 
@@ -1302,8 +1356,8 @@ $$
 
 In words: noise a real example to a random level $t$, ask the network
 which noise was added, penalize with MSE. The one network is shared
-across all $t$; at high noise it fixes global structure, at low noise it
-fixes fine detail.
+across all $t$; at high noise its predictions determine global structure,
+at low noise fine detail.
 
 **Sampling.** Invert the parameterization above. Given $x_t$, the
 predicted noise gives the model's estimate of the reverse-step mean, and
@@ -1316,22 +1370,22 @@ $$
 
 run from $t = T$ (pure noise) down to $t = 1$ (no noise added on the last
 step). Each step removes a little of the predicted noise and rescales, so
-$T$ network evaluations walk noise into data. Predicting the noise is
+$T$ network evaluations transform pure noise into a data sample. Predicting the noise is
 predicting the direction back toward the data: up to a scale,
 $\varepsilon_\theta$ estimates $-\nabla_{x_t} \log q(x_t)$, the **score**,
 which is the connection to score matching and to the ODE samplers (DDIM
 and successors) that take the same path in tens of steps instead of
 a thousand.
 
-**Why diffusion beat GANs:** (1) the loss is stable supervised
-regression - trains with ordinary tools, scales, and the loss curve means
-something, versus a saddle-point game; (2) **mode coverage** - it's
-(a bound on) likelihood training over the whole distribution, so no mode
-collapse; (3) capacity scales gracefully (one denoiser, many noise
+**Why diffusion beat GANs:** (1) the loss is a supervised regression, so
+it trains with standard optimizers, scales well, and its loss curve tracks
+progress, unlike a saddle-point game; (2) **mode coverage**: it is (a bound
+on) likelihood training over the whole distribution, so no mode collapse; (3) capacity scales well (one denoiser shared across many noise
 levels). The price: sampling takes tens-to-hundreds of network
-evaluations vs a GAN's one - hence fast samplers and distillation. Text
-runs on autoregression, images/audio/video on diffusion (usually *latent*
-diffusion - run in a VAE's latent space; the two compose).
+evaluations vs a GAN's one, which motivates fast samplers and
+distillation. Text runs on autoregression, images/audio/video on diffusion
+(usually *latent* diffusion, which runs the diffusion process in a VAE's
+latent space).
 
 **Classifier-free guidance**, one paragraph: train the conditional
 denoiser $\varepsilon_\theta(x_t, t, c)$ with the condition randomly
@@ -1339,8 +1393,8 @@ dropped (some fraction of steps use $c = \varnothing$), so one network is
 both conditional and unconditional. At sampling, extrapolate past the
 condition:
 $\hat\varepsilon = \varepsilon(x_t, \varnothing) + w\,\big(\varepsilon(x_t, c) - \varepsilon(x_t, \varnothing)\big)$
-with guidance scale $w > 1$ - amplify the direction "what the condition
-adds." Higher $w$ = tighter prompt adherence and sharper, less diverse
+with guidance scale $w > 1$, which amplifies the difference between the
+conditional and unconditional noise predictions. Higher $w$ = tighter prompt adherence and sharper, less diverse
 samples; this is the guidance knob behind every text-to-image system.
 
 ### 8.4 The comparison table
@@ -1348,30 +1402,31 @@ samples; this is the guidance knob behind every text-to-image system.
 | | Autoregressive | VAE | GAN | Diffusion |
 |---|---|---|---|---|
 | **Sample quality** | excellent (discrete data) | blurry (likelihood averaging) | sharp when it works | state of the art (continuous data) |
-| **Sampling speed** | slow - sequential, one token per pass | fast - one decoder pass | fast - one generator pass | slow - many denoiser passes |
+| **Sampling speed** | slow: sequential, one token per pass | fast: one decoder pass | fast: one generator pass | slow: many denoiser passes |
 | **Likelihood** | exact, tractable | lower bound (ELBO) | none (implicit density) | bound (ELBO-style); good in practice |
 | **Training stability** | very stable (cross-entropy) | stable (watch posterior collapse) | unstable (adversarial saddle point) | very stable (regression) |
 | **Mode coverage** | full (likelihood forces it) | full but smoothed | prone to mode collapse | full |
 
 Interview one-liner: *VAE = optimize a likelihood bound through a latent
-bottleneck - fast, stable, blurry; GAN = adversarial game, implicitly
-minimizing JS - fast, sharp, unstable, drops modes; diffusion = learn to
-reverse fixed noising via noise-prediction regression - stable AND sharp
-AND mode-covering, but slow to sample; autoregressive = exact likelihood,
-sequential sampling, owns text.*
+bottleneck: fast, stable, blurry; GAN = adversarial game, implicitly
+minimizing JS: fast, sharp, unstable, drops modes; diffusion = learn to
+reverse fixed noising via noise-prediction regression: stable, sharp and
+mode-covering, but slow to sample; autoregressive = exact likelihood,
+sequential sampling, dominant for text.*
 
 ---
 
 ## 9. Self-supervised and contrastive learning
 
-### 9.1 Pretext tasks: labels for free
+### 9.1 Pretext tasks: labels from the data itself
 
 Supervised learning is bottlenecked on labels; the data itself is not.
-**Self-supervision**: hide part of the data and predict it from the rest  - 
-the *structure* of the data is the label, so every unlabeled example is a
+**Self-supervision**: hide part of the data and predict it from the rest;
+the data itself supplies the label, so every unlabeled example is a
 training example. Next-token prediction (§5) is exactly this. Early vision
-pretexts (predict rotation, solve jigsaws, colorize) worked only so-so  - 
-the representations solved the pretext, not your task. Two families won:
+pretexts (predict rotation, solve jigsaws, colorize) gave only moderate
+results: the representations specialized to the pretext task and transferred
+poorly to downstream tasks. Two families became dominant:
 **contrastive learning** and **masked prediction**.
 
 ### 9.2 InfoNCE, derived: contrastive learning is just cross-entropy
@@ -1385,77 +1440,80 @@ $$
 L = -\log \frac{e^{\,s(z, z^+)/\tau}}{\sum_{i=1}^{N} e^{\,s(z, z_i)/\tau}}
 $$
 
-Now *recognize* it: this is exactly softmax cross-entropy (module 3) for
-an $N$-way classification problem - "**which of these $N$ candidates is my
-true partner?**" - with similarities as logits and the positive as the
-correct class. No new math. The twist is that the "classifier weights" are
+This is exactly softmax cross-entropy (module 3) for an $N$-way
+classification problem (**which of the $N$ candidates is the positive?**),
+with similarities as logits and the positive as the correct class. The
+difference from ordinary classification is that the "classifier weights" are
 not learned parameters; they are the embeddings of the candidates
-themselves. Gradient behavior falls out of softmax-CE too: the positive is
-pulled toward the anchor, each negative is pushed away *in proportion to
-its softmax probability* - so **hard negatives** (lookalike impostors with
-high similarity) dominate the gradient, which is where the learning
-signal lives.
+themselves. The gradient follows from softmax cross-entropy too: the
+positive is pulled toward the anchor, and each negative is pushed away *in
+proportion to its softmax probability*, so **hard negatives** (negatives
+with high similarity to the anchor) dominate the gradient.
 
 **Temperature $\tau$** is the same object as sampling temperature (§5.4):
 it scales the logits. Small $\tau$ sharpens the distribution and
-concentrates the push onto the very hardest negatives (powerful, but
-brutal to false negatives - two genuinely-similar images treated as a
-negative pair); large $\tau$ spreads the push uniformly. Typical values
+concentrates the push onto the very hardest negatives (effective, but
+harmful when a "negative" is actually similar to the anchor, a false
+negative); large $\tau$ spreads the push more evenly. Typical values
 0.05–0.2, sometimes learned (CLIP learns it).
 
-Why contrastive learning wants **large batches**: negatives are usually
-"everyone else in the batch," and more negatives = a harder, finer-grained
-$N$-way problem = a tighter bound on the mutual information being
-maximized and better-separated features. SimCLR used batches up to 4096;
-MoCo faked a huge $N$ with a queue of past embeddings and a slowly-updated
-momentum encoder to keep them consistent.
+Why contrastive learning benefits from **large batches**: negatives are usually
+"everyone else in the batch," and more negatives make the $N$-way problem
+harder and finer-grained. InfoNCE also bounds the mutual information between
+the two views, $I \ge \log N - L$, and this bound can never exceed $\log N$,
+so a tight bound needs large $N$. SimCLR used batches up to 4096; MoCo
+obtained a large $N$ with a queue of past embeddings and a slowly updated
+momentum encoder (an exponential moving average of the main encoder's
+weights) to keep the queued embeddings consistent.
 
 ### 9.3 SimCLR in one paragraph
 
 Take a batch of $N$ images; make two random augmentations of each (crop +
-resize, color jitter, blur) - each pair is a positive, the other $2(N-1)$
-views in the batch are its negatives; encode, pass through a small MLP
-**projection head**, apply InfoNCE both ways. What stuck from the paper:
-the *augmentation choice is the supervision* - composing crop with strong
-color jitter is essential, because the augmentations define exactly which
-variations the representation must ignore; the projection head matters
-(contrast on the head's output, use the features *before* it - the head
-discards information the loss wants gone); and a linear probe on the
-frozen features approaches supervised accuracy - the classic evidence
-that labels are not where representations come from.
+resize, color jitter, blur). The two views of an image are a positive
+pair, and the other $2(N-1)$ views in the batch are its negatives; encode,
+pass through a small MLP **projection head**, apply InfoNCE both ways.
+Findings from the paper: the *augmentation choice is the supervision*:
+composing crop with strong color jitter is essential, because the
+augmentations define exactly which variations the representation must
+ignore; the projection head matters (apply the loss to the head's output but
+use the features *before* the head downstream, because the head learns to
+discard the information the loss makes it invariant to, such as color, which
+downstream tasks may need); and a linear probe on the frozen features
+approaches supervised accuracy, evidence that good representations can be
+learned without labels.
 
-### 9.4 CLIP: contrastive across modalities = zero-shot classifiers for free
+### 9.4 CLIP: contrastive learning across modalities gives zero-shot classifiers
 
 Take $N$ (image, caption) pairs. An image encoder and a text encoder map
 into one shared space; compute the $N \times N$ matrix of cosine
 similarities. **Symmetric InfoNCE**: each image must classify its own
 caption among the $N$ captions (cross-entropy along the row), each caption
 must classify its image (along the column); average the two losses. Train
-on ~400M web pairs. The matched diagonal is pulled together; the $N^2 - N$
-mismatched pairs are the negatives - no labels anywhere.
+on ~400M web pairs. The loss raises the similarity of the $N$ matched
+(diagonal) pairs and lowers it for the $N^2 - N$ mismatched pairs; no labels
+are used beyond the pairing itself.
 
 Why **zero-shot classification** falls out: to classify an image among $K$
 classes, write each class as a prompt ("a photo of a dog", …), embed them
 to get $t_1, \dots, t_K$, and predict
-$\arg\max_k \cos(v_{\text{image}}, t_k)$. The view that makes it click: a
-linear classifier computes logits $Wv$ where row $k$ of $W$ is class
-$k$'s weight vector - CLIP's text encoder is a machine that **generates
-classifier weight vectors from class names**. Any label set, no training
-run. That's also why prompt wording ("a photo of…", prompt ensembling)
+$\arg\max_k \cos(v_{\text{image}}, t_k)$. The explanation: a linear
+classifier computes logits $Wv$ where row $k$ of $W$ is class $k$'s weight
+vector, and CLIP's text encoder **produces classifier weight vectors from
+class names**. This works for any label set without a training run. That's also why prompt wording ("a photo of…", prompt ensembling)
 behaves like feature engineering: you are hand-tuning the weight matrix
 through the text encoder.
 
 ### 9.5 BERT vs GPT: masked LM vs causal LM (the classic question)
 
 Both are transformers trained self-supervised on text; the difference is
-the pretext task, and it decides what the model is for.
+the pretext task, and it determines what the model is used for.
 
 - **BERT (encoder, masked LM):** mask ~15% of tokens, predict them using
-  **both left and right context** - attention is fully bidirectional. Each
+  **both left and right context**: attention is fully bidirectional. Each
   position's representation summarizes the whole sentence, which is ideal
   for *understanding*: classification, NER, retrieval. But it doesn't
-  define a sampleable joint distribution over text - it models
-  $p(\text{masked} \mid \text{rest})$, not $\prod_t p(x_t \mid x_{<t})$  - 
+  define a sampleable joint distribution over text: it models
+  $p(\text{masked} \mid \text{rest})$, not $\prod_t p(x_t \mid x_{<t})$,
   so there is no natural way to generate.
 - **GPT (decoder, causal LM):** predict every next token from left context
   only (§3.7, §5.1). Generation is native; every token position is a
@@ -1463,16 +1521,17 @@ the pretext task, and it decides what the model is for.
   solved *through* generation (prompting, in-context learning).
 
 The interview answer for "when to use which": if the job is to **produce a
-representation of a given, complete text** - classify it, tag it, embed it
-for search - bidirectional context is strictly more information, so use an
+representation of a given, complete text** (classify it, tag it, embed it
+for search), bidirectional context is strictly more information, so use an
 encoder (or encoder-style model); if the job is to **produce text**, you
 need the causal factorization, so use a decoder. Modern practice defaults
 to decoder-only at frontier scale (one model, everything by prompting),
 but small fine-tuned encoders still win on latency and cost for
 classification and retrieval. Sentence embeddings in one line: pool an
 encoder's token vectors and fine-tune with a contrastive loss (InfoNCE
-yet again - SBERT/E5-style) so that cosine similarity means semantic
-similarity; that vector is what sits in every RAG vector database.
+again, as in SBERT and E5) so that cosine similarity tracks semantic
+similarity; these vectors are what retrieval-augmented generation (RAG)
+systems store and search in a vector database.
 
 ---
 
@@ -1908,12 +1967,12 @@ and search.
 
 ## Exit checklist
 
-- [ ] Cold, on paper: conv-layer arithmetic - output shape, parameter count, FLOPs for given kernel/stride/padding - 4 min
-- [ ] Derive scaled dot-product attention from first principles, including why the 1/√d_k - 5 min
-- [ ] Sketch the full pre-LN transformer block with tensor shapes at every step, plus the causal mask - 5 min
-- [ ] KV-cache: what is stored, per-token decode cost, and why it turns O(n²) regeneration into O(n) - 3 min
-- [ ] Show why RNN gradients vanish/explode (the repeated W^T product) and how LSTM gates make a gradient highway - 4 min
-- [ ] Derive perplexity from cross-entropy, then explain temperature, top-k, and top-p sampling - 3 min
-- [ ] State LoRA in one paragraph and RoPE's core idea (rotation angle encodes relative position) - 4 min
+- [ ] Cold, on paper: conv-layer arithmetic: output shape, parameter count, FLOPs for given kernel/stride/padding (4 min)
+- [ ] Derive scaled dot-product attention from first principles, including why the 1/√d_k (5 min)
+- [ ] Sketch the full pre-LN transformer block with tensor shapes at every step, plus the causal mask (5 min)
+- [ ] KV-cache: what is stored, per-token decode cost, and why it turns O(n²) regeneration into O(n) (3 min)
+- [ ] Show why RNN gradients vanish/explode (the repeated W^T product) and how LSTM gates make a gradient highway (4 min)
+- [ ] Derive perplexity from cross-entropy, then explain temperature, top-k, and top-p sampling (3 min)
+- [ ] State LoRA in one paragraph and RoPE's core idea (rotation angle encodes relative position) (4 min)
 
-All boxes cold before moving on - a miss goes into practice/queue.tsv.
+All boxes cold before moving on; a miss goes into practice/queue.tsv.

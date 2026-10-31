@@ -13,8 +13,8 @@ equation, and the log-derivative trick.
 An agent interacts with an environment in steps. At step $t$ it sees a
 **state** $s_t$, picks an **action** $a_t$, receives a **reward**
 $r_{t+1}$, and lands in a new state $s_{t+1}$. A **Markov decision process**
-(MDP) is the assumption that the next state and reward depend only on the
-current state and action, not on the history:
+(MDP) models this with one assumption: the next state and reward depend only
+on the current state and action, not on the history:
 
 $$P(s_{t+1} = s', r_{t+1} = r \mid s_t, a_t, s_{t-1}, a_{t-1}, \dots) = P(s', r \mid s_t, a_t)$$
 
@@ -48,8 +48,8 @@ Three reasons for the $\gamma^k$ weights:
   $\gamma < 1$. Without the discount an endless task has an infinite
   return, and two policies cannot be compared.
 - **$\gamma$ sets the horizon.** The weights $\gamma^k$ sum to
-  $1/(1-\gamma)$, so the agent effectively cares about roughly that many
-  future steps: $\gamma = 0.9$ is a horizon of about 10 steps,
+  $1/(1-\gamma)$, so rewards more than roughly that many steps ahead carry
+  little weight: $\gamma = 0.9$ is a horizon of about 10 steps,
   $\gamma = 0.99$ about 100.
 - **It gives the recursion everything else is built on.** Pull the first
   term out of the sum:
@@ -137,7 +137,7 @@ $$V_{k+1}(s) = \max_a \sum_{s'} P(s' \mid s, a)\Big[R(s, a) + \gamma V_k(s')\Big
 
 On the two-state chain from $V_0 = 0$: sweep 1 gives $V(s_2) = 1$,
 $V(s_1) = 0$; sweep 2 gives $V(s_1) = 0.45$; sweep 3 gives
-$0.45 \cdot 0.45 + 0.45 = 0.6525$; the sequence climbs toward $0.818$.
+$0.45 \cdot 0.45 + 0.45 = 0.6525$; the sequence increases toward $0.818$.
 
 **Why it converges.** Write the update as an operator $T$ on value
 functions. For any two value functions $V$ and $U$, and any state $s$,
@@ -147,11 +147,14 @@ $$|(TV)(s) - (TU)(s)| \le \max_a \sum_{s'} P(s' \mid s, a)\,\gamma\,|V(s') - U(s
 The first inequality uses $|\max_a f(a) - \max_a g(a)| \le \max_a |f(a) - g(a)|$
 and the fact that the reward terms cancel; the second uses that a
 probability-weighted average of numbers is at most their maximum. So one
-sweep shrinks the largest gap between two value functions by a factor
+sweep shrinks the largest gap between two value functions,
+$\max_s |V(s) - U(s)|$ (the **max norm** of $V - U$), by a factor
 $\gamma$: $T$ is a **$\gamma$-contraction**. Applied to $V_k$ and the fixed
 point $V^*$ (which satisfies $TV^* = V^*$),
 $\max_s |V_{k+1}(s) - V^*(s)| \le \gamma \max_s |V_k(s) - V^*(s)|$, so the
-error shrinks geometrically and the fixed point is unique. The same
+error shrinks geometrically. The fixed point is unique: two fixed points
+$V$ and $U$ would satisfy $\max_s |V(s) - U(s)| \le \gamma \max_s |V(s) - U(s)|$,
+which forces the gap to be 0. The same
 argument covers the expectation equation, which is why policy evaluation
 by iteration converges too.
 
@@ -165,8 +168,9 @@ Alternate two steps until the policy stops changing:
   $\pi'(s) = \arg\max_a \sum_{s'} P(s' \mid s, a)[R(s, a) + \gamma V^\pi(s')]$.
 
 The improvement step never makes a policy worse. Picking the greedy action
-once and then following $\pi$ earns $\max_a Q^\pi(s, a) \ge V^\pi(s)$;
-picking it at every step compounds that inequality, so
+once and then following $\pi$ earns $\max_a Q^\pi(s, a) \ge V^\pi(s)$.
+That return is $\mathbb{E}[r + \gamma V^\pi(s')]$, and the same inequality
+applies to $V^\pi(s')$ at the next state, and so on at every later step, so
 $V^{\pi'} \ge V^\pi$ everywhere, with equality only when $\pi$ was already
 greedy with respect to its own value function, which is the optimality
 equation. There are finitely many deterministic policies, so the loop
@@ -184,7 +188,7 @@ tradeoff in the sense of module 1, §3.7.
 
 Run an episode to the end, record the actual return $G_t$ from each state
 visited, and average: $V(s_t) \leftarrow V(s_t) + \alpha\,[G_t - V(s_t)]$.
-Each sample $G_t$ is an unbiased draw of $V^\pi(s_t)$, so the average is
+Each sample $G_t$ has expectation $V^\pi(s_t)$, so the average is
 unbiased. But $G_t$ sums many random rewards, so its variance is large, and
 nothing can be learned until the episode ends.
 
@@ -221,24 +225,27 @@ greedy action can be read off. Two updates, differing in one term:
   regardless of how the data was collected, as long as every state-action
   pair keeps being visited.
 
-The distinction shows up on a cliff-walking task. An $\varepsilon$-greedy
-agent occasionally steps randomly. SARSA accounts for that and learns a
-safe path far from the cliff, since its own exploration would sometimes
-push it over. Q-learning learns the shortest path along the edge, the
-optimal policy for an agent that does not explore, and then falls off
-while exploring during training.
+The distinction shows up on a cliff-walking task. An **$\varepsilon$-greedy**
+agent takes a uniformly random action with probability $\varepsilon$ and
+the action with the highest $Q$ otherwise. SARSA's $Q$ includes the cost of
+those random steps, so it learns a path far from the cliff, where a random
+step cannot fall off. Q-learning learns the shortest path along the edge,
+the optimal policy for an agent that never takes random steps, and during
+training its random steps from that path go over the cliff. The notebook
+`rl_scratch.ipynb` (experiment 3) shows both paths and the training returns.
 
 #### Function approximation and the deadly triad
 
 Tabular $Q$ needs one entry per state-action pair, impossible for images or
 text. Replace the table with a network $Q_\theta(s, a)$ trained to match
-the TD target by squared error. Three ingredients together can diverge:
-bootstrapping (the target contains $Q_\theta$ itself), off-policy data, and
-function approximation. DQN made this work with two changes: a **replay
+the TD target by squared error. With three ingredients together the
+estimates can diverge (grow without bound): bootstrapping (the target
+contains $Q_\theta$ itself), off-policy data, and function approximation. DQN made this work with two changes: a **replay
 buffer** of past transitions, sampled at random so consecutive updates are
 not correlated, and a **target network**, a frozen copy of $Q_\theta$ used
 inside the target and refreshed only every few thousand steps, so the
-target is not chasing itself.
+regression target stays fixed between refreshes instead of changing with
+every update to $Q_\theta$.
 
 ## 5. Policy gradient: derived
 
@@ -267,8 +274,9 @@ $$\nabla_\theta J = \sum_\tau \nabla_\theta p_\theta(\tau)\, R(\tau)
   = \mathbb{E}_{\tau \sim p_\theta}\big[\nabla_\theta \log p_\theta(\tau)\, R(\tau)\big]$$
 
 The gradient is again an expectation under the policy, so it can be
-estimated by sampling trajectories. That is the whole trick: a derivative
-of a distribution has been turned into a sample average.
+estimated by sampling trajectories. That is the whole trick: the gradient
+of an expectation over a $\theta$-dependent distribution has been rewritten
+as an expectation, which a sample average estimates.
 
 #### The dynamics drop out
 
@@ -282,9 +290,8 @@ $\theta$ and every term without $\theta$ vanishes:
 
 $$\nabla_\theta \log p_\theta(\tau) = \sum_t \nabla_\theta \log \pi_\theta(a_t \mid s_t)$$
 
-The dynamics $P$ and the start distribution are gone. The agent never
-needs to know how the environment works, only how to differentiate its own
-policy. Substituting back gives the **policy gradient theorem** in its
+The dynamics $P$ and the start distribution are gone. The estimator never
+needs $P$, only the gradients of the policy's own log-probabilities. Substituting back gives the **policy gradient theorem** in its
 simplest form:
 
 $$\nabla_\theta J = \mathbb{E}_{\tau \sim p_\theta}\Big[\sum_t \nabla_\theta \log \pi_\theta(a_t \mid s_t)\; R(\tau)\Big]$$
@@ -299,6 +306,7 @@ take that gradient step, is **REINFORCE**.
 **On numbers.** A two-armed bandit (one state, two actions) with a softmax
 policy over parameters $\theta = [\theta_1, \theta_2]$, starting at
 $\theta = [0, 0]$ so $\pi = [0.5, 0.5]$. For a softmax,
+$\log \pi(a) = \theta_a - \log \sum_b e^{\theta_b}$, so
 $\nabla_\theta \log \pi(a) = e_a - \pi$, the one-hot of the chosen action
 minus the probability vector. Pull arm 1 and receive $r = 1$:
 
@@ -311,13 +319,15 @@ been zero, and had it been negative arm 1 would have been suppressed.
 #### Two variance reductions that every implementation uses
 
 The estimator is unbiased but noisy: one whole-trajectory return multiplies
-every action's gradient. Two fixes, both exact.
+every action's gradient. Two fixes, both leaving the expected gradient
+unchanged.
 
 **Reward to go.** An action at step $t$ cannot change rewards received
-before $t$. Those earlier rewards are constants with respect to $a_t$, and
-a constant multiplying $\nabla \log \pi(a_t \mid s_t)$ has expectation zero
-(shown next), so they can be dropped. Replace $R(\tau)$ by the return from
-$t$ onward:
+before $t$. Given the history up to $s_t$, those earlier rewards are fixed,
+and the score has expectation zero:
+$\mathbb{E}_{a \sim \pi}[\nabla \log \pi(a \mid s_t)] = \sum_a \nabla \pi(a \mid s_t) = \nabla 1 = 0$.
+So their product with $\nabla \log \pi(a_t \mid s_t)$ averages to zero and
+they can be dropped. Replace $R(\tau)$ by the return from $t$ onward:
 
 $$\nabla_\theta J = \mathbb{E}\Big[\sum_t \nabla_\theta \log \pi_\theta(a_t \mid s_t)\; G_t\Big]$$
 
@@ -329,7 +339,8 @@ $$\mathbb{E}_{a \sim \pi}\big[\nabla_\theta \log \pi_\theta(a \mid s)\, b(s)\big
   = b(s)\, \nabla_\theta \sum_a \pi_\theta(a \mid s) = b(s)\, \nabla_\theta 1 = 0$$
 
 The probabilities sum to 1 for every $\theta$, so their gradient is zero.
-The best baseline is close to $V^\pi(s)$, and the quantity
+The usual choice is $b(s) = V^\pi(s)$, close to the variance-minimizing
+baseline, and the quantity
 $G_t - V^\pi(s_t)$ is an estimate of the **advantage**
 $A(s_t, a_t) = Q(s_t, a_t) - V(s_t)$: how much better this action turned out
 than the state's average ($G_t$ is one sample of $Q$). In the bandit
@@ -358,14 +369,18 @@ answering a specific problem:
   $\mathbb{E}_{a \sim \pi_\theta}[f(a)] = \sum_a \pi_\theta(a) f(a) = \sum_a \pi_{old}(a)\frac{\pi_\theta(a)}{\pi_{old}(a)} f(a) = \mathbb{E}_{a \sim \pi_{old}}\Big[\frac{\pi_\theta(a)}{\pi_{old}(a)} f(a)\Big]$.
   The **ratio** $\rho = \pi_\theta(a \mid s)/\pi_{old}(a \mid s)$ is what
   appears in PPO's objective, $\mathbb{E}[\rho\, A]$.
-- **Not trusting the ratio too far (clipping).** The reweighting is exact
-  only in expectation; when $\pi_\theta$ drifts far from $\pi_{old}$ the
-  ratios blow up and the estimate's variance with them. PPO's objective is
+- **Limiting how far the ratio moves (clipping).** The reweighting is exact
+  only in expectation; when $\pi_\theta$ moves far from $\pi_{old}$ some
+  ratios become very large and the estimate's variance grows with them.
+  PPO's objective is
   $\min\big(\rho A,\ \operatorname{clip}(\rho, 1-\epsilon, 1+\epsilon)\,A\big)$.
-  The min takes the more pessimistic of the two terms: once $\rho$ has moved
+  The min takes the smaller of the two terms: once $\rho$ has moved
   past $1 \pm \epsilon$ in the direction the advantage favors, the gradient
-  is zero, so there is no incentive to move the policy more than a small
-  step per batch. Moves in the unfavorable direction are not clipped.
+  is zero, so the objective gives no reason to move the policy more than a
+  small step per batch. Moves in the unfavorable direction are not clipped.
+  The set of policies with $\rho \in [1-\epsilon, 1+\epsilon]$ is PPO's
+  version of a **trust region**: a neighborhood of $\pi_{old}$ small enough
+  that the importance-weighted estimate stays accurate.
 - **Replacing the critic (GRPO).** For an LLM, a critic is a second model
   as large as the policy. GRPO drops it: sample a group of $G$ completions
   for the same prompt, score each, and use the group's mean reward as the
@@ -375,8 +390,11 @@ answering a specific problem:
   successes and $-1.22$ for the failures. This is close to the baseline
   lemma with $b$ estimated from the group instead of a network, but not
   exact: the group mean includes each sample's own reward, so the baseline
-  depends on the action, which shrinks the expected gradient by a factor
-  $(G-1)/G$. Dividing by the standard deviation also reweights prompts.
+  depends on the action. The baseline for sample $i$ contains $r_i/G$,
+  which cancels a fraction $1/G$ of that sample's own term, while the other
+  samples' rewards are independent of action $i$ and contribute zero in
+  expectation; the expected gradient shrinks by a factor $(G-1)/G$.
+  Dividing by the standard deviation also reweights prompts.
   Leaving each sample out of its own mean (RLOO) removes the first bias.
 
 Module 7, sections 3.2 to 3.4, has the full objectives; each term there
@@ -391,20 +409,23 @@ ones. It is the model behind A/B testing with adaptive allocation, ad
 selection and recommendation exploration, and it isolates the
 **exploration-exploitation** tradeoff from everything else.
 
-- **$\varepsilon$-greedy.** With probability $\varepsilon$ pull a random
-  arm, otherwise the arm with the highest average so far. Simple, and
-  wasteful: it keeps exploring arms it already knows are bad.
+- **$\varepsilon$-greedy** (as in section 4). With probability
+  $\varepsilon$ pull a random arm, otherwise the arm with the highest
+  average so far. Simple, and wasteful: it keeps pulling arms whose
+  averages already show they are bad, a fraction $\varepsilon$ of the time
+  forever.
 - **UCB (upper confidence bound).** Pull the arm maximizing
   $\bar r_a + \sqrt{2\ln t / n_a}$, the average reward plus a bonus that
   shrinks as the arm is pulled more ($n_a$ pulls out of $t$ total). The
-  bonus is a confidence interval from module 1, §3.6: an arm's average is
-  uncertain by about $1/\sqrt{n_a}$, so the agent acts optimistically on
-  arms it knows little about and stops once their intervals fall below the
-  leader.
+  bonus is the half-width of a confidence interval (module 1, §3.6): an
+  arm's average has standard error proportional to $1/\sqrt{n_a}$, so an
+  arm with few pulls gets a large bonus and is tried, and an arm is pulled
+  only rarely once its upper bound falls below the best arm's mean.
 - **Thompson sampling.** Keep a posterior over each arm's reward (module
   1, §3.3, updated after each pull), sample one value from each posterior,
-  and pull the arm whose sample is largest. Arms with wide posteriors get
-  pulled in proportion to how plausibly they could be best.
+  and pull the arm whose sample is largest. Each arm is then pulled with
+  probability equal to its posterior probability of being the best arm, so
+  an uncertain arm with a plausible chance of being best still gets pulls.
 
 ## Common interview questions
 

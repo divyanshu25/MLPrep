@@ -1,8 +1,10 @@
 # Classical ML from First Principles
 
 These notes derive everything. No "it can be shown". If a formula appears, we
-build it. Companion code: `linear_models_scratch.ipynb`,
-`trees_and_ensembles_scratch.ipynb`, `kmeans_pca_scratch.ipynb`.
+build it. Companion notebooks: `linear_models_scratch.ipynb` (§1-§3),
+`trees_and_ensembles_scratch.ipynb` (§5-§6), `kmeans_pca_scratch.ipynb`
+(§8-§9), `gmm_em_scratch.ipynb` (§11), `matrix_factorization_scratch.ipynb`
+(§13).
 
 Notation: $n$ = number of examples, $d$ = number of features,
 $X \in \mathbb{R}^{n \times d}$ (rows are examples), $y \in \mathbb{R}^n$,
@@ -36,11 +38,12 @@ The first term doesn't depend on $w$. Maximizing the rest is exactly
 
 $$\hat{w}_{\text{MLE}} = \arg\min_w \sum_i (y_i - w^\top x_i)^2.$$
 
-**So "least squares" is not an arbitrary choice - it is the MLE under Gaussian
+**So "least squares" is not an arbitrary choice: it is the MLE under Gaussian
 noise.** This is the master pattern of these notes: *loss = negative
 log-likelihood of a noise model*. Swap the noise model and the loss changes:
 Laplace noise $\Rightarrow$ absolute error (L1 loss, robust regression);
-Bernoulli labels $\Rightarrow$ cross-entropy (§2).
+Bernoulli labels $\Rightarrow$ binary cross-entropy,
+$-[y\log p + (1-y)\log(1-p)]$ (derived in §2.3).
 
 **Interview trap:** "Why not absolute error?" Answer: both are fine; they
 correspond to different noise assumptions. Squared error is MLE for Gaussian
@@ -74,7 +77,9 @@ $0.25 + 0 = 0.25$. Indeed 1.6 is the bottom of the bowl.
 **When does $X^\top X$ fail to be invertible?** When columns of $X$ are
 linearly dependent: duplicated features, one-hot columns that sum to the
 all-ones bias column, or simply $d > n$. Then infinitely many $w$ achieve the
-same minimum. Ridge (§3) fixes this: $X^\top X + \lambda I$ is always
+same minimum. Ridge regression, which adds $\lambda\|w\|^2$ to the loss and
+so changes the system to $(X^\top X + \lambda I)w = X^\top y$, fixes this:
+$X^\top X + \lambda I$ is always
 invertible for $\lambda > 0$ because its eigenvalues are $e_i + \lambda > 0$,
 where $e_i \ge 0$ are the eigenvalues of $X^\top X$.
 
@@ -92,22 +97,24 @@ That's the entire mechanism.
 
 Why bother when a closed form exists? Cost. The normal equation needs
 $X^\top X$ ($O(nd^2)$) plus a $d \times d$ solve ($O(d^3)$). For $d$ in the
-millions that's dead on arrival; GD is $O(nd)$ per step and SGD is $O(d)$ per
-example. Also GD generalizes to any differentiable loss - normal equations
-don't.
+millions that is infeasible ($d^3 = 10^{18}$ operations at $d = 10^6$); GD is
+$O(nd)$ per step and SGD is $O(d)$ per example. Also GD applies to any
+differentiable loss; normal equations do not.
 
 Convergence detail worth knowing: for a quadratic, GD converges iff
 $\eta < 2/\lambda_{\max}$ where $\lambda_{\max}$ is the largest eigenvalue of
 the Hessian $\frac{2}{n}X^\top X$; the convergence *rate* is governed by the
 condition number $\lambda_{\max}/\lambda_{\min}$. Ill-conditioned (elongated
 bowl) $\Rightarrow$ zig-zagging. This is why feature standardization speeds up
-GD: it round-ifies the bowl.
+GD: every feature gets unit variance, so the Hessian's diagonal entries are
+equal and the condition number is set only by correlations between features,
+which usually makes it much smaller.
 
 ### 1.4 Geometric view: projection
 
 Forget calculus for a moment. The set of all possible predictions
-$\{Xw : w \in \mathbb{R}^d\}$ is the **column space** of $X$ - a
-$d$-dimensional plane inside $\mathbb{R}^n$ (one axis per *example*). The
+$\{Xw : w \in \mathbb{R}^d\}$ is the **column space** of $X$: an (at most)
+$d$-dimensional subspace of $\mathbb{R}^n$ (one axis per *example*). The
 target $y$ is a point in $\mathbb{R}^n$, generally not on that plane. Least
 squares asks: which point on the plane is closest to $y$? Answer: the
 **orthogonal projection** of $y$ onto the plane.
@@ -118,7 +125,7 @@ to every column of $X$:
 $$X^\top (y - X\hat w) = 0 \quad\Longleftrightarrow\quad X^\top X \hat w = X^\top y.$$
 
 Same normal equation, zero calculus. The prediction is
-$\hat y = X(X^\top X)^{-1}X^\top y = Hy$, where $H$ is the "hat matrix" - a
+$\hat y = X(X^\top X)^{-1}X^\top y = Hy$, where $H$ is the "hat matrix", a
 projection matrix ($H^2 = H$, $H^\top = H$). Two consequences interviewers
 like: residuals are orthogonal to predictions, and residuals sum to zero
 whenever a bias column is present (the residual is orthogonal to the all-ones
@@ -132,21 +139,22 @@ column).
 
 You could run linear regression on $y \in \{0, 1\}$. Problems:
 
-1. **Predictions escape $[0,1]$** - "probability 1.7" is meaningless, and far
-   easy points keep pulling the boundary (a point at $x=+100$, correctly
-   classified, still contributes huge squared error and drags the line).
-2. **Wrong noise model.** Gaussian noise on a binary label is absurd; the
-   right generative story is Bernoulli.
+1. **Predictions leave $[0,1]$**: "probability 1.7" is meaningless, and
+   far-away easy points still move the boundary (a point at $x=+100$,
+   correctly classified, still contributes a huge squared error and shifts the
+   fitted line toward itself).
+2. **Wrong noise model.** Gaussian noise does not describe a binary label;
+   the matching generative model is Bernoulli.
 3. If you bolt a sigmoid on and *then* use MSE, the loss becomes
    **non-convex** in $w$, and the gradient contains a factor $\sigma'(z) =
    p(1-p)$ which vanishes when the model is confidently *wrong* ($p \approx 0$
-   or $1$) - learning stalls exactly when it should be correcting hardest.
+   or $1$), so the update is near zero exactly when the error is largest.
    Cross-entropy cancels this factor (derived in §2.3).
 
 ### 2.2 Sigmoid from log-odds
 
-Model the **log-odds** as linear (odds = $p/(1-p)$, the natural scale on which
-"evidence adds up"):
+Model the **log-odds** as linear (odds = $p/(1-p)$; on the log-odds scale,
+independent pieces of evidence combine by addition):
 
 $$\log \frac{p}{1 - p} = w^\top x.$$
 
@@ -171,22 +179,22 @@ where $p_i = \sigma(w^\top x_i)$. Negative log-likelihood over the dataset:
 
 $$L(w) = -\sum_i \left[ y_i \log p_i + (1 - y_i)\log(1 - p_i) \right].$$
 
-That's binary cross-entropy - again, *loss = NLL of the noise model*.
+That's binary cross-entropy; again, *loss = NLL of the noise model*.
 
 Now the gradient, every step shown. Work with one example, drop the subscript
 $i$. Chain: $L \to p \to z \to w$ where $z = w^\top x$, $p = \sigma(z)$.
 
-**Step 1** - $\partial L / \partial p$:
+**Step 1:** $\partial L / \partial p$.
 
 $$\frac{\partial L}{\partial p} = -\frac{y}{p} + \frac{1 - y}{1 - p} = \frac{-y(1-p) + (1-y)p}{p(1-p)} = \frac{p - y}{p(1 - p)}.$$
 
-**Step 2** - $\partial p / \partial z = \sigma'(z) = p(1 - p)$ (from §2.2).
+**Step 2:** $\partial p / \partial z = \sigma'(z) = p(1 - p)$ (from §2.2).
 
-**Step 3** - multiply; the $p(1-p)$ **cancels**:
+**Step 3:** multiply; the $p(1-p)$ **cancels**:
 
 $$\frac{\partial L}{\partial z} = \frac{p - y}{p(1-p)} \cdot p(1-p) = p - y.$$
 
-**Step 4** - $\partial z / \partial w = x$, so
+**Step 4:** $\partial z / \partial w = x$, so
 
 $$\boxed{\nabla_w L = (p - y)\,x.}$$
 
@@ -196,18 +204,22 @@ correction, nearly right already). $y = 1$, $p = 0.1$ → gradient $= -0.9 x$
 how wrong the probability is. No vanishing.
 
 **The deep pattern:** linear regression's gradient is $(\hat y - y)x$;
-logistic regression's is $(p - y)x$; softmax regression's is
+logistic regression's is $(p - y)x$; softmax regression's (multiclass,
+$p_k = e^{z_k} / \sum_l e^{z_l}$, one-hot $y$) is
 $(p_k - y_k)x$. All identical in form, and systematically so: squared
-loss + identity link, and cross-entropy + sigmoid/softmax link, are all
-*matched pairs* (canonical links of exponential-family models), and matched
-pairs always yield residual-times-input gradients. If an interviewer asks
+loss + identity output, and cross-entropy + sigmoid/softmax output, are
+*matched pairs*. In each pair the output function is the inverse of the map
+from the noise distribution's mean to its natural parameter (Gaussian: mean
+to itself; Bernoulli: $p$ to log-odds; categorical: probabilities to
+log-probabilities), and for every such pair the NLL's derivative with respect
+to $z$ is prediction minus target, so the gradient is residual times input. If an interviewer asks
 "why does cross-entropy pair with softmax?", this is the answer.
 
 Also: cross-entropy in $w$ is **convex** (its Hessian is
 $\sum_i p_i(1-p_i) x_i x_i^\top \succeq 0$), so GD finds the global optimum.
 
 **Interview trap:** on perfectly linearly separable data, the MLE does not
-exist - $\|w\| \to \infty$ drives the loss to 0 and probabilities to hard
+exist: $\|w\| \to \infty$ drives the loss to 0 and probabilities to hard
 0/1. Regularization (or early stopping) fixes this. This is why sklearn's
 `LogisticRegression` regularizes by default.
 
@@ -230,15 +242,15 @@ $$\hat w = \arg\min_w \|Xw - y\|^2 + \lambda \|w\|_2^2, \qquad \lambda = \sigma^
 
 Read $\lambda$: noisy data (big $\sigma^2$) or a tight prior (small $\tau^2$)
 ⇒ trust the data less, shrink more. Closed form (same derivation as §1.2):
-$\hat w = (X^\top X + \lambda I)^{-1} X^\top y$ - and note this is invertible
-for any $\lambda > 0$, curing collinearity.
+$\hat w = (X^\top X + \lambda I)^{-1} X^\top y$, and this matrix is
+invertible for any $\lambda > 0$, which removes the collinearity problem.
 
 **Laplace prior** $p(w_j) \propto e^{-|w_j|/b}$:
 $-\log p(w) = \frac{1}{b}\|w\|_1 + \text{const}$ ⇒ **lasso**:
 
 $$\hat w = \arg\min_w \|Xw - y\|^2 + \lambda \|w\|_1.$$
 
-The Laplace density has a sharp peak at 0 - it puts much more mass exactly
+The Laplace density has a sharp peak at 0: it puts much more mass
 near zero than a Gaussian does. That peak is where sparsity comes from.
 
 ### 3.2 Why L1 gives sparsity: the corner argument
@@ -252,11 +264,11 @@ a **disk** ($w_1^2 + w_2^2 \le t$); for L1 it is a **diamond**
 ($|w_1| + |w_2| \le t$) with its four corners *on the axes*. The solution is
 the point where the smallest possible loss ellipse first touches the
 constraint set. A growing ellipse touching a smooth disk can make first
-contact anywhere on the circle - the touch point is generically off-axis, so
+contact anywhere on the circle; the touch point is generically off-axis, so
 both weights stay nonzero (just shrunk). Touching a diamond, first contact is
-overwhelmingly likely to happen **at a corner**, because corners poke out
-toward the ellipse - and a corner has $w_1 = 0$ or $w_2 = 0$. Sparsity is
-literally the geometry of corners. In $d$ dimensions the L1 ball's corners
+overwhelmingly likely to happen **at a corner**, because the corners are the
+points of the diamond that extend farthest toward the ellipse, and a corner
+has $w_1 = 0$ or $w_2 = 0$. The zeros come from the corners. In $d$ dimensions the L1 ball's corners
 and edges lie on coordinate subspaces (many weights exactly zero), and
 contact on them is the norm, not the exception.
 
@@ -329,7 +341,7 @@ $$w^* = \operatorname{sign}(a)\,\max(0, |a| - \lambda/2).$$
 
 Numbers: $a = 3, \lambda = 2 \Rightarrow w^* = 2$. $a = 0.5, \lambda = 2
 \Rightarrow w^* = 0$, *exactly* zero. Compare ridge in 1-D:
-$f' = 2(w-a) + 2\lambda w = 0 \Rightarrow w^* = a/(1+\lambda)$ - for
+$f' = 2(w-a) + 2\lambda w = 0 \Rightarrow w^* = a/(1+\lambda)$; for
 $a=0.5, \lambda=1$, $w^* = 0.25$: shrunk, never zero. L2 shrinks
 multiplicatively; L1 subtracts a constant and clips at zero. The kink of
 $|w|$ at 0 (nonzero subgradient interval $[-\lambda, \lambda]$) is what lets
@@ -347,12 +359,15 @@ Sweep $\lambda$: at $\lambda = 0$ you have the (unbiased, high-variance)
 OLS/MLE; as $\lambda \to \infty$, $w \to 0$ (maximal bias, zero variance).
 Somewhere in between lies the sweet spot; find it with a validation set or CV.
 
-**Interview traps:** (1) Don't regularize the bias term - it just centers
-predictions, penalizing it adds bias with no variance benefit. (2) Standardize
-features first: the penalty $\|w\|$ is scale-dependent, so a feature measured
-in millimeters vs. meters gets a 1000× different effective penalty.
-(3) "Elastic net" = L1 + L2, useful when correlated features make lasso
-arbitrarily pick one of a group.
+**Interview traps:** (1) Don't regularize the bias term: it only shifts all
+predictions by a constant, so penalizing it adds bias with no variance
+benefit. (2) Standardize features first: the penalty $\|w\|$ is
+scale-dependent. A feature recorded in millimeters instead of meters needs a
+weight 1000× smaller for the same effect, so its penalty shrinks 1000× (L1)
+or $10^6$× (L2).
+(3) "Elastic net" = L1 + L2, useful for groups of correlated features, where
+lasso keeps one feature of the group and zeros the rest, with the choice
+depending on small details of the data.
 
 ---
 
@@ -361,19 +376,23 @@ arbitrarily pick one of a group.
 ### 4.1 Maximum margin
 
 Many hyperplanes separate two separable classes. Which one? Intuition: the
-one farthest from the closest points on either side generalizes best - small
+one farthest from the closest points on either side generalizes best: small
 perturbations of the data won't flip predictions. Formalize: for a hyperplane
 $w^\top x + b = 0$, the distance from point $x_i$ is
 $|w^\top x_i + b| / \|w\|$. Scale $(w,b)$ so the closest points satisfy
-$|w^\top x_i + b| = 1$ (allowed - the hyperplane is scale-invariant). Then
+$|w^\top x_i + b| = 1$ (allowed, because $(cw, cb)$ defines the same
+hyperplane for every $c > 0$). Then
 the margin (distance to the closest point) is $1/\|w\|$, and maximizing the
 margin becomes the clean convex program
 
 $$\min_{w, b} \tfrac{1}{2}\|w\|^2 \quad \text{s.t.} \quad y_i(w^\top x_i + b) \ge 1 \; \forall i, \qquad y_i \in \{-1, +1\}.$$
 
 Only the points sitting exactly on the margin (constraint tight) determine
-the solution - the **support vectors**. Delete any other point and nothing
-changes. That's the sense in which SVMs are "sparse in examples".
+the solution: the **support vectors**. Delete any point with
+$y_i(w^\top x_i + b) > 1$ and nothing changes: its constraint is not active at
+the optimum, so the old solution is still feasible and still a local optimum
+of the smaller problem, and for a convex problem a local optimum is the global
+one. That's the sense in which SVMs are "sparse in examples".
 
 ### 4.2 Soft margin, hinge loss, and C
 
@@ -383,42 +402,60 @@ slack:
 
 $$\min_{w,b,\xi} \tfrac{1}{2}\|w\|^2 + C \sum_i \xi_i.$$
 
-At the optimum, $\xi_i = \max(0, 1 - y_i(w^\top x_i + b))$ - so the whole
-thing collapses to an unconstrained loss:
+For fixed $(w, b)$, minimizing the objective makes each $\xi_i$ as small as possible, and
+the two constraints $\xi_i \ge 0$, $\xi_i \ge 1 - y_i(w^\top x_i + b)$ give the
+smallest feasible value $\xi_i = \max(0, 1 - y_i(w^\top x_i + b))$.
+Substituting it removes the constraints and leaves an unconstrained loss:
 
 $$\min_{w,b} \; \sum_i \underbrace{\max(0,\, 1 - y_i(w^\top x_i + b))}_{\text{hinge loss}} + \tfrac{1}{2C}\|w\|^2.$$
 
 **SVM = hinge loss + L2 regularization.** Hinge is flat (zero) once the
 margin exceeds 1: correctly-and-confidently classified points contribute
-nothing (unlike logistic loss, which never quite reaches zero - logistic
-regression keeps caring about all points, SVM ignores the easy ones).
+zero loss and zero gradient. Logistic loss is positive for every point, so in
+logistic regression every point contributes a nonzero gradient.
 
 **C is inverse regularization.** Big $C$: violations are expensive → fit
-training data hard, narrow margin, low bias / high variance, risk of
+the training data closely, narrow margin, low bias / high variance, risk of
 overfitting. Small $C$: wide margin, tolerate misclassifications, high bias /
-low variance. (Trap: people say "C is the regularization parameter" - it's
-the *inverse*; $\lambda \sim 1/C$.)
+low variance. (Trap: people say "C is the regularization parameter"; it is
+the *inverse*: in the hinge form above the L2 coefficient is $1/(2C)$.)
 
 ### 4.3 The kernel trick, from the dual
 
-Form the Lagrangian of the hard-margin problem with multipliers
-$\alpha_i \ge 0$, set $\partial/\partial w = 0$ and $\partial/\partial b = 0$:
+Form the Lagrangian of the hard-margin problem with one multiplier
+$\alpha_i \ge 0$ per constraint:
+
+$$\mathcal{L}(w, b, \alpha) = \tfrac12\|w\|^2 - \sum_i \alpha_i\big[y_i(w^\top x_i + b) - 1\big].$$
+
+Set $\partial\mathcal{L}/\partial w = 0$ and $\partial\mathcal{L}/\partial b = 0$:
 
 $$w = \sum_i \alpha_i y_i x_i, \qquad \sum_i \alpha_i y_i = 0.$$
 
-Substituting back gives the **dual**:
+Substitute back. The $b$ term is $b\sum_i \alpha_i y_i = 0$. With
+$w = \sum_i \alpha_i y_i x_i$, both $\|w\|^2$ and $\sum_i \alpha_i y_i w^\top x_i$
+equal $S = \sum_{i,j} \alpha_i \alpha_j y_i y_j \langle x_i, x_j\rangle$, so
+$\mathcal{L} = \tfrac12 S - S + \sum_i \alpha_i$. Maximizing this over $\alpha$
+is the **dual**:
 
 $$\max_{\alpha \ge 0} \; \sum_i \alpha_i - \tfrac{1}{2}\sum_{i,j} \alpha_i \alpha_j y_i y_j \, \langle x_i, x_j \rangle \quad \text{s.t.} \; \textstyle\sum_i \alpha_i y_i = 0.$$
 
-Look hard at this: the data enters **only through inner products**
+**Which points matter.** At the optimum the KKT conditions include
+*complementary slackness*: $\alpha_i\big[y_i(w^\top x_i + b) - 1\big] = 0$ for
+every $i$. So either the point lies exactly on the margin or $\alpha_i = 0$,
+and $w = \sum_i \alpha_i y_i x_i$ is a combination of margin points only (the
+support vectors of §4.1).
+
+Note that the data enters **only through inner products**
 $\langle x_i, x_j \rangle$. Prediction too:
-$f(x) = \sum_i \alpha_i y_i \langle x_i, x \rangle + b$. That's the door the
-kernel trick walks through.
+$f(x) = \sum_i \alpha_i y_i \langle x_i, x \rangle + b$. This is what makes the
+kernel trick possible: every inner product can be replaced by an inner product
+in a different feature space.
 
 **What the trick actually buys you.** Suppose you want a nonlinear boundary
-by mapping to features $\phi(x)$ - e.g. all degree-2 monomials of $d$
+by mapping to features $\phi(x)$, e.g. all degree-2 monomials of $d$
 features, which has dimension $O(d^2)$; degree-$p$ has $O(d^p)$. Computing
-and storing $\phi(x)$ explicitly is exponential-in-$p$ pain. But the dual
+and storing $\phi(x)$ explicitly costs $O(d^p)$ time and memory per example.
+But the dual
 only ever needs $\langle \phi(x_i), \phi(x_j)\rangle$. If a function
 $K(x, x') = \langle \phi(x), \phi(x')\rangle$ can be computed *directly*,
 you never materialize $\phi$ at all. Concrete: in $d=2$ with
@@ -426,13 +463,16 @@ $\phi(x) = (x_1^2, \sqrt{2}x_1x_2, x_2^2)$,
 
 $$\langle \phi(x), \phi(z)\rangle = x_1^2 z_1^2 + 2x_1x_2z_1z_2 + x_2^2z_2^2 = (x_1z_1 + x_2z_2)^2 = \langle x, z\rangle^2.$$
 
-One multiplication and a square replaces building 3-D (or, for degree 10 in
-100 dims, ~$10^{13}$-D) feature vectors. The RBF kernel
+One inner product and a square replace building 3-D (or, for degree 10 in
+100 dims, about $4 \times 10^{13}$-D) feature vectors. The RBF kernel
 $K(x,z) = \exp(-\gamma\|x-z\|^2)$ corresponds to an *infinite-dimensional*
-$\phi$ - you get to run a linear method in a space you could never construct.
-Any symmetric positive semi-definite $K$ is a valid kernel (Mercer).
+$\phi$, so a linear method runs in a feature space that cannot be built
+explicitly. Which $K$ are allowed? Any symmetric $K$ whose Gram matrix
+$[K(x_i, x_j)]$ is positive semi-definite for every finite set of points equals
+$\langle \phi(x), \phi(x')\rangle$ for some $\phi$ (Mercer's theorem), so it
+is a valid kernel.
 
-Cost of admission: the dual works with the $n \times n$ Gram matrix, so
+The cost: the dual works with the $n \times n$ Gram matrix, so
 kernel methods scale with the *number of examples* ($O(n^2)$ memory,
 $O(n^2)$–$O(n^3)$ time) rather than feature dimension. That's precisely why
 they faded for web-scale data and neural nets (which learn $\phi$ instead of
@@ -442,15 +482,15 @@ fixing it) took over.
 
 ## 5. Decision trees
 
-### 5.1 Entropy from first principles - what is a "bit"?
+### 5.1 Entropy from first principles: what is a "bit"?
 
 The information content of an event with probability $p$ is defined as
 $\log_2(1/p)$ bits. Why this formula and not something else? Three axioms pin
 it down: (1) certain events carry zero information ($p{=}1 \to 0$ bits);
 (2) rarer = more informative (decreasing in $p$); (3) independent events'
 information **adds** ($p_1 p_2 \to \log\frac{1}{p_1p_2} = \log\frac{1}{p_1} +
-\log\frac{1}{p_2}$) - and additivity-under-multiplication forces a logarithm.
-Base 2 makes the unit "bits": one fair coin flip = $\log_2 2 = 1$ bit - the
+\log\frac{1}{p_2}$), and additivity-under-multiplication forces a logarithm.
+Base 2 makes the unit "bits": one fair coin flip = $\log_2 2 = 1$ bit, the
 answer to exactly one yes/no question.
 
 **Entropy** is the *expected* information of a draw:
@@ -461,8 +501,8 @@ Operationally, it is a lower bound on the average number of yes/no questions
 per draw needed to identify the classes of many draws coded together (one
 draw alone always needs at least one question). Numbers:
 a 50/50 label is $H = 1$ bit (you must ask one question). A 90/10 label:
-$H = -0.9\log_2 0.9 - 0.1\log_2 0.1 \approx 0.137 + 0.332 = 0.469$ bits  - 
-you're barely uncertain. Pure node: $H = 0$. Uniform over 4 classes:
+$H = -0.9\log_2 0.9 - 0.1\log_2 0.1 \approx 0.137 + 0.332 = 0.469$ bits,
+less than half the uncertainty of a fair coin. Pure node: $H = 0$. Uniform over 4 classes:
 $H = 2$ bits.
 
 ### 5.2 Information gain
@@ -478,7 +518,7 @@ and right = (1+, 4−). Each child: $H = -0.8\log_2 0.8 - 0.2 \log_2 0.2
 split producing two 50/50 children has $IG = 0$. Tree building is greedy:
 at each node, scan every feature and every threshold (midpoints of sorted
 unique values suffice), pick the split with max $IG$, recurse; stop at
-max depth / pure node / min samples. Greedy, not optimal - finding the
+max depth / pure node / min samples. Greedy, not optimal: finding the
 globally optimal tree is NP-hard.
 
 **Gini vs. entropy.** Gini impurity $G = 1 - \sum_c p_c^2$ is the probability
@@ -494,13 +534,14 @@ almost always agree; Gini is the default because it's cheaper.")
 
 A tree with enough depth can carve the feature space into one box per training
 example: 100% training accuracy on any dataset, i.e. **zero bias, huge
-variance**. Deeper splits are made on ever-smaller samples - a leaf holding 3
-examples is essentially fitting noise, and one changed training point can
+variance**. Deeper splits are made on ever-smaller samples: a leaf holding 3
+examples predicts from 3 noisy labels, and one changed training point can
 restructure the entire subtree below the node where it altered the best split
 (instability compounds down the tree). Axis-aligned boxes are also a jagged,
 high-frequency function class. Controls: `max_depth`, `min_samples_leaf`,
 `min_impurity_decrease`, or cost-complexity pruning. But the modern answer to
-tree variance is not a better single tree - it's ensembles.
+tree variance is not a better single tree; it is averaging many trees
+(ensembles, §6).
 
 ---
 
@@ -516,32 +557,33 @@ $$\operatorname{Var}(\bar f) = \frac{1}{B^2}\left[ \sum_b \operatorname{Var}(f_b
 
 $$\boxed{\operatorname{Var}(\bar f) = \rho \sigma^2 + \frac{1 - \rho}{B}\, \sigma^2.}$$
 
-Read it: the second term dies as $B \to \infty$ - averaging kills the
-*independent* part of the noise for free. But the first term,
+Read it: the second term goes to 0 as $B \to \infty$, so averaging removes
+the *uncorrelated* part of the variance at no cost in bias. But the first term,
 $\rho\sigma^2$, is a **floor** you cannot average away. Numbers:
 $\sigma^2 = 1$, $B = 100$: if $\rho = 0$, variance $= 0.01$; if $\rho = 0.5$,
-variance $= 0.505$ - fifty times worse. Correlation, not ensemble size, is
+variance $= 0.505$, about fifty times larger. Correlation, not ensemble size, is
 the binding constraint.
 
 **Bagging** (bootstrap aggregating) manufactures approximately-independent
 estimators from one dataset: train each model on a bootstrap sample ($n$
 draws *with replacement*; each sample omits $\approx 1/e \approx 37\%$ of
-points - since $P(\text{point never drawn}) = (1 - 1/n)^n \to e^{-1}$), then
+points, since $P(\text{point never drawn}) = (1 - 1/n)^n \to e^{-1}$), then
 average (regression) or majority-vote (classification). It targets variance
 only; bias stays roughly that of a single model. Hence: bag **low-bias,
-high-variance** learners - deep trees are the perfect client. Bagging linear
-regression is pointless (already low variance, and the average of linear
-models is linear). The held-out 37% gives **out-of-bag error** - free
-cross-validation.
+high-variance** learners, and deep trees are the standard choice. Bagging
+linear regression gains little (it is already low variance, and the average of
+linear models is linear). Each model's left-out 37% gives the **out-of-bag
+error**: a validation estimate with no separate holdout set.
 
 ### 6.2 Random forests: what decorrelation adds
 
 Bagged trees are still correlated: if one feature is dominant, every tree
-splits on it at the root and the trees look alike - $\rho$ stays high and the
+splits on it at the root and the trees look alike, so $\rho$ stays high and the
 variance floor $\rho\sigma^2$ stays high. Random forests attack $\rho$
 directly: **at every split, consider only a random subset of
-$m \approx \sqrt{d}$ features**. Strong features are forcibly benched in many
-splits, so different trees discover different structure, $\rho$ drops, and by
+$m \approx \sqrt{d}$ features**. A dominant feature is then missing from the
+candidate set at a fraction $1 - m/d$ of splits, so different trees split on
+different features, $\rho$ drops, and by
 the boxed formula the achievable ensemble variance drops. The trade: each
 individual tree gets slightly worse, so $\sigma^2$ rises a little. The floor
 is $\rho\sigma^2$, and subsampling lowers $\rho$ by more than it raises
@@ -549,9 +591,15 @@ $\sigma^2$, so the product falls. That single formula is the whole design
 rationale of random forests.
 
 The flip side: with only a few informative features, too-aggressive
-subsampling leaves many splits with no useful feature to choose, so
-$\sigma^2$ rises faster than $\rho$ falls. $m$ is a real hyperparameter, not
-folklore.
+subsampling leaves many splits with no useful feature to choose, so each
+tree becomes noisier ($\sigma^2$ rises) and less accurate on average (its
+bias rises), and with a finite number of trees the $(1-\rho)\sigma^2/B$ term
+grows too; past some point this outweighs the lower $\rho$. $m$ is a real
+hyperparameter, not a fixed rule. `trees_and_ensembles_scratch.ipynb`
+measures $\rho$ and $\sigma^2$ for bagging ($m = d$) and for every smaller
+$m$: on its data, going from $m = 6$ (bagging) to $m = 2$ cuts $\rho$ from
+0.167 to 0.055, raises $\sigma^2$ from 0.061 to 0.101, and lowers the floor
+$\rho\sigma^2$ from 0.0102 to 0.0056, while $m = 1$ gives the worst accuracy.
 
 ### 6.3 Boosting: gradient descent in function space (derived)
 
@@ -571,17 +619,17 @@ $$F(x_i) \leftarrow F(x_i) - \eta \, \frac{\partial \ell(y_i, F(x_i))}{\partial 
 Define the **pseudo-residuals** $r_i = -\partial \ell(y_i, F(x_i)) / \partial F(x_i)$.
 Problem: the update above is only defined at the $n$ training points; we need
 a function defined everywhere. Solution: **fit a weak learner $h_m$ (a small
-tree) to the pseudo-residuals** $\{(x_i, r_i)\}$ - $h_m$ is the best
-representable approximation of the negative gradient direction - then take
-the step in function space:
+tree) to the pseudo-residuals** $\{(x_i, r_i)\}$ by least squares, so
+$h_m$ is the closest tree to the negative gradient vector, then take the step
+in function space:
 
 $$F_m = F_{m-1} + \eta\, h_m.$$
 
 The algorithm is complete. Check it against the standard special case:
 for squared loss $\ell = \frac12 (y - F)^2$, $r_i = y_i - F(x_i)$ = the plain
-residual - "fit a tree to the residuals and add it," the classic description.
-For log-loss, $r_i = y_i - p_i$ (§2.3 again!). Boosting with a generic loss
-is *exactly* gradient descent where each step direction is a tree. The
+residual, which gives the classic description "fit a tree to the residuals
+and add it." For log-loss, $r_i = y_i - p_i$ (the same $y - p$ as in §2.3).
+Boosting with a generic loss is *exactly* gradient descent where each step direction is a tree. The
 learning rate $\eta$ ("shrinkage", ~0.01–0.3) trades number of trees for
 generalization: smaller steps, more trees, better test error.
 
@@ -599,28 +647,28 @@ XGBoost is gradient boosting plus engineering and second-order math:
   structure with leaf values $w_j$ this is a per-leaf quadratic, solved in
   closed form: $w_j^* = -\frac{\sum_{i \in \text{leaf } j} g_i}{\sum_{i \in \text{leaf } j} h_i + \lambda}$,
   giving each candidate structure an exact quality score
-  $-\tfrac12 \sum_j \frac{(\sum g_i)^2}{\sum h_i + \lambda} + \gamma T$ - so
+  $-\tfrac12 \sum_j \frac{(\sum g_i)^2}{\sum h_i + \lambda} + \gamma T$, so
   split decisions optimize the *actual* objective, not a proxy.
 - **Built-in regularization** $\Omega(f) = \gamma T + \tfrac{\lambda}{2}\|w\|^2$
   (number of leaves + L2 on leaf values), plus shrinkage and row/column
   subsampling.
 - **Systems**: histogram/approximate split finding, sparsity-aware default
   directions (native missing-value handling), cache-aware and parallel split
-  evaluation. (LightGBM and CatBoost are siblings with different split/
-  categorical strategies.)
+  evaluation. (LightGBM and CatBoost are related libraries that differ in
+  split finding and categorical-feature handling.)
 
 Why gradient-boosted trees still win on tabular data: they natively handle
 mixed feature types, scales, missing values, and non-smooth interactions,
-with strong regularization - things MLPs need heavy tuning to match.
+with strong regularization; MLPs need heavy tuning to match this.
 
 ---
 
 ## 7. kNN and the curse of dimensionality
 
 kNN has no training: predict by majority vote (or average) of the $k$ nearest
-training points. $k$ controls bias/variance directly - $k{=}1$: zero training
-error, jagged boundary, high variance; $k{=}n$: predict the global majority,
-maximal bias. It's a *local* method: it works iff "near in feature space ⇒
+training points. $k$ controls bias/variance directly: $k{=}1$ gives zero
+training error, a jagged boundary, and high variance; $k{=}n$ predicts the
+global majority, maximal bias. It's a *local* method: it works iff "near in feature space ⇒
 similar label" and iff you have enough data for neighborhoods to be small.
 
 **The curse, quantified.** In $[0,1]^d$ with uniformly spread data, to
@@ -628,19 +676,22 @@ capture a fraction $r$ of the data in a sub-cube you need side length
 $s = r^{1/d}$. Numbers, for $r = 1\%$ of the data: $d{=}2 \Rightarrow s = 0.1$
 (nicely local); $d{=}10 \Rightarrow s = 0.01^{0.1} \approx 0.63$;
 $d{=}100 \Rightarrow s \approx 0.955$. In 100 dimensions your "neighborhood"
-spans 95% of the range of every coordinate - the word "nearest" has lost its
-meaning. Two more symptoms: (1) points concentrate near the *boundary* (the
+spans 95% of the range of every coordinate, so the nearest neighbors are no
+longer close. Two more symptoms: (1) points concentrate near the *boundary* (the
 fraction of the unit cube within 0.05 of a face is $1 - 0.9^d$: 10% in 1-D,
-99.997% in 100-D); (2) distances concentrate - the ratio of farthest to
-nearest neighbor distance → 1, so rankings by distance become noise. Sample
+99.997% in 100-D); (2) distances concentrate: the ratio of farthest to
+nearest neighbor distance → 1, so rankings by distance carry little
+information. Sample
 complexity to keep neighborhoods local grows **exponentially in $d$**.
 
-Escape hatches: dimensionality reduction (PCA, §9), metric learning, or the
-empirical fact that real data lies near low-dimensional manifolds. Practical
-traps: **scale your features** (distance is scale-sensitive - a feature in
-grams dominates one in kilograms 1000:1), use odd $k$ to break ties, and note
-prediction is $O(nd)$ per query without KD-trees/LSH (which themselves
-degrade in high $d$).
+Remedies: dimensionality reduction (projecting onto a few informative
+directions), metric learning (learning the distance function from labels),
+or the empirical fact that real data lies near low-dimensional manifolds.
+Practical traps: **scale your features** (distance is scale-sensitive: a mass
+recorded in grams instead of kilograms has differences 1000× larger and
+dominates the distance), use odd $k$ to break ties, and note prediction is
+$O(nd)$ per query without a spatial index such as a KD-tree or
+locality-sensitive hashing (and those indexes degrade in high $d$).
 
 ---
 
@@ -656,11 +707,11 @@ $$J(z, \mu) = \sum_{i=1}^n \|x_i - \mu_{z_i}\|^2.$$
 Joint minimization is NP-hard, but each block is easy with the other fixed:
 
 - **Fix $\mu$, minimize over $z$:** the terms are independent per point;
-  each point picks its nearest center: $z_i = \arg\min_j \|x_i - \mu_j\|^2$.
+  each point is assigned to its nearest center: $z_i = \arg\min_j \|x_i - \mu_j\|^2$.
 - **Fix $z$, minimize over $\mu$:** for cluster $j$,
   $\frac{\partial}{\partial \mu_j} \sum_{i: z_i = j} \|x_i - \mu_j\|^2 =
-  -2\sum_{i: z_i=j}(x_i - \mu_j) = 0 \Rightarrow \mu_j = \frac{1}{n_j}\sum_{i: z_i=j} x_i$
-  - the **mean** minimizes summed squared distance (this is *why* it's called
+  -2\sum_{i: z_i=j}(x_i - \mu_j) = 0 \Rightarrow \mu_j = \frac{1}{n_j}\sum_{i: z_i=j} x_i$:
+  the **mean** minimizes summed squared distance (this is *why* it's called
   k-*means*; with L1 distance the minimizer is the median → k-medians).
 
 Lloyd's algorithm just alternates these two exact minimizations.
@@ -671,29 +722,34 @@ Each step minimizes $J$ over one block with the other held fixed, so
 $J(z^{t+1}, \mu^t) \le J(z^t, \mu^t)$ and
 $J(z^{t+1}, \mu^{t+1}) \le J(z^{t+1}, \mu^t)$: **$J$ never increases.** $J$ is
 bounded below by 0, and there are finitely many assignments ($k^n$), so the
-algorithm reaches a state where the assignment stops changing - a fixed
-point - in finite time. (`kmeans_pca_scratch.ipynb` prints the trace; watch it
-be monotone.) What is *not* guaranteed: a global optimum. Lloyd's halts at a
+algorithm reaches a state where the assignment stops changing (a fixed
+point) in finite time. (`kmeans_pca_scratch.ipynb` prints the trace and
+asserts that it never increases.) What is *not* guaranteed: a global optimum. Lloyd's halts at a
 local minimum that depends entirely on initialization.
 
 ### 8.3 Failure modes (know these cold)
 
 1. **Bad init → bad local optimum**: two centers land in one true cluster,
    another true cluster gets split or merged. Fixes: multiple restarts keep
-   the lowest $J$ (sklearn `n_init`); **k-means++** seeding - pick each new
-   center with probability ∝ squared distance from existing centers, which
+   the lowest $J$ (sklearn `n_init`); **k-means++** seeding: pick each new
+   center with probability ∝ squared distance to the nearest existing center, which
    gives an $O(\log k)$ expected approximation guarantee.
-2. **Wrong shapes**: the model is implicitly "spherical clusters, equal
-   variance, similar sizes" (it's the hard-assignment limit of a Gaussian
-   mixture with shared isotropic covariance). Elongated, ring-shaped, or
-   very-different-density clusters get butchered. Use GMMs or spectral/
-   density-based clustering (DBSCAN).
+2. **Wrong shapes**: nearest-center assignment splits space into convex
+   cells bounded by the perpendicular bisectors between centers, which suits
+   round clusters of similar size and spread. Elongated, ring-shaped, or
+   very-different-density clusters are split incorrectly. Alternatives:
+   Gaussian mixture models with per-cluster covariances (§11) for elliptical
+   clusters, or density-based clustering such as DBSCAN (which grows clusters
+   from points that have many neighbors within a fixed radius) for arbitrary
+   shapes.
 3. **You must choose $k$**, and $J$ always decreases with $k$ (at $k = n$,
-   $J = 0$), so you can't pick $k$ by minimizing $J$ - use the elbow
-   heuristic, silhouette score, or domain knowledge.
+   $J = 0$), so you can't pick $k$ by minimizing $J$. Use the elbow
+   heuristic (the $k$ after which $J$ stops dropping steeply), the silhouette
+   score (each point's mean distance to its own cluster vs. to the nearest
+   other cluster), or domain knowledge.
 4. **Scale sensitivity**: it's squared Euclidean distance, so features must
-   be standardized, and outliers drag means hard (means, unlike medians, are
-   not robust).
+   be standardized, and an outlier shifts its cluster's mean in proportion to
+   its distance (means, unlike medians, are not robust).
 
 ---
 
@@ -714,7 +770,7 @@ Lagrangian: $u^\top \Sigma u - \lambda(u^\top u - 1)$; gradient zero gives
 $$\Sigma u = \lambda u.$$
 
 The stationary points are exactly the **eigenvectors** of $\Sigma$, and the
-attained variance is $u^\top \Sigma u = \lambda$ - the eigenvalue itself. So:
+attained variance is $u^\top \Sigma u = \lambda$, the eigenvalue itself. So:
 top eigenvector = direction of max variance, its eigenvalue = that variance;
 the second component maximizes variance orthogonal to the first, etc.
 "Explained variance ratio" is $\lambda_j / \sum_l \lambda_l$.
@@ -733,28 +789,33 @@ $$\|x - UU^\top x\|^2 = x^\top x - 2x^\top UU^\top x + x^\top UU^\top UU^\top x 
 
 $\sum_i \|x_i\|^2$ is fixed, so **minimizing reconstruction error ≡
 maximizing $\sum_i \|U^\top x_i\|^2$ ≡ maximizing projected variance**. The
-two derivations are the same problem - Pythagoras splits each point's energy
-into "kept" (variance along the subspace) and "lost" (reconstruction error),
-and the lost energy is exactly the sum of the discarded eigenvalues,
-$(n-1)\sum_{j > k} \lambda_j$. That's why the reconstruction-error-vs-$k$
-curve in `kmeans_pca_scratch.ipynb` falls off a cliff once $k$ reaches the true
-latent dimension.
+two derivations are the same problem. The identity above is Pythagoras:
+$\|x\|^2 = \|U^\top x\|^2 + \|x - UU^\top x\|^2$ splits each point's squared
+norm into a kept part (along the subspace) and a lost part (reconstruction
+error). Summed over the centered data, the total is
+$(n-1)\operatorname{tr}\Sigma = (n-1)\sum_j \lambda_j$, and with $U$ the top
+$k$ eigenvectors the kept part is $(n-1)\sum_{j \le k}\lambda_j$, so the lost
+part is exactly $(n-1)\sum_{j > k} \lambda_j$. That's why the
+reconstruction-error-vs-$k$ curve in `kmeans_pca_scratch.ipynb` drops sharply
+up to the true latent dimension and is nearly flat after it; the notebook also
+checks this identity numerically.
 
 ### 9.3 SVD connection
 
 Write the SVD $X_c = U S V^\top$. Then
-$\Sigma = \frac{1}{n-1} V S^\top S V^\top$ - so the right singular vectors
+$\Sigma = \frac{1}{n-1} V S^\top S V^\top$, so the right singular vectors
 $V$ **are** the eigenvectors of $\Sigma$ (the principal components), and
 $\lambda_j = s_j^2 / (n-1)$. Libraries compute PCA via SVD of $X_c$ instead
 of forming $\Sigma$: it's numerically better (forming $\Sigma$ squares the
-condition number) and cheaper when $d \gg n$. (Our notebook forms $\Sigma$
-for clarity, which is fine at its small size.) Projected coordinates
+condition number) and cheaper when $d \gg n$. (`kmeans_pca_scratch.ipynb`
+forms $\Sigma$ for clarity, which is fine at its small size.) Projected coordinates
 ("scores") are $X_c V = US$.
 
 **Traps:** center the data (uncentered "PCA" finds the direction of the mean,
-not of variance); standardize if features have incomparable units (else PCA
-is dominated by whatever has big numbers); components are only defined up to
-sign; PCA is linear and unsupervised - the top-variance direction can be
+not of variance); standardize if features have incomparable units
+(otherwise the features with the largest numeric range determine the top
+components); components are only defined up to sign; PCA is linear and
+unsupervised, so the top-variance direction can be
 *useless for a downstream classification* (variance ≠ relevance).
 
 ---
@@ -769,7 +830,7 @@ conditionally independent given the class,
 
 $$p(x \mid y) = \prod_{j=1}^d p(x_j \mid y),$$
 
-collapsing this to $O(d)$ parameters per class - each estimated by trivial
+collapsing this to $O(d)$ parameters per class, each estimated by simple
 counting (Bernoulli/multinomial NB) or per-class univariate Gaussians
 (Gaussian NB). Prediction:
 $\hat y = \arg\max_y \log p(y) + \sum_j \log p(x_j \mid y)$ (always sum logs;
@@ -779,25 +840,27 @@ Tiny spam example: $p(\text{spam}) = 0.5$;
 $p(\text{"free"}\mid\text{spam}) = 0.6$ vs. $0.05$ given ham;
 $p(\text{"meeting"}\mid\text{spam}) = 0.01$ vs. $0.3$. Email = {"free",
 "meeting"}: spam score $0.5 \cdot 0.6 \cdot 0.01 = 0.003$; ham score
-$0.5 \cdot 0.05 \cdot 0.3 = 0.0075$ → ham. Fast, interpretable, done.
+$0.5 \cdot 0.05 \cdot 0.3 = 0.0075$ → ham.
 
 **Laplace smoothing** is mandatory: a word never seen in spam gives
-$p(x_j\mid\text{spam}) = 0$ and one factor vetoes the entire product. Add
+$p(x_j\mid\text{spam}) = 0$, and that one zero factor makes the whole product
+zero whatever the other words say. Add
 pseudo-counts: $p(x_j \mid y) = \frac{\text{count} + \alpha}{\text{total} + \alpha \cdot |\text{vocab}|}$
-(this is the posterior mean under a Dirichlet($\alpha$) prior, or
+(with the Dirichlet distribution as the standard prior over a probability
+vector, this is the posterior mean under a Dirichlet($\alpha$) prior, or
 equivalently MAP under Dirichlet($\alpha + 1$): the same MLE→MAP move as §3).
 
 Why it works despite a false assumption: classification only needs the
 *argmax* to be right, not the probabilities. Correlated features (e.g.
-repeated words) make NB **overconfident** - probabilities pushed toward 0/1  - 
+repeated words) make NB **overconfident** (probabilities pushed toward 0/1)
 but often leave the ranking intact. So: decent classifier, badly calibrated
 probability estimator. It's a **generative** model (models $p(x, y)$) vs.
 logistic regression's **discriminative** $p(y \mid x)$; the classic
-Ng–Jordan result: NB reaches its (higher) asymptotic error faster - better in
-tiny-data regimes - while logistic regression wins with enough data.
-Gaussian NB with shared class covariance actually *induces* a linear
-(sigmoid) decision rule - NB and logistic regression are the
-generative/discriminative pair of the same family.
+Ng–Jordan result: NB reaches its (higher) asymptotic error faster (better in
+tiny-data regimes), while logistic regression wins with enough data.
+Gaussian NB with per-feature variances shared across classes gives a
+posterior that is a sigmoid of a linear function of $x$, so NB and logistic
+regression are the generative/discriminative pair of the same family.
 
 ---
 
@@ -812,7 +875,7 @@ component, then draw from that component's Gaussian:
 
 $$z_i \sim \text{Categorical}(\pi_1, \dots, \pi_k), \qquad x_i \mid z_i = j \;\sim\; \mathcal{N}(\mu_j, \Sigma_j).$$
 
-We never observe $z_i$ - it's **latent**. Marginalizing it out gives the
+We never observe $z_i$; it is **latent**. Marginalizing it out gives the
 density we actually fit:
 
 $$p(x_i \mid \theta) = \sum_{j=1}^k \pi_j \, \mathcal{N}(x_i; \mu_j, \Sigma_j), \qquad \theta = \{\pi_j, \mu_j, \Sigma_j\}.$$
@@ -821,15 +884,15 @@ Tiny numbers to fix intuition. 1-D, two components, $\pi_1 = \pi_2 = 0.5$,
 $\sigma = 1$ both, $\mu_1 = 0$, $\mu_2 = 4$. Point $x = 1$: unnormalized
 densities $\propto e^{-1/2} = 0.607$ and $e^{-9/2} = 0.011$, so the posterior
 over which die face produced it is $0.607/0.618 = 0.982$ vs. $0.018$. Point
-$x = 2$ (equidistant): $0.5$ / $0.5$. These posteriors are the
-**responsibilities** - hold that thought.
+$x = 2$ (equidistant): $0.5$ / $0.5$. These posteriors are called the
+**responsibilities**; they reappear below.
 
 Now try MLE directly. The log-likelihood is
 
 $$\ell(\theta) = \sum_{i=1}^n \log \underbrace{\sum_{j=1}^k \pi_j \,\mathcal{N}(x_i; \mu_j, \Sigma_j)}_{\text{a sum!}}$$
 
-**The log of a sum.** The log cannot reach past the sum to the individual
-Gaussians, so nothing factorizes. Compare the counterfactual where the labels
+**The log of a sum.** The log is applied to a sum of Gaussian terms, so it
+does not split into one term per component, and nothing factorizes. Compare the counterfactual where the labels
 $z_i$ *were* observed: the complete-data log-likelihood
 $\sum_i [\log \pi_{z_i} + \log \mathcal{N}(x_i; \mu_{z_i}, \Sigma_{z_i})]$
 splits into per-component problems, each solved by counting and per-cluster
@@ -839,20 +902,20 @@ Setting the gradient of $\ell$ to zero anyway is instructive:
 
 $$\frac{\partial \ell}{\partial \mu_j} = \sum_i \underbrace{\frac{\pi_j \mathcal{N}(x_i; \mu_j, \Sigma_j)}{\sum_l \pi_l \mathcal{N}(x_i; \mu_l, \Sigma_l)}}_{\equiv\, \gamma_{ij}} \Sigma_j^{-1}(x_i - \mu_j) = 0 \;\Rightarrow\; \mu_j = \frac{\sum_i \gamma_{ij} x_i}{\sum_i \gamma_{ij}}.$$
 
-The responsibilities $\gamma_{ij}$ appear on their own - but they *depend on*
-$\mu_j$. A fixed-point equation, not a closed form. EM is exactly the natural
+The responsibilities $\gamma_{ij}$ appear in the gradient, but they *depend
+on* $\mu_j$. A fixed-point equation, not a closed form. EM is exactly the natural
 "iterate this fixed point" idea, made rigorous.
 
 ### 11.2 EM derived from Jensen's inequality (the ELBO)
 
 Take any distribution $q_i(j)$ over the $k$ components for each point
 (nonnegative, sums to 1). Multiply and divide inside the sum, then apply
-**Jensen's inequality** - $\log$ is concave, so
-$\log \mathbb{E}[A] \ge \mathbb{E}[\log A]$:
+**Jensen's inequality** ($\log$ is concave, so
+$\log \mathbb{E}[A] \ge \mathbb{E}[\log A]$):
 
 $$\log p(x_i \mid \theta) = \log \sum_j q_i(j)\, \frac{\pi_j \mathcal{N}(x_i; \mu_j, \Sigma_j)}{q_i(j)} \;\ge\; \sum_j q_i(j) \log \frac{\pi_j \mathcal{N}(x_i; \mu_j, \Sigma_j)}{q_i(j)} \;\equiv\; \mathcal{L}_i(q_i, \theta).$$
 
-Summing over $i$ gives a lower bound on the log-likelihood - the **ELBO**
+Summing over $i$ gives a lower bound on the log-likelihood, the **ELBO**
 (evidence lower bound). How loose is it? Compute the gap exactly, using
 $p(x_i, z_i{=}j) = \pi_j \mathcal{N}(x_i; \mu_j, \Sigma_j)$ and
 $p(z_i{=}j \mid x_i) = p(x_i, j)/p(x_i)$:
@@ -866,14 +929,14 @@ $$\boxed{\;\log p(x_i \mid \theta) = \mathcal{L}_i(q_i, \theta) + \mathrm{KL}\bi
 EM is coordinate ascent on the ELBO:
 
 - **E-step** (maximize over $q$, $\theta$ fixed): the KL is the only
-  $q$-dependent slack; it is zero iff $q_i = p(z_i \mid x_i, \theta)$ - the
+  $q$-dependent slack; it is zero iff $q_i = p(z_i \mid x_i, \theta)$, the
   posterior. Setting $q_i(j) = \gamma_{ij}$ makes the bound **tight**:
   ELBO $= \ell(\theta)$ at the current $\theta$.
 - **M-step** (maximize over $\theta$, $q$ fixed): drop the $\theta$-free
   entropy term $-\sum q \log q$; what's left is the **expected complete-data
   log-likelihood**
-  $Q(\theta) = \sum_i \sum_j \gamma_{ij} \big[\log \pi_j + \log \mathcal{N}(x_i; \mu_j, \Sigma_j)\big]$  - 
-  and unlike $\ell$, the log now sits *inside* the sum over components, so it
+  $Q(\theta) = \sum_i \sum_j \gamma_{ij} \big[\log \pi_j + \log \mathcal{N}(x_i; \mu_j, \Sigma_j)\big]$.
+  Unlike $\ell$, the log now sits *inside* the sum over components, so it
   factorizes and has closed-form maximizers (§11.3).
 
 **Monotonicity, proved in one line.** With $q^t$ the E-step posterior at
@@ -883,8 +946,8 @@ $$\ell(\theta^{t+1}) \;\ge\; \mathcal{L}(q^t, \theta^{t+1}) \;\ge\; \mathcal{L}(
 
 First inequality: ELBO is always a lower bound. Second: the M-step maximized
 over $\theta$. Equality: the E-step made the bound tight. **The
-log-likelihood never decreases** - the same alternating-minimization shape as
-Lloyd's algorithm (§8.2), and `gmm_em_scratch.ipynb` asserts this trace is
+log-likelihood never decreases.** This is the same alternating-optimization
+structure as Lloyd's algorithm (§8.2), and `gmm_em_scratch.ipynb` asserts this trace is
 monotone. What is *not* guaranteed: a global optimum. EM climbs to a
 stationary point that depends on initialization (in practice: init with
 k-means, use restarts).
@@ -896,8 +959,8 @@ k-means, use restarts).
 $$\gamma_{ij} = p(z_i = j \mid x_i) = \frac{\pi_j \,\mathcal{N}(x_i; \mu_j, \Sigma_j)}{\sum_{l} \pi_l \,\mathcal{N}(x_i; \mu_l, \Sigma_l)}.$$
 
 (Implementation note: compute in log-space and normalize with logsumexp;
-products of $d$-dimensional Gaussian densities underflow - same lesson as
-naive Bayes, §10.)
+products of $d$-dimensional Gaussian densities underflow, the same issue as
+in naive Bayes, §10.)
 
 **M-step.** Maximize
 $Q(\theta) = \sum_{i,j} \gamma_{ij}\big[\log \pi_j - \tfrac12 \log|\Sigma_j| - \tfrac12 (x_i - \mu_j)^\top \Sigma_j^{-1} (x_i - \mu_j)\big] + \text{const}$.
@@ -908,7 +971,8 @@ $\sum_j N_j = n$).
 $\Sigma_j^{-1}$ is invertible, so it cancels:
 
 $$\boxed{\;\mu_j = \frac{1}{N_j}\sum_i \gamma_{ij}\, x_i\;}$$
- - the responsibility-**weighted** mean.
+
+This is the responsibility-**weighted** mean.
 
 *Covariances:* using the two matrix-calculus facts
 $\partial \log|\Sigma| / \partial \Sigma = \Sigma^{-1}$ and
@@ -932,12 +996,12 @@ covariance) with hard counts replaced by responsibility weights.** EM =
 "guess soft labels from current parameters; refit parameters as if those soft
 labels were data; repeat."
 
-**Trap - the unbounded likelihood.** Let one component's mean sit exactly on
+**Trap: the unbounded likelihood.** Let one component's mean sit exactly on
 a data point and shrink its variance: $\mathcal{N}(x_i; x_i, \sigma^2)
 \propto 1/\sigma \to \infty$. The GMM likelihood has singular spikes, so the
 "global MLE" doesn't even exist in the unconstrained problem. Fix: add
 $\varepsilon I$ to covariances (sklearn's `reg_covar`) or put a prior on
-$\Sigma$ (MAP - the §3 move again).
+$\Sigma$ (MAP, as in §3).
 
 ### 11.4 k-means is EM with hard assignments
 
@@ -953,9 +1017,9 @@ Look at the ratio for two components:
 $$\frac{\gamma_{ij}}{\gamma_{il}} = \exp\!\left(\frac{\|x_i - \mu_l\|^2 - \|x_i - \mu_j\|^2}{2\varepsilon}\right) \;\xrightarrow[\varepsilon \to 0]{}\; \begin{cases} \infty & \text{if } \mu_j \text{ is strictly nearer} \\ 0 & \text{if } \mu_l \text{ is} \end{cases}$$
 
 Numbers: squared distances 1 and 2 to two centers. $\varepsilon = 1$:
-$\gamma = \sigma(0.5) = 0.62$ - genuinely soft. $\varepsilon = 0.1$:
+$\gamma = \sigma(0.5) = 0.62$, still soft. $\varepsilon = 0.1$:
 $\sigma(5) = 0.993$. $\varepsilon = 0.01$: $\sigma(50) \approx 1 - 2\cdot
-10^{-22}$ - one-hot for all practical purposes. So as $\varepsilon \to 0$:
+10^{-22}$, numerically one-hot. So as $\varepsilon \to 0$:
 
 - **E-step → k-means assignment step**: responsibilities collapse to a
   one-hot on the nearest center, $z_i = \arg\min_j \|x_i - \mu_j\|^2$.
@@ -963,22 +1027,23 @@ $\sigma(5) = 0.993$. $\varepsilon = 0.01$: $\sigma(50) \approx 1 - 2\cdot
   $\sum_i \gamma_{ij}x_i / N_j$ becomes the plain mean of the assigned
   points.
 - **Objective → inertia**: the expected complete log-likelihood reduces to
-  $-\frac{1}{2\varepsilon}\sum_i \|x_i - \mu_{z_i}\|^2 + \text{const}$  - 
+  $-\frac{1}{2\varepsilon}\sum_i \|x_i - \mu_{z_i}\|^2 + \text{const}$, and
   maximizing it *is* minimizing the k-means objective $J$ from §8.1.
 
 `gmm_em_scratch.ipynb` demonstrates this numerically: EM with tiny frozen
 spherical covariances produces assignments identical to Lloyd's algorithm.
-This is also the honest explanation of k-means' failure modes (§8.3): you
-silently assumed spherical, equal-covariance, equal-weight clusters.
+This also explains k-means' shape failure mode (§8.3): k-means is this
+mixture model with spherical, equal-covariance, equal-weight clusters.
 
 **When GMM over k-means:** you need *soft* memberships (a point can be 60/40
 between clusters); clusters are elliptical or differently sized (full
 $\Sigma_j$ learns a per-cluster Mahalanobis metric); you want an actual
-**density** - score $p(x)$ for anomaly detection, sample new points, or
+**density**: score $p(x)$ for anomaly detection, sample new points, or
 compare $k$ via likelihood-based criteria (BIC/AIC), none of which k-means
-can do. When k-means: you just need a fast, robust partition - it's cheaper
+can do. When k-means: you just need a fast, robust partition; it is cheaper
 ($O(nkd)$ per iter, no $d\times d$ solves), has fewer parameters to estimate
-($k$ full covariances cost $kd(d{+}1)/2$ parameters - hungry in high $d$),
+($k$ full covariances cost $kd(d{+}1)/2$ parameters, which need a lot of data
+in high $d$),
 and is the standard *initializer* for GMM anyway.
 
 ---
@@ -987,22 +1052,21 @@ and is the standard *initializer* for GMM anyway.
 
 ### 12.1 What PCA can't do
 
-PCA (§9) finds a **linear** map maximizing retained variance - equivalently,
+PCA (§9) finds a **linear** map maximizing retained variance; equivalently,
 it best preserves *large* (global) squared distances. Two things follow. (1)
 Structure that isn't linearly separable in any projection is lost: two
 concentric rings of radius 1 and 3 are perfectly separated in 2-D, but *every*
-linear projection to 1-D overlaps them - no eigenvector can help, the classes
-are radially, not directionally, organized. Same for a Swiss-roll manifold:
-PCA squashes the roll flat and points far apart *along* the sheet land on top
-of each other. (2) Variance ≠ neighborhood structure: PCA happily spends its
-budget on a high-variance direction that separates nothing. For
-visualization, the question is usually "**who is whose neighbor?**" - a local
-question that calls for a method built from neighborhoods, not from global
+linear projection to 1-D overlaps them, because the classes differ in
+radius, not in direction. Same for a Swiss-roll manifold: PCA projects the
+roll onto a plane, and points far apart *along* the sheet land on top of each
+other. (2) Variance ≠ neighborhood structure: PCA keeps the highest-variance
+directions even when they separate nothing. For visualization, the question
+is usually "**who is whose neighbor?**", a local question, which calls for a method built from neighborhoods, not from global
 variance.
 
 ### 12.2 t-SNE from first principles
 
-**Step 1 - turn distances into probabilities.** For each point $i$, define
+**Step 1: turn distances into probabilities.** For each point $i$, define
 the probability that $i$ would "pick $j$ as its neighbor" under a Gaussian
 centered at $x_i$:
 
@@ -1011,99 +1075,104 @@ $$p_{j\mid i} = \frac{\exp(-\|x_i - x_j\|^2 / 2\sigma_i^2)}{\sum_{k \ne i} \exp(
 (The symmetrization guarantees every point contributes; a point in a dense
 blob and an outlier get comparable total mass.)
 
-**Step 2 - the perplexity knob.** Each point gets its *own* bandwidth
+**Step 2: the perplexity setting.** Each point gets its *own* bandwidth
 $\sigma_i$, chosen by binary search so that the entropy of $p_{\cdot\mid i}$
 hits a user-set target: $\text{Perp}(P_i) = 2^{H(P_i)}$ = the **effective
 number of neighbors** (typical 5–50). Dense regions get small $\sigma_i$,
-sparse regions large - the method adapts to local density. This is *the*
-hyperparameter: small perplexity → fragmented micro-clusters (can shatter
-real structure, or manufacture clusters out of noise); large → blurred toward
+sparse regions large, so the bandwidth adapts to local density. This is *the*
+hyperparameter: small perplexity → fragmented micro-clusters (can split real
+clusters, or produce apparent clusters from noise); large → blurred toward
 global structure.
 
-**Step 3 - low-dimensional similarities with a heavy tail.** In the 2-D map
+**Step 3: low-dimensional similarities with a heavy tail.** In the 2-D map
 $\{y_i\}$, define
 
 $$q_{ij} = \frac{(1 + \|y_i - y_j\|^2)^{-1}}{\sum_{k \ne l} (1 + \|y_k - y_l\|^2)^{-1}}$$
- - a **Student-t with 1 degree of freedom** (Cauchy), *not* a Gaussian. This
-asymmetry is the "t" in t-SNE and it is load-bearing. **The crowding
+
+This is a **Student-t with 1 degree of freedom** (Cauchy), *not* a Gaussian.
+This asymmetry is the "t" in t-SNE, and the method depends on it. **The crowding
 problem:** in $d$ dimensions the amount of room at distance $r$ from a point
-grows like $r^{d-1}$ - there are vastly more "moderately far" pairs than a
+grows like $r^{d-1}$, so there are far more "moderately far" pairs than a
 2-D map has area to place them. With a Gaussian on both sides, all those
-moderately-far pairs would need to be crammed into a thin 2-D annulus,
-crushing the map's center. The fix: give the low-dim kernel a **heavy tail**
+moderately-far pairs would need to fit into a thin 2-D annulus, compressing
+the map's center. The fix: give the low-dim kernel a **heavy tail**
 so a pair can sit *far apart* in the map while still keeping the small-but-
 nonzero $q_{ij}$ that its moderate $p_{ij}$ demands. Numbers: compare
-unnormalized kernels at distance $u$ - Gaussian $e^{-u^2/2}$ vs. t
+unnormalized kernels at distance $u$: Gaussian $e^{-u^2/2}$ vs. t
 $(1+u^2)^{-1}$. At $u = 2$: $0.135$ vs. $0.200$ (similar). At $u = 4$:
-$0.00034$ vs. $0.059$ - the t-kernel carries **~175× more mass**. Moderate
+$0.00034$ vs. $0.059$, so the t-kernel carries **~175× more mass**. Moderate
 high-D dissimilarity can be represented by a *large* map distance at low
 cost, so clusters spread out and white space appears between them.
 
-**Step 4 - the objective.** Match the two distributions by minimizing
+**Step 4: the objective.** Match the two distributions by minimizing
 
 $$\mathrm{KL}(P \,\|\, Q) = \sum_{i \ne j} p_{ij} \log \frac{p_{ij}}{q_{ij}}$$
 
 with gradient descent on the $y_i$ (the map coordinates are the parameters).
-The gradient has a beautifully mechanical form:
+The gradient is
 
-$$\frac{\partial\, \mathrm{KL}}{\partial y_i} = 4 \sum_j (p_{ij} - q_{ij})\, \frac{y_i - y_j}{1 + \|y_i - y_j\|^2}$$
- - springs between all pairs, with force proportional to the similarity
-mismatch (attract if $p > q$, repel if $q > p$), damped at long range by the
-t-kernel. **Why KL and not something symmetric:** KL$(P\|Q)$ charges
-$p \log(p/q)$ - putting *neighbors far apart* (big $p$, tiny $q$) costs a
-fortune, while putting *non-neighbors close-ish* (tiny $p$) costs almost
-nothing. t-SNE therefore fights hardest to preserve **local** structure and
-treats global arrangement as negotiable. That's a design choice, and it's
+$$\frac{\partial\, \mathrm{KL}}{\partial y_i} = 4 \sum_j (p_{ij} - q_{ij})\, \frac{y_i - y_j}{1 + \|y_i - y_j\|^2}.$$
+
+Each pair contributes a term along $y_i - y_j$ with coefficient proportional
+to $p_{ij} - q_{ij}$: a gradient step moves $y_i$ toward $y_j$ if $p > q$ and
+away if $q > p$, and the factor $1/(1 + \|y_i - y_j\|^2)$ shrinks the term for
+distant pairs. **Why KL and not something symmetric:** KL$(P\|Q)$ charges
+$p \log(p/q)$, so putting *neighbors far apart* (big $p$, tiny $q$) is very
+costly, while putting *non-neighbors close-ish* (tiny $p$) costs almost
+nothing. The objective therefore penalizes errors in **local** structure much
+more than errors in the global arrangement. That's a design choice, and it's
 also the source of every caveat below.
 
-### 12.3 Honest limitations (interviewers probe these)
+### 12.3 Limitations (interviewers probe these)
 
 1. **Non-parametric.** t-SNE learns coordinates for *these* $n$ points, not a
    map $f: \mathbb{R}^d \to \mathbb{R}^2$. A new point cannot be embedded
    without rerunning (or training a separate regressor). So: no
-   train/test-consistent features - **never feed t-SNE coordinates to a
+   train/test-consistent features; **never feed t-SNE coordinates to a
    downstream model.**
 2. **Between-cluster distances and cluster sizes are meaningless.** The
    per-point $\sigma_i$ expands dense clusters and shrinks sparse ones, and
-   the KL objective doesn't price global layout - so "these two clusters are
+   the KL objective doesn't price global layout, so "these two clusters are
    close in the map" and "this cluster is bigger" are artifacts, not
    findings. Only *neighborhood membership* is (approximately) trustworthy.
 3. **Stochastic and hyperparameter-sensitive.** Different seeds give
    different maps; different perplexities give different cluster counts; low
-   perplexity can conjure clusters from pure noise. Sanity-check any claimed
+   perplexity can produce apparent clusters from pure noise. Sanity-check any claimed
    structure across seeds and perplexities.
-4. **Cost.** Naive $O(n^2)$; Barnes–Hut approximation gets $O(n \log n)$.
+4. **Cost.** Naive $O(n^2)$; the Barnes–Hut approximation (a space-partitioning
+   tree that treats groups of distant points as one) gets $O(n \log n)$.
    Standard practice: PCA down to ~50 dims first (denoise + speed), then
    t-SNE.
 
 ### 12.4 UMAP in one paragraph
 
-UMAP keeps the same skeleton - high-dim neighborhood graph, low-dim layout,
-attract/repel optimization - with different machinery: it builds a $k$-NN
-graph and converts distances to fuzzy edge weights (theory framed in
-Riemannian-geometry/fuzzy-simplicial-set language, but operationally: a local,
-adaptive kernel like t-SNE's), then minimizes a **cross-entropy** between
-high- and low-dim edge weights by SGD with **negative sampling** - no global
-normalization over all $n^2$ pairs, which is the main reason it's much
-**faster** and scales to millions of points. Its repulsion structure tends to
+UMAP keeps the same structure (high-dim neighborhood graph, low-dim layout,
+attract/repel optimization) with different machinery: it builds a $k$-NN
+graph and converts distances to edge weights in $[0, 1]$ (the paper derives
+them from Riemannian geometry and topology, but operationally they come from
+a local, adaptive kernel like t-SNE's), then minimizes a **cross-entropy**
+between high- and low-dim edge weights by SGD with **negative sampling** (each
+step pushes a point away from a few randomly drawn points instead of from all
+others). There is no normalization over all $n^2$ pairs, which is the main
+reason it's much **faster** and scales to millions of points. Its repulsion structure tends to
 preserve somewhat more global/inter-cluster geometry, and it provides a
 `transform()` for new points (fit a reusable graph). The caveats, however,
 transfer almost verbatim: distances between clusters and cluster densities in
 a UMAP plot are still not quantitative evidence.
 
-### 12.5 The standard question: "PCA or t-SNE - when?"
+### 12.5 The standard question: "PCA or t-SNE, and when?"
 
 **PCA** when you need: features for a downstream model (deterministic,
 train/test-consistent linear map), compression/denoising, speed on huge data,
 interpretable directions (loadings), preserved global/variance structure, or
 a preprocessing step. **t-SNE/UMAP** when you need: a 2-D *picture* of
-cluster structure for human eyes - exploratory analysis only. They are not
+cluster structure for human eyes, for exploratory analysis only. They are not
 competitors; the standard pipeline is PCA → 50 dims → t-SNE → plot. Trap
-follow-ups: "Can t-SNE embed new points?" (no - non-parametric; UMAP can.)
-"Two clusters are far apart in your t-SNE plot - what does that tell you?"
-(Nothing quantitative.) "Why does t-SNE use a t-distribution?" (Crowding  - 
-heavy tail lets moderate dissimilarities map to large distances; see the
-175× number above.)
+follow-ups: "Can t-SNE embed new points?" (No: it is non-parametric; UMAP can.)
+"Two clusters are far apart in your t-SNE plot; what does that tell you?"
+(Nothing quantitative.) "Why does t-SNE use a t-distribution?" (The crowding
+problem: the heavy tail lets moderate dissimilarities map to large distances;
+see the 175× number above.)
 
 ---
 
@@ -1118,10 +1187,10 @@ production side (retrieval/ranking, serving) is module 6
 
 Users rate (or click, watch, buy) items. Arrange into
 $R \in \mathbb{R}^{m \times n}$, users × items, **mostly missing**: the
-Netflix Prize matrix was ~480k users × 17.8k movies with 100M ratings - 98.8%
-empty. Let $\Omega$ = the set of observed $(u, i)$ pairs. Two tasks: predict
+Netflix Prize matrix was ~480k users × 17.8k movies with 100M ratings, so
+98.8% of entries are empty. Let $\Omega$ = the set of observed $(u, i)$ pairs. Two tasks: predict
 missing entries (rating prediction) or rank each user's unseen items (top-$k$
-recommendation - usually what production actually wants).
+recommendation, which is usually what production systems need).
 
 Tiny running example:
 
@@ -1132,9 +1201,9 @@ Tiny running example:
 | Carol | 1  | ?  | 5  | 4  |
 | Dave  | ?  | 1  | 4  | 5  |
 
-Two taste groups hiding in plain sight: {Alice, Bob} love {M1, M2}; {Carol,
-Dave} love {M3, M4}. Every method below is a way of discovering and
-exploiting that structure.
+Two taste groups are visible: {Alice, Bob} rate {M1, M2} high; {Carol,
+Dave} rate {M3, M4} high. Every method below is a way of finding and using
+that structure.
 
 ### 13.2 Neighborhood CF: "people like you liked..."
 
@@ -1142,8 +1211,8 @@ exploiting that structure.
 by cosine over co-rated items,
 $\text{sim}(u, v) = \frac{\sum_{i \in \Omega_u \cap \Omega_v} r_{ui} r_{vi}}{\|r_u\| \|r_v\|}$,
 with the norms also taken over the co-rated items $\Omega_u \cap \Omega_v$
-(Pearson = cosine after subtracting each user's mean rating - corrects for
-harsh vs. generous raters). Numbers from the tiny matrix: Alice–Bob co-rated
+(Pearson = cosine after subtracting each user's mean rating, which corrects
+for harsh vs. generous raters). Numbers from the tiny matrix: Alice–Bob co-rated
 {M1, M2}: $\frac{5\cdot4 + 4\cdot5}{\sqrt{41}\sqrt{41}} = 40/41 = 0.976$.
 Alice–Carol co-rated {M1, M4}: $\frac{5\cdot1 + 1\cdot4}{\sqrt{26}\sqrt{17}}
 = 9/21.0 = 0.43$. Bob is Alice's neighbor; predict Alice's M3 from Bob's
@@ -1156,81 +1225,87 @@ Y") and usually wins in practice: item neighborhoods are more stable over
 time, items are often fewer than users, and the similarity matrix can be
 precomputed offline (this was Amazon's classic recommender). Weaknesses of
 both: with 99% sparsity, co-rating overlaps are tiny and similarities noisy;
-$O(m^2)$ or $O(n^2)$ pairs; and no generalization - two users with disjoint
+$O(m^2)$ or $O(n^2)$ pairs; and no generalization: two users with disjoint
 histories have similarity 0 even if their tastes are identical.
 
 ### 13.3 Matrix factorization: low-rank structure, and why plain SVD fails
 
-The tiny matrix is morally **rank ~2**: a user is described by "how much do I
+The tiny matrix is approximately **rank 2**: a user is described by "how much do I
 like taste-group A vs. B", an item by "how much am I an A vs. B movie".
 Generalize: give each user a latent vector $p_u \in \mathbb{R}^r$ and each
 item $q_i \in \mathbb{R}^r$, and model
 
 $$\hat r_{ui} = p_u^\top q_i \qquad \Longleftrightarrow \qquad \hat R = P Q^\top \;\; (\text{rank} \le r).$$
 
-A rating is the *alignment* of a taste vector with an item vector - the same
+A rating is the *alignment* of a taste vector with an item vector, the same
 "dot product in a learned latent space" that §9.3's SVD provides. So why not
-just SVD the ratings matrix? **Because Eckart–Young answers the wrong
-question.** SVD gives the best rank-$r$ approximation in Frobenius norm  - 
-a sum over **all** $mn$ entries. Our matrix has 99% of entries *missing*.
-Treat them as zeros and the objective is dominated by reconstructing zeros:
-the model learns "everyone is indifferent to almost everything" and drags all
-predictions toward 0. Impute the mean instead, and 99% of your "data" is your
-own imputation - the SVD dutifully reconstructs the fill, not the signal.
-The honest objective sums over observed entries only:
+just SVD the ratings matrix? **Because the Eckart–Young theorem solves a
+different problem.** It says truncated SVD gives the best rank-$r$
+approximation in Frobenius norm, a sum over **all** $mn$ entries. Our matrix
+has 99% of entries *missing*. Treat them as zeros and the objective is
+dominated by reconstructing zeros, so the fit pulls all predictions toward 0.
+Impute the mean instead, and 99% of the "data" is your own imputation; the
+SVD reconstructs the imputed values, not the observed ratings. The correct
+objective sums over observed entries only:
 
 $$\min_{P, Q} \sum_{(u,i) \in \Omega} (r_{ui} - p_u^\top q_i)^2 + \lambda\big(\textstyle\sum_u \|p_u\|^2 + \sum_i \|q_i\|^2\big),$$
 
-and with a mask inside the sum, the SVD's closed form is gone - the problem
-is non-convex in $(P, Q)$ jointly. (Regularization is not optional: a user
-with 3 ratings and $r = 20$ free parameters is §3's overfitting story in
-miniature.)
+and with a mask inside the sum, the SVD closed form no longer applies, and the
+problem is non-convex in $(P, Q)$ jointly. (Regularization is not optional: a
+user with 3 ratings and $r = 20$ free parameters is a regression with more
+unknowns than equations, so without the $\lambda$ term it fits the 3 ratings
+exactly in infinitely many ways.)
 
-**Add biases before factors.** Most rating variance isn't interaction - it's
-"this movie is widely loved" and "this user grades harshly". Model them
+**Add biases before factors.** Much of the rating variance is not
+interaction but "this movie is widely liked" and "this user rates harshly". Model them
 explicitly:
 
 $$\hat r_{ui} = \mu + b_u + b_i + p_u^\top q_i,$$
 
-with $b_u, b_i$ regularized too. Netflix-Prize lore worth repeating: baseline
+with $b_u, b_i$ regularized too. A known result from the Netflix Prize: baseline
 biases alone captured a large share of the achievable error reduction; the
-factors then model genuine taste rather than popularity. (This is the same
-"don't make the interesting part of the model explain the boring variance"
-move as centering data before PCA, §9.)
+factors then model genuine taste rather than popularity. (Same reason PCA
+centers the data first, §9: remove the mean structure so the factors model
+only the remaining variation.)
 
 ### 13.4 ALS: alternating least squares, derived
 
 The objective is non-convex jointly but **biconvex**: fix $Q$ and it is
 convex in $P$; fix $P$ and convex in $Q$. Better: with $Q$ fixed, the
-objective **decouples per user** - user $u$'s terms are
+objective **decouples per user**: user $u$'s terms are
 
 $$\sum_{i \in \Omega_u} (r_{ui} - p_u^\top q_i)^2 + \lambda \|p_u\|^2.$$
 
-Stare at it: this is exactly **ridge regression** (§3.1) with design matrix
+This is exactly **ridge regression** (§3.1) with design matrix
 $Q_u$ (rows = factor vectors of the items $u$ rated), targets $r_u$, and
-weights $p_u$. Closed form, straight from Exercise 2's derivation:
+weights $p_u$. Its closed form, from §3.1:
 
 $$\boxed{\; p_u = (Q_u^\top Q_u + \lambda I)^{-1} Q_u^\top r_u \;}$$
- - an $r \times r$ solve per user, always invertible for $\lambda > 0$, and
-embarrassingly parallel across users. Then fix $P$ and update every $q_i$
+
+This is an $r \times r$ solve per user, always invertible for $\lambda > 0$,
+and independent across users, so it parallelizes directly. Then fix $P$ and update every $q_i$
 symmetrically from the users who rated it. Each half-step *exactly* minimizes
-the objective over its block, so the loss is monotonically non-increasing  - 
-the third appearance of the alternating-minimization pattern in these notes
+the objective over its block, so the loss is monotonically non-increasing.
+This is the third appearance of the alternating-minimization pattern in these notes
 (Lloyd's §8.2, EM §11.2, ALS here). Biases fold in via closed-form updates
-too (a bias is a ridge regression on a constant feature; the scratch script
-does exactly this).
+too (a bias is a ridge regression on a constant feature;
+`matrix_factorization_scratch.ipynb` does exactly this).
 
 **ALS vs. SGD.** SGD updates per observed rating
 ($e_{ui} = r_{ui} - \hat r_{ui}$; $p_u \mathrel{+}= \eta(e_{ui} q_i - \lambda
-p_u)$, symmetric for $q_i$) - cheap per epoch, trivially handles biases,
-needs a learning rate. ALS - no learning rate, parallelizes per row, and is
-the standard choice for implicit-feedback weighting where the "sum over all
-entries" trick makes SGD infeasible. Both are in
-`matrix_factorization_scratch.ipynb`; they reach essentially the same RMSE.
+p_u)$, symmetric for $q_i$): cheap per epoch, trivially handles biases,
+needs a learning rate. ALS needs no learning rate, parallelizes per row, and
+is the standard choice for implicit feedback (clicks or views instead of
+ratings, §13.5), where the loss sums
+over all $mn$ entries: ALS handles that sum in closed form (the all-entries
+part of $Q^\top Q$ is computed once per sweep), while SGD would have to visit
+every entry. Both are in
+`matrix_factorization_scratch.ipynb`; they reach essentially the same test RMSE
+(0.52 for SGD, 0.54 for ALS, with a noise floor of 0.4).
 
 ### 13.5 Implicit feedback and BPR
 
-Real logs rarely contain ratings - they contain clicks, watches, purchases:
+Real logs rarely contain ratings; they contain clicks, watches, purchases:
 **positive-only** signal where absence is ambiguous (didn't like it, or never
 saw it?). Regressing on the 1s alone is degenerate (predict 1 everywhere).
 Two standard fixes: (1) **implicit ALS** (Hu–Koren–Volinsky): treat all
@@ -1242,31 +1317,32 @@ $j$, and maximize
 
 $$\sum_{(u,i,j)} \log \sigma\big(\hat x_{ui} - \hat x_{uj}\big) - \lambda\|\Theta\|^2,$$
 
-i.e. logistic regression (§2!) on score *differences*: "the probability $u$
+i.e. logistic regression (§2) on score *differences*: "the probability $u$
 prefers $i$ over $j$". SGD with sampled negatives; optimizes a smooth proxy
-for AUC. This pairwise-ranking idea is the ancestor of most modern
+for AUC (the probability that a random positive item is scored above a random
+negative one). This pairwise-ranking idea is the ancestor of most modern
 recommender losses.
 
 ### 13.6 Cold start
 
-A new item has no interactions, so its $q_i$ is whatever the regularizer
-left it - zero. Same for a new user. Pure CF is structurally blind here: it
-generalizes across the interaction graph, and a new node isn't connected to
-it. Mitigations, roughly in order of deployment reality: popularity fallback;
+A new item has no interactions, so its $q_i$ receives no data term and the
+L2 penalty sets it to zero. Same for a new user. Pure CF cannot handle this
+case: it transfers information only along observed interactions, and a new
+user or item has none. Mitigations, roughly in order of deployment reality: popularity fallback;
 **content features** (build $q_i$ from metadata/text/image embeddings so an
 unseen item lands near similar seen ones); hybrid models mixing CF and
-content; onboarding questionnaires (buy a few interactions cheaply);
+content; onboarding questionnaires (collect a few interactions up front);
 exploration/bandits (show new items deliberately to gather signal fast).
 
 ### 13.7 Bridge to two-tower models
 
-Matrix factorization *is* a two-tower model in its most degenerate form: the
+Matrix factorization *is* a two-tower model in its simplest form: the
 "user tower" is an embedding lookup $u \mapsto p_u$, the "item tower" is
 $i \mapsto q_i$, and the score is their dot product. Replace the lookups with
-neural networks over **features** - user history, demographics, item
-content - and you keep everything that makes MF deployable (a dot-product
+neural networks over **features** (user history, demographics, item
+content) and you keep everything that makes MF deployable (a dot-product
 score means candidate retrieval is a nearest-neighbor search over
-precomputed item vectors, served by an ANN index) while fixing cold start:
+precomputed item vectors, served by an approximate-nearest-neighbor (ANN) index) while fixing cold start:
 an unseen item gets a vector from its features, not from interactions it
 doesn't have. Module 6 (`../06_ml_systems/`) picks this up on the production
 side: retrieval → ranking pipelines, ANN serving, and training two-tower
@@ -1721,12 +1797,12 @@ smaller learning rate needs more rounds and usually generalizes better.
 
 ## Exit checklist
 
-- [ ] Cold, on paper: derive squared loss from Gaussian MLE, then the normal equation - 5 min
-- [ ] Derive the logistic-regression gradient: sigmoid + cross-entropy → (p − y)x - 5 min
-- [ ] State L2 = Gaussian prior, L1 = Laplace prior, and give the corner argument for why L1 sparsifies - 4 min
-- [ ] Explain the kernel trick from the SVM dual: where K(x, x') enters and why you never form φ(x) - 4 min
-- [ ] Write the bagging variance formula with correlation ρ and say what random-forest decorrelation adds - 4 min
-- [ ] Explain boosting as gradient descent in function space: what each new tree fits and why - 3 min
-- [ ] Derive PCA both ways (variance maximization, reconstruction error) and connect to SVD - 5 min
+- [ ] Cold, on paper: derive squared loss from Gaussian MLE, then the normal equation (5 min)
+- [ ] Derive the logistic-regression gradient: sigmoid + cross-entropy → (p − y)x (5 min)
+- [ ] State L2 = Gaussian prior, L1 = Laplace prior, and give the corner argument for why L1 sparsifies (4 min)
+- [ ] Explain the kernel trick from the SVM dual: where K(x, x') enters and why you never form φ(x) (4 min)
+- [ ] Write the bagging variance formula with correlation ρ and say what random-forest decorrelation adds (4 min)
+- [ ] Explain boosting as gradient descent in function space: what each new tree fits and why (3 min)
+- [ ] Derive PCA both ways (variance maximization, reconstruction error) and connect to SVD (5 min)
 
-All boxes cold before moving on - a miss goes into practice/queue.tsv.
+All boxes cold before moving on; a miss goes into practice/queue.tsv.
