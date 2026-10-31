@@ -635,18 +635,14 @@ $$A = U \Sigma V^\top \tag{1.6b}$$
   $v_i$ (§1.2). This is the job $Q^{-1}$ did.
 - **$\Sigma$ stretches** amount $i$ by $\sigma_i \ge 0$. These are the
   **singular values**, numbered largest first. (Σ also changes the length
-  from $d$ to $n$: it pads with zeros when $n > d$ and drops entries when
-  $n < d$.)
+  from $d$ to $n$, padding with zeros.)
 - **$U$ rebuilds the output** from the stretched amounts: $(a_1, a_2, \dots)$
   becomes $a_1 u_1 + a_2 u_2 + \dots$. Its columns are the $u_i$. This is the
   job $Q$ did.
 
-In the full SVD, $U$ is $n \times n$ and $V$ is $d \times d$, and both are
-square with perpendicular unit columns. A square matrix like that is a
-rotation (possibly with a reflection), so $V^\top$ and $U$ are rotations.
-That gives the section title: rotate, stretch, rotate. (The compact SVD keeps
-only the first few columns of $U$; that $U$ is not square, so it is not a
-rotation, but its columns are still perpendicular unit vectors.)
+A matrix whose rows or columns are perpendicular unit vectors is a rotation
+(possibly with a reflection), so $V^\top$ and $U$ are rotations. That gives
+the section title: rotate, stretch, rotate.
 
 In one sentence: $v_1$ is the input direction $A$ stretches most, $\sigma_1$
 is how much, and $u_1$ is the direction it lands on. $v_2$ is the same among
@@ -694,17 +690,10 @@ directions $A$ stretches most. The squared length of an output is
 
 $$\|A v\|^2 = (Av) \cdot (Av) = v^\top A^\top A\, v$$
 
-so the $d \times d$ matrix $M = A^\top A$ records how much $A$ stretches every
+so the $d \times d$ matrix $A^\top A$ records how much $A$ stretches every
 input direction. It is symmetric, $(A^\top A)^\top = A^\top A$, so Part A
-applies: its eigenvectors $q_1, q_2, \dots$ are perpendicular unit vectors,
-with eigenvalues $\lambda_1 \ge \lambda_2 \ge \dots$. The most-stretched
-direction is $q_1$. Write any unit vector as $v = \sum_i c_i q_i$, with
-$\sum_i c_i^2 = 1$. Then $v^\top M v = \sum_i \lambda_i c_i^2$, an average of
-the $\lambda_i$ with weights $c_i^2$, so it is at most $\lambda_1$, and it
-equals $\lambda_1$ when $v = q_1$. Among directions perpendicular to $q_1$ the
-same argument picks $q_2$, and so on. (This ratio $v^\top M v$ for unit $v$ is
-called the **Rayleigh quotient**.) So the $v_i$ are the eigenvectors of
-$A^\top A$, and its eigenvalues are the squared stretches $\sigma_i^2$. Substituting (1.6b), with
+applies: its eigenvectors are perpendicular, and they are the $v_i$. Its
+eigenvalues are the squared stretches $\sigma_i^2$. Substituting (1.6b), with
 $U^\top U = I$, confirms this:
 
 $$A^\top A = V \Sigma^\top U^\top U \Sigma V^\top = V \Sigma^2 V^\top \tag{1.6c}$$
@@ -818,10 +807,8 @@ $$A \approx \sum_{i=1}^{k} \sigma_i \, u_i v_i^\top \tag{1.6e}$$
 The dropped terms are the ones with the smallest $\sigma$, so the loss is
 small when the $\sigma_i$ fall off quickly, which they usually do for real
 data. No other choice of $k$ patterns does better: the **Eckart–Young
-theorem** says (1.6e) is the best rank-$k$ approximation of $A$, with error
-$\|A - A_k\|_F^2 = \sum_{i > k} \sigma_i^2$ in the Frobenius norm (the square
-root of the sum of squared entries) and $\sigma_{k+1}$ in the spectral norm
-(the largest stretch).
+theorem** says (1.6e) is the best approximation of $A$ that uses $k$
+patterns.
 
 **How much it saves.** A ratings matrix with $n = 10{,}000$ users and
 $d = 500$ movies holds $5{,}000{,}000$ numbers. The top $k$ terms store $k$
@@ -910,9 +897,8 @@ $20 \times 10{,}501 = 210{,}020$, about 4% of the original.
 - **Model compression**: replace a trained weight matrix with its truncated
   SVD.
 - **LoRA**: assume the *fine-tuning update* $\Delta W$ is low-rank and learn
-  it directly as $\Delta W = W_B W_A$, a tall matrix times a wide one with a
-  small inner dimension: a few patterns' worth of change instead of a whole
-  new matrix.
+  it directly as $\Delta W = BA$ with a small inner dimension, a few patterns'
+  worth of change instead of a whole new matrix.
 
 ## 1.7 Norms: what "big" means
 
