@@ -622,7 +622,7 @@ axes are always perpendicular.
 #### Part B: the SVD - the same idea for any matrix
 
 **The idea.** Part A described $A$ in three steps: measure the input along
-the eigenvectors, stretch each amount, rebuild along the same eigenvectors.
+the eigenvectors, stretch each amount, rebuild along the original basis.
 The SVD keeps the three steps but lets the input and the output use
 different directions: one set of perpendicular unit directions for inputs
 ($v_1, v_2, \dots$) and another for outputs ($u_1, u_2, \dots$). That is
@@ -635,7 +635,10 @@ $$A = U \Sigma V^\top \tag{1.6b}$$
   $v_i$ (§1.2). This is the job $Q^{-1}$ did.
 - **$\Sigma$ stretches** amount $i$ by $\sigma_i \ge 0$. These are the
   **singular values**, numbered largest first. (Σ also changes the length
-  from $d$ to $n$, padding with zeros.)
+  from $d$ to $n$, padding with zeros.) For a $3 \times 2$ matrix such as
+  $B$ ($d = 2$ inputs, $n = 3$ outputs), $\Sigma$ is $3 \times 2$:
+
+  $$\Sigma \begin{bmatrix} a_1 \\ a_2 \end{bmatrix} = \begin{bmatrix} \sigma_1 & 0 \\ 0 & \sigma_2 \\ 0 & 0 \end{bmatrix} \begin{bmatrix} a_1 \\ a_2 \end{bmatrix} = \begin{bmatrix} \sigma_1 a_1 \\ \sigma_2 a_2 \\ 0 \end{bmatrix}$$
 - **$U$ rebuilds the output** from the stretched amounts: $(a_1, a_2, \dots)$
   becomes $a_1 u_1 + a_2 u_2 + \dots$. Its columns are the $u_i$. This is the
   job $Q$ did.
@@ -677,97 +680,97 @@ the stretch makes the ellipse (radii $\sigma_1, \sigma_2$), the last
 rotation turns it into place. The inputs $v_1, v_2$ land on
 $\sigma_1 u_1, \sigma_2 u_2$.*
 
-The running example has 3 rows and 2 columns:
+**Finding the SVD, on an example.** Take
 
 $$B = \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}$$
 
-It takes 2-number inputs to 3-number outputs, so it has no eigenvectors. It
-still has an SVD. Finding it takes two steps: $V$ and $\Sigma$ first, then
-$U$.
+It takes 2-number inputs to 3-number outputs, so it has no eigenvectors, but
+it has an SVD. Finding it takes two steps.
 
-**Finding $V$ and $\Sigma$: use $A^\top A$.** The question is which input
-directions $A$ stretches most. The squared length of an output is
+**Step 1: find the input directions $B$ stretches most ($V$ and $\Sigma$).**
+Send a few unit-length inputs through $B$ and measure how long the outputs
+are:
 
-$$\|A v\|^2 = (Av) \cdot (Av) = v^\top A^\top A\, v$$
+| input $v$ | output $Bv$ | squared length |
+|---|---|---|
+| $[1, 0]$ | $[1, 0, 1]$ | 2 |
+| $[0, 1]$ | $[1, 1, 0]$ | 2 |
+| $[1, 1]/\sqrt{2}$ | $[2, 1, 1]/\sqrt{2}$ | **3** (most) |
+| $[1, -1]/\sqrt{2}$ | $[0, -1, 1]/\sqrt{2}$ | **1** (least) |
 
-so the $d \times d$ matrix $A^\top A$ records how much $A$ stretches every
-input direction. It is symmetric, $(A^\top A)^\top = A^\top A$, so Part A
-applies: its eigenvectors are perpendicular, and they are the $v_i$. Its
-eigenvalues are the squared stretches $\sigma_i^2$. Substituting (1.6b), with
-$U^\top U = I$, confirms this:
+So $v_1 = [1, 1]/\sqrt{2}$ with stretch $\sigma_1 = \sqrt{3}$, and
+$v_2 = [1, -1]/\sqrt{2}$ with $\sigma_2 = 1$. The two are perpendicular.
+
+Trying directions does not scale, so use a shortcut. The squared length of
+any output is
+
+$$\|A v\|^2 = (Av) \cdot (Av) = v^\top (A^\top A)\, v$$
+
+so the square matrix $A^\top A$ holds the stretch of every input direction.
+It is symmetric, so Part A applies: its eigenvectors are the $v_i$ and its
+eigenvalues are the squared stretches $\sigma_i^2$. For $B$:
+
+$$B^\top B = \begin{bmatrix} 1 & 0 & 1 \\ 1 & 1 & 0 \end{bmatrix}
+\begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}
+= \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$$
+
+This is the §1.5 matrix, with eigenvectors $[1, 1]$, $[1, -1]$ and
+eigenvalues 3, 1: the same answer as the table. To confirm in general,
+substitute (1.6b) and use $U^\top U = I$ (the columns of $U$ are
+perpendicular unit vectors):
 
 $$A^\top A = V \Sigma^\top U^\top U \Sigma V^\top = V \Sigma^2 V^\top \tag{1.6c}$$
 
-which is the form $Q \Lambda Q^{-1}$ of (1.6a) with $Q = V$ and
+This is the eigendecomposition $Q \Lambda Q^{-1}$ of (1.6a) with $Q = V$ and
 $\Lambda = \Sigma^2$.
 
-**Finding $U$: send each $v_i$ through $A$.** Since $A v_i = \sigma_i u_i$,
-the direction $u_i$ is wherever $A$ sends $v_i$, rescaled to length 1. The
-length to divide by is $\sigma_i$, because
-$\|A v_i\|^2 = v_i^\top A^\top A\, v_i = \sigma_i^2$:
+**Step 2: find where they land ($U$).** $A v_i = \sigma_i u_i$, so $u_i$ is
+$A v_i$ rescaled to length 1:
 
 $$u_i = \frac{A v_i}{\sigma_i}$$
 
-(For $\sigma_i = 0$, $A v_i = 0$ has no direction; fill in any perpendicular
-unit vectors.) The $u_i$ come out perpendicular to each other automatically.
-For $i \ne j$, use $(Ax) \cdot y = x \cdot (A^\top y)$ and then
-$A^\top A\, v_j = \sigma_j^2 v_j$:
+For $B$:
 
-$$u_i \cdot u_j = \frac{(A v_i) \cdot (A v_j)}{\sigma_i \sigma_j}
-= \frac{v_i \cdot (A^\top A\, v_j)}{\sigma_i \sigma_j}
-= \frac{\sigma_j^2\, (v_i \cdot v_j)}{\sigma_i \sigma_j} = 0$$
+$$u_1 = \frac{B v_1}{\sqrt{3}} = \frac{[2, 1, 1]}{\sqrt{6}}
+\qquad u_2 = \frac{B v_2}{1} = \frac{[0, -1, 1]}{\sqrt{2}}$$
 
-**The recipe on $B$.**
+These have 3 entries, because they are outputs. They are perpendicular:
+$u_1 \cdot u_2 = (0 - 1 + 1)/\sqrt{12} = 0$. This holds for every matrix,
+because $(A v_i) \cdot (A v_j) = v_i \cdot (A^\top A\, v_j) =
+\sigma_j^2\, (v_i \cdot v_j) = 0$. (If some $\sigma_i = 0$, then
+$A v_i = 0$ has no direction; pick any unit vector perpendicular to the
+other $u$'s.)
 
-1. **Form $B^\top B$:**
-
-   $$B^\top B = \begin{bmatrix} 1 & 0 & 1 \\ 1 & 1 & 0 \end{bmatrix}
-   \begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}
-   = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$$
-
-   which is the §1.5 matrix.
-
-2. **Eigendecompose it.** §1.5 found $[1,1]$ with eigenvalue 3 and $[1,-1]$
-   with eigenvalue 1. Normalize, and take square roots:
-
-   $$v_1 = \frac{[1,1]}{\sqrt{2}}, \quad v_2 = \frac{[1,-1]}{\sqrt{2}}
-   \qquad \sigma_1 = \sqrt{3}, \quad \sigma_2 = 1$$
-
-3. **Output directions:**
-
-   $$u_1 = \frac{B v_1}{\sigma_1} = \frac{[2, 1, 1]}{\sqrt{6}}
-   \qquad u_2 = \frac{B v_2}{\sigma_2} = \frac{[0, -1, 1]}{\sqrt{2}}$$
-
-   These have 3 entries: they live in the output space. Check:
-   $u_1 \cdot u_2 = (0 - 1 + 1)/\sqrt{12} = 0$.
-
-The $u_i$ are the columns of $U$, the $\sigma_i$ sit on $\Sigma$'s diagonal,
-and the $v_i$ are the rows of $V^\top$:
+**Put together.** The $u_i$ are the columns of $U$, the $\sigma_i$ sit on
+$\Sigma$'s diagonal, and the $v_i$ are the rows of $V^\top$:
 
 $$B = U \Sigma V^\top =
-\begin{bmatrix} \tfrac{2}{\sqrt{6}} & 0 \\ \tfrac{1}{\sqrt{6}} & -\tfrac{1}{\sqrt{2}} \\ \tfrac{1}{\sqrt{6}} & \tfrac{1}{\sqrt{2}} \end{bmatrix}
+\begin{bmatrix} \dfrac{2}{\sqrt{6}} & 0 \\[6pt] \dfrac{1}{\sqrt{6}} & -\dfrac{1}{\sqrt{2}} \\[6pt] \dfrac{1}{\sqrt{6}} & \dfrac{1}{\sqrt{2}} \end{bmatrix}
 \begin{bmatrix} \sqrt{3} & 0 \\ 0 & 1 \end{bmatrix}
-\begin{bmatrix} \tfrac{1}{\sqrt{2}} & \tfrac{1}{\sqrt{2}} \\ \tfrac{1}{\sqrt{2}} & -\tfrac{1}{\sqrt{2}} \end{bmatrix}$$
+\begin{bmatrix} \dfrac{1}{\sqrt{2}} & \dfrac{1}{\sqrt{2}} \\[6pt] \dfrac{1}{\sqrt{2}} & -\dfrac{1}{\sqrt{2}} \end{bmatrix}$$
 
-Multiplying out gives $B$ exactly. The factors send each $v_i$ where $B$
-does, and the $v_i$ span the input space, so by §1.4 they agree with $B$ on
-every input. (This is the *compact* form, which keeps only the columns with
-nonzero $\sigma$. The *full* form pads $U$ to $3 \times 3$ and $\Sigma$ to
-$3 \times 2$; the product is the same.)
+Multiplying out gives $B$. The reason: the right side sends $v_1$ and $v_2$
+exactly where $B$ does, and every input is a mix of $v_1$ and $v_2$, so the
+two agree on every input (§1.4).
 
-None of these steps needed anything special about $B$, so **every matrix has
-an SVD: every linear map is rotate → stretch → rotate.**
+Here $U$ is $3 \times 2$ and $\Sigma$ is $2 \times 2$. This is the *compact*
+form. The *full* form adds a third column to $U$ and a row of zeros to
+$\Sigma$, making it the $3 \times 2$ $\Sigma$ shown above; the product is the
+same.
+
+Nothing in the two steps used anything special about $B$, so **every matrix
+has an SVD: every linear map is rotate → stretch → rotate.**
 
 Two checks:
 
-- For a symmetric matrix with nonnegative eigenvalues, such as the §1.5 $A$,
-  the SVD is the eigendecomposition with unit eigenvectors:
-  $u_i = v_i = [1, \pm 1]/\sqrt{2}$, $\sigma_1 = 3$, $\sigma_2 = 1$.
-- The shear $S = \begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$ has no
-  eigendecomposition. $S[x, y] = [x + y,\ y] = \lambda [x, y]$ forces
-  $\lambda = 1$ and then $y = 0$, so its only eigen-direction is $[1, 0]$,
-  one short of the two needed. Its SVD exists anyway:
-  $\sigma_1 \approx 1.62$, $\sigma_2 \approx 0.62$.
+- **A symmetric matrix with nonnegative eigenvalues**, such as the §1.5 $A$:
+  the SVD is the eigendecomposition, with $u_i = v_i = [1, \pm 1]/\sqrt{2}$,
+  $\sigma_1 = 3$, $\sigma_2 = 1$.
+- **The shear** $S = \begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$ has no
+  eigendecomposition: $S[x, y] = [x + y,\ y] = \lambda [x, y]$ forces
+  $\lambda = 1$ and then $y = 0$, so $[1, 0]$ is its only eigen-direction,
+  one short of two. Its SVD exists anyway, with $\sigma_1 \approx 1.62$ and
+  $\sigma_2 \approx 0.62$.
 
 #### Part C: compressing a matrix - why ML cares
 
@@ -902,87 +905,83 @@ $20 \times 10{,}501 = 210{,}020$, about 4% of the original.
 
 ## 1.7 Norms: what "big" means
 
-A **norm** turns a vector into one number: its size. ML needs this
-constantly:
+A **norm** $\|x\|$ is the size of a vector: one number. ML uses it for the
+distance between embeddings, $\|a - b\|$, for weight decay, and for gradient
+clipping.
 
-- **Distance between embeddings** $a$ and $b$: the size of their difference,
-  $\|a - b\|$.
-- **Weight decay:** penalize the size of the weights.
-- **Gradient clipping:** if the gradient's size is above a threshold, scale it
-  down.
+There is more than one way to measure size. For $x = [3, -4, 0]$:
 
-There is more than one sensible way to measure size. $\|x\|$ (double bars)
-means the size of $x$, and a subscript says which way. Measure
-$x = [3, -4, 0]$ three ways:
+- **L2**, straight-line length: $\|x\|_2 = \sqrt{9 + 16 + 0} = 5$.
+- **L1**, sum of absolute values: $\|x\|_1 = 3 + 4 + 0 = 7$.
+- **L∞**, largest absolute entry: $\|x\|_\infty = 4$.
 
-- **L2, straight-line length:**
-  $\|x\|_2 = \sqrt{3^2 + (-4)^2 + 0^2} = 5$.
-- **L1, sum of the absolute values:** $\|x\|_1 = 3 + 4 + 0 = 7$. This is the
-  distance if you can only walk along the axes.
-- **L∞, the largest entry:** $\|x\|_\infty = \max(3, 4, 0) = 4$.
+**As a penalty on the weights, L2 shrinks and L1 selects.**
 
-Same vector, sizes 5, 7 and 4. Each norm suits a different job.
+- **L2** adds $\lambda \|w\|_2^2$ to the loss, so each weight's gradient gets
+  $2\lambda w_i$: a pull proportional to the weight. The pull fades near
+  zero, so weights shrink but almost never reach exactly zero. This is
+  weight decay.
+- **L1** adds $\lambda \|w\|_1$, so each gradient gets $\pm\lambda$: the same
+  pull however small the weight. A weight stays at exactly zero whenever the
+  loss pulls on it with less than $\lambda$. This is the lasso; the weights
+  left nonzero are the selected features.
 
-**L2 shrinks every weight a little (weight decay).** Adding
-$\lambda \|w\|_2^2 = \lambda \sum_i w_i^2$ to the loss adds $2\lambda w_i$ to
-each weight's gradient: a pull toward zero proportional to the weight's size.
-Big weights are pulled hard and small weights barely at all, so the pull
-fades as a weight approaches zero. Weights shrink, but almost none reach
-exactly zero.
+For $w = 0.05$ and $\lambda = 0.1$: L2 pulls with $2 \cdot 0.1 \cdot 0.05 =
+0.01$, L1 with the full $0.1$.
 
-**L1 sets some weights to exactly zero (sparsity).** Adding
-$\lambda \|w\|_1 = \lambda \sum_i |w_i|$ adds $+\lambda$ or $-\lambda$ to each
-weight's gradient: a pull of the same strength no matter how small the
-weight is. For a small weight $w = 0.05$ with $\lambda = 0.1$, L2 pulls with
-$2 \cdot 0.1 \cdot 0.05 = 0.01$ while L1 pulls with the full $0.1$. So under
-L1 a small weight does not just shrink, it reaches zero. At zero, moving it
-either way costs $\lambda$ per unit, so the best value is exactly zero unless
-the loss gradient for that weight is bigger than $\lambda$. (Plain gradient
-steps overshoot and jitter around zero; solvers that hit zero exactly use a
-step that clips to zero, called soft-thresholding.) This is the
-**lasso**, and it is why "L1 selects features": the features whose weights
-survive are the selected ones.
+**The picture.** Think of the penalty as a budget: the weights must stay
+inside the norm's **unit ball**, all $w$ with $\|w\| \le 1$. It is a circle
+for L2, a diamond for L1, a square for L∞.
 
-**The same thing as a picture.** The set of vectors with size at most 1,
-$\|x\| \le 1$, is that norm's **unit ball**. L2's is a circle, L1's is a
-diamond, and L∞'s is a square (figure below). If the weights must stay inside
-the ball, the best weights are where the loss contours first touch it. The
-diamond's corners stick out along the axes, so that first touch is often a
-corner, where every other coordinate is zero. The circle has no corners, so
-the touch point usually has no zero coordinates.
+Say the best weights with no penalty are $(2, 0.5)$, outside the ball. Draw
+rings of equal loss around that point and grow them until one first touches
+the ball (figure below). The touch point is the lowest-loss point inside the
+ball:
+
+- **L2 circle:** it touches at $(0.97, 0.24)$. Both weights shrink, and
+  neither is zero.
+- **L1 diamond:** it touches at the corner $(1, 0)$. The second weight is
+  exactly zero.
+
+The diamond's corners stick out along the axes, so a growing ring often hits
+a corner first. That is why L1 gives zeros.
 
 <div style="margin:1.25rem 0">
-<svg viewBox="0 0 340 170" role="img" aria-label="Unit balls of the L1 norm (a diamond), L2 norm (a circle), and L-infinity norm (a square)" style="max-width:360px;width:100%;height:auto;font-size:12px;font-family:inherit">
-  <g stroke="currentColor" stroke-opacity="0.25">
-    <line x1="15" y1="95" x2="105" y2="95"/><line x1="60" y1="50" x2="60" y2="140"/>
-    <line x1="125" y1="95" x2="215" y2="95"/><line x1="170" y1="50" x2="170" y2="140"/>
-    <line x1="235" y1="95" x2="325" y2="95"/><line x1="280" y1="50" x2="280" y2="140"/>
-  </g>
-  <polygon points="60,57 98,95 60,133 22,95" fill="#6366f1" fill-opacity="0.07" stroke="#6366f1" stroke-width="2"/>
-  <circle cx="60" cy="57" r="3" fill="#6366f1"/><circle cx="98" cy="95" r="3" fill="#6366f1"/><circle cx="60" cy="133" r="3" fill="#6366f1"/><circle cx="22" cy="95" r="3" fill="#6366f1"/>
-  <circle cx="170" cy="95" r="38" fill="#10b981" fill-opacity="0.07" stroke="#10b981" stroke-width="2"/>
-  <rect x="242" y="57" width="76" height="76" fill="#f59e0b" fill-opacity="0.07" stroke="#f59e0b" stroke-width="2"/>
-  <text x="60" y="158" text-anchor="middle" fill="currentColor" font-weight="600">L1</text>
-  <text x="170" y="158" text-anchor="middle" fill="currentColor" font-weight="600">L2</text>
-  <text x="280" y="158" text-anchor="middle" fill="currentColor" font-weight="600">L&#8734;</text>
+<svg viewBox="0 0 520 210" role="img" aria-label="Loss rings centered at the unpenalized best weights (2, 0.5) grow until they first touch the L1 diamond at the corner (1, 0) and the L2 circle at (0.97, 0.24)" style="max-width:560px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <g stroke="currentColor" stroke-opacity="0.25"><line x1="9.8" y1="118" x2="215.2" y2="118"/><line x1="80" y1="42.6" x2="80" y2="188.2"/></g>
+  <polygon points="80.0,66.0 132.0,118.0 80.0,170.0 28.0,118.0" fill="#6366f1" fill-opacity="0.08" stroke="#6366f1" stroke-width="2"/>
+  <circle cx="184.0" cy="92.0" r="18.2" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="3 3"/>
+  <circle cx="184.0" cy="92.0" r="36.4" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="3 3"/>
+  <circle cx="184.0" cy="92.0" r="58.1" fill="none" stroke="#f43f5e" stroke-width="1.8"/>
+  <circle cx="184.0" cy="92.0" r="3" fill="currentColor"/>
+  <text x="190.0" y="86.0" fill="currentColor" font-size="10px">(2, 0.5)</text>
+  <circle cx="132.0" cy="118.0" r="4" fill="#f43f5e"/>
+  <text x="138.0" y="134.0" text-anchor="start" fill="#f43f5e" font-size="10px" font-weight="600">(1, 0)</text>
+  <text x="111.2" y="206.2" text-anchor="middle" fill="currentColor" font-weight="600">L1: first touch at a corner</text>
+  <g stroke="currentColor" stroke-opacity="0.25"><line x1="269.8" y1="118" x2="475.2" y2="118"/><line x1="340" y1="42.6" x2="340" y2="188.2"/></g>
+  <circle cx="340" cy="118" r="52" fill="#10b981" fill-opacity="0.08" stroke="#10b981" stroke-width="2"/>
+  <circle cx="444.0" cy="92.0" r="18.2" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="3 3"/>
+  <circle cx="444.0" cy="92.0" r="36.4" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="3 3"/>
+  <circle cx="444.0" cy="92.0" r="55.2" fill="none" stroke="#f43f5e" stroke-width="1.8"/>
+  <circle cx="444.0" cy="92.0" r="3" fill="currentColor"/>
+  <text x="450.0" y="86.0" fill="currentColor" font-size="10px">(2, 0.5)</text>
+  <circle cx="390.4" cy="105.4" r="4" fill="#f43f5e"/>
+  <text x="384.4" y="97.4" text-anchor="end" fill="#f43f5e" font-size="10px" font-weight="600">(0.97, 0.24)</text>
+  <text x="371.2" y="206.2" text-anchor="middle" fill="currentColor" font-weight="600">L2: first touch on the curve</text>
 </svg>
 </div>
 
-*Every point with $\|x\| = 1$ under each norm. L1's corners (dots) sit on
-the axes, where the other coordinate is zero. L2's circle has no corners, so
-nothing is pushed to zero.*
+*Gray dashed rings: loss levels around the best weights without a penalty,
+$(2, 0.5)$. Red ring: the first one that touches the ball. On the L1
+diamond it touches at the corner $(1, 0)$, so the second weight is exactly
+zero. On the L2 circle it touches at $(0.97, 0.24)$, where both weights are
+nonzero.*
 
-**L∞ caps the largest change (adversarial examples).** "Change every pixel
-by at most $\epsilon$" means the change $\delta$ satisfies
-$\|\delta\|_\infty \le \epsilon$. It limits the biggest single change and
-allows every pixel to change by up to $\epsilon$ at the same time.
+**Three more facts.**
 
-**Frobenius is L2 for matrices:** flatten the matrix into one long vector and
-take its L2 norm, $\|A\|_F = \sqrt{\sum_{ij} a_{ij}^2}$.
-
-**Two uses of any norm.** Distance: $\|a - b\|$. Normalization: $x / \|x\|$
-rescales $x$ to length 1. Cosine similarity (§1.2) normalizes both vectors
-before taking the dot product, and LayerNorm does the same after subtracting
-the mean (up to a constant factor).
-
-For interviews: *L2 shrinks, L1 selects.*
+- **L∞ bounds adversarial changes:** "change each pixel by at most
+  $\epsilon$" means $\|\delta\|_\infty \le \epsilon$.
+- **Frobenius is L2 for a matrix:** $\|A\|_F = \sqrt{\sum_{ij} a_{ij}^2}$.
+- **Normalizing:** $x / \|x\|$ has length 1. Cosine similarity (§1.2) does
+  this to both vectors; LayerNorm does it after subtracting the mean (up to a
+  constant factor).
