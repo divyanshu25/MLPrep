@@ -293,14 +293,14 @@ opposite case, and there forward mode is cheaper.
 
 ## 2.3 Gradients of vector/matrix expressions
 
-A loss depends on many weights at once. The **gradient** is the list of how
-fast the loss changes when you change each weight on its own:
+A loss depends on many weights at once; call them $x_1, \dots, x_n$. The
+**gradient** is the list of how fast the loss changes when you change each
+weight on its own:
 
 $$\nabla f = \left[\frac{\partial f}{\partial x_1}, \dots, \frac{\partial f}{\partial x_n}\right]$$
 
-Each entry is a **partial derivative**: hold every other input fixed, change
-$x_i$ alone, and measure the rate, as in §2.1. $\nabla$ is read "nabla" or
-"grad".
+Each entry is a **partial derivative**: the ordinary derivative of §2.1,
+taken with only $x_i$ changing. $\nabla$ is read "grad".
 
 Example: $f(x_1, x_2) = x_1^2 + 3x_2$ at $(2, 5)$, where $f = 19$.
 
@@ -374,35 +374,28 @@ run perpendicular to the gradient.*
 
 #### Three gradient identities cover most of ML
 
-Most ML losses are built from three expressions, and each one's gradient is
-a 1-D rule you already know, written with vectors:
+Most losses are built from three expressions. Each one's gradient is a 1-D
+rule you already know, written with vectors:
 
-| Expression | Gradient | Same rule in 1-D |
+| Expression | Gradient | 1-D version |
 |---|---|---|
-| $f(x) = a^\top x$ | $\nabla f = a$ | $ax \to a$ |
-| $f(x) = \|x\|^2 = x^\top x$ | $\nabla f = 2x$ | $x^2 \to 2x$ |
-| $f(x) = x^\top A x$ | $\nabla f = (A + A^\top)x$ | $ax^2 \to 2ax$ |
+| $a^\top x$ | $a$ | $ax \to a$ |
+| $\|x\|^2$ | $2x$ | $x^2 \to 2x$ |
+| $x^\top A x$, $A$ symmetric | $2Ax$ | $ax^2 \to 2ax$ |
 
-- **Weighted sum, $a^\top x = a_1 x_1 + \dots + a_n x_n$** (a linear model's
-  prediction). Example: $f = 2x_1 + 5x_2$. At $x = [1, 1]$, $f = 7$. Raise
-  $x_1$ by 1 and $f$ becomes 9 (up 2); raise $x_2$ by 1 instead and $f$
-  becomes 12 (up 5). So $\nabla f = [2, 5]$: the gradient is just the
-  weights, the same at every point.
-- **Squared length, $\|x\|^2 = x_1^2 + \dots + x_n^2$** (every squared error
-  and every L2 penalty). Each $x_i^2$ changes at rate $2x_i$, so
-  $\nabla f = 2x$. Example: at $x = [3, 1]$, $f = 10$ and $\nabla f = [6, 2]$;
-  raise $x_1$ by $0.01$ and $f$ becomes $10.0601$, up about $6 \times 0.01$.
-  This gradient depends on where you are: bigger entries change $f$ faster.
-- **Quadratic form, $x^\top A x$** (curvature terms such as $w^\top H w$ with
-  the Hessian). Write it out for $A = [[1, 2], [3, 4]]$:
-  $x^\top A x = x_1^2 + 5 x_1 x_2 + 4 x_2^2$. The 5 is the two off-diagonal
-  entries, 2 and 3, added together, because both multiply $x_1 x_2$. The
-  partials are $[2 x_1 + 5 x_2,\; 5 x_1 + 8 x_2]$, which is $(A + A^\top)x$
-  with $A + A^\top = [[2, 5], [5, 8]]$. When $A$ is symmetric, as a Hessian
-  or covariance matrix is, $A + A^\top = 2A$ and the gradient is $2Ax$,
-  exactly like $ax^2 \to 2ax$.
+- **$a^\top x$, a weighted sum** (a linear model's prediction). For
+  $f = 2x_1 + 5x_2$, raising $x_1$ by 1 adds 2 and raising $x_2$ by 1 adds 5,
+  so $\nabla f = [2, 5] = a$, the same at every point.
+- **$\|x\|^2$, a squared length** (every squared error and L2 penalty). Each
+  $x_i^2$ changes at rate $2x_i$, so $\nabla f = 2x$. At $x = [3, 1]$,
+  $\nabla f = [6, 2]$: bigger entries change $f$ faster.
+- **$x^\top A x$, a quadratic form** (curvature terms such as $w^\top H w$ with
+  the Hessian). For $A = [[1, 2], [3, 4]]$,
+  $x^\top A x = x_1^2 + 5 x_1 x_2 + 4 x_2^2$, with partials
+  $[2x_1 + 5x_2,\; 5x_1 + 8x_2] = (A + A^\top)x$. For a symmetric $A$, such
+  as a Hessian or covariance matrix, that is $2Ax$.
 
-**Shortcut:** pretend every vector is a single number, use the 1-D rule, then
+**Shortcut:** treat every vector as a single number, use the 1-D rule, then
 arrange transposes so the shapes match.
 
 #### Worked example: the linear regression gradient
