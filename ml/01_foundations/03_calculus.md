@@ -398,49 +398,27 @@ rule you already know, written with vectors:
 **Shortcut:** treat every vector as a single number, use the 1-D rule, then
 arrange transposes so the shapes match.
 
-#### Worked example: the linear regression gradient
+#### The linear regression gradient
 
-**Start with one example.** A linear model predicts $p = w_1 x_1 + w_2 x_2$
-from the example's two feature values $x_1, x_2$. The error is $r = p - y$
-(prediction minus target), and the loss is $r^2$.
+For the squared-error loss of a linear model,
 
-Raise $w_1$ by a small $\epsilon$. The prediction rises by $x_1 \epsilon$,
-because $w_1$ is multiplied by $x_1$, and the error rises by the same amount.
-The loss $r^2$ changes at rate $2r$ per unit of error, so it rises by about
-$2r \cdot x_1 \epsilon$:
+$$L(w) = \|Xw - y\|^2 \qquad \nabla_w L = 2 X^\top (Xw - y)$$
 
-$$\frac{\partial\, r^2}{\partial w_1} = 2\, r\, x_1$$
+Here $X$ holds the features, one row per example ($n$ examples, $d$
+features), $y$ the targets, and $r = Xw - y$ the errors, called the
+**residuals**.
 
-In words: **error × feature value.** This example adds $2 r x_1$ to weight
-1's gradient. The term is large when both the error and the feature value
-are large in size (positive or negative), its sign is the sign of $r$ times
-the sign of $x_1$, and it is 0 if either is 0.
+**What it says.** Weight $k$'s gradient is $2 \sum_i r_i X_{ik}$: each
+example's error times its value of feature $k$, summed over examples, times
+2. The reason, for one example: nudging $w_k$ by $\epsilon$ moves the
+prediction, and so the error, by $X_{ik}\,\epsilon$, and $r_i^2$ changes at
+rate $2r_i$ per unit of error. Examples with large errors on large feature
+values push hardest; an example with zero error or a zero feature value
+does not move $w_k$ at all.
 
-**Many examples: add them up.** The loss is the sum of every example's
-squared error, so the gradient is the sum of every example's
-(error × feature value). With matrices:
-
-$$\nabla_w L = 2 X^\top (Xw - y) \qquad \text{for } L(w) = \|Xw - y\|^2$$
-
-Here $X$ is the data matrix, with one row per example and one column per
-feature ($n$ examples, $d$ features, so $X$ is $n \times d$). $y$ holds the
-$n$ targets, $w$ the $d$ weights, and $r = Xw - y$ is the vector of errors,
-called the **residuals**.
-
-**On numbers.** $X = [[1, 2], [3, 4]]$ (two examples, two features),
-$y = [1, 0]$, $w = [1, 1]$. The predictions are $Xw = [3, 7]$, so the errors
-are $r = [2, 7]$.
-
-- Weight 1: feature values $1$ and $3$, so $2(2 \cdot 1 + 7 \cdot 3) = 46$.
-- Weight 2: feature values $2$ and $4$, so $2(2 \cdot 2 + 7 \cdot 4) = 64$.
-
-So $\nabla_w L = [46, 64]$, matching the finite-difference gradient of $L$.
-Example 2, with error 7, contributes most of both.
-
-**Where $X^\top$ comes from.** Weight $k$'s gradient is
-$2 \sum_i r_i X_{ik}$: each example's error times its value of feature $k$.
-Those feature values are column $k$ of $X$, so this is column $k$ dotted with
-$r$. Doing that for every column at once is $X^\top r$.
+**Where $X^\top$ comes from.** Feature $k$'s values across all examples are
+column $k$ of $X$, so weight $k$'s gradient is column $k$ dotted with $r$.
+Doing every column at once is $X^\top r$.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 480 250" role="img" aria-label="The data matrix X with row i highlighted in green and column k highlighted in indigo: a prediction dots row i with w, a weight's derivative dots column k with r" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -481,17 +459,17 @@ $r$. Doing that for every column at once is $X^\top r$.
 *A prediction dots a **row** of $X$ (one example) with $w$. A weight's
 gradient dots a **column** of $X$ (one feature) with $r$.*
 
-That switch from rows to columns is why transposes appear in backward
-formulas: the forward pass uses the rows of $X$, and the backward pass uses
-its columns, which $X^\top$ turns into rows.
+Predictions read $X$ by rows; gradients read it by columns. That is why a
+transpose appears in the gradient, and in backward formulas generally.
 
-**Shape check:** $X^\top$ is $d \times n$ and $r$ has $n$ entries, so the
-gradient has $d$ entries, one per weight. In general, **the gradient of a
-loss has the same shape as the thing you differentiate with respect to**,
-the most useful debugging rule in matrix calculus. Setting $\nabla_w L = 0$
-gives the normal equations $X^\top X w = X^\top y$. When the columns of $X$
-are linearly independent, $X^\top X$ is invertible and the least-squares
-solution is $w = (X^\top X)^{-1} X^\top y$.
+**Shape check.** $X^\top$ is $d \times n$ and $r$ has $n$ entries, so the
+gradient has $d$ entries, one per weight. In general **the gradient has the
+same shape as the thing you differentiate with respect to**, the most useful
+debugging rule in matrix calculus.
+
+**Setting the gradient to zero** gives the normal equations
+$X^\top X w = X^\top y$. When the columns of $X$ are linearly independent,
+the solution is $w = (X^\top X)^{-1} X^\top y$.
 
 ## 2.4 Jacobians: the full sensitivity table
 
