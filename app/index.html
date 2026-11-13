@@ -1471,6 +1471,7 @@ function docNavKeys(nav) {
 function numberHeadings(rootEl, plainText) {
   const own = /^(\d{1,2}(?:\.\d{1,2})*)\.?\s/;
   const stack = [];   // {level, num, kids}
+  const byNum = {};   // "2.3.1" -> heading id, for linkSectionRefs
   rootEl.querySelectorAll('h2, h3, h4, h5, h6').forEach(h => {
     const level = +h.tagName[1];
     while (stack.length && stack[stack.length - 1].level >= level) stack.pop();
@@ -1488,7 +1489,48 @@ function numberHeadings(rootEl, plainText) {
       span.textContent = num;
       h.insertBefore(span, h.firstChild);
     }
+    if (num && h.id && !byNum[num]) byNum[num] = h.id;
     stack.push({ level, num, kids: 0 });
+  });
+  return byNum;
+}
+/* Turn "§2.1" in the prose into a link to that heading when the section is
+   on this page. References that name another file stay plain text. Math,
+   code, headings, existing links and figures are skipped. */
+function linkSectionRefs(rootEl, byNum) {
+  const skip = 'a, code, pre, .katex, svg, h1, h2, h3, h4, h5, h6, script, style';
+  /* skip refs that name another file: "notes §5.1", "notes.md §2",
+     "Probability §3.8", "module 1, §3.7", "§1.6 of the linear algebra notes" */
+  const re = /(?<!(?:notes|\.md|Probability|Calculus|algebra|statistics)\s|module\s\d+,\s*)§(\d{1,2}(?:\.\d{1,2})*)(?!\d|\.\d|\s+of\b)/g;
+  const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.includes('§') && !n.parentElement.closest(skip))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT });
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  nodes.forEach(node => {
+    const s = node.nodeValue;
+    let last = 0, m, frag = null;
+    re.lastIndex = 0;
+    while ((m = re.exec(s))) {
+      const id = byNum[m[1]];
+      if (!id) continue;
+      frag = frag || document.createDocumentFragment();
+      frag.appendChild(document.createTextNode(s.slice(last, m.index)));
+      const a = document.createElement('a');
+      a.href = '#' + id;
+      a.textContent = m[0];
+      a.addEventListener('click', ev => {
+        ev.preventDefault();   // raw fragment writes would bounce off the router
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+      });
+      frag.appendChild(a);
+      last = m.index + m[0].length;
+    }
+    if (!frag) return;
+    frag.appendChild(document.createTextNode(s.slice(last)));
+    node.parentNode.replaceChild(frag, node);
   });
 }
 /* Give every h2/h3 a stable slug id (duplicates get -2, -3, …), then, when
@@ -1496,7 +1538,7 @@ function numberHeadings(rootEl, plainText) {
    fixed right rail (>= 1280px) and a "Contents" details block for narrower
    viewports. Returns the IntersectionObserver driving the active highlight
    (or null) so the caller can disconnect it on route cleanup. */
-function buildOutline(rootEl, wrapEl, scrollRoot) {
+function buildOutline(rootEl, wrapEl, scrollRoot, linkRefs = true) {
   const seen = {};
   const hs = Array.from(rootEl.querySelectorAll('h2, h3, h4'));
   /* KaTeX emits a MathML layer (with the LaTeX source as an annotation) next
@@ -1512,7 +1554,8 @@ function buildOutline(rootEl, wrapEl, scrollRoot) {
     const n = (seen[s] || 0) + 1; seen[s] = n;
     h.id = n > 1 ? s + '-' + n : s;
   });
-  numberHeadings(rootEl, plainText);   // after the ids, so existing anchors keep working
+  const byNum = numberHeadings(rootEl, plainText);   // after the ids, so existing anchors keep working
+  if (linkRefs) linkSectionRefs(rootEl, byNum);
   if (hs.length < 3) return null;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const links = hs.map(h =>
@@ -1836,7 +1879,8 @@ async function viewNotes(app, encodedPath) {
   </div>`;
   mountSidebar($('#doc-wrap'));
   fixMdLinks($('#md-root'), current);
-  const outlineIO = buildOutline($('#md-root'), $('#doc-wrap'), app);
+  /* on exercise pages "§9" means a section of the module notes, not exercise 9 */
+  const outlineIO = buildOutline($('#md-root'), $('#doc-wrap'), app, !/exercises[^/]*\.md$/.test(current));
   /* checklists: real checkboxes, state in localStorage per file (UI-only).
      Keys hash the item's text (not its index) so edits to the doc don't
      silently shift every saved tick onto the wrong line. */

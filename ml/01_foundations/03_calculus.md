@@ -400,25 +400,18 @@ arrange transposes so the shapes match.
 
 #### The linear regression gradient
 
-For the squared-error loss of a linear model,
+$$L(w) = \|Xw - y\|^2 \qquad \nabla_w L = 2 X^\top r, \quad r = Xw - y$$
 
-$$L(w) = \|Xw - y\|^2 \qquad \nabla_w L = 2 X^\top (Xw - y)$$
+$X$ has one row per example and one column per feature, and $r$ is the
+vector of errors (the **residuals**).
 
-Here $X$ holds the features, one row per example ($n$ examples, $d$
-features), $y$ the targets, and $r = Xw - y$ the errors, called the
-**residuals**.
+**Per weight:** $\partial L / \partial w_k = 2 \sum_i r_i X_{ik}$, each
+example's error times its value of feature $k$, summed. This is the chain
+rule on each $r_i^2$: $r_i$ changes at rate $X_{ik}$ when $w_k$ changes, and
+$r_i^2$ at rate $2 r_i$ when $r_i$ changes.
 
-**What it says.** Weight $k$'s gradient is $2 \sum_i r_i X_{ik}$: each
-example's error times its value of feature $k$, summed over examples, times
-2. The reason, for one example: nudging $w_k$ by $\epsilon$ moves the
-prediction, and so the error, by $X_{ik}\,\epsilon$, and $r_i^2$ changes at
-rate $2r_i$ per unit of error. Examples with large errors on large feature
-values push hardest; an example with zero error or a zero feature value
-does not move $w_k$ at all.
-
-**Where $X^\top$ comes from.** Feature $k$'s values across all examples are
-column $k$ of $X$, so weight $k$'s gradient is column $k$ dotted with $r$.
-Doing every column at once is $X^\top r$.
+**Why $X^\top$:** feature $k$'s values are column $k$ of $X$, so the sum is
+column $k$ dotted with $r$. Every column at once is $X^\top r$.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 480 250" role="img" aria-label="The data matrix X with row i highlighted in green and column k highlighted in indigo: a prediction dots row i with w, a weight's derivative dots column k with r" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -451,104 +444,82 @@ Doing every column at once is $X^\top r$.
   <text x="240" y="102" fill="#10b981" font-weight="600" font-size="11">row i &#183; w = prediction for example i</text>
   <text x="240" y="118" fill="currentColor" fill-opacity="0.65" font-size="10.5">one example, all its features</text>
   <line x1="136" y1="200" x2="136" y2="218" stroke="#6366f1" stroke-opacity="0.8" marker-end="url(#xg-b)"/>
-  <text x="136" y="234" text-anchor="middle" fill="#6366f1" font-weight="600" font-size="11">column k &#183; r = &#8706;L/&#8706;w&#8342;</text>
+  <text x="136" y="234" text-anchor="middle" fill="#6366f1" font-weight="600" font-size="11">2 (column k &#183; r) = &#8706;L/&#8706;w&#8342;</text>
   <text x="136" y="248" text-anchor="middle" fill="currentColor" fill-opacity="0.65" font-size="10.5">one feature, across all examples</text>
 </svg>
 </div>
 
-*A prediction dots a **row** of $X$ (one example) with $w$. A weight's
-gradient dots a **column** of $X$ (one feature) with $r$.*
+*A prediction dots a **row** of $X$ with $w$; a weight's gradient dots a
+**column** of $X$ with $r$. That switch from rows to columns is why
+transposes appear in backward formulas.*
 
-Predictions read $X$ by rows; gradients read it by columns. That is why a
-transpose appears in the gradient, and in backward formulas generally.
+**Shape check:** the gradient has the same shape as $w$, one entry per
+weight. This holds for every gradient and is the most useful debugging rule
+in matrix calculus.
 
-**Shape check.** $X^\top$ is $d \times n$ and $r$ has $n$ entries, so the
-gradient has $d$ entries, one per weight. In general **the gradient has the
-same shape as the thing you differentiate with respect to**, the most useful
-debugging rule in matrix calculus.
+**Setting it to zero** gives the normal equations $X^\top X w = X^\top y$,
+solved by $w = (X^\top X)^{-1} X^\top y$ when the columns of $X$ are linearly
+independent.
 
-**Setting the gradient to zero** gives the normal equations
-$X^\top X w = X^\top y$. When the columns of $X$ are linearly independent,
-the solution is $w = (X^\top X)^{-1} X^\top y$.
+- **Linearly independent columns:** no column can be built from the
+  other columns (for example, no column is a copy of another or the sum of
+  two others).
+- **Why it is needed:** say the data has height recorded twice, as feature
+  1 and feature 2, and the best prediction is $2 \times$ height. Then
+  $w = [2, 0]$, $[0, 2]$, $[1, 1]$ and $[5, -3]$ all predict exactly
+  $2 \times$ height, so the data cannot pick one of them. With no single
+  best $w$, the formula breaks: $X^\top X$ has no inverse.
 
 ## 2.4 Jacobians: the full sensitivity table
 
-A layer takes several numbers in and gives several numbers out. Take
-$f(x_1, x_2) = [x_1^2,\; x_1 x_2]$: two inputs, two outputs. Changing $x_1$
-changes both outputs; changing $x_2$ changes only the second. One number per
-input can no longer describe this. You need a table with one row per output
-and one column per input. That table is the **Jacobian** $J$:
+A layer has several inputs and several outputs, so one rate per input is no
+longer enough. The **Jacobian** $J$ is the table of every output's rate with
+respect to every input, one row per output and one column per input:
 
-$$J_{ij} = \frac{\partial f_i}{\partial x_j} = \text{rate at which output } i \text{ changes per unit of input } j$$
+$$J_{ij} = \frac{\partial f_i}{\partial x_j}$$
 
-For the example at $(2, 3)$:
+Example: $f(x_1, x_2) = [x_1^2,\; x_1 x_2]$ at $(2, 3)$:
 
 $$J = \begin{bmatrix} 2x_1 & 0 \\ x_2 & x_1 \end{bmatrix} = \begin{bmatrix} 4 & 0 \\ 3 & 2 \end{bmatrix}$$
 
-Row 1 says output 1 ($x_1^2$) changes at rate 4 per unit of $x_1$ and does not
-depend on $x_2$. Row 2 says output 2 ($x_1 x_2$) changes at rate 3 per unit of
-$x_1$ and 2 per unit of $x_2$. Each row is the gradient (§2.3) of one output.
+Row $i$ is the gradient (§2.3) of output $i$. The 0 is there because output
+1, $x_1^2$, does not depend on $x_2$.
 
 #### The Jacobian is the local linear map
 
-**$J$ turns a small change in the inputs into the change in the outputs:**
+$J$ turns a small input change $\delta$ into the output change:
 
 $$f(x + \delta) \approx f(x) + J\delta$$
 
-Check on the example: step $\delta = [0.01, 0]$ from $(2, 3)$. The prediction
-is $f(2, 3) + J\delta = [4, 6] + [0.04, 0.03] = [4.04,\; 6.03]$, and the exact
-value is $f(2.01, 3) = [4.0401,\; 6.03]$.
+Output $i$ changes by its gradient dotted with $\delta$ (§2.3), and that
+gradient is row $i$ of $J$. This is §2.1's tangent line with $J$ as the
+slope.
 
-Why it works: each output on its own is a function of many inputs, so the
-gradient rule from §2.3 ($\Delta f \approx \nabla f \cdot \text{step}$) applies
-to it: output $i$ changes by about $\nabla f_i \cdot \delta$. That
-gradient is row $i$ of $J$, and doing every row at once is $J\delta$. This is
-§2.1's tangent line $f(x+h) \approx f(x) + f'(x)\,h$ for vectors: the Jacobian
-plays the role of the slope.
+Check: from $(2, 3)$ with $\delta = [0.01, 0]$,
+
+$$f(x) + J\delta = \begin{bmatrix} 4 \\ 6 \end{bmatrix} + \begin{bmatrix} 4 & 0 \\ 3 & 2 \end{bmatrix} \begin{bmatrix} 0.01 \\ 0 \end{bmatrix} = \begin{bmatrix} 4.04 \\ 6.03 \end{bmatrix}, \qquad \text{exact: } f(2.01, 3) = \begin{bmatrix} 4.0401 \\ 6.03 \end{bmatrix}$$
 
 #### Chain rule for vectors: Jacobians multiply
 
-**For two layers in a row, the Jacobian of the pair is the product of their
-Jacobians.** For $z = g(x)$, then $y = f(z)$:
+For $z = g(x)$ followed by $y = f(z)$:
 
 $$J_{f \circ g}(x) = J_f(z)\, J_g(x)$$
 
-($f \circ g$ means "first $g$, then $f$".) Why: a small input change $\delta$
-becomes $J_g \delta$ after the first layer, and that becomes
-$J_f J_g \delta$ after the second. Applying two matrices in a row is the same
-as multiplying them (§1.4 of the linear algebra notes). Two details: the
-later layer's Jacobian goes on the left, and each Jacobian is taken at its own
-layer's input, $J_g$ at $x$ and $J_f$ at $z$. This is §2.2's "rates multiply"
-with matrices in place of numbers.
+A small change $\delta$ becomes $J_g \delta$ after the first layer and
+$J_f J_g \delta$ after the second. The later layer goes on the left, and
+each Jacobian is taken at its own layer's input. This is §2.2's "rates
+multiply", with matrices.
 
-#### One layer back in one product: the VJP
+#### One layer back: the VJP
 
-**Backprop pushes the gradient back through a layer by multiplying it by the
-layer's Jacobian, without ever building the Jacobian.**
+Backprop arrives at a layer knowing how the loss responds to each output:
+the row vector $s$ with $s_j = \partial L / \partial \text{out}_j$. An input
+affects the loss through every output it feeds, so add one term per output:
 
-In backprop you arrive at a layer already knowing how the loss responds to
-each of its outputs. Call that row vector $s$:
-$s_j = \partial L / \partial \text{out}_j$. You want how the loss responds to
-each input. An input affects the loss through every output it feeds, so add
-one term per output (the add rule of §2.2):
+$$\frac{\partial L}{\partial \text{in}_i} = \sum_j s_j\, J_{ji} = (sJ)_i$$
 
-$$\frac{\partial L}{\partial \text{in}_i} = \sum_j \underbrace{\frac{\partial L}{\partial \text{out}_j}}_{s_j}\,\underbrace{\frac{\partial \text{out}_j}{\partial \text{in}_i}}_{J_{ji}} = (s\,J)_i$$
-
-Example: $J = [[3, 2], [4, 5]]$ and $s = [1, 2]$. Input 1 feeds output 1 at
-rate 3 and output 2 at rate 4, so $\partial L / \partial \text{in}_1 = 1 \cdot 3 + 2 \cdot 4 = 11$.
-Input 2: $1 \cdot 2 + 2 \cdot 5 = 12$. Together, $sJ = [11, 12]$.
-
-This product $s \mapsto sJ$ is called a **vector–Jacobian product** (VJP).
-Frameworks compute it directly and never store $J$: for a layer of width
-4096, $J$ would have $4096 \times 4096 \approx 17$ million entries per
-example.
-
-Forward mode does the mirror image. It carries a column of input changes
-$\delta$ forward and multiplies by $J$ on the right, $J\delta$, called a
-**Jacobian–vector product** (JVP). One VJP gives one output's sensitivity to
-every input; one JVP gives every output's response to one input direction.
-That is the one-walk-per-output versus one-walk-per-input rule from §2.2,
-written with matrices.
+Example: $J = [[3, 2], [4, 5]]$ and $s = [1, 2]$ give
+$sJ = [1 \cdot 3 + 2 \cdot 4,\; 1 \cdot 2 + 2 \cdot 5] = [11, 12]$.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 480 230" role="img" aria-label="One layer drawn as a fully connected graph with two inputs and two outputs: amber edge labels are the Jacobian entries, red numbers at the outputs are the known sensitivities, and each input's sensitivity is the sum over its edges" style="max-width:500px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -591,34 +562,33 @@ written with matrices.
 </svg>
 </div>
 
-*The same example as a graph: every input touches every output. Amber edge
-labels are the entries of $J$; red at the outputs is $s = [1, 2]$. Each
-input's red number is the sum over its edges, $1 \cdot 3 + 2 \cdot 4 = 11$ for
-in1, and both together are $sJ = [11, 12]$.*
+*The same example as a graph. Amber edge labels are the entries of $J$; red
+at the outputs is $s = [1, 2]$. Each input's red number is the sum over its
+edges: $1 \cdot 3 + 2 \cdot 4 = 11$ for in1.*
+
+$sJ$ is a **vector–Jacobian product** (VJP). Frameworks compute it directly
+and never build $J$: for a layer of width 4096, $J$ would hold 17 million
+entries per example.
+
+The mirror image, $J\delta$, is a **Jacobian–vector product** (JVP), used by
+forward mode. One VJP gives one output's sensitivity to every input; one JVP
+gives every output's response to one input direction. This is §2.2's rule of
+one walk per output versus one walk per input.
 
 #### Three Jacobians worth knowing cold
 
-- **ReLU** passes the gradient through where the input was positive and
-  blocks it where the input was negative. Each output depends only on its own
-  input, so $J$ is diagonal, with 1 where $x_i > 0$ and 0 where $x_i < 0$
-  (written $\mathbb{1}[x_i > 0]$). At exactly $x_i = 0$ the derivative is
-  undefined, and frameworks use 0. With $x = [0.5, -1.2]$ and $s = [7, 9]$,
-  the backward step gives $[7, 0]$.
-- **A linear layer** $f(x) = Wx$ passes the gradient back through $W$. Output
-  $j$ is $\sum_i W_{ji}\, x_i$, so the Jacobian is $W$ itself, and the backward
-  step is $s \mapsto sW$, or $W^\top s$ when $s$ is written as a column.
-- **Softmax**, $p_i = e^{z_i} / \sum_j e^{z_j}$, mixes everything: every output
-  shares the same denominator, so every output depends on every input and no
-  entry of $J$ is zero. The entries are $J_{ij} = p_i(\delta_{ij} - p_j)$, where
-  $\delta_{ij}$ is 1 if $i = j$ and 0 otherwise (derived in exercise 9). In
-  practice softmax is followed by the cross-entropy loss, and frameworks
-  differentiate the two together. With true class $c$ and $y$ the one-hot
-  target (1 at $c$, 0 elsewhere), the loss is
-  $L = -\log p_c = -z_c + \log \sum_j e^{z_j}$, so
-  $\partial L / \partial z_i = -y_i + e^{z_i} / \sum_j e^{z_j} = p_i - y_i$.
-  The combined backward step $p - y$ skips the dense Jacobian and the $1/p_c$
-  factor from differentiating $-\log p_c$ on its own, which becomes infinite
-  when $p_c$ rounds to 0.
+- **ReLU:** $J$ is diagonal, 1 where $x_i > 0$ and 0 elsewhere (frameworks
+  use 0 at exactly 0). The gradient passes where the input was positive and
+  is blocked elsewhere: $x = [0.5, -1.2]$ and $s = [7, 9]$ give $[7, 0]$.
+- **Linear layer** $f(x) = Wx$: $J = W$, so the backward step is $sW$, or
+  $W^\top s$ with $s$ as a column.
+- **Softmax** $p_i = e^{z_i} / \sum_j e^{z_j}$: every output shares the
+  denominator, so $J$ has no zeros: $J_{ij} = p_i(\delta_{ij} - p_j)$, where
+  $\delta_{ij}$ is 1 if $i = j$ and 0 otherwise (exercise 9). Followed by
+  cross-entropy, $L = -\log p_c = -z_c + \log \sum_j e^{z_j}$ for true class
+  $c$, the combined gradient is just $\partial L / \partial z = p - y$, with
+  $y$ the one-hot target. Frameworks use this fused step: it skips the dense
+  $J$ and the $1/p_c$ factor, which is infinite when $p_c$ rounds to 0.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 190" role="img" aria-label="Softmax followed by cross-entropy on three classes: forward boxes compute probabilities and the loss; the step-by-step backward path through 1 over p and the dense Jacobian is skipped, replaced by the single fused step p minus y" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -651,51 +621,42 @@ in1, and both together are $sJ = [11, 12]$.*
 </svg>
 </div>
 
-*Three classes, logits $z = [2, 0, 1]$, true class 1 so $y = [1, 0, 0]$.
-Forward: $p \approx [.67, .09, .24]$, $L = -\log p_1 \approx 0.41$. The
-step-by-step backward walk would multiply by $1/p_1$ and then by the dense
-$3 \times 3$ Jacobian; the fused step computes
-$\partial L / \partial z = p - y \approx [-.33, .09, .24]$ directly, with one
-subtraction.*
+*Three classes, logits $z = [2, 0, 1]$, true class 1, so $y = [1, 0, 0]$.
+Forward: $p \approx [.67, .09, .24]$ and $L = -\log p_1 \approx 0.41$.
+Backward: the fused step gives $p - y \approx [-.33, .09, .24]$ in one
+subtraction, instead of multiplying by $1/p_1$ and then the dense
+$3 \times 3$ Jacobian.*
 
 #### Computing softmax without overflow: log-sum-exp
 
-Take logits $z = [1000, 999]$. The softmax needs $e^{1000}$, but the largest
-number a 64-bit float can hold is about $e^{709}$ (about $e^{88}$ in 32-bit),
-so $e^{1000}$ becomes infinity and the result is NaN.
+Softmax of $z = [1000, 999]$ needs $e^{1000}$, but 64-bit floats top out
+near $e^{709}$ (32-bit near $e^{88}$), so it overflows and gives NaN. The
+fix: subtracting the same $c$ from every logit leaves softmax unchanged,
+because $e^{-c}$ cancels top and bottom:
 
-The fix uses the fact that softmax does not change when you subtract the
-same number $c$ from every logit:
+$$\frac{e^{z_i - c}}{\sum_j e^{z_j - c}} = \frac{e^{z_i}}{\sum_j e^{z_j}}$$
 
-$$\frac{e^{z_i - c}}{\sum_j e^{z_j - c}} = \frac{e^{-c}\, e^{z_i}}{e^{-c} \sum_j e^{z_j}} = \frac{e^{z_i}}{\sum_j e^{z_j}}$$
+Pick $c = \max_j z_j$, so the largest exponent is $e^0 = 1$. Here
+$z - c = [0, -1]$ and $p \approx [0.731, 0.269]$.
 
-Choose $c = \max_j z_j$. Then the largest exponent is $e^0 = 1$ and nothing
-overflows. Here $z - c = [0, -1]$, so
-$p = [1, e^{-1}] / (1 + e^{-1}) \approx [0.731, 0.269]$.
+For the loss, compute $\log p$ directly instead of taking the log of $p$: a
+logit 745 below the max (103 in 32-bit) gives $p = 0$, and $\log 0 = -\infty$.
+With $m = \max_j z_j$:
 
-The loss needs $\log p_c$, and computing $p_c$ first and then its log fails
-the other way: when one logit is about 745 below the max (about 103 in
-32-bit floats), its $e^{z_i - c}$ rounds to exactly 0, and $\log 0 = -\infty$.
-So frameworks compute the log directly. Write $m = \max_j z_j$:
+$$\log \sum_j e^{z_j} = m + \log \sum_j e^{z_j - m}, \qquad \log p_i = z_i - \log \sum_j e^{z_j}$$
 
-$$\log \sum_j e^{z_j} = m + \log \sum_j e^{z_j - m}, \qquad \log p_i = z_i - m - \log \sum_j e^{z_j - m}$$
-
-The left identity is the same subtract-$c$ step, applied inside the log. It
-is called **log-sum-exp**, and every cross-entropy implementation uses it.
-For $z = [1000, 999]$: $\log \sum_j e^{z_j} = 1000 + \log(1 + e^{-1}) \approx 1000.313$.
+This is **log-sum-exp**, and every cross-entropy implementation uses it. For
+$z = [1000, 999]$ it gives $1000 + \log(1 + e^{-1}) \approx 1000.313$.
 
 #### Vanishing and exploding gradients
 
-**The gradient is multiplied by one Jacobian per layer on its way back, so
-over many layers it can shrink or grow exponentially.** If each layer scales
-it by about 0.9, fifty layers scale it by $0.9^{50} \approx 0.005$; if each
-scales it by about 1.1, by $1.1^{50} \approx 117$. More precisely, this
-happens when the Jacobians' singular values (§1.6 of the linear algebra
-notes) are consistently below or above 1.
+On the way back the gradient is multiplied by one Jacobian per layer, so it
+can shrink or grow exponentially with depth: $0.9^{50} \approx 0.005$ and
+$1.1^{50} \approx 117$. This happens when the Jacobians' singular values
+(§1.6 of the linear algebra notes) stay below or above 1.
 
-Residual connections help. A residual layer computes $h + F(h)$, so its
-Jacobian is $I + \partial F / \partial h$. Expanding the product of these over
-many layers gives one term that is the identity alone, with no Jacobian
-factors, so the top gradient always has a direct path to every layer. The
-other terms add to it, and they can still grow large, which is why deep
-residual networks scale each $F$ down at initialization.
+Residual connections help. A residual layer computes $h + F(h)$, with
+Jacobian $I + \partial F / \partial h$. Multiplying these over many layers
+gives one term that is just $I$: a direct path from the top gradient to every
+layer. The other terms can still grow large, which is why deep residual
+networks scale each $F$ down at initialization.
