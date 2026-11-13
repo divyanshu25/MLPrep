@@ -629,34 +629,68 @@ $3 \times 3$ Jacobian.*
 
 #### Computing softmax without overflow: log-sum-exp
 
-Softmax of $z = [1000, 999]$ needs $e^{1000}$, but 64-bit floats top out
-near $e^{709}$ (32-bit near $e^{88}$), so it overflows and gives NaN. The
-fix: subtracting the same $c$ from every logit leaves softmax unchanged,
+Computing softmax straight from the formula breaks in two ways.
+
+**1. Overflow.** For $z = [1000, 999]$ the formula needs $e^{1000}$, which is
+too big for a float (64-bit floats stop near $e^{709}$, 32-bit near
+$e^{88}$). It becomes infinity, and infinity over infinity is NaN.
+
+Fix: subtract the largest logit first. This does not change the answer,
 because $e^{-c}$ cancels top and bottom:
 
 $$\frac{e^{z_i - c}}{\sum_j e^{z_j - c}} = \frac{e^{z_i}}{\sum_j e^{z_j}}$$
 
-Pick $c = \max_j z_j$, so the largest exponent is $e^0 = 1$. Here
-$z - c = [0, -1]$ and $p \approx [0.731, 0.269]$.
+With $c = 1000$: $z - c = [0, -1]$, the largest exponent is $e^0 = 1$, and
+$p = [1, e^{-1}] / (1 + e^{-1}) \approx [0.731, 0.269]$.
 
-For the loss, compute $\log p$ directly instead of taking the log of $p$: a
-logit 745 below the max (103 in 32-bit) gives $p = 0$, and $\log 0 = -\infty$.
-With $m = \max_j z_j$:
+**2. Log of zero.** The loss needs $\log p$. For $z = [0, -800]$,
+$p_2 = e^{-800} / (1 + e^{-800}) \approx 10^{-347}$, too small for a float,
+so it becomes 0 and $\log 0 = -\infty$. The right answer is about $-800$.
 
-$$\log \sum_j e^{z_j} = m + \log \sum_j e^{z_j - m}, \qquad \log p_i = z_i - \log \sum_j e^{z_j}$$
+Fix: take the log of the softmax formula by hand, before computing anything.
+The log of a fraction is log(top) minus log(bottom), and
+$\log e^{z_i} = z_i$:
 
-This is **log-sum-exp**, and every cross-entropy implementation uses it. For
-$z = [1000, 999]$ it gives $1000 + \log(1 + e^{-1}) \approx 1000.313$.
+$$\log p_i = z_i - \log \sum_j e^{z_j}$$
+
+No tiny number is ever formed. For $z = [0, -800]$:
+$\log p_2 = -800 - \log(1 + e^{-800}) \approx -800 - 0 = -800$.
+
+The term $\log \sum_j e^{z_j}$ is called **log-sum-exp**. It is computed
+with the same subtract-the-largest trick as above, so it never overflows.
+This is why cross-entropy functions take logits, not probabilities.
 
 #### Vanishing and exploding gradients
 
-On the way back the gradient is multiplied by one Jacobian per layer, so it
-can shrink or grow exponentially with depth: $0.9^{50} \approx 0.005$ and
-$1.1^{50} \approx 117$. This happens when the Jacobians' singular values
-(§1.6 of the linear algebra notes) stay below or above 1.
+Backprop multiplies the gradient by one Jacobian per layer. Call how much a
+layer scales the gradient that layer's **factor**. Over many layers the
+factors multiply together:
 
-Residual connections help. A residual layer computes $h + F(h)$, with
-Jacobian $I + \partial F / \partial h$. Multiplying these over many layers
-gives one term that is just $I$: a direct path from the top gradient to every
-layer. The other terms can still grow large, which is why deep residual
-networks scale each $F$ down at initialization.
+- If each layer scales the gradient by 0.9, fifty layers give
+  $0.9^{50} \approx 0.005$. The early layers barely learn (**vanishing**).
+- If each layer scales it by 1.1, fifty layers give $1.1^{50} \approx 117$.
+  The updates blow up (**exploding**).
+
+For matrices, "scales by less or more than 1" means the Jacobians' singular
+values (§1.6 of the linear algebra notes) are mostly below or above 1.
+
+**Residual connections stop the vanishing.** A residual layer outputs
+$h + F(h)$, so its Jacobian is $I + \partial F / \partial h$. The $I$ passes
+the gradient back unchanged, so each factor is $1 + \text{something}$
+instead of $0.9$, and the product no longer shrinks to zero. The
+"something" can still compound ($1.1^{50} \approx 117$ again), which is why
+deep residual networks start each $F$ small.
+
+**Three tools stop the explosion.**
+
+- **Gradient clipping:** if the gradient's length is above a threshold $c$,
+  scale it down to length $c$ and keep its direction. A gradient of length
+  50 with $c = 1$ is divided by 50. One bad batch can then no longer take a
+  huge step.
+- **Initialization:** scale the starting weights so each layer's factor
+  starts near 1 (Xavier or He initialization). Then the product neither
+  shrinks nor grows at the start of training.
+- **Normalization layers** (LayerNorm, BatchNorm) rescale each layer's
+  activations, which keeps the factors from drifting far from 1.
+
+The last two help with vanishing too.
