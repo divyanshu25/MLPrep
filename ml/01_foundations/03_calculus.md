@@ -211,6 +211,84 @@ $\partial L / \partial(\text{that variable})$. Each red number is the next red
 number times the amber local derivative between them: $42 = 14 \cdot 3$,
 $14 = 14 \cdot 1$. $x$ is data, not a parameter, so the walk skips it.*
 
+#### Two variables feeding one step
+
+When several inputs feed one step, the gradient goes back to **each input
+separately**: each one gets the upstream gradient times its own local
+derivative. In the figure, $w$ and $b$ both feed $z$, with upstream
+$\partial L / \partial z = 14$, so $w$ gets $14 \cdot 3 = 42$ and $b$ gets
+$14 \cdot 1 = 14$.
+
+Two steps appear everywhere. Take upstream gradient $g$:
+
+- **Add**, $z = a + b$: both local derivatives are 1, so $a$ and $b$ each
+  get $g$. Addition copies the gradient to every input.
+- **Multiply**, $z = a \cdot b$: $\partial z / \partial a = b$ and
+  $\partial z / \partial b = a$, so $a$ gets $g \cdot b$ and $b$ gets
+  $g \cdot a$. Each input's gradient uses the other input's value. With
+  $a = 2$, $b = 5$, $g = 3$: $a$ gets 15 and $b$ gets 6.
+
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 540 220" role="img" aria-label="Two inputs a equals 2 and b equals 5 feed one step with upstream gradient 3. For an add step both inputs get 3. For a multiply step a gets 3 times 5 equals 15 and b gets 3 times 2 equals 6." style="max-width:560px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="tv-f" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
+  </defs>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5">
+    <rect x="10" y="24" width="84" height="44" rx="7"/>
+    <rect x="10" y="132" width="84" height="44" rx="7"/>
+    <rect x="160" y="78" width="92" height="44" rx="7"/>
+  </g>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="52" y="42">a = 2</text>
+    <text x="52" y="150">b = 5</text>
+    <text x="206" y="96">z = a + b = 7</text>
+    <text x="131" y="206" font-weight="600">Add: copies g</text>
+  </g>
+  <g fill="#f43f5e" text-anchor="middle" font-size="10.5">
+    <text x="52" y="60">gets 3 · 1 = 3</text>
+    <text x="52" y="168">gets 3 · 1 = 3</text>
+    <text x="206" y="114">upstream g = 3</text>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.6">
+    <line x1="94" y1="50" x2="158" y2="92" marker-end="url(#tv-f)"/>
+    <line x1="94" y1="150" x2="158" y2="108" marker-end="url(#tv-f)"/>
+  </g>
+  <g font-size="10" fill="#f59e0b" text-anchor="middle">
+    <text x="100" y="40" text-anchor="start">local 1</text>
+    <text x="100" y="170" text-anchor="start">local 1</text>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity="0.5">
+    <rect x="286" y="24" width="84" height="44" rx="7"/>
+    <rect x="286" y="132" width="84" height="44" rx="7"/>
+    <rect x="436" y="78" width="92" height="44" rx="7"/>
+  </g>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="328" y="42">a = 2</text>
+    <text x="328" y="150">b = 5</text>
+    <text x="482" y="96">z = a · b = 10</text>
+    <text x="407" y="206" font-weight="600">Multiply: uses the other input</text>
+  </g>
+  <g fill="#f43f5e" text-anchor="middle" font-size="10.5">
+    <text x="328" y="60">gets 3 · 5 = 15</text>
+    <text x="328" y="168">gets 3 · 2 = 6</text>
+    <text x="482" y="114">upstream g = 3</text>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.6">
+    <line x1="370" y1="50" x2="434" y2="92" marker-end="url(#tv-f)"/>
+    <line x1="370" y1="150" x2="434" y2="108" marker-end="url(#tv-f)"/>
+  </g>
+  <g font-size="10" fill="#f59e0b" text-anchor="middle">
+    <text x="376" y="40" text-anchor="start">local = b = 5</text>
+    <text x="376" y="170" text-anchor="start">local = a = 2</text>
+  </g>
+</svg>
+</div>
+
+*Each input gets the upstream gradient (red, at $z$) times its own local
+derivative (amber, on its edge). Add: both local derivatives are 1, so both
+inputs get 3. Multiply: $a$'s local derivative is $b$ and $b$'s is $a$, so
+$a$ gets $3 \cdot 5 = 15$ and $b$ gets $3 \cdot 2 = 6$.*
+
 #### A variable used in two places
 
 If a variable feeds two later steps, it affects the loss along two paths. Each
@@ -264,7 +342,9 @@ path arrives back at $w$: $1 \cdot 4$ through $u$ and $1 \cdot 3$ through $v$.
 They add: $\partial L / \partial w = 7$, matching $2w + 3$ at $w = 2$.*
 
 So backprop needs only two rules: **multiply along a path, add across
-paths.** Every layer type (attention, LayerNorm, convolution) only has to
+paths.** A step with several inputs sends the gradient back to each input
+along its own path; a variable with several uses adds up what comes back
+along each one. Every layer type (attention, LayerNorm, convolution) only has to
 supply its local derivatives.
 
 #### Why walk the graph backward?
