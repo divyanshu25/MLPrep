@@ -58,10 +58,8 @@ from the true mean $\mu = \mathbb{E}[X]$.
 
 $$\mathrm{Var}(X) = \mathbb{E}[(X - \mu)^2]$$
 
-"Mean" and "average" are the same operation, but you can apply it to two
-different things. The
-*true mean* averages over every possible outcome, weighted by probability:
-for the die it's 3.5, one fixed number. The *sample mean* averages the
+The *true mean* averages over every possible outcome, weighted by
+probability: for the die it's 3.5, one fixed number. The *sample mean* averages the
 draws you actually got: rolls 2, 6, 3 give 3.67, and the next three rolls
 will give something else. The $\mathbb{E}[\,\cdot\,]$ notation always means
 the first kind.
@@ -229,8 +227,11 @@ That's the first hint of why least squares is so common.
 
 ## 3.3 Bayes rule, from counting
 
-Bayes rule is about turning a probability around. A lab can measure how
-often a test comes back positive for people known to be sick. But a patient
+Bayes rule is about turning a probability around. To evaluate a new quick
+test, a lab first diagnoses a study group with a slow, definitive method
+(a biopsy, or watching who develops symptoms), then runs the quick test on
+them. That measures how often the test comes back positive for people known
+to be sick. But a patient
 with a positive result wants the reverse: given that I tested positive, how
 likely am I to be sick? Those two numbers can be wildly different, and mixing
 them up is one of the most common mistakes in reasoning about data.
@@ -571,8 +572,9 @@ $$-\log p_\theta(y \mid x) = -\big[\, y \log \hat y + (1 - y) \log(1 - \hat y) \
 #### The regression losses: MSE and L1
 
 MSE is what maximum likelihood gives when you assume a model's errors follow
-a bell curve: small errors are common, large ones rare. L1 is what it gives
-when large errors are more common than a bell allows.
+a bell curve, where large errors are almost impossible. L1 is what it gives
+when you assume a Laplace curve, where large errors are rare but do happen,
+as in data with occasional outliers.
 
 A regression model outputs one number, say 300k for a house, but maximum
 likelihood needs a probability for the price the house actually sold for.
@@ -581,7 +583,7 @@ plus noise from the bell of §3.2, centered at 0 with standard deviation
 $\sigma$. With $\sigma = 10$k, a sale that misses by $d$ thousand (the
 **error**, or **residual**) scores the bell's height there, $e^{-d^2/200}$:
 1 for a perfect prediction, 0.61 for a 10k miss, 0.011 for a 30k miss. (The
-bell's constant in front is the same for every model, so it's dropped.)
+factor $1/\sqrt{2\pi\sigma^2}$ in front is a constant, so it's dropped.)
 
 Three houses sold for 310k, 290k and 305k. The houses are independent, so a
 model's likelihood is the product of its scores:
@@ -602,14 +604,31 @@ of houses gives MSE.
 
 The catch is that one $\sigma = 10$k assumes every house misses by about the
 same number of dollars, which fails when a 10k cabin and a 200M estate are in
-the same dataset. The usual fix is to predict log(price). The error then
-becomes $\log(\text{actual}/\text{predicted})$, so one $\sigma$ means the
-same *percentage* miss on every house. (Another fix is to have the model
+the same dataset. The usual fix is to predict log(price). The model's
+output is now $\log(\text{predicted})$, so its error is
+
+$$\log(\text{actual}) - \log(\text{predicted}) = \log\frac{\text{actual}}{\text{predicted}}$$
+
+which depends only on the ratio, not on the size of the price. A 10% miss
+gives the same error on both houses:
+
+$$\text{cabin: } \log\frac{11\text{k}}{10\text{k}} = \log 1.1 \approx 0.095 \qquad \text{estate: } \log\frac{220\text{M}}{200\text{M}} = \log 1.1 \approx 0.095$$
+
+So one $\sigma$ means the same *percentage* miss on every house. (Another fix is to have the model
 output its own $\sigma$ for each house.)
 
 L1 comes from **Laplace** noise, whose score for an error $d$ is
 $e^{-|d|/b}$, with $b$ setting the spread. The same steps give
 $-\log(\text{likelihood}) = (\text{sum of absolute errors})/b$.
+
+The difference shows on a 50k miss, with both spreads set to 10k. The bell
+scores it $e^{-2500/200} = e^{-12.5} \approx 0.000004$; the Laplace curve
+scores it $e^{-50/10} = e^{-5} \approx 0.007$, about 1,800 times more
+likely. Under the bell such a miss is nearly impossible, so maximum
+likelihood bends the whole fit to shrink it: the penalty grows with the
+square of the error. Under Laplace it is merely unlikely, so the penalty
+grows only in proportion to the error, and one outlier pulls the fit much
+less.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 220" role="img" aria-label="Left: Gaussian and Laplace noise densities. Right: their minus log curves, a parabola for the Gaussian giving MSE and a V shape for the Laplace giving L1 loss" style="max-width:540px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -658,6 +677,57 @@ house above it. So the loss falls while more houses are above $c$, and stops
 falling once half are on each side. The typo counts as one house above $c$,
 however far above it is.
 
+#### Contrastive losses: cross-entropy over candidates
+
+A contrastive loss trains a model to score a matching pair higher than
+non-matching pairs. Running example: a dog photo scored against three
+captions, its own ("a dog on grass") and two wrong ones, with scores
+$[3, 1, 0]$. Call the true caption's score $s_+$.
+
+**1. Softmax loss (InfoNCE, used in CLIP).** Treat the captions as classes
+and apply cross-entropy:
+
+$$\text{loss} = -\log \frac{e^{s_+}}{\sum_k e^{s_k}} = -\log \frac{e^3}{e^3 + e^1 + e^0} = -\log 0.844 = 0.17$$
+
+This is maximum likelihood: it only raises the true caption's probability,
+and because the softmax probabilities sum to 1, the wrong ones go down. The
+gradient with respect to each score is
+
+$$\frac{\partial\,\text{loss}}{\partial s_k} = p_k - \mathbb{1}[k = \text{true}] = -0.156,\ 0.114,\ 0.042$$
+
+so the highest-scoring wrong caption gets pushed down the most.
+
+**2. With one wrong caption, it becomes the Bradley–Terry loss.** Keep one
+wrong caption with score $s_-$ and let $g = s_+ - s_-$ be the gap.
+Dividing top and bottom by $e^{s_+}$:
+
+$$\text{loss} = -\log \frac{e^{s_+}}{e^{s_+} + e^{s_-}} = -\log \sigma(g) = \log\big(1 + e^{-g}\big)$$
+
+It is the negative log-likelihood of "the true one beats the wrong one".
+Reward models are trained with exactly this loss, with a prompt in place of
+the photo and the human-preferred and rejected responses in place of the
+captions; DPO has the same form (module 7, §3.1 and module 7, §3.3).
+
+**3. Margin loss (triplet loss) is not a likelihood.** It is a rule: the true
+score must beat the wrong one by at least a margin $m$.
+
+$$\text{loss} = \max(0,\ m - g)$$
+
+Once $g \geq m$, the loss and the gradient are exactly 0. (It is often
+written with distances, where smaller means more similar:
+$\max\big(0,\ m + d(\text{anchor}, \text{positive}) - d(\text{anchor}, \text{negative})\big)$.)
+
+**Comparing 2 and 3**, with $m = 1$:
+
+| gap $g$ | $-2$ | $0$ | $1$ | $2$ | $4$ |
+|---|---|---|---|---|---|
+| margin loss $\max(0, 1 - g)$ | 3 | 1 | 0 | 0 | 0 |
+| Bradley–Terry loss $\log(1 + e^{-g})$ | 2.13 | 0.69 | 0.31 | 0.13 | 0.02 |
+
+Both punish the wrong one winning ($g < 0$). The margin loss stops at 0 once
+the gap reaches $m$; the Bradley–Terry loss only approaches 0, so it keeps
+pushing a little.
+
 ## 3.5 Entropy and KL: what a loss value means
 
 We now know cross-entropy, MSE and L1 are each $-\log$ of a probability. But what does a loss of
@@ -671,8 +741,7 @@ definitions in information theory.
 Start with a single outcome that had probability $p$. Call $-\log p$ its
 **surprise**. A certain outcome has surprise 0; a rare one has a lot; and
 because $-\log(pq) = -\log p - \log q$, the surprises of independent events
-add. Those cross-entropy charges from §3.4 (0.11 for a probability of 0.9,
-4.61 for 0.01) were exactly this. With natural logs the unit is called a
+add. With natural logs the unit is called a
 **nat**, with base 2 a **bit** (one nat is about 1.44 bits); PyTorch losses
 are in nats.
 
@@ -821,11 +890,14 @@ models, because each charges for a different mistake:
   $\pi_{ref}$ rarely produces, so the fine-tuned model stays near the
   original.
 
-  Why is the order the opposite of maximum likelihood's? A KL is an average
-  over samples from its first distribution. Maximum likelihood has samples
-  of the data, so the data comes first. RLHF has samples of the model's own
-  outputs, because it generates them during training, so the model comes
-  first.
+  Notice where the model being trained sits. Maximum likelihood uses
+  $\mathrm{KL}(q\|p_\theta)$, with the trained model **second**; RLHF uses
+  $\mathrm{KL}(\pi_\theta\|\pi_{ref})$, with the trained model **first**.
+  The reason: a KL is an average over samples from its first distribution,
+  so the first slot goes to whatever you have samples of. Maximum likelihood
+  has samples of the data, so $q$ goes first. RLHF has samples the trained
+  model generates during training, so $\pi_\theta$ goes first and the
+  reference model $\pi_{ref}$ is second.
 - **Distillation trains on soft targets.** A small student model is trained
   to match a large teacher's output probabilities instead of one-hot
   labels. For a photo of a cat, the one-hot label over (cat, dog, car) is
@@ -873,12 +945,6 @@ $$I(X; Y) = \sum_{x,y} p(x,y) \log \frac{p(x \mid y)}{p(x)} = \sum_{x,y} p(x,y) 
 averages over the joint distribution $p(x,y)$.) A KL is never negative, and
 it is 0 only when the two distributions are equal, which here means
 $p(x,y) = p(x)\,p(y)$: independence.
-
-In ML it ranks input features by how much they tell you about the label.
-Contrastive learning, which trains a model to match pairs such as a photo
-and its caption, raises a lower bound on the mutual information between the
-two (with $N$ candidate pairs per batch, the bound can never exceed
-$\log N$).
 
 ## 3.6 Averages: error bars and the central limit theorem
 
@@ -1090,21 +1156,22 @@ numerically.)
   $0.3/\sqrt{1000} \approx 0.0095$, about ±1 point. So if a new model scores
   half a point higher on that test set, the difference is smaller than the
   noise in either score, too small on its own to show a real improvement.
-- **Confidence intervals.** Take the model from the previous bullet: it
-  scored 90% on 1,000 test examples. Testing it on a different 1,000
-  examples would give a slightly different score, typically about 1 point
-  higher or lower; that is the standard error computed above, 0.95 points.
-  So how far could the model's true accuracy, its score on all possible
-  examples, be from 90%? The measured accuracy follows a bell around the
-  true accuracy, and 95% of a bell lies within 1.96 standard deviations of
-  its center. So 95% of the time, the measurement lands within 1.96 standard
-  errors of the truth, which is $1.96 \times 0.95 \approx 1.9$ points.
-  Turning that around gives a range for the truth: 90% ± 1.9 points, or
-  88.1% to 91.9%. That range is a 95% **confidence interval**. The 95%
-  describes the procedure: if you repeated the test many times, about 95% of
-  the intervals built this way would contain the true accuracy. (This
-  standard error uses the measured 90% in place of the unknown true
-  accuracy, which works poorly when accuracy is close to 0% or 100%.)
+- **Confidence intervals.** The same model scored $\hat p = 90\%$ on
+  $n = 1{,}000$ examples. Its true accuracy $p$, the score on all possible
+  examples, is unknown. The **standard error** (SE) is the standard
+  deviation of $\hat p$, the error bar from the previous bullet:
+  $\text{SE} = \sqrt{\hat p(1-\hat p)/n} = 0.0095$. By the CLT, $\hat p$
+  lands within $1.96\,\text{SE}$ of $p$ 95% of the time. Distance works both
+  ways, so
+  $|\hat p - p| \le 1.96\,\text{SE}$ also means $p$ is within
+  $1.96\,\text{SE}$ of $\hat p$; that is why the interval is centered on
+  $\hat p$. The 95% describes the method: if you
+  repeated the test many times, about 95% of the intervals built this way
+  would contain $p$. (Using $\hat p$ in place of the unknown $p$ inside the
+  square root works poorly when accuracy is near 0% or 100%.) The 95%
+  **confidence interval** is
+
+  $$\hat p \pm 1.96\,\sqrt{\frac{\hat p(1-\hat p)}{n}} = 0.90 \pm 1.96 \times 0.0095 = 0.90 \pm 0.019, \quad \text{i.e. } 88.1\% \text{ to } 91.9\%$$
 
 Where does 1.96 come from? It is just where the bell's area reaches 95%: the
 area within ±1.96 standard deviations of the center is 0.95. The area under
@@ -1162,12 +1229,9 @@ center, holds 68% of the area. Adding the green bands, out to ±1.96, gives
 
 ## 3.7 Bias and variance: two ways an estimate misses
 
-A bathroom scale can be wrong in two different ways. It can be **biased**:
-it always reads 2 kg heavy. Or it can be **noisy**: step on it twice and you
-get two different numbers. Any number computed from data can be wrong in the
-same two ways, and the noise part is called **variance**.
-
-Here are four scales, each weighing a 70 kg person four times:
+An estimate can miss in two ways: it can be **biased** (off on average) or
+**noisy** (scattered around its own average). The noise part is called
+**variance**. Four bathroom scales, each weighing a 70 kg person four times:
 
 | scale | readings | average | bias | variance | total error (MSE) |
 |---|---|---|---|---|---|
@@ -1176,14 +1240,10 @@ Here are four scales, each weighing a 70 kg person four times:
 | right on average, jumpy | 64, 76, 66, 74 | 70 | 0 | 26 | 26 |
 | off and jumpy | 70, 74, 71, 73 | 72 | 2 | 2.5 | 6.5 |
 
-- **Bias** is how far the average reading is from the truth: $72 - 70 = 2$
-  for the two off scales.
-- **Variance** is how much the readings scatter around their own average:
-  the average squared distance from it. For the jumpy scale, the readings
-  are 6, 6, 4 and 4 away from 70, so the variance is
-  $(36 + 36 + 16 + 16)/4 = 26$.
-- **Total error**, the **mean squared error** (MSE), is the average squared
-  distance from the *truth*.
+- **Bias** = average reading − truth. Off scales: $72 - 70 = 2$.
+- **Variance** = average squared distance from the scale's *own* average.
+  Jumpy scale: $(6^2 + 6^2 + 4^2 + 4^2)/4 = 26$.
+- **MSE** = average squared distance from the *truth*.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 320 220" role="img" aria-label="Four dartboards showing the combinations of low and high bias with low and high variance" style="max-width:340px;width:100%;height:auto;font-size:12px;font-family:inherit">
@@ -1209,23 +1269,20 @@ Here are four scales, each weighing a 70 kg person four times:
 *The four scales as darts. Bias is how far the cloud's center sits from the
 bullseye; variance is how scattered it is.*
 
-Look at the last column: total error is always bias squared plus variance.
-For the off-and-jumpy scale, $2^2 + 2.5 = 6.5$. In symbols, with $\theta$ the
-truth and $\hat\theta$ an estimate:
+In every row, MSE = bias² + variance. Off and jumpy: $2^2 + 2.5 = 6.5$.
+With $\theta$ the truth and $\hat\theta$ an estimate:
 
 $$\mathrm{Bias} = \mathbb{E}[\hat\theta] - \theta \qquad
   \mathrm{Var} = \mathbb{E}\big[(\hat\theta - \mathbb{E}[\hat\theta])^2\big] \qquad
   \mathrm{MSE} = \mathrm{Bias}^2 + \mathrm{Var}$$
 
-The two add because each reading's miss is the bias plus that reading's
-distance from the scale's average. Squaring gives
-$\text{bias}^2 + \text{distance}^2 + 2 \times \text{bias} \times \text{distance}$,
-and the last term averages to zero because the distances average to zero.
+Why they add: each miss is bias + (distance from own average). Squaring
+gives $\text{bias}^2 + \text{distance}^2 + 2\,\text{bias} \cdot \text{distance}$,
+and the cross term averages to 0 because the distances average to 0.
 
-The table also shows that unbiased is not the same as best. The steady scale
-is always 2 kg off, yet its total error, 4, is far smaller than the jumpy
-scale's 26, which is right on average. A little bias can be worth it if it
-removes a lot of variance.
+**Unbiased is not the same as best.** The steady scale is always 2 kg off,
+but its MSE (4) is far below the jumpy scale's (26). A little bias is worth
+it if it removes a lot of variance.
 
 #### The tradeoff in ML terms
 
@@ -1276,75 +1333,85 @@ in the labels themselves (§3.4), which no model can predict.
 
 #### Bessel's correction
 
-Variance is the average squared distance from the true mean $\mu$. With
-only a sample $x_1, \dots, x_n$ you don't know $\mu$, so the obvious
-estimate measures from the sample mean $\bar x$ instead:
+**The problem.** Variance is the average squared distance from the true
+mean $\mu$. From a sample you don't know $\mu$, so you measure from the
+sample mean $\bar x$:
 
 $$\hat\sigma^2 = \frac{1}{n}\sum_{i=1}^{n} (x_i - \bar x)^2$$
 
-(NumPy's variance function does this by default.) On average it comes out
-too small. Roll a die three times: over all 216 equally likely sets of
-rolls, $\hat\sigma^2$ averages 1.94, while the die's true variance is 2.92
-(§3.1).
+This comes out too small on average. Example: flip a fair coin twice,
+scoring heads 1 and tails 0. The true mean is $\mu = 0.5$ and the true
+variance is $p(1-p) = 0.25$ (§3.2). There are only 4 equally likely
+samples, so we can average over all of them:
 
-The reason is that $\bar x$ is computed from the same rolls, so it sits in
-their middle, and the rolls are closer to it than to $\mu$. For the rolls
-2, 6, 3, the squared distances add up to 8.67 from $\bar x \approx 3.67$ but
-8.75 from $\mu = 3.5$. The exact relation is
+| flips | $\bar x$ | $\hat\sigma^2$ (divide by $n = 2$) |
+|---|---|---|
+| 0, 0 | 0 | 0 |
+| 0, 1 | 0.5 | 0.25 |
+| 1, 0 | 0.5 | 0.25 |
+| 1, 1 | 1 | 0 |
+| **average** | | **0.125** |
+
+On average $\hat\sigma^2$ is 0.125, half the true 0.25.
+
+**Why.** $\bar x$ is computed from the same flips, so $\bar x$ sits in
+their middle, and the flips are always closer to $\bar x$ than to $\mu$. Take flips
+1, 1: measured from $\bar x = 1$ the squared distances sum to 0, but
+measured from $\mu = 0.5$ they sum to $0.25 + 0.25 = 0.5$. The gap is
+exact:
 
 $$\underbrace{\sum_i (x_i - \mu)^2}_{\text{from the true mean}}
 = \underbrace{\sum_i (x_i - \bar x)^2}_{\text{from the sample mean}}
 + \underbrace{n(\bar x - \mu)^2}_{\text{the gap}}$$
 
-To get it, write each $x_i - \mu$ as $(x_i - \bar x) + (\bar x - \mu)$ and
-square. The cross terms add up to $2(\bar x - \mu)$ times
-$\sum_i (x_i - \bar x)$, and that sum is zero because distances from the
-average sum to zero. For the rolls 2, 6, 3, the gap is 0.08, and
-$8.67 + 0.08 = 8.75$.
+(Write $x_i - \mu = (x_i - \bar x) + (\bar x - \mu)$ and square; the cross
+term is 0 because distances from $\bar x$ sum to 0.) For flips 1, 1:
+$0.5 = 0 + 2 \times 0.5^2$.
 
 <div style="margin:1.25rem 0">
-<svg viewBox="0 0 400 220" role="img" aria-label="The sum of squared deviations of the rolls 2, 6 and 3 from a point c, plotted against c: a parabola with its minimum at c equal to x bar, so the value at c equal to mu is higher by n times x bar minus mu squared" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
-  <text x="200" y="18" text-anchor="middle" fill="#6366f1" font-weight="600">Σᵢ (xᵢ − c)², for the rolls 2, 6, 3</text>
+<svg viewBox="0 0 400 225" role="img" aria-label="The sum of squared distances from the flips 1 and 1 to a point c, plotted against c: a parabola with its minimum 0 at c equal to x bar equal to 1, and value 0.5 at the true mean mu equal to 0.5; the difference is the gap n times x bar minus mu squared" style="max-width:420px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <text x="200" y="18" text-anchor="middle" fill="#6366f1" font-weight="600">Σᵢ (xᵢ − c)², for the flips 1, 1</text>
   <line x1="44" y1="32" x2="44" y2="190" stroke="currentColor" opacity="0.5"/>
   <line x1="44" y1="190" x2="356" y2="190" stroke="currentColor" opacity="0.5"/>
-  <path d="M 50 40 Q 190 280 330 40" fill="none" stroke="#6366f1" stroke-width="2"/>
-  <line x1="44" y1="124.7" x2="190" y2="124.7" stroke="#f59e0b" opacity="0.6" stroke-dasharray="4 4"/>
-  <line x1="44" y1="160" x2="190" y2="160" stroke="#10b981" opacity="0.6" stroke-dasharray="4 4"/>
-  <line x1="114" y1="124.7" x2="114" y2="190" stroke="#f59e0b" opacity="0.6" stroke-dasharray="4 4"/>
-  <line x1="190" y1="160" x2="190" y2="190" stroke="#10b981" opacity="0.6" stroke-dasharray="4 4"/>
-  <line x1="190" y1="124.7" x2="190" y2="160" stroke="#f43f5e" stroke-width="1.5"/>
-  <line x1="186" y1="124.7" x2="194" y2="124.7" stroke="#f43f5e" stroke-width="1.5"/>
-  <line x1="186" y1="160" x2="194" y2="160" stroke="#f43f5e" stroke-width="1.5"/>
-  <text x="190" y="116" text-anchor="middle" fill="#f43f5e" font-size="10.5">n(x̄ − μ)² = 0.08</text>
-  <circle cx="114" cy="124.7" r="3.5" fill="#f59e0b"/>
-  <circle cx="190" cy="160" r="3.5" fill="#10b981"/>
-  <text x="40" y="128.7" text-anchor="end" fill="#f59e0b" font-size="11">8.75</text>
-  <text x="40" y="164" text-anchor="end" fill="#10b981" font-size="11">8.67</text>
-  <text x="114" y="206" text-anchor="middle" fill="#f59e0b">μ = 3.5</text>
-  <text x="190" y="206" text-anchor="middle" fill="#10b981">x̄ ≈ 3.67</text>
+  <path d="M 50 45 Q 190 325 330 45" fill="none" stroke="#6366f1" stroke-width="2"/>
+  <line x1="44" y1="150" x2="190" y2="150" stroke="#f59e0b" opacity="0.6" stroke-dasharray="4 4"/>
+  <line x1="120" y1="150" x2="120" y2="190" stroke="#f59e0b" opacity="0.6" stroke-dasharray="4 4"/>
+  <line x1="190" y1="150" x2="190" y2="185" stroke="#f43f5e" stroke-width="1.5"/>
+  <line x1="186" y1="150" x2="194" y2="150" stroke="#f43f5e" stroke-width="1.5"/>
+  <line x1="186" y1="185" x2="194" y2="185" stroke="#f43f5e" stroke-width="1.5"/>
+  <text x="190" y="140" text-anchor="middle" fill="#f43f5e" font-size="10.5">gap n(x̄ − μ)² = 0.5</text>
+  <circle cx="120" cy="150" r="3.5" fill="#f59e0b"/>
+  <circle cx="190" cy="185" r="3.5" fill="#10b981"/>
+  <text x="40" y="154" text-anchor="end" fill="#f59e0b" font-size="11">0.5</text>
+  <text x="40" y="189" text-anchor="end" fill="#10b981" font-size="11">0</text>
+  <text x="120" y="206" text-anchor="middle" fill="#f59e0b">μ = 0.5</text>
+  <text x="190" y="206" text-anchor="middle" fill="#10b981">x̄ = 1</text>
   <text x="364" y="194" fill="currentColor">c</text>
 </svg>
 </div>
 
-*The sum of squared distances from the rolls 2, 6, 3 to a point $c$. It's
+*The sum of squared distances from the flips 1, 1 to a point $c$. It's
 smallest at the sample mean $\bar x$, and higher at the true mean $\mu$ by
 the gap $n(\bar x - \mu)^2$.*
 
-Now average each term over all possible samples:
+**How big the gap is.** Average each term over all possible samples:
 
-- **From the true mean:** each $(x_i - \mu)^2$ averages $\sigma^2$, by the
-  definition of variance, so the sum averages $n\sigma^2$.
-- **The gap:** $(\bar x - \mu)^2$ averages $\mathrm{Var}(\bar x) = \sigma^2/n$
-  (§3.6), so $n(\bar x - \mu)^2$ averages $\sigma^2$.
-- **From the sample mean:** whatever is left, $n\sigma^2 - \sigma^2 = (n - 1)\sigma^2$.
+- From the true mean: each $(x_i - \mu)^2$ averages $\sigma^2$, so the sum
+  averages $n\sigma^2$.
+- The gap: $(\bar x - \mu)^2$ averages $\sigma^2/n$ (§3.6), so
+  $n(\bar x - \mu)^2$ averages $\sigma^2$.
+- From the sample mean: the rest, $n\sigma^2 - \sigma^2 = (n-1)\sigma^2$.
 
-So dividing the sum from the sample mean by $n$ gives an average of
-$\frac{n-1}{n}\sigma^2$, which is $\frac{2}{3} \times 2.92 = 1.94$ for three
-rolls. Dividing by $n - 1$ instead,
+**The fix.** Dividing by $n$ averages $\frac{n-1}{n}\sigma^2$: for 2 flips,
+$\frac{1}{2} \times 0.25 = 0.125$, as in the table. Divide by $n - 1$
+instead:
 
-$$s^2 = \frac{1}{n-1}\sum_{i=1}^{n} (x_i - \bar x)^2,$$
+$$s^2 = \frac{1}{n-1}\sum_{i=1}^{n} (x_i - \bar x)^2$$
 
-averages exactly $\sigma^2$. That's **Bessel's correction**.
+For the coin this doubles every row of the table, to 0, 0.5, 0.5, 0, which
+averages exactly 0.25. In general $s^2$ averages exactly $\sigma^2$; this is
+**Bessel's correction**. NumPy's `np.var` divides by $n$ by default; pass
+`ddof=1` for $n - 1$.
 
 ## 3.8 Hypothesis tests: is the difference real?
 
