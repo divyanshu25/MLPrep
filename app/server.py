@@ -1060,6 +1060,7 @@ ML_FOLDER_TITLES = {
     "07_llm_stack": "LLM Stack",
     "08_interview_drills": "Interview Drills",
     "09_reinforcement_learning": "Reinforcement Learning",
+    "10_post_training_rl": "Post-training RL",
 }
 
 # Pedagogical order of the notebooks inside each module, matched to the flow
@@ -1090,6 +1091,7 @@ NB_ORDER = {
     "07_llm_stack": ["memory_math.py", "lora_scratch.py",
                      "speculative_decoding_demo.py"],
     "09_reinforcement_learning": ["rl_scratch.py"],
+    "10_post_training_rl": ["grpo_reward_hacking.py"],
 }
 
 
