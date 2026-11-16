@@ -82,7 +82,7 @@ exactly in infinitely many ways.
 ### 13.4 Training: ALS and SGD
 
 **Alternating least squares (ALS).** With the item vectors fixed, each
-user's vector is a separate ridge regression ([§3.1](01_linear_models.md)): the features are the
+user's vector is a separate ridge regression ([§3.1](01_linear_models.md#3.1)): the features are the
 vectors of the items the user rated, and the targets are the ratings.
 
 $$p_u = (Q_u^\top Q_u + \lambda I)^{-1} Q_u^\top r_u$$
@@ -90,7 +90,7 @@ $$p_u = (Q_u^\top Q_u + \lambda I)^{-1} Q_u^\top r_u$$
 Solve this for every user (independently, so in parallel), then fix the user
 vectors and solve for every item the same way, and repeat. Each half-step is
 an exact minimum for its half, so the loss never increases: the same
-alternating pattern as k-means ([§9.2](04_clustering_and_dim_reduction.md)) and EM ([§11.2](04_clustering_and_dim_reduction.md)).
+alternating pattern as k-means ([§9.2](04_clustering_and_dim_reduction.md#9.2)) and EM ([§11.2](04_clustering_and_dim_reduction.md#11.2)).
 
 **SGD** instead updates on one rating at a time: with error
 $e = r_{ui} - \hat r_{ui}$, set $p_u \mathrel{+}= \eta(e\, q_i - \lambda p_u)$ and
@@ -112,7 +112,7 @@ it". Two standard approaches:
   Sample triples $(u, i, j)$ where user $u$ interacted with item $i$ but not
   $j$, and maximize
   $\sum \log \sigma(\hat x_{ui} - \hat x_{uj})$ minus an L2 penalty. This is
-  logistic regression ([§2](01_linear_models.md)) on score differences, and it optimizes a smooth
+  logistic regression ([§2](01_linear_models.md#2)) on score differences, and it optimizes a smooth
   version of AUC. Most modern recommender losses descend from it.
 
 ### 13.6 Cold start

@@ -362,11 +362,16 @@ function fixMdLinks(container, basePath) {
       });
       return;
     }
-    let resolved;
-    try { resolved = new URL(href, 'file:///' + basePath).pathname.replace(/^\//, ''); }
-    catch (e) { return; }
+    let resolved, frag = '';
+    try {
+      const u = new URL(href, 'file:///' + basePath);
+      resolved = u.pathname.replace(/^\//, '');
+      frag = decodeURIComponent(u.hash.slice(1));
+    } catch (e) { return; }
     if (/\.(md|py|ipynb)$/.test(resolved)) {
-      a.href = '#/notes/' + encodeURIComponent(resolved);
+      /* "file.md#3.1" opens the file scrolled to section 3.1 */
+      a.href = '#/notes/' + encodeURIComponent(resolved)
+             + (/^\d{1,2}(\.\d{1,2})*$/.test(frag) ? '?sec=' + frag : '');
     } else {
       a.removeAttribute('href');
       a.title = 'not viewable in the app - open ' + resolved + ' in your editor';
@@ -1497,6 +1502,50 @@ function numberHeadings(rootEl, plainText) {
 /* Turn "§2.1" in the prose into a link to that heading when the section is
    on this page. References that name another file stay plain text. Math,
    code, headings, existing links and figures are skipped. */
+/* "Probability §3.4.3", "Calculus §2.3", "Linear algebra §1.6" and
+   "module 7, §3.2" name another file: link them to that file, opened at the
+   section. Same skip rules as linkSectionRefs. */
+let currentDocPath = null;
+const XREF_FILES = {
+  probability: 'ml/01_foundations/04_probability.md',
+  calculus: 'ml/01_foundations/03_calculus.md',
+  'linear algebra': 'ml/01_foundations/02_linear_algebra.md',
+};
+function moduleNotesPath(n) {
+  const ml = (treeCache || []).find(g => g.group === 'ml');
+  const f = ml && ml.folders.find(f => f.files.some(x => x.path.startsWith('ml/' + String(n).padStart(2, '0') + '_')));
+  const file = f && f.files.find(x => /\/(notes|README)\.md$/.test(x.path));
+  return file ? file.path : null;
+}
+function linkCrossFileRefs(rootEl) {
+  const skip = 'a, code, pre, .katex, svg, h1, h2, h3, h4, h5, h6, script, style';
+  const re = /\b(Probability|Calculus|[Ll]inear algebra|[Mm]odule (\d{1,2}),)\s*§(\d{1,2}(?:\.\d{1,2})*)(?!\d|\.\d)/g;
+  const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.includes('§') && !n.parentElement.closest(skip))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT });
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const s = node.nodeValue;
+    let last = 0, m, frag = null;
+    re.lastIndex = 0;
+    while ((m = re.exec(s))) {
+      const path = m[2] ? moduleNotesPath(+m[2]) : XREF_FILES[m[1].toLowerCase()];
+      if (!path) continue;
+      frag = frag || document.createDocumentFragment();
+      frag.appendChild(document.createTextNode(s.slice(last, m.index)));
+      const a = document.createElement('a');
+      a.href = '#/notes/' + encodeURIComponent(path) + '?sec=' + m[3];
+      a.textContent = m[0];
+      frag.appendChild(a);
+      last = m.index + m[0].length;
+    }
+    if (frag) {
+      frag.appendChild(document.createTextNode(s.slice(last)));
+      node.parentNode.replaceChild(frag, node);
+    }
+  });
+}
 function linkSectionRefs(rootEl, byNum) {
   const skip = 'a, code, pre, .katex, svg, h1, h2, h3, h4, h5, h6, script, style';
   /* skip refs that name another file: "notes §5.1", "notes.md §2",
@@ -1555,7 +1604,9 @@ function buildOutline(rootEl, wrapEl, scrollRoot, linkRefs = true) {
     h.id = n > 1 ? s + '-' + n : s;
   });
   const byNum = numberHeadings(rootEl, plainText);   // after the ids, so existing anchors keep working
+  rootEl._byNum = byNum;
   if (linkRefs) linkSectionRefs(rootEl, byNum);
+  linkCrossFileRefs(rootEl);   // "Probability §3.4.3" names its file, so it is unambiguous everywhere
   if (hs.length < 3) return null;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const links = hs.map(h =>
@@ -1747,7 +1798,10 @@ const sbToggleBtn = `<button data-sb-toggle class="btn btn-text text-mut !px-1.5
 
 async function viewNotes(app, encodedPath) {
   const epoch = routeEpoch;
-  const current = encodedPath ? decodeURIComponent(encodedPath) : null;
+  /* "#/notes/<path>?sec=3.4.3" opens the file scrolled to that section */
+  const [pathPart, query] = (encodedPath || '').split('?');
+  const secTarget = (query || '').match(/(?:^|&)sec=([\d.]+)/)?.[1] || null;
+  const current = pathPart ? decodeURIComponent(pathPart) : null;
 
   if (!current) {
     /* landing, a library: a segmented control picks the track (ML, Coding,
@@ -1881,7 +1935,13 @@ async function viewNotes(app, encodedPath) {
   mountSidebar($('#doc-wrap'));
   fixMdLinks($('#md-root'), current);
   /* on exercise pages "§9" means a section of the module notes, not exercise 9 */
+  currentDocPath = current;
   const outlineIO = buildOutline($('#md-root'), $('#doc-wrap'), app, !/exercises[^/]*\.md$/.test(current));
+  if (secTarget) {
+    const id = ($('#md-root')._byNum || {})[secTarget];
+    const el = id && document.getElementById(id);
+    if (el) requestAnimationFrame(() => el.scrollIntoView({ block: 'start' }));
+  }
   /* checklists: real checkboxes, state in localStorage per file (UI-only).
      Keys hash the item's text (not its index) so edits to the doc don't
      silently shift every saved tick onto the wrong line. */

@@ -8,7 +8,7 @@ constant.**
 - With noise $\mathcal N(0, \sigma^2)$, a residual $r$ has
   $-\log p = r^2/(2\sigma^2) + \text{const}$.
 - Summed over examples, maximizing the likelihood is minimizing
-  $\sum_i r_i^2$ ([§1.1](01_linear_models.md)).
+  $\sum_i r_i^2$ ([§1.1](01_linear_models.md#1.1)).
 
 **If asked:** *What if the noise is Laplace?* Then $-\log p = |r|/b$ plus a
 constant, and you minimize absolute error, which is less affected by

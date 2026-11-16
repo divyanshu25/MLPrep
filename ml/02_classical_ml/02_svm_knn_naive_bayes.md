@@ -133,7 +133,7 @@ nearest and farthest points end up at almost the same distance, so ranking
 by distance tells you little. The data needed to keep neighborhoods small
 grows exponentially with $d$.
 
-What helps: reduce dimensions first ([§10](04_clustering_and_dim_reduction.md)), learn the distance function from
+What helps: reduce dimensions first ([§10](04_clustering_and_dim_reduction.md#10)), learn the distance function from
 labels, and rely on real data lying near a low-dimensional surface. Practical
 points: **scale features** (a mass in grams instead of kilograms dominates
 every distance), use odd $k$ to avoid ties, and expect $O(nd)$ cost per

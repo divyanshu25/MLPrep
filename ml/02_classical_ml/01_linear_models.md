@@ -40,8 +40,8 @@ $w = 1.7$ it is 0.25, so 1.6 is the minimum.
 $X^\top X$ has no inverse when one feature can be built exactly from the
 others (the columns are **linearly dependent**). Example: height in
 centimeters and height in inches as two features. Weights $(1, 0)$, $(0, 2.54)$
-and $(2, -2.54)$ all make the same predictions, so there is no single best
-answer. The same happens with one-hot columns that add up to the bias
+and $(2, -2.54)$ all make the same predictions, because 1 inch = 2.54 cm,
+so $2.54 \times \text{inches} = \text{cm}$. There is no single best answer. The same happens with one-hot columns that add up to the bias
 column, or with more features than examples ($d > n$). Ridge regression
 (§3.1) fixes this.
 

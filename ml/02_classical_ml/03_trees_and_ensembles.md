@@ -131,7 +131,7 @@ For other losses, fit the tree to the negative gradient instead, called the
 $$r_i = -\frac{\partial \ell(y_i, F(x_i))}{\partial F(x_i)}, \qquad F \leftarrow F + \eta\, h \quad (h \text{ fit to the } r_i)$$
 
 For log-loss, $r_i = y_i - p_i$, the same $y - p$ as logistic regression
-([§2.2](01_linear_models.md)). A smaller step $\eta$ (typically 0.01 to 0.3)
+([§2.2](01_linear_models.md#2.2)). A smaller step $\eta$ (typically 0.01 to 0.3)
 needs more trees but usually gives lower test error.
 
 Boosting keeps adding capacity, so too many rounds overfit: stop early on a
