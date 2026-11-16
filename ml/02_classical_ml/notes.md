@@ -1,8 +1,5 @@
 # Classical ML from first principles
 
-Each model is introduced with an example first, then its formula and where
-the formula comes from. Sections are numbered in reading order across the files.
-
 Read in this order:
 
 1. [Linear models](01_linear_models.md) (§1 to §3): linear regression, the

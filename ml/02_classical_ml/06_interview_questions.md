@@ -1,8 +1,5 @@
 # Interview questions & exit checklist
 
-Each answer: the short answer in bold, a few supporting points, and at most
-two follow-ups. Derivations are in the sections above.
-
 **Q1. Why does least squares correspond to Gaussian noise?**
 
 **Because the negative log of a Gaussian density is a squared error plus a
