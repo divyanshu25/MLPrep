@@ -396,7 +396,7 @@ For $\tilde y = +1$ ($y = 1$): $\partial\ell/\partial F = -(1 - \sigma(F)) =
 -(1 - p)$, so $r = 1 - p = y - p$. For $\tilde y = -1$ ($y = 0$):
 $\partial\ell/\partial F = 1 - \sigma(-F) = \sigma(F) = p$, so
 $r = -p = y - p$. In both cases $r_i = y_i - p_i$: the same "residual on the
-probability scale" as logistic regression (notes §2.3), now serving as the
+probability scale" as logistic regression (linear-models notes §2.2), now serving as the
 regression target of the next tree.
 
 **(b)** $F_0 = \arg\min_c \sum_i \ell(y_i, c)$. Set the derivative to zero
@@ -462,7 +462,7 @@ proportion to the posterior probability that $j$ generated it, the
 soft-label analogue of "the cluster mean", and the Hessian
 $-\sum_i \gamma_{ij}\Sigma_j^{-1} \prec 0$ confirms a maximum. Sanity check
 the limits: if $\gamma_{ij} \in \{0,1\}$ (hard assignments) this is exactly
-the k-means center update (notes §8.1); if $\gamma_{ij} = 1/k$ for all
+the k-means center update (clustering notes §9.1); if $\gamma_{ij} = 1/k$ for all
 points (totally uncertain), every component's mean collapses to the global
 mean, which is what happens for the first EM iteration from a
 symmetric initialization.
