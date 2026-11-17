@@ -104,11 +104,8 @@ $\frac{\partial L}{\partial p} = -\frac{y}{p} + \frac{1-y}{1-p} = \frac{-y(1-p) 
 
 $$\frac{\partial L}{\partial z} = \frac{p-y}{p(1-p)}\cdot p(1-p) = p - y, \qquad \nabla_w L = (p - y)\,x.$$
 
-The $p(1-p)$ cancellation is the key result: with the *matched* loss
-(cross-entropy for a sigmoid), the sigmoid's flat tails do not appear in the
-gradient. Had you used MSE, $\partial L/\partial z = (p - y)\,p(1-p)$, which
-$\to 0$ when the model is confidently wrong, so the update is near zero
-exactly when the error is largest. Full-batch:
+The $p(1-p)$ cancels, so the sigmoid's flat tails do not appear in the
+gradient. Full-batch:
 $\nabla_w L = \frac{1}{n}X^\top(p - y)$.
 </details>
 

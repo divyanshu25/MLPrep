@@ -37,10 +37,6 @@ $$\frac{\partial L}{\partial p} = \frac{p-y}{p(1-p)}, \quad \frac{\partial p}{\p
 - For $y = 1$, $p = 0.1$: the gradient on $z$ is $-0.9$, a large correction
   when the model is badly wrong.
 
-**If asked:** *Why not squared error on the sigmoid?* The $p(1-p)$ no longer
-cancels: $-0.9 \times 0.09 = -0.081$, 11 times smaller exactly when the
-prediction is worst.
-
 **Q4. Why does L1 give exact zeros but L2 doesn't?**
 
 **L1's slope at zero is $\pm\lambda$, not 0, so a weight stays at zero unless
