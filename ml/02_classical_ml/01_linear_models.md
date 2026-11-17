@@ -28,9 +28,13 @@ them.
 The squared error is a bowl-shaped function of the weights, and the best
 weights sit at the bottom, where the slope is zero in every direction. The
 gradient of $\|Xw - y\|^2$ is $2X^\top(Xw - y)$ (Calculus §2.3.3). Setting
-it to zero gives
+it to zero gives the **normal equation**:
 
-$$X^\top X\, w = X^\top y \qquad\Longrightarrow\qquad \hat w = (X^\top X)^{-1} X^\top y$$
+$$\boxed{\color{#6366f1}{X^\top X\, w = X^\top y}}$$
+
+When $X^\top X$ can be inverted, solving it gives the weights directly:
+
+$$\hat w = (X^\top X)^{-1} X^\top y$$
 
 Example: fit $y = wx$ to the points $(1, 2)$ and $(2, 3)$. Then
 $X^\top X = 1^2 + 2^2 = 5$ and $X^\top y = 1 \cdot 2 + 2 \cdot 3 = 8$, so
@@ -55,16 +59,51 @@ For weight $j$, the gradient is the average of (prediction error) × (feature
 $j$). If predictions are too high on examples where feature $j$ is large,
 weight $j$ goes down.
 
-**Why not always use the normal equation?** It costs about $nd^2 + d^3$
-operations. With $d = 10^6$ features, $d^3 = 10^{18}$, which is infeasible.
-A gradient step costs $nd$, and gradient descent also works for losses with
-no closed-form solution, such as logistic loss.
+This uses the same gradient as the normal equation, but differently. The
+normal equation sets the gradient to zero and solves for $w$ in one step.
+Gradient descent takes many small steps downhill; the steps stop changing
+$w$ when the gradient reaches zero, which is exactly when
+$X^\top X\, w = X^\top y$. So both end at the same weights. In the example
+of §1.2, starting from $w = 0$, gradient descent moves toward 1.6 a little
+each step.
 
-**Why feature scale matters.** Suppose one feature is house size in square
-meters (around 100) and another is number of bedrooms (around 3). A small
-change in the size weight changes the predictions a lot; the same change in
-the bedrooms weight barely changes them. So the loss bowl is steep along one
-weight and almost flat along the other: a long, narrow valley.
+#### Why not always use the normal equation?
+
+Count the work in its two steps:
+
+1. **Build $X^\top X$.** It is a $d \times d$ table. Each entry is a dot
+   product of two feature columns, each of length $n$, so $n$
+   multiplications. $d^2$ entries times $n$ each is $nd^2$.
+2. **Solve $X^\top X\, w = X^\top y$.** Solving $d$ equations in $d$
+   unknowns costs $O(d^3)$.
+
+So the total is about $nd^2 + d^3$. With $d = 10^6$ features,
+$d^3 = 10^{18}$, which is infeasible.
+
+A gradient step is much cheaper. Computing $X^\top(Xw - y)$ takes two steps:
+
+1. **Predictions, $Xw$:** each of the $n$ examples needs a dot product of
+   its $d$ features with $w$, so $nd$ multiplications. Subtract $y$ to get
+   the $n$ errors.
+2. **Gradient, $X^\top(\text{errors})$:** each of the $d$ weights needs
+   the sum over $n$ examples of (error × that feature), again $nd$
+   multiplications.
+
+Together that is $nd + nd = 2 \times n \times d$ multiplications per step.
+
+#### Why feature scale matters
+
+Suppose one feature is house size in square
+meters (around 100) and another is number of bedrooms (around 3). Raise
+each weight by 1:
+
+- size weight +1: each predicted price goes up by about 100 (the size);
+- bedrooms weight +1: each predicted price goes up by about 3.
+
+The same nudge moves the predictions about 30 times more through the size
+weight, so the loss is far more sensitive to it. The loss bowl is steep in
+the size direction and almost flat in the bedrooms direction: a long,
+narrow valley.
 
 - The learning rate has to be small enough for the steep direction, or the
   steps overshoot and blow up. Precisely, gradient descent converges only if
@@ -92,6 +131,45 @@ and the targets are $y = (2, 3)$, one entry per example.
   line. Here $\hat y = 1.6 \cdot (1, 2) = (1.6, 3.2)$, the miss is
   $(0.4, -0.2)$, and $(0.4, -0.2) \cdot (1, 2) = 0.4 - 0.4 = 0$.
 
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 360 290" role="img" aria-label="Plane with one axis per example. The line through the origin and (1, 2) holds every possible prediction w times (1, 2). The target y = (2, 3) is off the line. The closest point on the line is y-hat = (1.6, 3.2), and the miss from y-hat to y, (0.4, -0.2), meets the line at a right angle." style="max-width:380px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <defs>
+    <marker id="lp-ax" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" fill-opacity="0.5"/></marker>
+  </defs>
+  <g stroke="currentColor" stroke-opacity="0.45">
+    <line x1="50" y1="270" x2="330" y2="270" marker-end="url(#lp-ax)"/>
+    <line x1="50" y1="270" x2="50" y2="12" marker-end="url(#lp-ax)"/>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.45">
+    <line x1="110" y1="267" x2="110" y2="273"/><line x1="170" y1="267" x2="170" y2="273"/><line x1="230" y1="267" x2="230" y2="273"/>
+    <line x1="47" y1="210" x2="53" y2="210"/><line x1="47" y1="150" x2="53" y2="150"/><line x1="47" y1="90" x2="53" y2="90"/><line x1="47" y1="30" x2="53" y2="30"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.6" font-size="10" text-anchor="middle">
+    <text x="110" y="285">1</text><text x="170" y="285">2</text><text x="230" y="285">3</text>
+    <text x="40" y="214">1</text><text x="40" y="154">2</text><text x="40" y="94">3</text><text x="40" y="34">4</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.7" font-size="10.5">
+    <text x="326" y="262" text-anchor="end">example 1</text>
+    <text x="58" y="18">example 2</text>
+  </g>
+  <line x1="50" y1="270" x2="179" y2="12" stroke="#6366f1" stroke-width="2"/>
+  <text x="186" y="28" fill="#6366f1" font-size="11">all predictions w · (1, 2)</text>
+  <circle cx="110" cy="150" r="3.5" fill="#6366f1"/>
+  <text x="102" y="154" text-anchor="end" fill="#6366f1" font-size="11">(1, 2)</text>
+  <line x1="146" y1="78" x2="170" y2="90" stroke="#f43f5e" stroke-width="2"/>
+  <path d="M 154 82 L 150 90.1 L 142 86" fill="none" stroke="currentColor" stroke-opacity="0.6"/>
+  <circle cx="170" cy="90" r="4" fill="currentColor"/>
+  <circle cx="146" cy="78" r="4" fill="#10b981"/>
+  <text x="178" y="86" fill="currentColor" font-size="11">target y = (2, 3)</text>
+  <text x="138" y="70" text-anchor="end" fill="#10b981" font-size="11">ŷ = (1.6, 3.2)</text>
+  <text x="166" y="112" fill="#f43f5e" font-size="11">miss (0.4, −0.2)</text>
+</svg>
+</div>
+
+*One axis per example. Every possible prediction lies on the blue line
+$w \cdot (1, 2)$. The target $y$ is off the line, and the closest point on it
+is $\hat y$, where the miss meets the line at a right angle.*
+
 With more features, the predictions can be any combination of the columns
 of $X$, and the miss must be perpendicular to every column:
 
@@ -113,20 +191,78 @@ probability with the **sigmoid**:
 
 $$p = \sigma(z) = \frac{1}{1 + e^{-z}}$$
 
-$\sigma(0) = 0.5$, $\sigma(2) = 0.88$, $\sigma(-2) = 0.12$, $\sigma(4) = 0.98$.
+<div style="margin:1.25rem 0">
+<svg viewBox="0 0 380 235" role="img" aria-label="The sigmoid curve: probability p against score z from -6 to 6. It is 0.5 at z = 0, rises in an S shape, and flattens toward 0 on the left and 1 on the right. Marked points: sigma(-2) = 0.12, sigma(0) = 0.5, sigma(2) = 0.88, sigma(4) = 0.98." style="max-width:400px;width:100%;height:auto;font-size:12px;font-family:inherit">
+  <g stroke="currentColor" stroke-opacity="0.45">
+    <line x1="40" y1="200" x2="345" y2="200"/>
+    <line x1="190" y1="205" x2="190" y2="30"/>
+  </g>
+  <g stroke="currentColor" stroke-opacity="0.25" stroke-dasharray="4 4">
+    <line x1="40" y1="40" x2="340" y2="40"/>
+    <line x1="40" y1="120" x2="340" y2="120"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.6" font-size="10">
+    <text x="346" y="44">1</text><text x="346" y="124">0.5</text><text x="346" y="204">0</text>
+    <text x="40" y="216" text-anchor="middle">−6</text><text x="115" y="216" text-anchor="middle">−3</text><text x="190" y="216" text-anchor="middle">0</text><text x="265" y="216" text-anchor="middle">3</text><text x="340" y="216" text-anchor="middle">6</text>
+  </g>
+  <text x="190" y="230" text-anchor="middle" fill="currentColor" fill-opacity="0.75" font-size="11">score z = wᵀx</text>
+  <text x="196" y="26" fill="currentColor" fill-opacity="0.75" font-size="11">probability p = σ(z)</text>
+  <polyline points="40.0,199.6 45.0,199.5 50.0,199.4 55.0,199.3 60.0,199.1 65.0,198.9 70.0,198.7 75.0,198.4 80.0,198.1 85.0,197.6 90.0,197.1 95.0,196.5 100.0,195.7 105.0,194.8 110.0,193.7 115.0,192.4 120.0,190.8 125.0,188.9 130.0,186.7 135.0,184.0 140.0,180.9 145.0,177.3 150.0,173.1 155.0,168.3 160.0,163.0 165.0,157.0 170.0,150.4 175.0,143.3 180.0,135.8 185.0,128.0 190.0,120.0 195.0,112.0 200.0,104.2 205.0,96.7 210.0,89.6 215.0,83.0 220.0,77.0 225.0,71.7 230.0,66.9 235.0,62.7 240.0,59.1 245.0,56.0 250.0,53.3 255.0,51.1 260.0,49.2 265.0,47.6 270.0,46.3 275.0,45.2 280.0,44.3 285.0,43.5 290.0,42.9 295.0,42.4 300.0,41.9 305.0,41.6 310.0,41.3 315.0,41.1 320.0,40.9 325.0,40.7 330.0,40.6 335.0,40.5 340.0,40.4" fill="none" stroke="#6366f1" stroke-width="2.5"/>
+  <line x1="140.0" y1="200" x2="140.0" y2="180.9" stroke="currentColor" stroke-opacity="0.3" stroke-dasharray="3 3"/>
+  <circle cx="140.0" cy="180.9" r="3.5" fill="#f43f5e"/>
+  <text x="132.0" y="184.9" text-anchor="end" fill="#f43f5e" font-size="11">σ(−2) = 0.12</text>
+  <line x1="190.0" y1="200" x2="190.0" y2="120.0" stroke="currentColor" stroke-opacity="0.3" stroke-dasharray="3 3"/>
+  <circle cx="190.0" cy="120.0" r="3.5" fill="#f43f5e"/>
+  <text x="182.0" y="114.0" text-anchor="end" fill="#f43f5e" font-size="11">σ(0) = 0.5</text>
+  <line x1="240.0" y1="200" x2="240.0" y2="59.1" stroke="currentColor" stroke-opacity="0.3" stroke-dasharray="3 3"/>
+  <circle cx="240.0" cy="59.1" r="3.5" fill="#f43f5e"/>
+  <text x="248.0" y="71.1" text-anchor="start" fill="#f43f5e" font-size="11">σ(2) = 0.88</text>
+  <line x1="290.0" y1="200" x2="290.0" y2="42.9" stroke="currentColor" stroke-opacity="0.3" stroke-dasharray="3 3"/>
+  <circle cx="290.0" cy="42.9" r="3.5" fill="#f43f5e"/>
+  <text x="296.0" y="58.9" text-anchor="start" fill="#f43f5e" font-size="11">σ(4) = 0.98</text>
+</svg>
+</div>
 
-**Where the sigmoid comes from.** A probability lies between 0 and 1, but
-$w^\top x$ can be any number, so we need a translation between the two. The
-**odds** are $p/(1-p)$: a probability of 0.8 is odds of 4 ("4 to 1"). Odds
-run from 0 to infinity, and their log, the **log-odds**, runs over all
-numbers, just like $z$. So the model sets the log-odds equal to the score:
+*The sigmoid squashes any score into a probability between 0 and 1. A score
+of 0 means 0.5; each step away from 0 pushes the probability toward 0 or 1,
+quickly at first and then more and more slowly.*
 
-$$\log\frac{p}{1-p} = z \qquad\Longrightarrow\qquad p = \frac{1}{1 + e^{-z}}$$
+**Where the sigmoid comes from.** The score $z$ can be any number, so we
+need a way to turn any number into a probability. The **log-odds** do the
+reverse, turning a probability into any number:
 
-So each feature adds its weight to the log-odds, and each extra 1 in $z$
-multiplies the odds by $e \approx 2.7$.
+| $p$ | 0.2 | 0.5 | 0.8 |
+|---|---|---|---|
+| odds $p/(1-p)$ | 0.25 | 1 | 4 |
+| log-odds $\log\frac{p}{1-p}$ | $-1.39$ | 0 | $1.39$ |
 
-The derivative is $\sigma'(z) = \sigma(z)\big(1 - \sigma(z)\big) = p(1-p)$.
+Logistic regression assumes the score is the log-odds. Solving
+$\log\frac{p}{1-p} = z$ for $p$ gives the sigmoid:
+
+$$p = \frac{1}{1 + e^{-z}}$$
+
+Check: $z = 1.39$ gives $p = 1/(1 + e^{-1.39}) = 0.8$, as in the table.
+
+Since $z = b + w_1 x_1 + w_2 x_2 + \dots$, each feature that is present adds
+its weight to the log-odds. Example, a spam model with bias $-2$:
+
+| email contains | log-odds $z$ | $p(\text{spam})$ |
+|---|---|---|
+| neither word | $-2$ | 0.12 |
+| "free" (weight 1.39) | $-2 + 1.39 = -0.61$ | 0.35 |
+| "free" and "winner" (weight 1.1) | $-0.61 + 1.1 = 0.49$ | 0.62 |
+
+Each word pushes the log-odds up by its own weight, whatever else the email
+contains. In odds terms, "free" multiplies the odds of spam by
+$e^{1.39} = 4$.
+
+The derivative is $\sigma'(z) = p(1-p)$. To see it, differentiate
+$(1 + e^{-z})^{-1}$ and split the result into two factors:
+
+$$\sigma'(z) = \frac{e^{-z}}{(1 + e^{-z})^2} = \underbrace{\frac{1}{1 + e^{-z}}}_{p} \cdot \underbrace{\frac{e^{-z}}{1 + e^{-z}}}_{1 - p} = p(1-p)$$
+
+The second factor is $1 - p$ because the two fractions add up to 1. At
+$z = 0$, $p = 0.5$ and the slope is $0.25$, the steepest point of the curve.
 
 ### 2.2 The loss and its gradient
 
