@@ -266,10 +266,24 @@ $z = 0$, $p = 0.5$ and the slope is $0.25$, the steepest point of the curve.
 
 ### 2.2 The loss and its gradient
 
-The loss is **binary cross-entropy**, the negative log-likelihood of the
-label (Probability §3.4.2):
+The model outputs $p$, its probability that the label is 1. A good model
+gives high probability to the label that actually happened:
+
+- if the email is spam ($y = 1$), the model gave the true label probability
+  $p$;
+- if it isn't ($y = 0$), the model gave the true label probability $1 - p$.
+
+Maximum likelihood (Probability §3.4.2) picks the weights that make these
+probabilities as large as possible over all examples. Maximizing a product
+of probabilities is the same as minimizing the sum of their $-\log$, so each
+example's loss is $-\log p$ when $y = 1$ and $-\log(1 - p)$ when $y = 0$.
+Writing both cases in one line gives **binary cross-entropy**:
 
 $$L = -\big[y \log p + (1 - y)\log(1 - p)\big]$$
+
+When $y = 1$ the second term is zero, and when $y = 0$ the first is. For a
+spam email: $p = 0.9$ costs $-\log 0.9 = 0.11$, but $p = 0.1$ costs
+$-\log 0.1 = 2.3$. Confident wrong answers are charged heavily.
 
 Its gradient has the same simple form as linear regression's:
 
@@ -283,25 +297,39 @@ Example with $y = 1$: if $p = 0.9$ the gradient is $-0.1x$, a small
 correction; if $p = 0.1$ it is $-0.9x$, a large one. The correction is
 proportional to how wrong the probability is.
 
-The same form, (prediction − target) × input, appears for linear
-regression, $(\hat y - y)x$, and for softmax regression with several classes,
-$(p_k - y_k)x$. It isn't a coincidence: in each case the loss is the negative
-log-likelihood that matches the output (squared error for a plain number,
-cross-entropy for a sigmoid or softmax probability), and that matching
-always cancels the extra factors in the chain rule.
+**The same gradient shape appears in three models:**
 
-The loss is **convex** in $w$: its curvature, $\sum_i p_i(1-p_i)\,x_i x_i^\top$,
-is never negative in any direction. So gradient descent finds the global
-minimum.
+| model | output | loss | gradient |
+|---|---|---|---|
+| linear regression | $\hat y = w^\top x$ | squared error | $(\hat y - y)\,x$ |
+| logistic regression | $p = \sigma(w^\top x)$ | binary cross-entropy | $(p - y)\,x$ |
+| softmax regression | $p_k = \text{softmax}(z)_k$ | cross-entropy | $(p_k - y_k)\,x$ |
 
-### 2.3 Why not squared error on the labels?
+In each row the gradient is (prediction − target) × input. This is not a
+coincidence: each loss is the negative log-likelihood that matches its
+output, and that pairing cancels the extra factors in the chain rule.
 
-- **Predictions leave $[0, 1]$** if you fit plain linear regression to 0/1
-  labels.
-- **With a sigmoid plus squared error, the gradient vanishes when the model
-  is most wrong.** The gradient on $z$ becomes $(p - y)\,p(1-p)$. For $y = 1$,
-  $p = 0.1$: $-0.9 \times 0.09 = -0.081$, 11 times smaller than
-  cross-entropy's $-0.9$. The loss is also no longer convex.
+**The loss is convex.** Its curvature (second derivative) is
+
+$$\sum_i p_i(1 - p_i)\, x_i x_i^\top$$
+
+which is never negative in any direction, since $p_i(1-p_i) \ge 0$. So the
+loss is a single bowl with no false minima, and gradient descent finds the
+global minimum.
+
+### 2.3 Why not linear regression on the labels?
+
+The labels are just the numbers 0 and 1, and §1 already has a method for
+predicting numbers: linear regression. Interviewers often ask why
+classification doesn't just reuse it.
+
+The outputs aren't probabilities. Example: predict whether a student passes
+an exam (1) or fails (0) from the hours they studied. Four students studied
+1, 2, 3 and 4 hours; the first two failed and the last two passed. A
+straight line fit to these points is $\hat y = 0.4x - 0.5$. It predicts 1.9
+for a student who studies 6 hours and $-0.5$ for one who studies 0 hours: a
+"190%" and a "$-50\%$" chance of passing. Logistic regression passes the
+score through a sigmoid (§2.1), so every output is between 0 and 1.
 
 **Interview trap:** if the classes can be separated perfectly by a line, the
 weights grow without limit, because larger weights always push the
