@@ -343,16 +343,20 @@ regularizes by default.
 
 ### 3.1 Ridge and lasso
 
-**Why weights need limiting.** Suppose two features are nearly identical,
-say two sensors measuring the same temperature. Weights $(0.5, 0.5)$ and
-$(1000, -999)$ make almost the same predictions on the training data, but
-the second pair amplifies any tiny difference between the sensors, which is
-noise. With many features and little data, plain least squares often picks
-large weights like these that chase noise and fail on new data.
-Regularization adds a penalty on the size of the weights, so it prefers
-$(0.5, 0.5)$:
+**Why weights need limiting.** Predict 20 students' exam scores from hours
+studied, plus 30 useless features such as shoe size and birth month. With
+more features than students, least squares can always find weights that fit
+all 20 scores exactly, by giving shoe size and birth month whatever weights
+make the numbers come out right. Those weights fit the noise in these 20
+scores, so the model fails on the next student.
+
+Regularization adds a penalty on the size of the weights to the loss. Now a
+weight stays large only if it lowers the error enough to pay for itself.
+Hours studied does; shoe size doesn't, so its weight shrinks toward 0:
 
 $$\text{ridge: } \|Xw - y\|^2 + \lambda\|w\|_2^2 \qquad\qquad \text{lasso: } \|Xw - y\|^2 + \lambda\|w\|_1$$
+
+$\lambda$ sets how much weight size costs compared with error.
 
 - **Ridge** (L2) shrinks all weights toward zero. It has a closed form,
   $\hat w = (X^\top X + \lambda I)^{-1} X^\top y$, and the matrix is always
@@ -361,53 +365,73 @@ $$\text{ridge: } \|Xw - y\|^2 + \lambda\|w\|_2^2 \qquad\qquad \text{lasso: } \|X
 - **Lasso** (L1) sets some weights to exactly zero, so it also selects
   features. It has no closed form.
 
-**The probability view.** A penalty is the same as a **prior**: a belief,
-before seeing data, that weights are probably small. Instead of the weights
-that make the data most likely, pick the weights that are most likely given
-both the data and the prior (the **MAP** estimate). Taking $-\log$ turns
-that into
+**Where the penalty comes from.** §1.1 showed that squared error is
+maximum likelihood: it picks the weights $w$ that make the data most likely,
+$p(\text{data} \mid w)$. That ignores anything you believed about $w$
+before seeing the data. Suppose you believe small weights are more likely
+than large ones. That belief is a **prior** $p(w)$, and Bayes rule
+(Probability §3.3) combines it with the data:
 
-$$\text{minimize} \quad \underbrace{-\log(\text{likelihood})}_{\text{squared error}} \ \underbrace{-\ \log(\text{prior})}_{\text{penalty}}$$
+$$p(w \mid \text{data}) \propto p(\text{data} \mid w)\; p(w)$$
 
-- A Gaussian prior $w_j \sim \mathcal N(0, \tau^2)$ has
-  $-\log(\text{prior}) = \|w\|_2^2/(2\tau^2)$ plus a constant: ridge, with
-  $\lambda = \sigma^2/\tau^2$, where $\sigma^2$ is the noise variance.
-- A Laplace prior, which is sharply peaked at 0, gives lasso.
+Picking the $w$ that maximizes this is the **MAP** (maximum a posteriori)
+estimate. Taking $-\log$ turns the product into a sum to minimize:
 
-So $\lambda$ grows when the data are noisier (larger $\sigma^2$: trust the
-data less) or when you believe more strongly that weights are small
-(smaller $\tau^2$).
+$$\underbrace{-\log p(\text{data} \mid w)}_{\text{squared error}} \ \underbrace{-\ \log p(w)}_{\text{penalty}}$$
+
+**Gaussian prior gives ridge.** Believe each weight is a bell curve centered
+at 0 with variance $\tau^2$: $p(w_j) \propto e^{-w_j^2/(2\tau^2)}$. The
+$-\log$ of that is $w_j^2/(2\tau^2)$, so the penalty is
+$\|w\|_2^2/(2\tau^2)$. The squared-error term, written in full, is
+$\|Xw - y\|^2/(2\sigma^2)$, where $\sigma^2$ is the variance of the noise in
+$y$. Multiply both terms by $2\sigma^2$:
+
+$$\|Xw - y\|^2 + \frac{\sigma^2}{\tau^2}\,\|w\|_2^2$$
+
+This is ridge with $\lambda = \sigma^2/\tau^2$. So $\lambda$ is large when:
+
+- the data are noisy (large $\sigma^2$), so you trust them less;
+- you strongly believe the weights are small (small $\tau^2$).
+
+**Laplace prior gives lasso.** The Laplace prior
+$p(w_j) \propto e^{-|w_j|/b}$ has a sharp peak at 0. Its $-\log$ is
+$|w_j|/b$, so the penalty is $\|w\|_1/b$.
 
 ### 3.2 Why L1 gives exact zeros
 
-Take one weight with loss $(w - a)^2$, where $a$ is the unpenalized best
-value, and add each penalty:
+Lasso sets useless weights to exactly 0; ridge only makes them small. The
+reason is how hard each penalty pulls a weight toward 0.
 
-$$\text{lasso: } w^* = \operatorname{sign}(a)\,\max\big(0,\ |a| - \tfrac{\lambda}{2}\big) \qquad\qquad \text{ridge: } w^* = \frac{a}{1 + \lambda}$$
+**Penalty alone.** Gradient descent moves each weight against the slope of
+the penalty:
 
-| | $a = 3,\ \lambda = 2$ | $a = 0.5,\ \lambda = 2$ |
-|---|---|---|
-| lasso | 2 | **0 exactly** |
-| ridge | 1 | 0.17, never 0 |
+- Ridge's penalty $\lambda w^2$ has slope $2\lambda w$, which is
+  proportional to the weight. So each step removes a fixed **percentage**.
+  Removing 10% per step takes a weight of 1 to 0.9, 0.81, 0.73, ...; after 50
+  steps it is 0.005. It gets tiny but never reaches 0.
+- Lasso's penalty $\lambda |w|$ has slope $\lambda$ (with the sign of $w$),
+  the same at any size. So each step removes a fixed **amount**. Removing
+  0.1 per step takes a weight of 1 to 0.9, 0.8, ..., 0.1, 0 in ten steps.
+  Lasso stops a weight at 0 rather than letting it cross to the other side.
 
-Lasso subtracts a fixed amount and stops at zero; ridge divides, so it never
-reaches zero.
+**With the data.** The data's gradient pulls each weight toward the value
+that fits best, and the weight settles where the two pulls balance. For a
+useless feature like shoe size in §3.1, the data's pull is weak.
 
-**Why, in terms of slopes.** Start at $w = 0$ and ask whether moving a
-little toward $a$ helps:
+- Ridge's pull gets weaker as the weight shrinks and vanishes at 0, so near
+  0 even a weak data pull wins. The weight stops at a small nonzero value.
+- Lasso's pull stays $\lambda$ all the way to 0. If the data's pull is weaker
+  than $\lambda$, nothing stops the weight, and it ends at exactly 0.
 
-- The data loss $(w - a)^2$ has slope $-2a$ at 0, so moving toward $a$
-  lowers it by $2|a|$ per unit.
-- The lasso penalty $\lambda|w|$ has slope $\lambda$ as soon as $w$ moves
-  off zero, so moving costs $\lambda$ per unit. If $2|a| < \lambda$, the
-  move costs more than it gains, and the weight stays at exactly 0. With
-  $a = 0.5$, $\lambda = 2$: gain 1, cost 2.
-- The ridge penalty $\lambda w^2$ has slope 0 at $w = 0$, so the first small
-  move is free. Any $a \ne 0$ pulls the weight off zero.
-
-The same picture in two dimensions (Linear algebra §1.7): the L1 budget is a
-diamond with corners on the axes, and the loss contours usually first touch
-it at a corner, where one weight is zero.
+**The same idea in a picture.** Take two weights. With no penalty, least
+squares would pick $(w_1, w_2) = (2, 0.8)$, the black dot below. Think of
+the penalty as a budget: the weights must stay inside a region. The L1
+region $|w_1| + |w_2| \le 1$ is a diamond with corners on the axes; the L2
+region $w_1^2 + w_2^2 \le 1$ is a disk. The answer is the point of the
+region closest to the black dot, where the smallest error circle (green)
+around the dot touches the region. The diamond sticks out at its corners,
+so the circle usually touches a corner, where one weight is 0. The disk has
+no corners.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 580 240" role="img" aria-label="Two panels. Left: the L1 budget is a diamond with corners on the axes; the smallest loss contour around the optimum (2, 0.8) touches it at the corner (1, 0), where w2 is zero. Right: the L2 budget is a disk; the contour touches it at (0.93, 0.37), where both weights are nonzero." style="max-width:600px;width:100%;height:auto;font-size:11px;font-family:inherit">
@@ -463,9 +487,9 @@ it at a corner, where one weight is zero.
 </svg>
 </div>
 
-*Loss $\|w - (2, 0.8)\|^2$ with budget 1. Left: the contour touches the
-diamond at the corner $(1, 0)$, so $w_2 = 0$ exactly. Right: it touches the
-disk at $(0.93, 0.37)$, both weights shrunk, neither zero.*
+*Left: the circle touches the diamond at
+the corner $(1, 0)$, so $w_2 = 0$ exactly. Right: it touches the disk at
+$(0.93, 0.37)$, where both weights are smaller but neither is 0.*
 
 ### 3.3 Effect on bias and variance
 
@@ -484,6 +508,14 @@ Three practical points:
   measured in millimeters instead of meters needs a weight 1000 times
   smaller for the same effect, so it is penalized 1000 times less (L1) or
   $10^6$ times less (L2).
-- **Elastic net** (L1 + L2) handles groups of correlated features. Lasso
-  alone keeps one feature from the group and zeros the rest, and which one
-  it keeps can change with small changes in the data.
+- **Elastic net** adds both penalties, $\lambda_1\|w\|_1 + \lambda_2\|w\|_2^2$.
+  It fixes lasso's problem with near-duplicate features. Say two features
+  are almost the same, such as house size from the listing and house size
+  measured by an inspector, and together they need a total weight of 2. The
+  predictions are the same for $(2, 0)$ and $(1, 1)$, and so is the L1
+  penalty: $|2| + |0| = |1| + |1| = 2$. So lasso has no reason to prefer
+  sharing. It puts all the weight on whichever feature fits slightly better,
+  and small noise in the data decides which one that is. The L2 penalty
+  prefers sharing: $2^2 + 0^2 = 4$ but $1^2 + 1^2 = 2$. Elastic net's L2
+  part splits the weight across the group, and its L1 part still sets
+  useless features to 0.
