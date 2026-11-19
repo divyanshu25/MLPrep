@@ -430,7 +430,21 @@ score:
 - nearby points: similarity close to 1;
 - distant points: similarity close to 0.
 
-$\gamma$ controls how quickly the similarity drops with distance:
+$\gamma$ controls how quickly the similarity drops with distance. $\gamma$
+multiplies the squared distance, so a small $\gamma$ keeps the exponent
+small and the similarity near 1 even for distant points:
+
+| similarity $e^{-\gamma d^2}$ at distance $d$ | $d = 0.5$ | $d = 1$ | $d = 2$ |
+|---|---|---|---|
+| $\gamma = 0.1$ | 0.98 | 0.90 | 0.67 |
+| $\gamma = 1$ | 0.78 | 0.37 | 0.02 |
+| $\gamma = 10$ | 0.08 | 0.00005 | about 0 |
+
+A training point's vote is weighted by this similarity, so with
+$\gamma = 0.1$ a point still has two thirds of its full say at distance 2.
+With $\gamma = 10$ it has almost none beyond distance 0.5. Roughly, a point
+influences a region of radius $1/\sqrt\gamma$: 3.2 for $\gamma = 0.1$, 0.32
+for $\gamma = 10$.
 
 | | small $\gamma$ | large $\gamma$ |
 |---|---|---|
@@ -576,11 +590,15 @@ In 2 dimensions the neighbors are within 10% of the range in each feature. In
 100 dimensions the box must cover 95.5% of every feature's range: the
 "neighbors" differ from the point in almost every feature.
 
-A second symptom: all distances become about the same. For a random point
-among 1,000 uniform points, the nearest is about 1% as far as the farthest
-in 2 dimensions, but 72% as far in 100 dimensions and 90% in 1,000. When the
-nearest and farthest points are almost equally far, ranking by distance
-says little.
+**Second problem: every point is about equally far away.** Take 1,000
+random points and one new point:
+
+- in 2 dimensions, the nearest point is 100 times closer than the farthest;
+- in 1,000 dimensions, the nearest point is only about 10% closer than the
+  farthest.
+
+So in high dimensions the "nearest" neighbor is barely nearer than any
+other point, and kNN's vote is close to a vote of random points.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 400 190" role="img" aria-label="For 1,000 random points, each bar spans from 0 to the distance of the farthest point, and a marker shows the nearest point as a fraction of it: 1 percent in 2 dimensions, 22 percent in 10, 72 percent in 100, 90 percent in 1,000." style="max-width:440px;width:100%;height:auto;font-size:11px;font-family:inherit">
@@ -612,11 +630,25 @@ it is almost as far as the farthest.*
  Keeping neighborhoods small would need a number of points
 that grows exponentially with $d$.
 
-What helps: reduce the number of dimensions first
-([§10](04_clustering_and_dim_reduction.md#10)), learn a distance from the
-labels (for example, distances between learned embeddings), and rely on the
-fact that real data usually lies near a low-dimensional surface rather than
-filling the whole space.
+**What helps.**
+
+- **Real data is not spread evenly.** The numbers above are for random
+  points filling the whole cube. Real data sits near a much smaller surface.
+  A 64×64 face photo has 4,096 pixel features, but faces differ in only a
+  few ways (pose, lighting, expression, identity), so face photos fill a
+  tiny part of that space. Neighbors on that surface can still be close, so
+  kNN often works better on real data than the cube suggests.
+- **Reduce the dimensions first.** PCA ([§10](04_clustering_and_dim_reduction.md#10))
+  keeps the few directions along which the data varies most, for example
+  4,096 pixels down to 50 numbers. Then run kNN on those 50.
+- **Drop useless features.** Every irrelevant feature adds noise to every
+  distance. Shoe size in a house-price model makes houses look different
+  for no reason.
+- **Learn the distance.** Train a neural network to map each input to an
+  embedding where points with the same label end up close together (for
+  example with a contrastive loss, Probability §3.4.4). Then use kNN on the
+  embeddings. This is how face recognition, image search and retrieval
+  systems find neighbors.
 
 ---
 
@@ -624,13 +656,22 @@ filling the whole space.
 
 ### 6.1 The idea
 
-Is an email containing "free" and "meeting" spam? Bayes rule (Probability
-§3.3) says to score each class by how common the class is, times how likely
-the email's words are in that class, and pick the larger:
+A new email contains the words "free" and "meeting". Is it spam?
 
-$$p(\text{class} \mid \text{email}) \propto p(\text{class}) \times p(\text{email} \mid \text{class})$$
+Naive Bayes asks two questions about each class, spam and not spam:
 
-The second factor is the hard part. Naive Bayes makes it easy by assuming
+1. **How common is the class?** If half of all emails are spam,
+   $p(\text{spam}) = 0.5$.
+2. **If the email were in this class, how likely are its words?** Spam
+   often contains "free" and rarely "meeting". Normal email is the
+   opposite.
+
+It multiplies the two answers for each class, and the class with the
+larger product wins. This is Bayes rule (Probability §3.3):
+
+$$p(\text{class} \mid \text{email}) \propto \underbrace{p(\text{class})}_{\text{question 1}} \times \underbrace{p(\text{email} \mid \text{class})}_{\text{question 2}}$$
+
+Question 2 is the hard part. Naive Bayes makes it easy by assuming
 the words appear **independently** of each other within a class, so the
 probability of the email is a product of one number per word:
 
@@ -680,10 +721,30 @@ needs the right class to have the larger score, and double-counting often
 leaves the ranking unchanged. So naive Bayes is a decent classifier with
 poorly calibrated probabilities.
 
-**Generative vs discriminative.** Naive Bayes is **generative**: it models
-how each class produces its features, $p(x \mid y)$, and gets the class from
-Bayes rule. Logistic regression is **discriminative**: it models
-$p(y \mid x)$ directly. Naive Bayes needs less data to reach its best
-accuracy, because it only estimates simple counts. Logistic regression is
-usually more accurate once data is plentiful, because it doesn't rely on the
-independence assumption.
+### 6.4 Generative vs discriminative
+
+There are two ways to build a spam classifier.
+
+- **Generative (naive Bayes): learn what each class looks like.** It learns
+  how spam emails are written (which words they contain, how often) and
+  how normal emails are written: $p(\text{email} \mid \text{class})$ for each class. To classify a
+  new email, it asks which class was more likely to produce it, using Bayes
+  rule. Because it describes each class completely, it could even generate
+  new fake emails of either class.
+- **Discriminative (logistic regression): learn only the difference.** It
+  never describes what an email looks like. It learns one weight per word
+  that pushes the score toward spam or not spam, which is $p(\text{class} \mid \text{email})$
+  directly ([§2](01_linear_models.md#2)).
+
+| | naive Bayes (generative) | logistic regression (discriminative) |
+|---|---|---|
+| models | $p(\text{email} \mid \text{class})$, then Bayes rule | $p(\text{class} \mid \text{email})$ directly |
+| training | counting, one pass over the data | gradient descent |
+| small datasets | better: simple counts are estimated well from few examples | worse: weights are noisy |
+| large datasets | worse: limited by the wrong independence assumption | better: no independence assumption |
+| probabilities | overconfident (§6.3) | usually well calibrated |
+
+A classic result (Ng and Jordan, 2002) makes the data tradeoff precise:
+naive Bayes reaches its best accuracy with far fewer examples, but logistic
+regression's best accuracy is higher. So with little data, naive Bayes
+often wins; with plenty, logistic regression does.
