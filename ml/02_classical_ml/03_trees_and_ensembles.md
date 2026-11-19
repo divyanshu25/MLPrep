@@ -394,21 +394,84 @@ simple to be accurate (high bias), but the sum of many is a strong model.
 So boosting reduces bias, where bagging reduces variance.
 
 **Example.** Three houses: 80, 120 and 200 m², sold for 200, 300 and 400
-(thousands). Each tree is a **stump**, a tree with one split, so it can give
-only two answers. Each round adds half of the new tree ($\eta = 0.5$, the
-step size).
+(thousands). Each tree is a **stump**, a tree with a single split, so it
+puts the houses into two groups and gives one number per group.
 
-| round | what the new tree learns from the residuals | predictions | residuals (true − predicted) | squared error |
+**Round 0: start with the average.** Predict 300 for every house. The
+**residuals**, true price minus prediction, are:
+
+- 80 m²: $200 - 300 = -100$
+- 120 m²: $300 - 300 = 0$
+- 200 m²: $400 - 300 = +100$
+
+**Why the next tree predicts residuals, not prices.** The model already
+predicts 300 for each house. What it still needs is the **correction** to
+add to that prediction, and for each house the correction is exactly the
+residual: $\text{price} = \text{current prediction} + \text{residual}$. The
+80 m² house needs $-100$, the 200 m² house needs $+100$. A tree trained on
+the residuals learns those corrections, so adding it moves each prediction
+toward its price. A tree trained on the prices instead would learn the same
+thing every round, ignoring what the model already gets right, and adding
+it would roughly double the predictions.
+
+**Round 1: fit a stump to the residuals.** The stump is an ordinary
+regression tree (§7.5) with one split. The only change is **what it
+predicts**: the residuals, not the prices. So:
+
+- it **splits on the feature**, house size, as any tree does;
+- in each group it predicts the **average residual**;
+- it scores each candidate split by the squared error of those
+  predictions against the residuals, and keeps the best.
+
+The two possible splits:
+
+| split on size | groups (residuals) | each group predicts | squared error |
+|---|---|---|---|
+| size < 100 | 80 m² {$-100$} and 120, 200 m² {0, $+100$} | $-100$ and $+50$ | $0 + 50^2 + 50^2 = 5{,}000$ |
+| size < 160 | 80, 120 m² {$-100$, 0} and 200 m² {$+100$} | $-50$ and $+100$ | $50^2 + 50^2 + 0 = 5{,}000$ |
+
+They tie here; take "size < 100". The stump's output is $-100$ for the
+80 m² house and $+50$ for the other two.
+
+Add **half** of the stump's output to each prediction (half is the step
+size $\eta = 0.5$; taking full steps tends to overshoot):
+
+- 80 m²: $300 + 0.5 \times (-100) = 250$
+- 120 m²: $300 + 0.5 \times 50 = 325$
+- 200 m²: $300 + 0.5 \times 50 = 325$
+
+The new residuals are $200 - 250 = -50$, $300 - 325 = -25$ and
+$400 - 325 = +75$. The squared error drops from
+$100^2 + 0^2 + 100^2 = 20{,}000$ to $50^2 + 25^2 + 75^2 = 8{,}750$.
+
+**Round 2 and later: repeat** with the new residuals. Each round, a new
+stump predicts the current residuals, and half of it is added:
+
+| round | stump: split, output below / above | predictions | residuals | squared error |
 |---|---|---|---|---|
-| 0 | start at the average | 300, 300, 300 | $-100$, 0, $+100$ | 20,000 |
-| 1 | size < 100: $-100$; otherwise $+50$ | 250, 325, 325 | $-50$, $-25$, $+75$ | 8,750 |
-| 2 | size < 160: $-37.5$; otherwise $+75$ | 231, 306, 363 | $-31$, $-6$, $+38$ | 2,422 |
-| 3 | size < 160: $-18.75$; otherwise $+37.5$ | 222, 297, 381 | $-22$, $+3$, $+19$ | 840 |
+| 0 | none, start at the average | 300, 300, 300 | $-100$, 0, $+100$ | 20,000 |
+| 1 | size < 100: $-100$ / $+50$ | 250, 325, 325 | $-50$, $-25$, $+75$ | 8,750 |
+| 2 | size < 160: $-37.5$ / $+75$ | 231, 306, 363 | $-31$, $-6$, $+38$ | 2,422 |
+| 3 | size < 160: $-18.8$ / $+37.5$ | 222, 297, 381 | $-22$, $+3$, $+19$ | 840 |
+| 4 | size < 100: $-21.9$ / $+10.9$ | 211, 302, 387 | $-11$, $-2$, $+13$ | 302 |
+| 5 | size < 160: $-6.6$ / $+13.3$ | 208, 299, 393 | $-8$, $+1$, $+7$ | 103 |
+| 6 | size < 100: $-7.6$ / $+3.8$ | 204, 301, 395 | $-4$, $-1$, $+5$ | 38 |
 
-Each tree is fitted to the current **residuals**, the gaps between the true
-prices and the predictions. Adding half of it closes part of every gap.
-After 6 rounds the predictions are 204, 301 and 395, and the squared error
-is 38.
+**The final model is a sum.** The prediction for a house is the starting
+average plus half of each stump's output for that house. For the 80 m²
+house, reading the stump column:
+
+$$300 + 0.5 \times (-100 - 37.5 - 18.8 - 21.9 - 6.6 - 7.6) \approx 204$$
+
+One stump gives only two different answers, so it can never fit three
+different prices. Added together, the six stumps get within 5 of every
+price.
+
+In general, after $M$ rounds:
+
+$$F(x) = F_0 + \eta\,h_1(x) + \eta\,h_2(x) + \cdots + \eta\,h_M(x)$$
+
+where $F_0$ is the starting average and $h_m$ is the tree from round $m$.
 
 <div style="margin:1.25rem 0">
 <svg viewBox="0 0 520 250" role="img" aria-label="Predictions for three houses over six boosting rounds. All three start at 300, the average. Each round adds half of a one-split tree fitted to the remaining errors, and the predictions move toward the true prices 200, 300 and 400, reaching 204, 301 and 395 after six rounds." style="max-width:540px;width:100%;height:auto;font-size:11px;font-family:inherit">
@@ -461,29 +524,70 @@ is 38.
 
 *Each round adds half of a one-split tree fitted to the remaining errors, and every prediction moves toward its true price.*
 
-**Why it is called gradient boosting.** For the squared loss
-$\tfrac12(y - F)^2$, where $F$ is the current prediction, the derivative
-with respect to $F$ is $-(y - F)$. So the residual $y - F$ is exactly the
-**negative gradient** of the loss. "Fit a tree to the residuals and add a
-small step of it" is gradient descent, where each step is a tree instead of
-a change to a weight vector.
+#### Why it is called gradient boosting
 
-For other losses, fit each tree to the negative gradient, called the
-**pseudo-residual**:
+**Gradient descent on the predictions.** Ordinary gradient descent adjusts
+weights. Here, think of the three predictions themselves as the things being
+adjusted. The loss for one house is $\tfrac12(y - F)^2$, where $F$ is the
+current prediction. Its derivative with respect to $F$ is
+
+$$\frac{\partial}{\partial F}\,\tfrac12(y - F)^2 = -(y - F) = -\text{residual}$$
+
+A gradient descent step moves each prediction against its gradient:
+$F \leftarrow F + \eta\,(y - F)$, that is, **add $\eta$ times the residual**.
+That is exactly what each boosting round does.
+
+**Check with round 1** ($\eta = 0.5$):
+
+| house | residual | gradient step $0.5 \times$ residual | step the stump actually took |
+|---|---|---|---|
+| 80 m² | $-100$ | $-50$ | $-50$ |
+| 120 m² | 0 | 0 | $+25$ |
+| 200 m² | $+100$ | $+50$ | $+25$ |
+
+**Why a tree, and not the step itself?** The exact step is just one number
+per training house; it says nothing about a house the model has never
+seen. The tree approximates the step with a rule on the features ("size <
+100: $-50$, otherwise $+25$"), so the same correction applies to any new
+house. Because a stump has only two outputs, its step is a rough version of
+the exact one, which is why many rounds are needed.
+
+So **gradient boosting is gradient descent in which each step is a tree
+fitted to the negative gradient.**
+
+**Other losses: fit the tree to the negative gradient.** For a different
+loss, the negative gradient is no longer the plain residual, so it is
+called the **pseudo-residual**:
 
 $$r_i = -\frac{\partial \ell(y_i, F(x_i))}{\partial F(x_i)}, \qquad F \leftarrow F + \eta\, h \quad (h = \text{a tree fitted to the } r_i)$$
 
-For classification with log-loss, $r_i = y_i - p_i$, the same $y - p$ as
-logistic regression ([§2.2](01_linear_models.md#2.2)). For a spam email
-($y = 1$) that the model currently gives $p = 0.2$, the next tree is pushed
-toward $+0.8$ for it.
+| loss | pseudo-residual $r_i$ | effect |
+|---|---|---|
+| squared error $\tfrac12(y - F)^2$ | $y - F$ | the plain residual (the example above) |
+| absolute error $\lvert y - F \rvert$ | $\operatorname{sign}(y - F)$: $+1$ or $-1$ | each house pushes equally hard, so outliers can't dominate |
+| log-loss (classification, see below) | $y - p$ | the same $y - p$ as logistic regression ([§2.2](01_linear_models.md#2.2)) |
 
-**Step size and when to stop.**
+**Classification.** For spam vs not spam, the sum of the trees, $F$, is a
+score, not a probability: it can be any number, like $-3$ or $+2$. As in
+logistic regression, where the score is $w^\top x$, the sigmoid turns it into
+a probability, $p = \sigma(F) = 1/(1 + e^{-F})$: a score of 0 gives
+$p = 0.5$, a score of 2 gives $p = 0.88$. The loss is log-loss
+(binary cross-entropy, [§2.2](01_linear_models.md#2.2)), and its negative
+gradient with respect to the score $F$ is $y - p$.
+
+For a spam email ($y = 1$) that the model currently scores at $p = 0.2$,
+the pseudo-residual is $1 - 0.2 = 0.8$, so the next tree pushes its score
+up. An email already at $p = 0.95$ gets only $0.05$: it is nearly right,
+so it barely affects the next tree.
+
+#### Step size and when to stop
 
 - A smaller $\eta$ (typically 0.01 to 0.3) takes smaller steps, so it needs
   more trees, but usually gives lower test error.
 - Each tree adds capacity, so too many rounds fit the noise. Stop when the
   error on a validation set stops improving (**early stopping**).
+
+#### Bagging vs boosting
 
 | | bagging / random forest | boosting |
 |---|---|---|
